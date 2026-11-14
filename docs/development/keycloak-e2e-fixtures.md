@@ -4,6 +4,8 @@
 
 `dev/keycloak/provision-test-fixtures.sh` targets **only** `http://127.0.0.1:8180` and the `openclub-dev` realm. It creates/updates a confidential `openclub-bff` OIDC client with an exact `http://localhost:5173/api/v1/auth/callback` redirect URI, authorization-code standard flow enabled, **PKCE S256 required**, direct access grants/implicit/service accounts disabled, and no web origins. It creates one synthetic ordinary Keycloak user `openclub-ci-user` without email, roles or club memberships. A Keycloak user is **not** an OpenClub club administrator.
 
+On repeat runs, provisioning rejects a synthetic user with any group membership or unexpected effective realm/client roles (including inherited and composite permissions) **before** updating the user or resetting the password. Stock Keycloak default realm roles and account self-service roles are allowed; privilege escalation is not automatically repaired. Remove the unexpected grants explicitly or recreate the disposable realm before rerunning. Compose CI grants `realm-management/realm-admin`, verifies that provisioning rejects the privileged user, then revokes the role and verifies recovery.
+
 The client secret and test password are **required at runtime**; none are committed, defaulted or echoed. The script requests an ephemeral local master-realm admin API token using the admin password already configured for the dev Keycloak container. The script can be re-run to update the same synthetic client and user. Do not run with `bash -x` or against an identity provider holding real data. This fixed-name fixture is for disposable local instances, **not** shared or production use.
 
 ```sh
