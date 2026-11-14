@@ -133,9 +133,9 @@ handoff_to:
 
 Every message should identify its task ID, sender, recipient, links to artifacts, and actionable next step. Store critical decisions in version control or the relevant GitHub Issue rather than only in transient chats.
 
-## Technology choices discussed (not finalized)
+## Technology choices discussed (historical; stack since selected)
 
-An initial suggestion was TypeScript frontend and backend, PostgreSQL, REST/OpenAPI, GitHub Actions, and Markdown/Mermaid documentation. **Kotlin for frontend and/or backend remains a legitimate alternative under evaluation**, not a rejected option. Decide stack choices using development experience, deployment costs, ecosystem maturity, and project complexity.
+An initial suggestion was TypeScript frontend and backend, PostgreSQL, REST/OpenAPI, GitHub Actions, and Markdown/Mermaid documentation. That was an **early exploration**. The subsequent accepted [ADR-0001](../../decisions/0001-stack-selection.md) selected **React/TypeScript/Vite for the web and Kotlin/Ktor for the backend**, with PostgreSQL, Flyway and jOOQ. Do not treat the older comparison here as a current open decision.
 
 For agent integration:
 
@@ -157,8 +157,8 @@ Protect credentials, customer/member data, repository write permissions, and pro
 ## Open questions
 
 - Should the first release target one floorball club, all sports clubs, or nonprofits generally?
-- TypeScript full-stack or Kotlin for some/all components?
-- What is the minimal organization/club membership and role model?
+- ~~TypeScript full-stack or Kotlin for some/all components?~~ Resolved by [ADR-0001](../../decisions/0001-stack-selection.md).
+- ~~What is the minimal organization/club membership and role model?~~ Initial schema resolved by [ADR-0002](../../decisions/0002-identity-and-membership-model.md); lifecycle details remain open.
 - What deployment architecture can be low-cost and reliable?
 - What exact task/handoff schema should be standard across Claude Code and Codex?
 - Which integrations should be prioritized for the initial usable release?

@@ -25,11 +25,11 @@ Use a **TypeScript web frontend** with a **Kotlin/JVM backend**:
 | API interface | REST with an OpenAPI contract |
 | Architecture | Modular monolith |
 | Build tools | Gradle for backend; pnpm for frontend |
-| Backend tests | JUnit 5; Testcontainers for integration tests |
+| Backend tests | JUnit 5; PostgreSQL-backed integration tests (GitHub Actions PostgreSQL service currently; Testcontainers optional later) |
 | Frontend tests | Vitest; Playwright for browser flows |
 | CI | GitHub Actions |
 
-Authentication provider, deployment platform, UI component library, authorization mechanism, and specific framework/library versions are **not** decided by this ADR.
+Authentication provider, deployment platform, UI component library, authorization mechanism, and specific framework/library versions are **not** decided by this ADR. See the implementation notes below for subsequent progress.
 
 ### Database access rules
 
@@ -80,3 +80,7 @@ Exposed, Hibernate/JPA and other ORM approaches were considered in general terms
 5. Implement the initial club/membership workflow against the documented OpenAPI contract.
 
 **This ADR records the stack decision only.** Application scaffolding and CI implementation belong in a separate pull request.
+
+## Implementation status (2026-11-14; historical decision retained)
+
+The implementation now uses a **GitHub Actions PostgreSQL service** for integration tests (see `.github/workflows/build.yml` and `apps/api/src/test`). **Testcontainers has not been adopted**; it is an optional future alternative, not a prerequisite for the current build. The repo also includes a Gradle wrapper, pnpm lockfile, a Compose smoke workflow and a draft (not yet approved) OpenAPI contract. See [roadmap](../roadmap.md) for current status. Keep this implementation note aligned with CI if database test infrastructure changes.
