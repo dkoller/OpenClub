@@ -18,10 +18,16 @@ internal interface BrowserLoginOperations {
 internal fun Application.installBrowserLogin(
     operations: BrowserLoginOperations,
     cookies: AuthCookiePolicy,
+    admission: AuthAdmissionLimiter = AuthAdmissionLimiter(),
 ) {
     routing {
         get("/api/v1/auth/login") {
             call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+            if (!admission.allowLogin()) {
+                call.response.headers.append(HttpHeaders.RetryAfter, "60")
+                call.respondText("Authentication rate limited", status = HttpStatusCode.TooManyRequests)
+                return@get
+            }
             try {
                 val pending = operations.begin()
                 call.response.cookies.append(cookies.loginBinding(pending.browserBinding))
@@ -34,6 +40,11 @@ internal fun Application.installBrowserLogin(
             call.response.headers.append(HttpHeaders.CacheControl, "no-store")
             // Always discard the one-time browser binding, including on provider errors.
             call.response.cookies.append(cookies.clearLogin())
+            if (!admission.allowCallback()) {
+                call.response.headers.append(HttpHeaders.RetryAfter, "60")
+                call.respondText("Authentication rate limited", status = HttpStatusCode.TooManyRequests)
+                return@get
+            }
             val query = call.request.queryParameters
             val states = query.getAll("state")
             val codes = query.getAll("code")
