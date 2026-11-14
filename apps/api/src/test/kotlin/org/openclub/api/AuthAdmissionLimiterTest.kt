@@ -1,6 +1,7 @@
 package org.openclub.api
 
 import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
@@ -56,12 +57,20 @@ class AuthAdmissionLimiterTest {
         assertEquals(HttpStatusCode.TooManyRequests, deniedLogin.status)
         assertEquals("60", deniedLogin.headers[HttpHeaders.RetryAfter])
         assertEquals("no-store", deniedLogin.headers[HttpHeaders.CacheControl])
+        assertEquals("application/json", deniedLogin.headers[HttpHeaders.ContentType])
+        assertEquals("""{"code":"rate_limited","message":"Authentication rate limited"}""",
+            deniedLogin.bodyAsText())
         assertEquals(1, starts)
 
         val callback = "/api/v1/auth/callback?state=${"s".repeat(43)}&code=valid"
         assertEquals(HttpStatusCode.Unauthorized, noRedirect.get(callback).status)
         val deniedCallback = noRedirect.get(callback)
         assertEquals(HttpStatusCode.TooManyRequests, deniedCallback.status)
+        assertEquals("60", deniedCallback.headers[HttpHeaders.RetryAfter])
+        assertEquals("no-store", deniedCallback.headers[HttpHeaders.CacheControl])
+        assertEquals("application/json", deniedCallback.headers[HttpHeaders.ContentType])
+        assertEquals("""{"code":"rate_limited","message":"Authentication rate limited"}""",
+            deniedCallback.bodyAsText())
         assertTrue(deniedCallback.headers.getAll(HttpHeaders.SetCookie).orEmpty().any {
             it.contains("openclub_dev_login=") && it.contains("Max-Age=0")
         })
