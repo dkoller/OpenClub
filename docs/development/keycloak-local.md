@@ -17,6 +17,8 @@ Open the local administration console at http://localhost:8180/admin/ and sign i
 http://localhost:8180/realms/openclub-dev/.well-known/openid-configuration
 ```
 
+The source file is `dev/keycloak/openclub-realm.json`, mounted inside the container as `openclub-dev-realm.json` to satisfy Keycloak's required `<realm-name>-realm.json` startup-import naming convention. The CI smoke test starts Keycloak and checks the realm discovery document, not just Compose syntax.
+
 The imported realm `openclub-dev` intentionally contains **no preset users, passwords, clients, or club memberships**. Self-registration is disabled. The Keycloak bootstrap administrator is **only** an identity-provider administrator; it is not automatically a Club ADMIN.
 
 ## Configure a test OIDC client

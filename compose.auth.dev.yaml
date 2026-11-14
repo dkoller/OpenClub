@@ -12,7 +12,7 @@ services:
       - "127.0.0.1:8180:8080"
     volumes:
       - keycloak_dev_data:/opt/keycloak/data
-      - ./dev/keycloak/openclub-realm.json:/opt/keycloak/data/import/openclub-realm.json:ro
+      - ./dev/keycloak/openclub-realm.json:/opt/keycloak/data/import/openclub-dev-realm.json:ro
     # Startup is deliberately not a dependency of OpenClub's normal Compose stack.
     # Keycloak start-dev uses an embedded development database only.
 volumes:
