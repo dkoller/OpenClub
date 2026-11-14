@@ -5,6 +5,7 @@ info:
   description: >
     NOT APPROVED FOR IMPLEMENTATION. Depends on R01 pilot workflow and R02
     authentication design. No unauthenticated club/member mutations.
+    See docs/contracts/contract-review.md for unresolved security and scope requirements.
 servers:
   - url: /api
 security:
