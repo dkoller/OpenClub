@@ -43,3 +43,7 @@ Keycloak is **not** part of the default startup. For local OIDC development, see
 - API startup runs Flyway migrations; `/health` reports liveness rather than full application readiness.
 - Initial image builds download dependencies and may take several minutes.
 - This is not a production deployment configuration; production requires secrets, TLS, backups and hardening.
+
+## Optional backend authentication settings (not yet a working login)
+
+Normal one-command startup is unchanged: auth defaults to disabled, so there are no default OIDC secrets. For future development login, see [runtime configuration and cookie policy](../../security/auth-runtime.md) and [local Keycloak](../../development/keycloak-local.md). Never commit client secrets; opt-in requires explicit loopback development configuration and a PostgreSQL database. The auth routes remain disabled pending integration and security tests.
