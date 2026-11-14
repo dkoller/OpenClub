@@ -19,16 +19,25 @@ internal data class OidcSettings(
     val redirectUri: URI,
 ) {
     init {
-        require(issuer.scheme == "https" || isLoopbackHttp(issuer)) { "Issuer must use HTTPS" }
-        require(issuer.rawQuery == null && issuer.rawFragment == null && issuer.userInfo == null)
-        require(authorizationEndpoint.scheme == issuer.scheme && authorizationEndpoint.host == issuer.host)
-        require(authorizationEndpoint.port == issuer.port && authorizationEndpoint.userInfo == null)
+        // URI.host can be null for hostless URLs and unparsed internationalized authorities.
+        // Reject both rather than accidentally comparing two null hosts as equal.
+        require(validWebAuthority(issuer)) { "Issuer must have a parsed host and HTTPS (or loopback HTTP)" }
+        require(issuer.rawQuery == null && issuer.rawFragment == null)
+        require(validWebAuthority(authorizationEndpoint)) { "Authorization endpoint needs a parsed host" }
+        require(authorizationEndpoint.scheme == issuer.scheme &&
+            authorizationEndpoint.host.equals(issuer.host, ignoreCase = true))
+        require(authorizationEndpoint.port == issuer.port)
         require(authorizationEndpoint.rawFragment == null && authorizationEndpoint.rawQuery == null)
         require(clientId.isNotBlank())
-        require(redirectUri.scheme == "https" || isLoopbackHttp(redirectUri))
-        require(redirectUri.rawQuery == null && redirectUri.rawFragment == null && redirectUri.userInfo == null)
+        require(validWebAuthority(redirectUri)) { "Callback needs a parsed host and HTTPS (or loopback HTTP)" }
+        require(redirectUri.rawQuery == null && redirectUri.rawFragment == null)
         require(redirectUri.path == "/api/v1/auth/callback")
     }
+
+    private fun validWebAuthority(uri: URI): Boolean =
+        !uri.isOpaque && uri.isAbsolute &&
+            !uri.host.isNullOrBlank() && uri.rawAuthority != null && uri.userInfo == null &&
+            (uri.scheme == "https" || isLoopbackHttp(uri))
 
     private fun isLoopbackHttp(uri: URI): Boolean =
         uri.scheme == "http" && (uri.host == "localhost" || uri.host == "127.0.0.1" || uri.host == "[::1]")

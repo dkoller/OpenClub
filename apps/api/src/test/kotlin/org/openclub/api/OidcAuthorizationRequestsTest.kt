@@ -51,6 +51,51 @@ class OidcAuthorizationRequestsTest {
     }
 
     @Test
+    fun rejectsHostlessAndUnparsedInternationalizedAuthorities() {
+        val safeHttps = OidcSettings(
+            issuer = URI("https://identity.example/realm"),
+            authorizationEndpoint = URI("https://identity.example/authorize"),
+            clientId = "openclub-bff",
+            redirectUri = URI("https://app.example/api/v1/auth/callback"),
+        )
+        assertEquals("identity.example", safeHttps.issuer.host)
+
+        for (uri in listOf(
+            "https:/realm",
+            "https://bücher.example/realm",
+            "https://böse.example/realm",
+        )) {
+            assertThrows(IllegalArgumentException::class.java) {
+                safeHttps.copy(issuer = URI(uri))
+            }
+        }
+        for (uri in listOf(
+            "https:/authorize",
+            "https://bücher.example/authorize",
+            "https://böse.example/authorize",
+        )) {
+            assertThrows(IllegalArgumentException::class.java) {
+                safeHttps.copy(authorizationEndpoint = URI(uri))
+            }
+        }
+        for (uri in listOf(
+            "https:/api/v1/auth/callback",
+            "https://bücher.example/api/v1/auth/callback",
+            "https://böse.example/api/v1/auth/callback",
+        )) {
+            assertThrows(IllegalArgumentException::class.java) {
+                safeHttps.copy(redirectUri = URI(uri))
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            safeHttps.copy(
+                issuer = URI("https://bücher.example/realm"),
+                authorizationEndpoint = URI("https://böse.example/authorize"),
+            )
+        }
+    }
+
+    @Test
     fun rejectsUntrustedOrUnsafeConfiguration() {
         assertThrows(IllegalArgumentException::class.java) {
             settings().copy(issuer = URI("http://identity.example/realms/demo"))
