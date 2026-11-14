@@ -50,6 +50,28 @@ class OidcSigningKeysTest {
     }
 
     @Test
+    fun freshKnownKeySurvivesFailedUnknownKeyRefresh() {
+        var now = 0L
+        var calls = 0
+        val cache = OidcSigningKeys(JWKSet(first.toPublicJWK()), {
+            calls++
+            error("provider unavailable")
+        }, { now })
+        val known = token(first)
+        val unknown = token(second)
+
+        assertThrows(Exception::class.java) { cache.forToken(unknown) }
+        assertNotNull(cache.forToken(known).getKeyByKeyId("first"))
+        assertThrows(Exception::class.java) { cache.forToken(unknown) }
+        assertEquals(1, calls)
+
+        now = Duration.ofSeconds(30).toNanos()
+        assertThrows(Exception::class.java) { cache.forToken(unknown) }
+        assertEquals(2, calls)
+        assertNotNull(cache.forToken(known).getKeyByKeyId("first"))
+    }
+
+    @Test
     fun simultaneousRotationUsesOneRefresh() {
         var calls = 0
         val cache = OidcSigningKeys(JWKSet(first.toPublicJWK()), {
