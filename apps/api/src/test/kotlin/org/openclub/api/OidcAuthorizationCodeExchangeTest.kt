@@ -157,6 +157,7 @@ class OidcAuthorizationCodeExchangeTest {
             val padded = tokenJson + " ".repeat(length - tokenJson.toByteArray(StandardCharsets.UTF_8).size)
             val bytes = padded.toByteArray(StandardCharsets.UTF_8)
             assertEquals(length, bytes.size)
+            exchange.responseHeaders.add("Content-Type", "application/json")
             exchange.sendResponseHeaders(200, 0) // Chunked: no Content-Length
             exchange.responseBody.use { stream ->
                 var index = 0
