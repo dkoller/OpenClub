@@ -1,0 +1,27 @@
+# Development overlay: docker compose -f compose.yaml -f compose.dev.yaml up --build
+services:
+  api:
+    build:
+      context: ./apps/api
+      target: build
+    working_dir: /src
+    command: ["gradle", "run", "--continuous", "--no-daemon"]
+    volumes:
+      - ./apps/api:/src
+      - gradle_cache:/home/gradle/.gradle
+  web:
+    build:
+      context: ./apps/web
+      target: build
+    working_dir: /src
+    command: ["pnpm", "dev", "--host", "0.0.0.0"]
+    volumes:
+      - ./apps/web:/src
+      - web_node_modules:/src/node_modules
+    environment:
+      API_PROXY_TARGET: http://api:8080
+    ports:
+      - "127.0.0.1:5173:5173"
+volumes:
+  gradle_cache:
+  web_node_modules:
