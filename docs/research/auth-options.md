@@ -40,4 +40,4 @@ These are based on [IETF RFC 10017, OAuth for browser-based applications](https:
 - [ ] Select tested Kotlin library / OIDC mock for CI.
 - [ ] Write accepted ADR before implementing R05.
 
-**No authentication code or privileged endpoint is introduced by this research.**
+**No authentication code or privileged endpoint is introduced by this research.** See [proposed ADR-0003](../decisions/0003-oidc-session-proposal.md) for the candidate decision; it is not accepted yet.
