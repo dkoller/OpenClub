@@ -3,8 +3,9 @@
 Authentication remains opt-in. Use the existing [runtime configuration](auth-runtime.md)
 and [local Keycloak setup](../development/keycloak-local.md); no new variables.
 The configured public origin is canonicalized at startup to browser Origin form:
-lowercase host and no explicit default port (HTTPS 443 / HTTP 80). Only that
-exact Origin header is accepted for logout; inbound headers are never normalized.
+lowercase host, compressed IPv6 literal (first longest zero run), and no explicit
+default port (HTTPS 443 / HTTP 80). Scoped IPv6 literals are not supported.
+Only that exact Origin header is accepted for logout; inbound headers are never normalized.
 Forwarded/Host headers never establish trust.
 
 After browser login, same-origin GET /api/v1/auth/me with the HttpOnly session
