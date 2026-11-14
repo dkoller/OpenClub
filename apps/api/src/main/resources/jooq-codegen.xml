@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration xmlns="http://www.jooq.org/xsd/jooq-codegen-3.20.0.xsd">
+  <!-- Local development defaults ONLY. Generate against a migrated local PostgreSQL database. -->
+  <jdbc>
+    <driver>org.postgresql.Driver</driver>
+    <url>jdbc:postgresql://localhost:5432/openclub</url>
+    <user>openclub</user>
+    <password>openclub_dev</password>
+  </jdbc>
+  <generator>
+    <database>
+      <name>org.jooq.meta.postgres.PostgresDatabase</name>
+      <inputSchema>public</inputSchema>
+    </database>
+    <generate>
+      <deprecated>false</deprecated>
+    </generate>
+    <target>
+      <packageName>org.openclub.api.db.generated</packageName>
+      <directory>build/generated-src/jooq</directory>
+    </target>
+  </generator>
+</configuration>
