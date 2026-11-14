@@ -34,7 +34,7 @@ fun main() {
     }
 }
 
-fun Application.module(
+internal fun Application.module(
     login: BrowserLoginOperations? = null,
     cookiePolicy: AuthCookiePolicy? = null,
 ) {
