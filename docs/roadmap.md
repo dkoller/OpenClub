@@ -26,6 +26,8 @@ Dependency references indicate when implementation **must not outpace prerequisi
 | C08. Pinned Gradle wrapper and pnpm lockfile | ✅ Done | [PR #8](https://github.com/dkoller/OpenClub/pull/8) | Make builds reproducible before feature contributions. |
 | C09. Person/identity/membership schema and ADR-0002 | ✅ Done | [PR #9](https://github.com/dkoller/OpenClub/pull/9) | Model multi-club roles correctly before security and API implementation. |
 
+**Decision update (2026-11-14):** [ADR-0003](decisions/0003-oidc-session-proposal.md) confirms Keycloak OIDC + Kotlin BFF architecture; [ADR-0004](decisions/0004-member-policy.md) records onboarding, directory visibility and lifecycle direction. Pilot validation, minor-contact privacy, session/CSRF details, initial admin implementation and API acceptance remain open. These decisions guide R01–R18 without implying completion.
+
 **Important limitation:** The schema is not an authorization system. No member-management API or login flow has yet been implemented. The next items must establish these before handling real member data.
 
 **Current review budget:** maximum 999 added + deleted lines (target 500–700); this supersedes the historical C05 limit. All tracked issues use this limit.

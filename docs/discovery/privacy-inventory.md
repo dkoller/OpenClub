@@ -36,3 +36,7 @@ The [Swiss FDPIC's guidance for clubs and associations](https://www.edoeb.admin.
 - R03 completion requires a responsible human review; this document only structures the work.
 
 For implementation, add PostgreSQL-backed isolation tests and avoid real member data in CI or repository fixtures.
+
+## Product decisions and outstanding privacy work (2026-11-14)
+
+[ADR-0004](../decisions/0004-member-policy.md) specifies required first and last names, optional email/phone, and a **same-club directory visible to all authenticated members**. This is a product access decision, **not approval to publish all contacts for real users**, especially minors. Review user notice, applicable lawful basis, visibility restrictions for youth, possible per-club field access, controller responsibilities, and retention/erasure/backup policy before processing live records. Archive, export and configurable retention are incremental goals; exact retention periods remain undecided.

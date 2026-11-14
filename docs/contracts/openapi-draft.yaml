@@ -4,7 +4,9 @@ info:
   version: 0.0.0-draft
   description: >
     NOT APPROVED FOR IMPLEMENTATION. Depends on R01 pilot workflow and R02
-    authentication design. No unauthenticated club/member mutations.
+    authentication implementation details. Decisions on roles and data fields
+    follow ADR-0004; privacy and bootstrap specifics are still pending.
+    No unauthenticated club/member mutations.
     See docs/contracts/contract-review.md for unresolved security and scope requirements.
 servers:
   - url: /api
@@ -63,7 +65,10 @@ paths:
       - $ref: '#/components/parameters/ClubId'
     get:
       tags: [Members]
-      summary: List members within one authorized club
+      summary: List members and permitted contacts within one authorized club
+      description: >
+        Requires authenticated membership in the requested club (ADMIN or MEMBER).
+        Scope to the club; field-level contact privacy for minors still requires review.
       operationId: listClubMembers
       parameters:
         - name: limit
@@ -97,7 +102,8 @@ paths:
           $ref: '#/components/responses/NotFound'
     post:
       tags: [Members]
-      summary: Add a person to a club (before-login flow TBD)
+      summary: Add a person to a club without requiring a login
+      description: Requires ADMIN membership of the requested club; invitation flow is later.
       operationId: addClubMember
       requestBody:
         required: true
@@ -133,7 +139,7 @@ paths:
           format: uuid
     put:
       tags: [Members]
-      summary: Set club-scoped role; must protect last administrator
+      summary: Set club-scoped role; requires ADMIN and last-admin protection
       operationId: setMembershipRole
       requestBody:
         required: true
@@ -165,7 +171,7 @@ components:
       type: apiKey
       in: cookie
       name: openclub_session
-      description: Proposed BFF cookie; final session mechanism TBD under R02.
+      description: Approved Ktor BFF opaque HttpOnly session-cookie architecture; CSRF, store and exact cookie settings pending.
   parameters:
     ClubId:
       name: clubId
@@ -196,18 +202,24 @@ components:
     AddMember:
       type: object
       additionalProperties: false
-      required: [displayName]
+      required: [firstName, lastName]
       properties:
-        displayName: { type: string, minLength: 1, maxLength: 200 }
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 320 }
+        phone: { type: string, maxLength: 40 }
     Membership:
       type: object
       additionalProperties: false
-      required: [id, clubId, personId, displayName, role]
+      required: [id, clubId, personId, firstName, lastName, role]
       properties:
         id: { type: string, format: uuid }
         clubId: { type: string, format: uuid }
         personId: { type: string, format: uuid }
-        displayName: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
         role: { $ref: '#/components/schemas/Role' }
     MemberPage:
       type: object

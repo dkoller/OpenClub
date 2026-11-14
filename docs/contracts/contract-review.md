@@ -43,3 +43,7 @@ This document reviews the merged proposal without inventing decisions that depen
 - [ ] Version status changed from `0.0.0-draft` only after the above are approved.
 
 This review introduces no runtime endpoint or new dependency. The draft remains non-binding.
+
+## Decisions received on 2026-11-14
+
+[ADR-0003](../decisions/0003-oidc-session-proposal.md) selects self-hosted Keycloak as OIDC reference and Ktor BFF sessions. [ADR-0004](../decisions/0004-member-policy.md) confirms manual accountless member creation first; required given/family name; optional contact fields; authenticated same-club directory reads for ADMIN/MEMBER, and ADMIN-only writes. The OpenAPI **draft** reflects these choices but remains unapproved pending session/CSRF design, first-admin issuance, pilot validation and privacy review (especially youth contact visibility). The current database schema must be migrated before implementing these new fields.

@@ -18,6 +18,8 @@ This is a **working hypothesis**, not a final commitment. See [MVP scope](docs/c
 
 - [MVP and boundaries](docs/concepts/product/mvp.md)
 - [Technical decision record](docs/decisions/0001-stack-selection.md)
+- [Authentication architecture](docs/decisions/0003-oidc-session-proposal.md)
+- [Membership and privacy-related product decisions](docs/decisions/0004-member-policy.md)
 - [Numbered roadmap, GitHub issues and completed milestones](docs/roadmap.md)
 - [Original milestone concept](docs/concepts/ai/first-milestone.md)
 - [AI-assisted development concept](docs/concepts/ai/ai-agent-development.md)

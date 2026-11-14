@@ -1,6 +1,6 @@
-# ADR-0003 (proposal): OIDC and browser session architecture
+# ADR-0003: OIDC and browser session architecture
 
-- **Status:** Proposed — requires human approval before implementation
+- **Status:** Accepted architecture (2026-11-14); security implementation details remain open
 - **Date:** 2026-11-14
 - **Related:** [R02 #11](https://github.com/dkoller/OpenClub/issues/11), [finding #35](https://github.com/dkoller/OpenClub/issues/35), [ADR-0002](0002-identity-and-membership-model.md)
 - **Input:** [OIDC comparison](../research/auth-options.md)
@@ -9,13 +9,13 @@
 
 OpenClub needs trusted sign-in, club-scoped roles, a self-hostable pilot environment, and no bespoke password/token infrastructure. Its members may be added before creating accounts. The browser client must never authorize club access on its own.
 
-## Proposed decision (not yet adopted)
+## Confirmed decision
 
-1. **Provider candidate: Keycloak, self-hosted for development and initial pilot.** It offers standard OIDC and a mature deployment story, but imposes extra JVM/service operations; benchmark the resource footprint and maintenance before acceptance. authentik and ZITADEL remain alternatives, especially if the pilot already uses either.
-2. **Browser pattern: Ktor backend-for-frontend (BFF).** React uses same-origin API calls and an opaque server-managed session cookie. The backend performs OIDC authorization-code + PKCE login and token exchange. No access or refresh tokens in browser localStorage.
+1. **Provider: Keycloak, self-hosted as the reference implementation.** It offers standard OIDC and a mature deployment story, but imposes extra JVM/service operations; benchmark the resource footprint and maintenance before acceptance. Keep the OIDC integration provider-neutral so that other self-hosted or externally managed providers can be configured later; multi-provider support within one installation is not part of the MVP.
+2. **Browser pattern: Ktor backend-for-frontend (BFF), approved.** React uses same-origin API calls and an opaque server-managed session cookie. The backend performs OIDC authorization-code + PKCE login and token exchange. No access or refresh tokens in browser localStorage.
 3. **Identity mapping:** Only resolve a person using verified OIDC `issuer` + `subject`. An email is contact information, not a unique stable login identifier.
 4. **Authorization:** For each club-specific request, resolve session -> person -> membership in the requested club -> required role; explicitly deny cross-club operations. No membership APIs until verified sessions and this guard exist.
-5. **First administrator:** Club creation and initial ADMIN membership must be atomically authorized. Require an explicit onboarding policy and tested recovery for lost access; never permit open self-appointment to existing clubs.
+5. **First administrator:** Club creation and initial ADMIN membership must be atomically authorized. New-club creation is configurable by installation, with invitation/approval as the secure default. The MVP implements controlled onboarding first; recovery and optional open creation require separate designs. Never permit open self-appointment to existing clubs.
 
 ## Threats and required controls
 
@@ -35,14 +35,17 @@ OpenClub needs trusted sign-in, club-scoped roles, a self-hostable pilot environ
 | Browser-only OAuth/OIDC | Public-client token storage and callback implementation need extra browser security work; BFF matches existing Kotlin server |
 | Custom password or JWT issuer | Unnecessary security-sensitive maintenance; avoid |
 
-## Acceptance checklist before switching status to Accepted
+## Implementation and deployment gates (architecture accepted; these remain open)
 
 - [ ] Confirm pilot identity needs and users (including accountless member records) from [R01 #10](https://github.com/dkoller/OpenClub/issues/10).
-- [ ] Approve provider or select a documented alternative; verify licenses, supported versions and free/self-hosted operational footprint.
-- [ ] Approve BFF session store, CSRF controls, logout, expiry, cookie rules and local developer experience.
-- [ ] Approve initial club provisioning, first-admin authorization and recovery.
+- [x] Select Keycloak as the initial self-hosted reference provider; preserve standard OIDC portability.
+- [ ] Verify compatible versions, operational footprint and production configuration.
+- [x] Approve Ktor BFF with opaque server-side sessions and HttpOnly cookies.
+- [ ] Select session store, CSRF controls, logout, expiry, production cookie settings and local developer experience.
+- [x] Set controlled club creation as the default; permit deployment-level configuration later.
+- [ ] Approve exact first-admin approval mechanism, authorization and recovery.
 - [ ] Select maintained Kotlin OIDC libraries and define mock identity provider for offline CI tests.
 - [ ] Update the OpenAPI draft/session contract as part of the implementation PR.
 - [ ] Obtain appropriate privacy review before any real pilot identities are used.
 
-**No login code or privileges are introduced by this proposal.** Do not mark R02 complete or start exposing membership endpoints on the basis of this draft alone.
+**No login code or privileges are introduced by this ADR.** Its architecture is accepted, but do not expose membership endpoints until authentication, authorization, bootstrap and privacy controls have been implemented and tested.
