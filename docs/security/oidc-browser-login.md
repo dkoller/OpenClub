@@ -1,6 +1,6 @@
 # R05 / C6 — browser OIDC login and callback
 
-**Status:** review-required integration slice; not a public authentication release.
+**Status:** opt-in authentication implementation and synthetic E2E verified; not a public release.
 Parent: [R05/#14](https://github.com/dkoller/OpenClub/issues/14).
 
 ## Runtime and trust boundaries
@@ -35,20 +35,24 @@ runs on a limited I/O dispatcher. No club membership or admin grants are inferre
 HTTP test-host cases cover default-disabled routes, login cookie/redirect,
 missing/duplicate/provider-error callbacks, browser binding rejection and
 successful cookie rotation. Existing DB/verification tests independently cover
-one-time state consumption, replay, signature and subject mapping. Real
-end-to-end login remains unverified until the subsequent CI slice.
+one-time state consumption, replay, signature and subject mapping. The real
+Keycloak/Chromium/PostgreSQL login, session and logout journey is exercised by
+[CI](../development/auth-browser-e2e.md); [RSA key rotation](../development/auth-jwks-rotation-e2e.md)
+is separately exercised against the same running API.
 
 **Session follow-up (2026-11-14):** opt-in session routes are implemented; see [session API](session-api.md).
 
-**Before public use:** verify session routes,
-JWKS refresh, rate limits, deterministic Keycloak browser E2E testing and
-privacy/first-admin authorization release gates. Keep #14 open and require
-manual PR review/merge.
+**Before public use:** complete R02 operational/recovery decisions, R03 privacy,
+R06 club authorization, R07 first-admin bootstrap and the documented web `/api`
+proxy-path fix. R05/#14 remains open until closeout review and CI; do not infer
+public-release readiness from synthetic authentication CI.
 
 ### JWKS refresh implementation note (2026-11-14)
 
 The code-exchange runtime now refreshes the startup-vetted JWKS endpoint with
 a five-minute key lifetime and shared 30-second refresh cooldown. See
 [provider discovery policy](oidc-provider-discovery.md#jwks-runtime-refresh-2026-11-14).
-This supersedes the earlier refresh follow-up only; rate limits, session endpoint
-verification and real provider browser/rotation E2E remain release gates.
+The earlier refresh follow-up is implemented. Session endpoints, process-local
+[admission limits](auth-admission-limit.md), [expiry cleanup](auth-record-cleanup.md),
+and real provider browser/rotation E2E have also been implemented and tested.
+The rate limit is per API instance and does not replace edge abuse protection.
