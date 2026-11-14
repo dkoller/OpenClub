@@ -16,6 +16,8 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 - Count tests, docs, config, generated source and lockfiles; no exemptions for generated files. Binary changes do not count as text lines and require explicit reviewer scrutiny.
 - Split oversized work into independently useful, reviewable PRs. Never omit tests to meet the limit.
 - Document the purpose, acceptance criteria, testing performed/not performed, and known risks.
+- **Documentation is part of the change:** update affected README, setup/runbook, API contract, ADR, roadmap and examples **in the same PR** whenever behavior, configuration, dependencies or decisions change. Do not postpone known mismatches to a later cleanup PR.
+- If a change has no documentation impact, explicitly state **"Documentation: no changes needed"** and why in the PR. Update historical documents only with clear status/context annotations; never rewrite history silently.
 - Keep production changes and sensitive configuration behind explicit human approval.
 - Required CI checks must pass; human approval is required to merge. Do not self-merge.
 
@@ -24,7 +26,7 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 1. Read `README.md`, the relevant concept documents and accepted ADRs.
 2. Define the smallest observable outcome; estimate PR size before coding.
 3. Work in a scoped branch or separate worktree. Do not rewrite `main`.
-4. Update contracts and tests with their implementation; limit each PR to one coherent change.
+4. Update relevant docs, contracts and tests alongside implementation (see [documentation maintenance](docs/contributing/documentation.md)); limit each PR to one coherent change. Verify that documented commands still match the code and CI.
 5. Run applicable checks and report actual results. Never claim tests passed without running them.
 6. Inspect the final diff for errors, unnecessary code, secrets and the size limit.
 7. Open a PR and record unresolved decisions or blockers.

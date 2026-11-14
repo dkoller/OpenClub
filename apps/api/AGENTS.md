@@ -7,6 +7,7 @@ Read root `AGENTS.md` and ADR-0001 first.
 - Keep jOOQ code and generated database records out of public API DTOs.
 - Prefer concrete services and data access classes; add abstractions only where they provide an actual boundary.
 - SQL/code generation must be reproducible from versioned schema migrations.
+- When changing routes, migrations, authentication, environment variables or build/test commands, update the OpenAPI contract, relevant ADRs and developer/runbook docs **in the same PR**. Check [documentation maintenance](../../docs/contributing/documentation.md).
 - Validate requests, enforce authorization and club isolation server-side, and use explicit transactions where appropriate.
 - jOOQ JDBC work is blocking: do not run it on an event-loop thread. Document the dispatcher/connection-pool approach before implementation.
 - Test SQL and migrations against PostgreSQL, including cross-club access denial.
