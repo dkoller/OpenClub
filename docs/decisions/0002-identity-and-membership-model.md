@@ -1,6 +1,6 @@
 # ADR-0002: Identity and club membership boundaries
 
-- **Status:** Accepted when this PR is merged
+- **Status:** Accepted
 - **Date:** 2026-11-14
 - **Scope:** MVP domain persistence and authorization design
 
