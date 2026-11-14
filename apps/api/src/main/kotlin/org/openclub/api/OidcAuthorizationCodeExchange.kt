@@ -103,11 +103,18 @@ internal class OidcAuthorizationCodeExchange(
             setContentType("application/json")
             setBody(String(response.body(), StandardCharsets.UTF_8))
         }
-        val tokenResponse = OIDCTokenResponseParser.parse(parsed)
-        require(tokenResponse.indicatesSuccess()) { "OIDC token endpoint did not return tokens" }
-        val tokens = (tokenResponse.toSuccessResponse() as OIDCTokenResponse).oidcTokens
-        val idToken = requireNotNull(tokens.idToken) { "OIDC response missing ID token" }
-        // Discard access/refresh tokens. Never persist or return them to the browser.
-        return verifier.verify(idToken.serialize(), login.nonce)
+        // Nimbus validation/parsing exceptions can include raw JWT claim values
+        // (including received nonces). Never propagate the message OR cause: normal
+        // exception logging may serialize the entire cause chain and stack trace.
+        try {
+            val tokenResponse = OIDCTokenResponseParser.parse(parsed)
+            require(tokenResponse.indicatesSuccess()) { "OIDC token endpoint did not return tokens" }
+            val tokens = (tokenResponse.toSuccessResponse() as OIDCTokenResponse).oidcTokens
+            val idToken = requireNotNull(tokens.idToken) { "OIDC response missing ID token" }
+            // Discard access/refresh tokens. Never persist or return them to the browser.
+            return verifier.verify(idToken.serialize(), login.nonce)
+        } catch (_: Exception) {
+            throw IllegalStateException("OIDC token verification failed")
+        }
     }
 }

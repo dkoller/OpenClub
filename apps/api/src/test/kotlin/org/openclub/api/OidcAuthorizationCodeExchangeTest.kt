@@ -104,10 +104,19 @@ class OidcAuthorizationCodeExchangeTest {
 
     @Test
     fun rejectsInvalidNonceAndTokenErrorsWithoutExposingProviderSecrets() {
+        val sensitiveNonce = "SENSITIVE_NONCE_CLAIM_MARKER_DO_NOT_LOG"
         withServer({ exchange, base ->
-            respond(exchange, 200, tokens(idToken(base, nonce = "wrong-nonce")))
+            respond(exchange, 200, tokens(idToken(base, nonce = sensitiveNonce)))
         }) { _, exchange ->
-            assertThrows(Exception::class.java) { exchange.redeem("code", login) }
+            val failure = assertThrows(IllegalStateException::class.java) {
+                exchange.redeem("code", login)
+            }
+            assertEquals("OIDC token verification failed", failure.message)
+            assertEquals(null, failure.cause, "Sensitive Nimbus exception must not be retained")
+            val trace = java.io.StringWriter().also { writer ->
+                failure.printStackTrace(java.io.PrintWriter(writer))
+            }.toString()
+            assertFalse(trace.contains(sensitiveNonce), "Received nonce must not appear in stack traces")
         }
         withServer({ exchange, _ ->
             respond(exchange, 400, """{"error":"invalid_grant","error_description":"secret-info"}""")
@@ -171,7 +180,9 @@ class OidcAuthorizationCodeExchangeTest {
     fun tokenResponseBodyStallExpiresWholeResponseDeadline() {
         val release = java.util.concurrent.CountDownLatch(1)
         val headersSent = java.util.concurrent.CountDownLatch(1)
+        val postCount = java.util.concurrent.atomic.AtomicInteger(0)
         withServer({ exchange, _ ->
+            postCount.incrementAndGet()
             try {
                 exchange.sendResponseHeaders(200, 0)
                 exchange.responseBody.use {
@@ -192,6 +203,7 @@ class OidcAuthorizationCodeExchangeTest {
                 val elapsedMs = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
                 assertTrue(headersSent.await(1, java.util.concurrent.TimeUnit.SECONDS))
                 assertTrue(elapsedMs in 4_000..8_000, "A stalled token body must time out: ${elapsedMs}ms")
+                assertEquals(1, postCount.get(), "A timed-out code exchange must never retry the POST")
             } finally {
                 release.countDown()
             }
