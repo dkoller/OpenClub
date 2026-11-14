@@ -73,11 +73,15 @@ admin_get "$base/admin/realms/$realm/clients/$client_id" |
 admin_get "$base/admin/realms/$realm/clients/$client_id/client-secret" |
     jq -e --arg expected "$OPENCLUB_E2E_CLIENT_SECRET" '.value == $expected' >/dev/null
 
-# No email, club membership, roles or admin privileges are assigned.
+# Populate only synthetic profile fields required by Keycloak 26 to avoid
+# VERIFY_PROFILE on first login. No real inbox, membership or privileges.
 user_json="$(jq -nc --arg name "$username" '{
     username: $name,
+    firstName: "OpenClub",
+    lastName: "CI",
+    email: "openclub-ci-user@example.invalid",
     enabled: true,
-    emailVerified: false,
+    emailVerified: true,
     requiredActions: []
 }')"
 
@@ -137,7 +141,10 @@ password_json="$(jq -nc --arg password "$OPENCLUB_E2E_USER_PASSWORD" '{
 }')"
 admin_write PUT "$base/admin/realms/$realm/users/$user_id/reset-password" "$password_json"
 admin_get "$base/admin/realms/$realm/users/$user_id" |
-    jq -e '.username == "openclub-ci-user" and .enabled == true and .emailVerified == false' >/dev/null
+    jq -e '.username == "openclub-ci-user" and .enabled == true and
+        .firstName == "OpenClub" and .lastName == "CI" and
+        .email == "openclub-ci-user@example.invalid" and
+        .emailVerified == true and (.requiredActions | length == 0)' >/dev/null
 
 # An ephemeral test client/user have been provisioned. Print no tokens or secrets.
 echo "Synthetic local Keycloak OIDC client and user verified"

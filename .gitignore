@@ -28,3 +28,6 @@ coverage/
 .env
 .env.*
 !.env.example
+dev/auth-e2e/node_modules/
+dev/auth-e2e/test-results/
+dev/auth-e2e/playwright-report/
