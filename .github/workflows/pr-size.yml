@@ -24,11 +24,11 @@ jobs:
           set -euo pipefail
           # Query GitHub's changed-files API (all pages) rather than checking out PR code.
           # Every text addition and deletion counts: code, tests, docs and lockfiles.
-          lines="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files?per_page=100"             --jq '.[] | (.additions + .deletions)' |
+          lines="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" --jq '.[] | (.additions + .deletions)' |
             awk '{ total += $1 } END { print total + 0 }')"
           echo "PR changed lines (additions + deletions): ${lines}"
           if (( lines >= 2000 )); then
             echo "::error::PR size ${lines} is not below 2,000. Split into smaller, independently reviewable PRs."
             exit 1
           fi
-          echo "PR size check passed (${lines}/2000)."
+          echo "PR size check passed (${lines}/1999)."
