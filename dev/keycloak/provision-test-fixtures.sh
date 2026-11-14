@@ -105,29 +105,7 @@ assert_ordinary_user() {
     # Only stock Keycloak account self-service roles may be inherited from
     # default-roles-openclub-dev. In particular realm-management must be empty.
     clients_json="$(admin_get "$base/admin/realms/$realm/clients?max=1000")"
-    while IFS=
-user_id="$(admin_get "$user_list" |
-    jq -r --arg name "$username" '.[] | select(.username == $name) | .id')"
-if [[ -z "$user_id" ]]; then
-    admin_write POST "$base/admin/realms/$realm/users" "$user_json"
-else
-    [[ "$user_id" =~ ^[a-f0-9-]{36}$ ]] || { echo "Unexpected Keycloak user ID" >&2; exit 1; }
-    assert_ordinary_user "$user_id"
-    admin_write PUT "$base/admin/realms/$realm/users/$user_id" "$user_json"
-fi
-user_id="$(admin_get "$user_list" |
-    jq -er --arg name "$username" '.[] | select(.username == $name) | .id')"
-assert_ordinary_user "$user_id"
-password_json="$(jq -nc --arg password "$OPENCLUB_E2E_USER_PASSWORD" '{
-    type: "password", temporary: false, value: $password
-}')"
-admin_write PUT "$base/admin/realms/$realm/users/$user_id/reset-password" "$password_json"
-admin_get "$base/admin/realms/$realm/users/$user_id" |
-    jq -e '.username == "openclub-ci-user" and .enabled == true and .emailVerified == false' >/dev/null
-
-# An ephemeral test client/user have been provisioned. Print no tokens or secrets.
-echo "Synthetic local Keycloak OIDC client and user verified"
-\t' read -r client_id client_name; do
+    while IFS=$'\t' read -r client_id client_name; do
         [[ "$client_id" =~ ^[a-f0-9-]{36}$ ]] || { echo "Unexpected Keycloak client ID" >&2; return 1; }
         roles="$(admin_get "$base/admin/realms/$realm/users/$id/role-mappings/clients/$client_id/composite")"
         if ! jq -e --arg client "$client_name" '
@@ -148,10 +126,12 @@ if [[ -z "$user_id" ]]; then
     admin_write POST "$base/admin/realms/$realm/users" "$user_json"
 else
     [[ "$user_id" =~ ^[a-f0-9-]{36}$ ]] || { echo "Unexpected Keycloak user ID" >&2; exit 1; }
+    assert_ordinary_user "$user_id"
     admin_write PUT "$base/admin/realms/$realm/users/$user_id" "$user_json"
 fi
 user_id="$(admin_get "$user_list" |
     jq -er --arg name "$username" '.[] | select(.username == $name) | .id')"
+assert_ordinary_user "$user_id"
 password_json="$(jq -nc --arg password "$OPENCLUB_E2E_USER_PASSWORD" '{
     type: "password", temporary: false, value: $password
 }')"
