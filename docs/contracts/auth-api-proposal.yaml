@@ -3,7 +3,7 @@ info:
   title: OpenClub browser authentication — proposed contract
   version: 0.1.0-proposal
   description: >
-    Opt-in login/callback and session routes are implemented; rate limiting remains proposed. See docs/contracts/auth-api-review.md.
+    Opt-in login/callback and session routes are implemented, including process-local admission rate limiting. See docs/contracts/auth-api-review.md.
     Cookies are issued and interpreted only by the same-origin Ktor BFF.
 servers:
   - url: /api
@@ -202,7 +202,15 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     RateLimited:
-      description: Excessive login/callback attempts
+      description: >
+        Process-local admission limit exceeded (60 login or 120 callback requests
+        per minute per API instance). Retry after the advertised delay.
+      headers:
+        Retry-After:
+          description: Seconds before retrying; currently 60
+          schema: { type: integer, minimum: 1, example: 60 }
+        Cache-Control:
+          schema: { type: string, const: no-store }
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
