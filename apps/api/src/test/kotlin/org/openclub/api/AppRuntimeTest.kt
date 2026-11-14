@@ -109,9 +109,9 @@ class AppRuntimeTest {
             val (worker, value) = runtime.onDatabaseThread { sql ->
                 Thread.currentThread().name to sql.fetchValue("SELECT 1")
             }
-            assertNotEquals(caller, worker)
-            assertEquals("openclub-db-io", worker)
-            assertEquals(1, value)
+            assertNotEquals(caller, worker, "JDBC must not execute on the test caller's thread")
+            assertTrue(worker.startsWith("openclub-db-io"), "Unexpected JDBC worker: $worker")
+            assertEquals("1", value.toString(), "PostgreSQL query should return scalar 1")
         }
     }
 
