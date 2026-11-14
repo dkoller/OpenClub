@@ -32,6 +32,10 @@ Stop with `docker compose -f compose.yaml -f compose.dev.yaml down`.
 
 On Windows, a WSL 2 filesystem generally improves file-watch performance. Gradle continuous mode recompiles changes but **does not guarantee restarting a running Ktor process**. Restart the API container to apply Kotlin changes when necessary.
 
+## Optional identity provider for local auth development
+
+Keycloak is **not** part of the default startup. For local OIDC development, see [Keycloak setup](../../development/keycloak-local.md) and start the separate `compose.auth.dev.yaml` overlay. No login flow is implemented yet.
+
 ## Safety and limitations
 
 - Default password `openclub_dev` is **local development only**. Set `POSTGRES_PASSWORD` to override it before creating a volume; changing it later does not update an existing database user password.

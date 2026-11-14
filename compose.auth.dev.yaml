@@ -1,0 +1,19 @@
+# Development-only OIDC provider. Never include this file in production deployments.
+# Start: KEYCLOAK_DEV_ADMIN_PASSWORD=<unique-secret> docker compose -f compose.yaml -f compose.auth.dev.yaml up -d keycloak
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.2
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: "openclub-local-admin"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_DEV_ADMIN_PASSWORD:?Set a unique local Keycloak development admin password}
+      KC_HOSTNAME: "http://localhost:8180"
+    ports:
+      - "127.0.0.1:8180:8080"
+    volumes:
+      - keycloak_dev_data:/opt/keycloak/data
+      - ./dev/keycloak/openclub-realm.json:/opt/keycloak/data/import/openclub-realm.json:ro
+    # Startup is deliberately not a dependency of OpenClub's normal Compose stack.
+    # Keycloak start-dev uses an embedded development database only.
+volumes:
+  keycloak_dev_data:
