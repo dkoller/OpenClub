@@ -135,8 +135,14 @@ class AppRuntimeTest {
         assertEquals("https://[::1]", config("https://[0:0:0:0:0:0:0:1]").browserOrigin)
         assertEquals("https://[2001:db8:0:1:1:1:1:1]",
             config("https://[2001:0DB8:0:1:1:1:1:1]").browserOrigin)
+        assertEquals("https://[::ffff:c000:201]",
+            config("https://[::ffff:c000:201]").browserOrigin)
+        assertEquals("https://[::ffff:c000:201]",
+            config("https://[::ffff:192.0.2.1]").browserOrigin)
+        assertEquals("https://[::ffff:c000:201]:8443",
+            config("https://[::ffff:c000:201]:8443").browserOrigin)
         assertThrows(IllegalArgumentException::class.java) {
-            config("https://[fe80::1%25eth0]")
+            config("https://[fe80::1%25eth0]").browserOrigin
         }
     }
 
