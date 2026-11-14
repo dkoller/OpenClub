@@ -58,3 +58,10 @@ uses a five-minute public signing-key lifetime, serialized refresh and a shared
 keys fail closed on outage. See [refresh policy](../security/oidc-provider-discovery.md#jwks-runtime-refresh-2026-11-14)
 for rotation availability and key-removal limits. No new provider or deployment
 configuration is introduced; release gates remain open.
+### Session HTTP implementation note (2026-11-14)
+
+Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.
+Logout requires exact Origin, JSON `{}` and session-bound CSRF, with transactional
+validation/revocation before cookie clearing. See [session API](../security/session-api.md).
+R05 remains open pending CI, independent review, Keycloak E2E, JWKS freshness,
+rate limits and cleanup; club authorization, bootstrap and privacy gates remain.

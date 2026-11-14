@@ -95,6 +95,58 @@ class AppRuntimeTest {
     }
 
     @Test
+    fun browserOriginNormalizesUppercaseHostsAndDefaultPorts() {
+        val uppercase = requireNotNull(OidcRuntimeConfig.fromEnvironment(prod + mapOf(
+            "OPENCLUB_PUBLIC_ORIGIN" to "https://APP.EXAMPLE",
+            "OPENCLUB_OIDC_REDIRECT_URI" to "https://APP.EXAMPLE/api/v1/auth/callback",
+        )))
+        assertEquals("https://app.example", uppercase.browserOrigin)
+
+        val explicitDefaultPort = requireNotNull(OidcRuntimeConfig.fromEnvironment(prod + mapOf(
+            "OPENCLUB_PUBLIC_ORIGIN" to "https://CLUB.EXAMPLE:443/",
+            "OPENCLUB_OIDC_REDIRECT_URI" to "https://CLUB.EXAMPLE:443/api/v1/auth/callback",
+        )))
+        assertEquals("https://club.example", explicitDefaultPort.browserOrigin)
+
+        val customPort = requireNotNull(OidcRuntimeConfig.fromEnvironment(prod + mapOf(
+            "OPENCLUB_PUBLIC_ORIGIN" to "https://CLUB.EXAMPLE:8443",
+            "OPENCLUB_OIDC_REDIRECT_URI" to "https://CLUB.EXAMPLE:8443/api/v1/auth/callback",
+        )))
+        assertEquals("https://club.example:8443", customPort.browserOrigin)
+
+        val httpDefault = requireNotNull(OidcRuntimeConfig.fromEnvironment(local + mapOf(
+            "OPENCLUB_PUBLIC_ORIGIN" to "http://LOCALHOST:80",
+            "OPENCLUB_OIDC_REDIRECT_URI" to "http://LOCALHOST:80/api/v1/auth/callback",
+        )))
+        assertEquals("http://localhost", httpDefault.browserOrigin)
+    }
+
+    @Test
+    fun browserOriginCanonicalizesIpv6AndKeepsExactPort() {
+        fun config(origin: String, callback: String = origin.trimEnd('/') + "/api/v1/auth/callback") =
+            requireNotNull(OidcRuntimeConfig.fromEnvironment(prod + mapOf(
+                "OPENCLUB_PUBLIC_ORIGIN" to origin,
+                "OPENCLUB_OIDC_REDIRECT_URI" to callback,
+            )))
+        assertEquals("https://[2001:db8::1]",
+            config("https://[2001:0db8:0:0:0:0:0:1]").browserOrigin)
+        assertEquals("https://[2001:db8::1]:8443",
+            config("https://[2001:0DB8:0:0:0:0:0:1]:8443").browserOrigin)
+        assertEquals("https://[::1]", config("https://[0:0:0:0:0:0:0:1]").browserOrigin)
+        assertEquals("https://[2001:db8:0:1:1:1:1:1]",
+            config("https://[2001:0DB8:0:1:1:1:1:1]").browserOrigin)
+        assertEquals("https://[::ffff:c000:201]",
+            config("https://[::ffff:c000:201]").browserOrigin)
+        assertEquals("https://[::ffff:c000:201]",
+            config("https://[::ffff:192.0.2.1]").browserOrigin)
+        assertEquals("https://[::ffff:c000:201]:8443",
+            config("https://[::ffff:c000:201]:8443").browserOrigin)
+        assertThrows(IllegalArgumentException::class.java) {
+            config("https://[fe80::1%25eth0]").browserOrigin
+        }
+    }
+
+    @Test
     fun ownsBoundedPostgresPoolAndExecutesJdbcAwayFromCallerThread() = runBlocking {
         val url = System.getenv("DB_URL")
         assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL via DB_URL")

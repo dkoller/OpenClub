@@ -110,3 +110,10 @@ JWKS URL, five-minute key expiry and a shared 30-second attempt cooldown.
 See [refresh policy and remaining gates](security/oidc-provider-discovery.md#jwks-runtime-refresh-2026-11-14).
 This slice does not complete R05: real provider rotation/browser E2E, session
 endpoint verification, admission rate limits and expired-record cleanup remain.
+### Session HTTP implementation note (2026-11-14)
+
+Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.
+Logout requires exact Origin, JSON `{}` and session-bound CSRF, with transactional
+validation/revocation before cookie clearing. See [session API](security/session-api.md).
+R05 remains open pending CI, independent review, Keycloak E2E, JWKS freshness,
+rate limits and cleanup; club authorization, bootstrap and privacy gates remain.
