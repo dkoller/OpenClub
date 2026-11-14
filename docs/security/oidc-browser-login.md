@@ -42,3 +42,11 @@ end-to-end login remains unverified until the subsequent CI slice.
 JWKS refresh, rate limits, deterministic Keycloak browser E2E testing and
 privacy/first-admin authorization release gates. Keep #14 open and require
 manual PR review/merge.
+
+### JWKS refresh implementation note (2026-11-14)
+
+The code-exchange runtime now refreshes the startup-vetted JWKS endpoint with
+a five-minute key lifetime and shared 30-second refresh cooldown. See
+[provider discovery policy](oidc-provider-discovery.md#jwks-runtime-refresh-2026-11-14).
+This supersedes the earlier refresh follow-up only; rate limits, session endpoint
+verification and real provider browser/rotation E2E remain release gates.

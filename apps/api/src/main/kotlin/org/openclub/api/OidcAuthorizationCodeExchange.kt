@@ -30,7 +30,7 @@ internal class OidcAuthorizationCodeExchange(
     private val provider: OidcProviderDiscovery.Provider,
     private val clientSecret: String,
 ) {
-    private val verifier = OidcIdTokenVerifier(settings, provider.publicKeys)
+    private val signingKeys = OidcSigningKeys(provider.publicKeys, provider.reloadKeys)
     private val http = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(3))
         .followRedirects(HttpClient.Redirect.NEVER)
@@ -112,7 +112,8 @@ internal class OidcAuthorizationCodeExchange(
             val tokens = (tokenResponse.toSuccessResponse() as OIDCTokenResponse).oidcTokens
             val idToken = requireNotNull(tokens.idToken) { "OIDC response missing ID token" }
             // Discard access/refresh tokens. Never persist or return them to the browser.
-            return verifier.verify(idToken.serialize(), login.nonce)
+            val compact = idToken.serialize()
+            return OidcIdTokenVerifier(settings, signingKeys.forToken(compact)).verify(compact, login.nonce)
         } catch (_: Exception) {
             throw IllegalStateException("OIDC token verification failed")
         }
