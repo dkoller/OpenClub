@@ -1,0 +1,8 @@
+{
+  "realm": "openclub-dev",
+  "enabled": true,
+  "displayName": "OpenClub development",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "loginWithEmailAllowed": false
+}

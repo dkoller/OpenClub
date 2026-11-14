@@ -52,7 +52,7 @@ jobs:
                   web=true
                   [[ "$file" == apps/web/Dockerfile || "$file" == apps/web/.dockerignore || "$file" == apps/web/nginx.conf ]] && compose=true
                   ;;
-                compose.yaml|compose.dev.yaml|.github/workflows/compose-smoke.yml) compose=true ;;
+                compose.yaml|compose.dev.yaml|compose.auth.dev.yaml|dev/keycloak/*|.github/workflows/compose-smoke.yml) compose=true ;;
                 .github/workflows/build.yml) api=true; web=true ;;
                 # Unknown paths run everything rather than silently missing coverage.
                 *) api=true; web=true; compose=true ;;
@@ -71,6 +71,45 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Validate optional Keycloak dev overlay and realm JSON
+        env:
+          KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
+        run: |
+          set -euo pipefail
+          docker compose -f compose.yaml -f compose.auth.dev.yaml config --quiet
+          python3 -m json.tool dev/keycloak/openclub-realm.json > /dev/null
+      - name: Start Keycloak and verify imported realm discovery
+        env:
+          KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f compose.yaml -f compose.auth.dev.yaml up -d --no-deps keycloak
+          ready=false
+          for attempt in {1..90}; do
+            if curl --fail --silent --show-error --max-time 3 \
+              http://127.0.0.1:8180/realms/openclub-dev/.well-known/openid-configuration \
+              -o /tmp/openclub-oidc-discovery.json 2>/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 3
+          done
+          if [[ "$ready" != true ]]; then
+            echo "Keycloak did not publish the openclub-dev realm discovery document" >&2
+            exit 1
+          fi
+          jq -e '.issuer == "http://localhost:8180/realms/openclub-dev" and
+                 (.authorization_endpoint | type == "string") and
+                 (.token_endpoint | type == "string") and
+                 (.jwks_uri | type == "string")' /tmp/openclub-oidc-discovery.json
+      - name: Stop optional Keycloak after validation
+        if: always()
+        env:
+          KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
+        run: |
+          docker compose -f compose.yaml -f compose.auth.dev.yaml logs --no-color keycloak || true
+          docker compose -f compose.yaml -f compose.auth.dev.yaml stop keycloak || true
       - name: Build and start all services
         run: docker compose up -d --build --wait --wait-timeout 180
       - name: Verify web and proxied API
