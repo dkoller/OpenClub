@@ -1,0 +1,13 @@
+# R05 / C4a — Trust-pinned provider discovery and JWKS
+
+**Status:** An internal, synchronous discovery component only. [Issue #14](https://github.com/dkoller/OpenClub/issues/14). It does not enable public login, callback, remote token exchange, sessions or authorization.
+
+The `OidcProviderDiscovery` component starts only from the configured issuer (never request input), fetches `<issuer>/.well-known/openid-configuration` and uses Nimbus to parse it. The discovered issuer must **exactly equal** the configured issuer, including its path. Authorization endpoint must match the configured one. Token and JWKS endpoints must use the issuer's exact scheme, parsed host and port; userinfo, query and fragment are forbidden. This intentionally **does not support cross-origin OIDC endpoints** yet; providers requiring them need a separately reviewed, pinned allowlist and negative tests.
+
+Only RS256 ID tokens are currently supported. Discovery must advertise RS256; returned JWKS must contain suitable public RSA signing keys with a nonblank key ID and no private keys. No URL in JWT headers is used to load keys. `OidcIdTokenVerifier` accepts the vetted public key set, but this PR does **not** connect both classes to an HTTP route.
+
+The network fetch uses Java 21 HTTPS validation, never follows redirects, enforces 3-second connect and 5-second request timeouts and reads no more than 256 KiB. Plain HTTP is permitted only for explicit loopback development issuers by `OidcSettings`. Network calls are blocking and must eventually execute on a bounded I/O dispatcher.
+
+Synthetic unit tests exercise good discovery and key material; negative issuer, endpoint, host, Unicode URI, algorithm and private-key cases; and an in-process HTTP server for redirect and oversized-response failure. This is **not a full end-to-end Keycloak smoke test**. Metadata and JWKS refresh/caching/expiry, issuer-consistent container access and authorization-code exchange are follow-ups. **Fail closed** if discovery cannot be validated; never use stale keys without an explicit reviewed rotation policy.
+
+No auth routes were introduced, so OpenAPI is unchanged. See [BFF design](oidc-bff-design.md), [ID token validation](oidc-id-token-validation.md) and [security review checklist](../contributing/security-review.md).
