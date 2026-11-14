@@ -43,3 +43,7 @@ A volunteer signs in, creates or selects an authorized club, adds a person with 
 ## Boundaries
 
 No interviews have been conducted through this task. Do not interpret this document as a stakeholder decision. Capture decisions against [#10](https://github.com/dkoller/OpenClub/issues/10), and create focused follow-up issues for changes outside the agreed MVP.
+
+## Product choices recorded 2026-11-14 (still requires pilot validation)
+
+The project owner chose configurable new-club creation (approval by default), manual member entry first with later invitations, required first and last name, optional email and phone, and authenticated **same-club** directory/contact visibility for both ADMIN and MEMBER roles (writes restricted to ADMIN). Export, archive and deletion will be delivered incrementally. See [ADR-0004](../decisions/0004-member-policy.md). These choices do **not** assert that a real pilot has validated the workflow.
