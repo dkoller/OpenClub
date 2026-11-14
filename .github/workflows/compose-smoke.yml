@@ -117,6 +117,58 @@ jobs:
           set -euo pipefail
           curl --fail --retry 12 --retry-delay 3 --retry-connrefused http://localhost:5173/
           test "$(curl --fail --silent http://localhost:5173/api/health)" = '{"status":"ok"}'
+      - name: Verify Keycloak from the browser and API-container issuer URL
+        env:
+          KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          overlay=(docker compose -f compose.yaml -f compose.auth.dev.yaml)
+          "${overlay[@]}" up -d --no-deps keycloak
+          "${overlay[@]}" up -d --no-deps oidc-backchannel
+          ready=false
+          for attempt in {1..45}; do
+            # Host browser: published port. API: same URL resolves via
+            # localhost-only listener in the API network namespace.
+            if curl --fail --silent --max-time 3 \
+              http://localhost:8180/realms/openclub-dev/.well-known/openid-configuration \
+              -o /tmp/openclub-host-discovery.json 2>/dev/null &&
+              "${overlay[@]}" exec -T api wget -q -O - \
+              http://localhost:8180/realms/openclub-dev/.well-known/openid-configuration \
+              > /tmp/openclub-api-discovery.json 2>/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$ready" != true ]]; then
+            echo "API container could not reach identical Keycloak issuer URL" >&2
+            exit 1
+          fi
+          jq -e --slurpfile host /tmp/openclub-host-discovery.json \
+            --slurpfile api /tmp/openclub-api-discovery.json \
+            '(.issuer == "http://localhost:8180/realms/openclub-dev") and
+             (.issuer == $host[0].issuer) and (.issuer == $api[0].issuer) and
+             (.token_endpoint == $host[0].token_endpoint) and
+             (.jwks_uri == $host[0].jwks_uri)' \
+            /tmp/openclub-api-discovery.json
+          jwks_url="$(jq -r '.jwks_uri' /tmp/openclub-api-discovery.json)"
+          case "$jwks_url" in
+            http://localhost:8180/realms/openclub-dev/*) ;;
+            *) echo "JWKS URL escaped local pinned issuer" >&2; exit 1 ;;
+          esac
+          "${overlay[@]}" exec -T api wget -q -O - "$jwks_url" |
+            jq -e '.keys | type == "array" and length > 0'
+          "${overlay[@]}" exec -T api wget -q -O - http://127.0.0.1:8080/health |
+            grep -F '"status":"ok"'
+      - name: Stop optional Keycloak backchannel
+        if: always()
+        env:
+          KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
+        shell: bash
+        run: |
+          docker compose -f compose.yaml -f compose.auth.dev.yaml logs --no-color oidc-backchannel || true
+          docker compose -f compose.yaml -f compose.auth.dev.yaml stop oidc-backchannel keycloak || true
       - name: Show logs on failure
         if: failure()
         run: docker compose logs --no-color

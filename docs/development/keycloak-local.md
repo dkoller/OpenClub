@@ -25,7 +25,26 @@ The imported realm `openclub-dev` intentionally contains **no preset users, pass
 
 In the Keycloak admin console, choose the `openclub-dev` realm and create an OIDC client named `openclub-bff` with **Client authentication ON** (confidential client), Standard flow ON, Direct access grants OFF, and implicit flow OFF. Use a narrowly scoped local callback URI such as `http://localhost:5173/api/v1/auth/callback`; do not use wildcard redirect URIs or production credentials. When the login implementation is added, require PKCE S256 and wire the client ID and generated secret through runtime configuration outside source control.
 
-**Important:** Keycloak's local hostname (`localhost:8180`) is designed for browser access. Inside Docker, `localhost` does **not** resolve to the Keycloak service from the API container. PR C must define and test an issuer-consistent internal/public routing strategy before configuring Ktor to verify tokens. Do not work around issuer validation by accepting mismatched issuers or arbitrary URLs. Nothing in this PR claims an end-to-end login is ready.
+## Identical issuer URL inside Docker (optional backchannel)
+
+The browser reaches Keycloak at `http://localhost:8180` through the existing host-only published port. The API container has its **own** localhost. To make the *same verified issuer URL* available to the API **without rewriting issuer claims or discovered endpoints**, start the optional sidecar proxy:
+
+```sh
+# Start the normal stack and optional local Keycloak first.
+docker compose up -d --build --wait
+docker compose -f compose.yaml -f compose.auth.dev.yaml up -d keycloak oidc-backchannel
+
+# Browser/host discovery:
+curl --fail http://localhost:8180/realms/openclub-dev/.well-known/openid-configuration
+
+# Exact same issuer URL from *inside* the API container:
+docker compose -f compose.yaml -f compose.auth.dev.yaml exec -T api \
+  wget -q -O - http://localhost:8180/realms/openclub-dev/.well-known/openid-configuration
+```
+
+The `oidc-backchannel` service shares the API network namespace (`network_mode: service:api`) and serves a **loopback-only** `127.0.0.1:8180` proxy to `keycloak:8080`. This does **not** publish the proxy to the host or other containers. Keycloak continues to advertise `http://localhost:8180/realms/openclub-dev`; signed ID-token `iss` and discovery must match that exact string. The CI Compose smoke test fetches discovery and JWKS through this API-internal path, compares host/container issuer and checks API health.
+
+This is **development-only**: loopback HTTP, Keycloak's `start-dev` mode and the optional proxy must not ship as production defaults. Do not modify `OidcSettings` to accept arbitrary HTTP issuer hosts. Docker service startup does not imply a login works: an OIDC client, callback, sessions and the actual Ktor auth routes remain unconfigured. If the API container is replaced/recreated, restart the sharing proxy too: `docker compose -f compose.yaml -f compose.auth.dev.yaml up -d --force-recreate oidc-backchannel`.
 
 ## Restart, reset and verify
 
