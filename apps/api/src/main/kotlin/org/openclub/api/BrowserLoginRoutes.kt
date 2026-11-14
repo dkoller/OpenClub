@@ -39,17 +39,18 @@ internal fun Application.installBrowserLogin(
             val states = query.getAll("state")
             val codes = query.getAll("code")
             val errors = query.getAll("error")
-            if (!errors.isNullOrEmpty() || states?.size != 1 || codes?.size != 1 ||
-                states.single().isBlank() || codes.single().isBlank() ||
-                codes.single().length > 4096 || codes.single().any(Char::isISOControl)
+            val state = states?.singleOrNull()
+            val code = codes?.singleOrNull()
+            if (!errors.isNullOrEmpty() || state.isNullOrBlank() || code.isNullOrBlank() ||
+                code.length > 4096 || code.any(Char::isISOControl)
             ) {
                 call.respondText("Invalid authentication response", status = HttpStatusCode.BadRequest)
                 return@get
             }
             try {
                 val issued = operations.finish(
-                    states.single(), call.request.cookies[cookies.loginName],
-                    codes.single(), call.request.cookies[cookies.sessionName],
+                    state, call.request.cookies[cookies.loginName],
+                    code, call.request.cookies[cookies.sessionName],
                 )
                 if (issued == null) {
                     call.respondText("Authentication rejected", status = HttpStatusCode.Unauthorized)
