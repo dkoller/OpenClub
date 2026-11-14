@@ -21,7 +21,7 @@ class BoundedOidcExchangeTest {
                 async(Dispatchers.Default) {
                     exchange.run {
                         val current = active.incrementAndGet()
-                        peak.accumulateAndGet(current, ::maxOf)
+                        peak.accumulateAndGet(current) { old, next -> maxOf(old, next) }
                         try {
                             // A blocking token HTTP request occupies one worker slot.
                             Thread.sleep(80)
