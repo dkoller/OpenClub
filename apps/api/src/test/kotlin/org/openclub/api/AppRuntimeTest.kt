@@ -3,7 +3,7 @@ package org.openclub.api
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotSame
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -103,14 +103,14 @@ class AppRuntimeTest {
             "DB_USER" to requireNotNull(System.getenv("DB_USER")),
             "DB_PASSWORD" to requireNotNull(System.getenv("DB_PASSWORD")),
         )
-        val caller = Thread.currentThread().name
+        val caller = Thread.currentThread()
         val runtime = requireNotNull(DatabaseRuntime.openIfConfigured(env))
         runtime.use {
             val (worker, value) = runtime.onDatabaseThread { sql ->
-                Thread.currentThread().name to sql.fetchValue("SELECT 1")
+                Thread.currentThread() to sql.fetchValue("SELECT 1")
             }
-            assertNotEquals(caller, worker, "JDBC must not execute on the test caller's thread")
-            assertTrue(worker.startsWith("openclub-db-io"), "Unexpected JDBC worker: $worker")
+            assertNotSame(caller, worker, "JDBC must not execute on the test caller's thread")
+            assertTrue(worker.name.startsWith("openclub-db-io"), "Unexpected JDBC worker: $worker")
             assertEquals("1", value.toString(), "PostgreSQL query should return scalar 1")
         }
     }
