@@ -1,7 +1,7 @@
 FROM gradle:9.7.0-jdk21 AS build
 WORKDIR /src
 COPY . .
-RUN gradle installDist --no-daemon
+RUN ./gradlew installDist --no-daemon
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN apk add --no-cache wget

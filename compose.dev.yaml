@@ -5,7 +5,7 @@ services:
       context: ./apps/api
       target: build
     working_dir: /src
-    command: ["gradle", "run", "--continuous", "--no-daemon"]
+    command: ["./gradlew", "run", "--continuous", "--no-daemon"]
     volumes:
       - ./apps/api:/src
       - gradle_cache:/home/gradle/.gradle
