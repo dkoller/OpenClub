@@ -52,7 +52,7 @@ jobs:
                   web=true
                   [[ "$file" == apps/web/Dockerfile || "$file" == apps/web/.dockerignore || "$file" == apps/web/nginx.conf ]] && compose=true
                   ;;
-                compose.yaml|compose.dev.yaml|.github/workflows/compose-smoke.yml) compose=true ;;
+                compose.yaml|compose.dev.yaml|compose.auth.dev.yaml|dev/keycloak/*|.github/workflows/compose-smoke.yml) compose=true ;;
                 .github/workflows/build.yml) api=true; web=true ;;
                 # Unknown paths run everything rather than silently missing coverage.
                 *) api=true; web=true; compose=true ;;
@@ -71,6 +71,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Validate optional Keycloak dev overlay and realm JSON
+        env:
+          KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
+        run: |
+          set -euo pipefail
+          docker compose -f compose.yaml -f compose.auth.dev.yaml config --quiet
+          python3 -m json.tool dev/keycloak/openclub-realm.json > /dev/null
       - name: Build and start all services
         run: docker compose up -d --build --wait --wait-timeout 180
       - name: Verify web and proxied API
