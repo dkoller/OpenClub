@@ -1,0 +1,212 @@
+openapi: 3.1.0
+info:
+  title: OpenClub browser authentication — proposed contract
+  version: 0.1.0-proposal
+  description: >
+    DESIGN ONLY. These endpoints are NOT IMPLEMENTED. See docs/contracts/auth-api-review.md.
+    Cookies are issued and interpreted only by the same-origin Ktor BFF.
+servers:
+  - url: /api
+tags:
+  - name: Browser authentication
+paths:
+  /v1/auth/login:
+    get:
+      tags: [Browser authentication]
+      operationId: beginBrowserLogin
+      summary: Start an OIDC authorization-code login
+      description: >
+        Generate single-use state, nonce and S256 PKCE verifier. Persist hashed state
+        and browser binding before redirect. No authenticated session is issued.
+        Never accept a user-controlled redirect target or provider URI.
+      security: []
+      responses:
+        '302':
+          description: Redirect only to the configured trusted OIDC authorization endpoint
+          headers:
+            Location:
+              description: Server-created authorization URL with state and PKCE challenge
+              schema: { type: string, format: uri }
+            Set-Cookie:
+              description: HttpOnly, SameSite=Lax, Path=/, five-minute pre-auth browser binding (Secure in HTTPS)
+              schema: { type: string }
+            Cache-Control:
+              schema: { type: string, const: no-store }
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/auth/callback:
+    get:
+      tags: [Browser authentication]
+      operationId: completeBrowserLogin
+      summary: Consume browser-bound state and exchange one-time code
+      description: >
+        Single-use state and binding cookie required. Reject provider error,
+        missing or duplicate code/state, expired/replayed transaction and incorrect
+        browser. Redeem code with confidential PKCE, validate signed ID token,
+        resolve exact issuer+subject to a person and mint a fresh server-side session.
+        On success, revoke any previous session presented by this browser before
+        completing the callback; replacing its cookie alone is insufficient.
+        Clear pre-auth binding on both success and failure. No club permissions implied.
+      security: []
+      parameters:
+        - in: query
+          name: code
+          required: false
+          schema: { type: string, maxLength: 4096 }
+        - in: query
+          name: state
+          required: false
+          schema: { type: string }
+        - in: query
+          name: error
+          required: false
+          schema: { type: string }
+      responses:
+        '303':
+          description: Successful login redirects to fixed same-origin landing path without code/state in URL
+          headers:
+            Location:
+              schema: { type: string, const: / }
+            Set-Cookie:
+              description: Fresh HttpOnly session plus cleared pre-auth browser-binding cookie
+              schema: { type: string }
+            Cache-Control:
+              schema: { type: string, const: no-store }
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/auth/me:
+    get:
+      tags: [Browser authentication]
+      operationId: readMySession
+      summary: Read minimal authenticated session identity
+      description: >
+        Requires an unexpired server-side session. Does not return club roles,
+        provider tokens or any credential. Reject unknown cookies; no caching.
+        Session-storage failures return 503, not 401, and disclose no identity or CSRF token.
+      security:
+        - browserSession: []
+      responses:
+        '200':
+          description: Active session
+          headers:
+            Cache-Control:
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionView'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/auth/logout:
+    post:
+      tags: [Browser authentication]
+      operationId: logoutBrowser
+      summary: Revoke the current server-side session
+      description: >
+        Require exact configured Origin, Content-Type application/json and a
+        matching session-bound X-CSRF-Token, then revoke the session and expire
+        its cookie. No provider logout requirement. No cross-origin CORS.
+        Session-storage failures return 503; never report successful revocation or
+        clear the session cookie as proof of logout when revocation could not be confirmed.
+      security:
+        - browserSession: []
+      parameters:
+        - in: header
+          name: Origin
+          required: true
+          schema: { type: string, format: uri }
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema: { type: string, minLength: 43, maxLength: 43 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              maxProperties: 0
+      responses:
+        '204':
+          description: Session revoked and cookie cleared
+          headers:
+            Set-Cookie:
+              description: Expire session cookie using the same name/path/security policy
+              schema: { type: string }
+            Cache-Control:
+              schema: { type: string, const: no-store }
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+components:
+  securitySchemes:
+    browserSession:
+      type: apiKey
+      in: cookie
+      name: __Host-openclub_session
+      description: >
+        HTTPS production only. Local explicit loopback HTTP uses openclub_dev_session.
+        Secure, HttpOnly, SameSite=Lax, Path=/ and no Domain in production.
+  schemas:
+    SessionView:
+      type: object
+      additionalProperties: false
+      required: [personId, csrfToken]
+      properties:
+        personId:
+          type: string
+          format: uuid
+        csrfToken:
+          type: string
+          minLength: 43
+          maxLength: 43
+          description: Session-bound synchronizer token for same-origin mutations, not an OIDC token
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string, description: Generic non-sensitive error }
+  responses:
+    Invalid:
+      description: Invalid request or expired/consumed login transaction
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthenticated:
+      description: Missing, invalid or expired authenticated session/login
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Cross-origin request or CSRF protection failure
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: Excessive login/callback attempts
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unavailable:
+      description: OIDC provider or session storage unavailable; fail closed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
