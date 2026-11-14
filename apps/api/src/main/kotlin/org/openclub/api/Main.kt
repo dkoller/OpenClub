@@ -1,5 +1,12 @@
 package org.openclub.api
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import io.ktor.http.ContentType
 import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
@@ -15,6 +22,7 @@ fun main() {
         "OIDC authentication requires a PostgreSQL session database"
     }
     val database = DatabaseRuntime.openIfConfigured(environment)
+    var cleanup: Job? = null
     try {
         // Fail startup rather than exposing partially working auth routes.
         // Discovery runs before starting Netty, not on a request event loop.
@@ -25,6 +33,11 @@ fun main() {
                 OidcProviderDiscovery(config.settings).load(),
             )
         }
+        if (login != null) {
+            cleanup = CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+                AuthRecordCleanup.run(requireNotNull(database))
+            }
+        }
         val port = environment["PORT"]?.toIntOrNull() ?: 8080
         embeddedServer(Netty, port = port, host = "0.0.0.0") {
             module(login, authConfig?.cookies,
@@ -32,6 +45,7 @@ fun main() {
                 authConfig?.browserOrigin)
         }.start(wait = true)
     } finally {
+        runBlocking { cleanup?.cancelAndJoin() }
         database?.close()
     }
 }
