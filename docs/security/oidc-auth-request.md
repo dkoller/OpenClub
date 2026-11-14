@@ -1,0 +1,11 @@
+# R05 / PR C1 — OIDC authorization request core
+
+**Status:** Request-construction component only. No login route or authenticated session is enabled. Part of [#14](https://github.com/dkoller/OpenClub/issues/14), following [PR #50](https://github.com/dkoller/OpenClub/pull/50).
+
+`OidcAuthorizationRequests` constructs an authorization-code request using independent CSPRNG-generated `state`, `nonce`, and PKCE S256 verifier. The verifier is returned **only to trusted backend code**, never embedded in the redirect. `OidcSettings` rejects insecure remote HTTP issuers, wrong-host authorization endpoints, hostless URLs and unparsed internationalized authorities (including different Unicode domains whose `URI.host` values would otherwise both be `null`), and unexpected redirect URI paths. Use ASCII/punycode hostnames explicitly if internationalized domains are needed; do not compare unresolved authorities. Tests verify URL parameters, challenge hashing, uniqueness and rejected configurations.
+
+**Not yet safe to expose as an HTTP login:** Before Ktor initiates a redirect it must persist a single-use hashed login transaction in PostgreSQL, bind it to a same-origin browser transaction cookie, set a five-minute expiry and consume it atomically on callback. Without these controls, `state` cannot defend against login CSRF or replay. Token exchange and ID token verification must use a maintained/pinned OIDC SDK, with issuer-pinned discovery/JWKS and full claims validation; none is claimed here. Callback routing must remain disabled until those checks and session creation are ready.
+
+The local Keycloak Docker setup currently advertises `http://localhost:8180`, which the Ktor Docker container cannot use as its internal `localhost`. Resolve browser/container reachability without relaxing issuer validation before wiring a live provider. The settings used in unit tests are local-only examples.
+
+**Documentation:** No OpenAPI endpoint is added or changed, because this PR introduces no public route. Follow [security design](../security/oidc-bff-design.md) for the remaining C2/D stages. Do not log secrets or use any input from the HTTP request to determine the configured issuer or authorization endpoint.
