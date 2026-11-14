@@ -41,10 +41,10 @@ OpenClub needs trusted sign-in, club-scoped roles, a self-hostable pilot environ
 - [x] Select Keycloak as the initial self-hosted reference provider; preserve standard OIDC portability.
 - [ ] Verify compatible versions, operational footprint and production configuration.
 - [x] Approve Ktor BFF with opaque server-side sessions and HttpOnly cookies.
-- [ ] Select session store, CSRF controls, logout, expiry, production cookie settings and local developer experience.
+- [ ] Review and approve the concrete proposed session store, CSRF controls, logout, expiry, and production cookie settings in [R05 security design](../security/oidc-bff-design.md); implement and test each before treating this gate as complete.
 - [x] Set controlled club creation as the default; permit deployment-level configuration later.
 - [ ] Approve exact first-admin approval mechanism, authorization and recovery.
-- [ ] Select maintained Kotlin OIDC libraries and define mock identity provider for offline CI tests.
+- [ ] Approve the Nimbus JVM OIDC SDK candidate and mock identity-provider test strategy in [R05 security design](../security/oidc-bff-design.md); confirm/pin versions in the implementation PR.
 - [ ] Update the OpenAPI draft/session contract as part of the implementation PR.
 - [ ] Obtain appropriate privacy review before any real pilot identities are used.
 
