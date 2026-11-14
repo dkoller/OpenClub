@@ -45,7 +45,9 @@ class OidcProviderDiscoveryTest {
         document: String = metadata(),
         keys: String = JWKSet(key.toPublicJWK()).toString(),
         settings: OidcSettings = settings(),
+        requestedUrls: MutableList<URI> = mutableListOf(),
     ): OidcProviderDiscovery = OidcProviderDiscovery(settings) { uri ->
+        requestedUrls.add(uri)
         when (uri.toASCIIString()) {
             settings.issuer.toASCIIString() + "/.well-known/openid-configuration" -> document
             jwksUrl -> keys
@@ -54,7 +56,15 @@ class OidcProviderDiscoveryTest {
     }
 
     private fun rejects(document: String) {
-        assertThrows(Exception::class.java) { discovery(document).load() }
+        val requestedUrls = mutableListOf<URI>()
+        assertThrows(Exception::class.java) {
+            discovery(document = document, requestedUrls = requestedUrls).load()
+        }
+        assertEquals(
+            listOf(URI("$issuer/.well-known/openid-configuration")),
+            requestedUrls,
+            "Invalid provider metadata must be rejected before any JWKS fetch",
+        )
     }
 
     @Test
@@ -90,6 +100,63 @@ class OidcProviderDiscoveryTest {
             discovery(keys = """{"keys":[{"kty":"oct","k":"YWJj","kid":"symmetric"}]}""").load()
         }
         assertThrows(Exception::class.java) { discovery(keys = "invalid JSON").load() }
+    }
+
+    @Test
+    fun readsValidChunkedMetadataAndJwksAtLimitButRejectsOneByteOver() {
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        val base = "http://127.0.0.1:${server.address.port}/realms/test"
+        val validMetadata = metadata(
+            identity = base,
+            authorization = "$base/protocol/openid-connect/auth",
+            token = "$base/protocol/openid-connect/token",
+            jwks = "$base/protocol/openid-connect/certs",
+        )
+        val bytes = validMetadata.toByteArray(StandardCharsets.UTF_8)
+        val maximumSize = 256 * 1024
+        org.junit.jupiter.api.Assertions.assertTrue(bytes.size < maximumSize)
+        val discoveryPayload = java.util.concurrent.atomic.AtomicReference(
+            bytes + ByteArray(maximumSize - bytes.size) { ' '.code.toByte() }
+        )
+        assertEquals(maximumSize, discoveryPayload.get().size)
+
+        // sendResponseHeaders(200, 0) uses chunked transfer encoding with no Content-Length.
+        server.createContext("/realms/test/.well-known/openid-configuration") { exchange ->
+            val payload = discoveryPayload.get()
+            exchange.sendResponseHeaders(200, 0)
+            exchange.responseBody.use { stream ->
+                var offset = 0
+                while (offset < payload.size) {
+                    val next = minOf(8192, payload.size - offset)
+                    stream.write(payload, offset, next)
+                    offset += next
+                }
+            }
+        }
+        server.createContext("/realms/test/protocol/openid-connect/certs") { exchange ->
+            val payload = JWKSet(key.toPublicJWK()).toString().toByteArray(StandardCharsets.UTF_8)
+            exchange.sendResponseHeaders(200, 0)
+            exchange.responseBody.use { it.write(payload) }
+        }
+        server.start()
+        try {
+            val client = OidcProviderDiscovery(settings(base))
+            val provider = client.load()
+            assertEquals(URI("$base/protocol/openid-connect/token"), provider.tokenEndpoint)
+            assertEquals("key-1", provider.publicKeys.keys.single().keyID)
+
+            discoveryPayload.set(discoveryPayload.get() + byteArrayOf(' '.code.toByte()))
+            assertEquals(maximumSize + 1, discoveryPayload.get().size)
+            val exception = assertThrows(Exception::class.java) { client.load() }
+            val messages = generateSequence(exception as Throwable?) { it.cause }
+                .map { it.message.orEmpty() }.toList()
+            org.junit.jupiter.api.Assertions.assertTrue(
+                messages.any { it.contains("OIDC discovery response too large") },
+                "An oversized chunked body must fail because of the byte limit, not JSON parsing: $messages",
+            )
+        } finally {
+            server.stop(0)
+        }
     }
 
     @Test
