@@ -40,7 +40,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           rm .github/workflows/bootstrap-build-artifacts.yml
-          git add apps/api/gradlew apps/api/gradlew.bat apps/api/gradle/wrapper/gradle-wrapper.properties apps/api/gradle/wrapper/gradle-wrapper.jar apps/web/pnpm-lock.yaml
+          git add apps/api/gradlew apps/api/gradlew.bat apps/api/gradle/wrapper/gradle-wrapper.properties apps/web/pnpm-lock.yaml
+          git add -f apps/api/gradle/wrapper/gradle-wrapper.jar
           git add -u .github/workflows/bootstrap-build-artifacts.yml
           git diff --cached --stat
           git commit -m 'chore: check in verified Gradle wrapper and pnpm lockfile'
