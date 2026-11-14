@@ -3,6 +3,7 @@ package org.openclub.api
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
+import org.jooq.SQLDialect
 import org.jooq.impl.DSL
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -23,7 +24,7 @@ class MembershipSchemaTest {
 
         HikariDataSource(config).use { source ->
             Flyway.configure().dataSource(source).load().migrate()
-            val db = DSL.using(source)
+            val db = DSL.using(source, SQLDialect.POSTGRES)
             val clubA = UUID.randomUUID()
             val clubB = UUID.randomUUID()
             val person = UUID.randomUUID()
