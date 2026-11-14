@@ -50,6 +50,22 @@ internal class OidcRuntimeConfig private constructor(
     val publicOrigin: URI,
     val cookies: AuthCookiePolicy,
 ) {
+    /**
+     * Browsers serialize Origin with a lowercase host and omit default ports.
+     * Normalize only trusted startup configuration; never normalize untrusted
+     * request headers, which must match the resulting string exactly.
+     */
+    val browserOrigin: String
+        get() {
+            val host = publicOrigin.host.lowercase(java.util.Locale.ROOT)
+            val authorityHost = if (host.contains(':') && !host.startsWith("[")) "[$host]" else host
+            val port = publicOrigin.port.takeUnless {
+                it == -1 || (publicOrigin.scheme == "https" && it == 443) ||
+                    (publicOrigin.scheme == "http" && it == 80)
+            }
+            return "${publicOrigin.scheme}://$authorityHost" + (port?.let { ":$it" } ?: "")
+        }
+
     override fun toString(): String = "OidcRuntimeConfig(redacted)"
 
     companion object {
