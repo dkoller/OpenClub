@@ -39,5 +39,8 @@ masked in CI. Containers are stopped without deleting volumes; local operators
 must explicitly manage their disposable fixture volumes.
 
 Exhaustive invalid-token, wrong-issuer/audience and expiry cases remain verifier
-and HTTP/DB test responsibilities. This does not close R05 or verify HTTPS cookie
-settings, proxy routing, rate limits, key rotation or privacy release gates.
+and HTTP/DB test responsibilities. The separate [real rotation test](auth-jwks-rotation-e2e.md)
+verifies signing-key change without API restart; [admission limits](../security/auth-admission-limit.md)
+and [cleanup](../security/auth-record-cleanup.md) have their own regression tests.
+This test does not verify deployment HTTPS cookie settings, web proxy routing or
+privacy/authorization/first-admin release gates. R05 closeout still requires review.
