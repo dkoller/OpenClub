@@ -25,7 +25,7 @@ This is a **working hypothesis**, not a final commitment. See [MVP scope](docs/c
 
 ## Contributing
 
-Run locally with `docker compose up -d --build`; stop with `docker compose down` (data persists). See [cross-platform startup](docs/concepts/ai/one-command-run.md). For native development, use the checked-in `apps/api/gradlew` (or `gradlew.bat` on Windows) and `pnpm install --frozen-lockfile` in `apps/web`. Keep each PR under 2,000 changed lines and follow [agent rules](AGENTS.md).
+Run locally with `docker compose up -d --build`; stop with `docker compose down` (data persists). See [cross-platform startup](docs/concepts/ai/one-command-run.md). For native development, use the checked-in `apps/api/gradlew` (or `gradlew.bat` on Windows) and `pnpm install --frozen-lockfile` in `apps/web`. Keep each PR below 1,000 changed lines and follow [agent rules](AGENTS.md).
 
 ## License
 
