@@ -28,7 +28,7 @@ Dependency references indicate when implementation **must not outpace prerequisi
 
 **Decision update (2026-11-14):** [ADR-0003](decisions/0003-oidc-session-proposal.md) confirms Keycloak OIDC + Kotlin BFF architecture; [ADR-0004](decisions/0004-member-policy.md) records onboarding, directory visibility and lifecycle direction. Pilot validation, minor-contact privacy, session/CSRF details, initial admin implementation and API acceptance remain open. These decisions guide R01–R18 without implying completion.
 
-**Important limitation:** The schema is not an authorization system. No member-management API or login flow has yet been implemented. The next items must establish these before handling real member data.
+**Important limitation:** Opt-in OIDC authentication is implemented and tested with synthetic identities; the schema and login are not club authorization. Club authorization (R06), first-admin bootstrap (R07), privacy acceptance (R03) and the web proxy path integration are still required before real member data.
 
 **Current review budget:** maximum 999 added + deleted lines (target 500–700); this supersedes the historical C05 limit. All tracked issues use this limit.
 
@@ -103,17 +103,17 @@ The first pilot release is **not done** merely because the database tables or sc
 - Scope exclusions until pilot evidence: payments, accounting, events, competitions, integrations, chat, pushes, federation sync, nonprofit generalization and a custom multi-agent framework.
 - No tentative target dates or paid infrastructure commitments are implied by these priorities.
 
-### R05 JWKS refresh implementation slice (review pending)
+### R05 authentication closeout (2026-11-14; review pending)
 
-The code-exchange runtime now supports bounded refresh of the startup-vetted
-JWKS URL, five-minute key expiry and a shared 30-second attempt cooldown.
-See [refresh policy and remaining gates](security/oidc-provider-discovery.md#jwks-runtime-refresh-2026-11-14).
-This slice does not complete R05: real provider rotation/browser E2E, session
-endpoint verification, admission rate limits and expired-record cleanup remain.
-### Session HTTP implementation note (2026-11-14)
+Opt-in Keycloak OIDC login/callback, issuer-bound token validation, hashed PostgreSQL
+sessions, `/auth/me`, CSRF-protected logout, issuer-pinned JWKS refresh, admission
+limits, and indexed expiry cleanup are implemented. Real Chromium/Keycloak/PostgreSQL
+login and RSA key-rotation journeys run in CI. See [browser login](security/oidc-browser-login.md),
+[session API](security/session-api.md), [refresh policy](security/oidc-provider-discovery.md#jwks-runtime-refresh-2026-11-14),
+[rate limits](security/auth-admission-limit.md), and [cleanup](security/auth-record-cleanup.md).
 
-Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.
-Logout requires exact Origin, JSON `{}` and session-bound CSRF, with transactional
-validation/revocation before cookie clearing. See [session API](security/session-api.md).
-R05 remains open pending CI, independent review, Keycloak E2E, JWKS freshness,
-rate limits and cleanup; club authorization, bootstrap and privacy gates remain.
+**R05/#14 remains open until this closeout PR passes CI and human review.** The
+R05 authentication milestone does not authorize public or member-data use: R02/#11
+operational recovery, R03/#12 privacy, R06/#15 club-scoped authorization,
+R07/#16 first-admin bootstrap and frontend `/api` proxy-path integration remain
+separate release gates. The browser E2E runs directly against the API, not the proxy.

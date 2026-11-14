@@ -1,6 +1,7 @@
 package org.openclub.api
 
 import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
@@ -78,6 +79,8 @@ class BrowserLoginRoutesTest {
             val response = client.get(path)
             assertEquals(HttpStatusCode.BadRequest, response.status, path)
             assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
+            assertTrue(response.headers[HttpHeaders.ContentType].orEmpty().startsWith("application/json"))
+            assertEquals("""{"code":"invalid","message":"Invalid authentication response"}""", response.bodyAsText())
             assertTrue(response.headers.getAll(HttpHeaders.SetCookie).orEmpty()
                 .any { it.contains("openclub_dev_login=") && it.contains("Max-Age=0") })
         }
@@ -91,9 +94,12 @@ class BrowserLoginRoutesTest {
         val url = "/api/v1/auth/callback?state=${pending.authorization.state}&code=one-time-code"
         val absent = client.get(url)
         assertEquals(HttpStatusCode.Unauthorized, absent.status)
+        assertTrue(absent.headers[HttpHeaders.ContentType].orEmpty().startsWith("application/json"))
+        assertEquals("""{"code":"unauthenticated","message":"Authentication rejected"}""", absent.bodyAsText())
         assertFalse(absent.headers.getAll(HttpHeaders.SetCookie).orEmpty().any { it.contains("openclub_dev_session=") })
         val incorrect = client.get(url) { headers.append(HttpHeaders.Cookie, "openclub_dev_login=${"x".repeat(43)}") }
         assertEquals(HttpStatusCode.Unauthorized, incorrect.status)
+        assertEquals("""{"code":"unauthenticated","message":"Authentication rejected"}""", incorrect.bodyAsText())
         assertEquals(2, fake.finishes)
     }
 
@@ -114,5 +120,30 @@ class BrowserLoginRoutesTest {
         assertTrue(setCookies.any { it.contains("openclub_dev_session=${"h".repeat(43)}") && it.contains("HttpOnly") })
         assertEquals(pending.browserBinding, fake.lastBinding)
         assertEquals("p".repeat(43), fake.lastPrevious)
+    }
+
+    @Test
+    fun providerAndBackendFailuresReturnGenericJsonWithoutLeakingDetails() = testApplication {
+        val operations = object : BrowserLoginOperations {
+            override suspend fun begin(): PendingOidcLogin = error("sensitive provider diagnostic")
+            override suspend fun finish(
+                state: String, browserBinding: String?, code: String, previousSession: String?,
+            ): IssuedSession? = error("sensitive exchange diagnostic")
+        }
+        application { module(operations, cookies) }
+        val login = client.get("/api/v1/auth/login")
+        assertEquals(HttpStatusCode.ServiceUnavailable, login.status)
+        assertEquals("no-store", login.headers[HttpHeaders.CacheControl])
+        assertTrue(login.headers[HttpHeaders.ContentType].orEmpty().startsWith("application/json"))
+        assertEquals("""{"code":"unavailable","message":"Authentication unavailable"}""", login.bodyAsText())
+
+        val callback = client.get("/api/v1/auth/callback?state=${"s".repeat(43)}&code=one-time-code")
+        assertEquals(HttpStatusCode.ServiceUnavailable, callback.status)
+        assertEquals("no-store", callback.headers[HttpHeaders.CacheControl])
+        assertTrue(callback.headers[HttpHeaders.ContentType].orEmpty().startsWith("application/json"))
+        assertEquals("""{"code":"unavailable","message":"Authentication unavailable"}""", callback.bodyAsText())
+        assertTrue(callback.headers.getAll(HttpHeaders.SetCookie).orEmpty().any {
+            it.contains("openclub_dev_login=") && it.contains("Max-Age=0")
+        })
     }
 }
