@@ -26,6 +26,7 @@ This is a **working hypothesis**, not a final commitment. See [MVP scope](docs/c
 - [AI-assisted development concept](docs/concepts/ai/ai-agent-development.md)
 - [Agent contribution rules](AGENTS.md)
 - [Documentation maintenance for every PR](docs/contributing/documentation.md)
+- [Security implementation and review checklist](docs/contributing/security-review.md)
 
 ## Contributing
 
