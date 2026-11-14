@@ -84,7 +84,7 @@ class OidcProviderDiscoveryTest {
     fun rejectsMissingInvalidAndPrivateKeys() {
         assertThrows(Exception::class.java) { discovery(keys = """{"keys":[]}""").load() }
         assertThrows(Exception::class.java) {
-            discovery(keys = JWKSet(key).toString()).load()
+            discovery(keys = JWKSet(key).toString(false)).load()
         }
         assertThrows(Exception::class.java) {
             discovery(keys = """{"keys":[{"kty":"oct","k":"YWJj","kid":"symmetric"}]}""").load()
