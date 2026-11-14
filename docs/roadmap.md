@@ -102,3 +102,11 @@ The first pilot release is **not done** merely because the database tables or sc
 - The older [first-milestone document](concepts/ai/first-milestone.md) is retained for historical context; **this file is the current numbered plan**.
 - Scope exclusions until pilot evidence: payments, accounting, events, competitions, integrations, chat, pushes, federation sync, nonprofit generalization and a custom multi-agent framework.
 - No tentative target dates or paid infrastructure commitments are implied by these priorities.
+
+### Session HTTP implementation note (2026-11-14)
+
+Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.
+Logout requires exact Origin, JSON `{}` and session-bound CSRF, with transactional
+validation/revocation before cookie clearing. See [session API](security/session-api.md).
+R05 remains open pending CI, independent review, Keycloak E2E, JWKS freshness,
+rate limits and cleanup; club authorization, bootstrap and privacy gates remain.

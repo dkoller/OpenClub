@@ -38,7 +38,9 @@ successful cookie rotation. Existing DB/verification tests independently cover
 one-time state consumption, replay, signature and subject mapping. Real
 end-to-end login remains unverified until the subsequent CI slice.
 
-**Before public use:** complete `GET /auth/me`, CSRF+Origin guarded logout,
+**Session follow-up (2026-11-14):** opt-in session routes are implemented; see [session API](session-api.md).
+
+**Before public use:** verify session routes,
 JWKS refresh, rate limits, deterministic Keycloak browser E2E testing and
 privacy/first-admin authorization release gates. Keep #14 open and require
 manual PR review/merge.

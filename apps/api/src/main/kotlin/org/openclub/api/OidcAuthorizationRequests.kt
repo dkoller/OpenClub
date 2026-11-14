@@ -40,7 +40,8 @@ internal data class OidcSettings(
             (uri.scheme == "https" || isLoopbackHttp(uri))
 
     private fun isLoopbackHttp(uri: URI): Boolean =
-        uri.scheme == "http" && (uri.host == "localhost" || uri.host == "127.0.0.1" || uri.host == "[::1]")
+        uri.scheme == "http" && (uri.host.equals("localhost", ignoreCase = true) ||
+            uri.host == "127.0.0.1" || uri.host == "[::1]")
 }
 
 /** Not a session or authentication result: persist and bind this transaction before redirecting. */

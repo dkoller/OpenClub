@@ -3,6 +3,9 @@ package org.openclub.api
 import io.ktor.http.Cookie
 import io.ktor.http.CookieEncoding
 import java.net.URI
+import java.net.Inet4Address
+import java.net.Inet6Address
+import java.net.InetAddress
 
 /** This policy may create cookies only from opaque 256-bit URL-safe random handles. */
 internal class AuthCookiePolicy private constructor(private val production: Boolean) {
@@ -50,6 +53,68 @@ internal class OidcRuntimeConfig private constructor(
     val publicOrigin: URI,
     val cookies: AuthCookiePolicy,
 ) {
+    /**
+     * Browsers serialize Origin with a lowercase host and omit default ports.
+     * Normalize only trusted startup configuration; never normalize untrusted
+     * request headers, which must match the resulting string exactly.
+     */
+    val browserOrigin: String
+        get() {
+            val host = publicOrigin.host.lowercase(java.util.Locale.ROOT)
+            val authorityHost = if (host.startsWith("[") && host.endsWith("]")) {
+                "[${canonicalIpv6(host.substring(1, host.length - 1))}]"
+            } else host
+            val port = publicOrigin.port.takeUnless {
+                it == -1 || (publicOrigin.scheme == "https" && it == 443) ||
+                    (publicOrigin.scheme == "http" && it == 80)
+            }
+            return "${publicOrigin.scheme}://$authorityHost" + (port?.let { ":$it" } ?: "")
+        }
+
+    /** WHATWG-style IPv6 spelling: lowercase hex, compress the first longest zero run. */
+    private fun canonicalIpv6(literal: String): String {
+        require('%' !in literal) { "IPv6 zone identifiers are not valid browser origins" }
+        // Java represents IPv4-mapped IPv6 as Inet4Address. Restore the
+        // 96-bit ::ffff: prefix rather than incorrectly rejecting a valid
+        // bracketed IPv6 URL authority.
+        val address = InetAddress.getByName(literal)
+        val bytes = when (address) {
+            is Inet6Address -> address.address
+            is Inet4Address -> ByteArray(16).also { mapped ->
+                mapped[10] = 0xff.toByte()
+                mapped[11] = 0xff.toByte()
+                address.address.copyInto(mapped, destinationOffset = 12)
+            }
+            else -> throw IllegalArgumentException("Expected an IPv6 address literal")
+        }
+        val groups = IntArray(8) { i ->
+            (bytes[i * 2].toInt() and 0xff) * 256 + (bytes[i * 2 + 1].toInt() and 0xff)
+        }
+        var bestStart = -1
+        var bestLength = 1
+        var i = 0
+        while (i < 8) {
+            if (groups[i] != 0) {
+                i++
+                continue
+            }
+            val start = i
+            while (i < 8 && groups[i] == 0) i++
+            if (i - start > bestLength) {
+                bestStart = start
+                bestLength = i - start
+            }
+        }
+        if (bestStart < 0) return groups.joinToString(":") { it.toString(16) }
+        val left = (0 until bestStart).joinToString(":") { groups[it].toString(16) }
+        val right = (bestStart + bestLength until 8).joinToString(":") { groups[it].toString(16) }
+        return when {
+            left.isEmpty() -> "::$right"
+            right.isEmpty() -> "$left::"
+            else -> "$left::$right"
+        }
+    }
+
     override fun toString(): String = "OidcRuntimeConfig(redacted)"
 
     companion object {

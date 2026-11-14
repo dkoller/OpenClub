@@ -231,6 +231,45 @@ class AuthSessionsTest {
     }
 
     @Test
+    fun logoutValidatesSessionAndCsrfBeforeDeleting() = withStore { sessions, db, person ->
+        val issued = sessions.create(person)
+        val before = db.fetchOne("SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE person_id = ?", person)
+        assertEquals(LogoutResult.UNAUTHENTICATED, sessions.logout(null, issued.csrfToken))
+        assertEquals(LogoutResult.UNAUTHENTICATED, sessions.logout("x".repeat(43), issued.csrfToken))
+        assertEquals(LogoutResult.FORBIDDEN, sessions.logout(issued.handle, null))
+        assertEquals(LogoutResult.FORBIDDEN, sessions.logout(issued.handle, "x".repeat(43)))
+        assertEquals(before, db.fetchOne("SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE person_id = ?", person))
+        assertEquals(LogoutResult.REVOKED, sessions.logout(issued.handle, issued.csrfToken))
+        assertNull(sessions.find(issued.handle))
+        assertEquals(LogoutResult.UNAUTHENTICATED, sessions.logout(issued.handle, issued.csrfToken))
+        val expired = sessions.create(person)
+        db.execute("UPDATE auth_sessions SET idle_expires_at = CURRENT_TIMESTAMP - INTERVAL '1 second' WHERE person_id = ?", person)
+        assertEquals(LogoutResult.UNAUTHENTICATED, sessions.logout(expired.handle, expired.csrfToken))
+    }
+
+    @Test
+    fun concurrentLogoutHasExactlyOneWinner() = withStore { sessions, _, person ->
+        val issued = sessions.create(person)
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(2)
+        try {
+            val start = java.util.concurrent.CountDownLatch(1)
+            val attempts = (1..2).map {
+                pool.submit(java.util.concurrent.Callable {
+                    start.await()
+                    sessions.logout(issued.handle, issued.csrfToken)
+                })
+            }
+            start.countDown()
+            val results = attempts.map { it.get(10, java.util.concurrent.TimeUnit.SECONDS) }
+            assertEquals(1, results.count { it == LogoutResult.REVOKED })
+            assertEquals(1, results.count { it == LogoutResult.UNAUTHENTICATED })
+            assertNull(sessions.find(issued.handle))
+        } finally {
+            pool.shutdownNow()
+        }
+    }
+
+    @Test
     fun databaseOutageFailsClosedInsteadOfGrantingAccess() {
         val url = System.getenv("DB_URL")
         assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL via DB_URL")
@@ -243,6 +282,9 @@ class AuthSessionsTest {
         source.close()
         assertThrows(Exception::class.java) {
             sessions.find("a".repeat(43))
+        }
+        assertThrows(Exception::class.java) {
+            sessions.logout("a".repeat(43), "b".repeat(43))
         }
     }
 }
