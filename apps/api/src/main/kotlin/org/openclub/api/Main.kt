@@ -29,7 +29,7 @@ fun main() {
         embeddedServer(Netty, port = port, host = "0.0.0.0") {
             module(login, authConfig?.cookies,
                 authConfig?.let { PostgresBrowserSessions(requireNotNull(database)) },
-                authConfig?.publicOrigin?.toASCIIString()?.removeSuffix("/"))
+                authConfig?.browserOrigin)
         }.start(wait = true)
     } finally {
         database?.close()
