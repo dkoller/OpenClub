@@ -3,7 +3,8 @@
 This R05 test uses the session-endpoint implementation merged in PR #65:
 `GET /api/v1/auth/me` and Origin/CSRF-protected JSON `POST /api/v1/auth/logout`.
 The test intentionally fails on missing endpoints; it never skips them or mocks
-a successful login. A full CI pass is still required before claiming E2E success.
+a successful login. The real Keycloak browser authentication workflow passed
+on PR #66 (run 43634108286); the full browser journey was not run locally.
 
 The `Keycloak browser authentication` workflow provisions the existing restricted
 synthetic Keycloak user/client, starts PostgreSQL, builds the real API and runs
