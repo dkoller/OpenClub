@@ -12,7 +12,7 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 
 ## Every pull request
 
-- **Hard limit: additions + deletions must be strictly below 1,000 lines** for the full PR against its base. Target 500–700 to leave headroom.
+- **Hard limit: additions + deletions must be strictly below 2,000 lines** for the full PR against its base. Target 1,000–1,500 to leave headroom.
 - Count tests, docs, config, generated source and lockfiles; no exemptions for generated files. Binary changes do not count as text lines and require explicit reviewer scrutiny.
 - Split oversized work into independently useful, reviewable PRs. Never omit tests to meet the limit.
 - Document the purpose, acceptance criteria, testing performed/not performed, and known risks.
@@ -48,6 +48,6 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 
 ## Stack and decisions
 
-- The chosen direction in ADR-0001 (proposed in PR #3 pending merge) is React/TypeScript/Vite frontend, Kotlin/Ktor backend, PostgreSQL with **jOOQ**, and Flyway migrations.
-- Follow accepted ADRs on `main` and any agreed task-specific decisions; do not silently override an unmerged ADR.
+- ADR-0001 selects React/TypeScript/Vite frontend, Kotlin/Ktor backend, PostgreSQL with **jOOQ**, and Flyway migrations.
+- Follow accepted ADRs on `main` and any agreed task-specific decisions; do not silently override an accepted ADR.
 - Hosting, authentication provider and agent orchestration framework remain undecided.

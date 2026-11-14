@@ -4,7 +4,7 @@
 
 ## Scope and size
 
-- [ ] This PR changes **fewer than 1,000 added + deleted lines** (including tests, docs, config and lockfiles).
+- [ ] This PR changes **fewer than 2,000 added + deleted lines** (including tests, docs, config and lockfiles).
 - [ ] The change is independently reviewable; no required tests were omitted to reduce size.
 - [ ] Any binary changes are explained.
 
