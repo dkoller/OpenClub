@@ -25,6 +25,8 @@ The imported realm `openclub-dev` intentionally contains **no preset users, pass
 
 In the Keycloak admin console, choose the `openclub-dev` realm and create an OIDC client named `openclub-bff` with **Client authentication ON** (confidential client), Standard flow ON, Direct access grants OFF, and implicit flow OFF. Use a narrowly scoped local callback URI such as `http://localhost:5173/api/v1/auth/callback`; do not use wildcard redirect URIs or production credentials. When the login implementation is added, require PKCE S256 and wire the client ID and generated secret through runtime configuration outside source control.
 
+For reproducible synthetic browser-login tests, an **optional** [Keycloak fixture provisioning script](keycloak-e2e-fixtures.md) can create a restricted confidential client and test user with runtime-generated credentials. Normal startup still creates no users or clients; fixture provisioning is explicit and must never be used with real member data.
+
 ## Identical issuer URL inside Docker (optional backchannel)
 
 The browser reaches Keycloak at `http://localhost:8180` through the existing host-only published port. The API container has its **own** localhost. To make the *same verified issuer URL* available to the API **without rewriting issuer claims or discovered endpoints**, start the optional sidecar proxy:

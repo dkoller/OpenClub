@@ -125,6 +125,16 @@ jobs:
                  (.authorization_endpoint | type == "string") and
                  (.token_endpoint | type == "string") and
                  (.jwks_uri | type == "string")' /tmp/openclub-oidc-discovery.json
+      - name: Provision restricted synthetic OIDC client and test user
+        env:
+          KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n dev/keycloak/provision-test-fixtures.sh
+          export OPENCLUB_E2E_CLIENT_SECRET="$(openssl rand -hex 32)"
+          export OPENCLUB_E2E_USER_PASSWORD="$(openssl rand -hex 32)"
+          bash dev/keycloak/provision-test-fixtures.sh
       - name: Start all services from built images
         run: docker compose up -d --no-build --wait --wait-timeout 180
       - name: Verify web and proxied API
