@@ -1,5 +1,6 @@
 package org.openclub.api
 
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -25,7 +26,8 @@ internal fun Application.installBrowserLogin(
             call.response.headers.append(HttpHeaders.CacheControl, "no-store")
             if (!admission.allowLogin()) {
                 call.response.headers.append(HttpHeaders.RetryAfter, "60")
-                call.respondText("Authentication rate limited", status = HttpStatusCode.TooManyRequests)
+                call.respondText("""{"code":"rate_limited","message":"Authentication rate limited"}""",
+                    ContentType.Application.Json, HttpStatusCode.TooManyRequests)
                 return@get
             }
             try {
@@ -42,7 +44,8 @@ internal fun Application.installBrowserLogin(
             call.response.cookies.append(cookies.clearLogin())
             if (!admission.allowCallback()) {
                 call.response.headers.append(HttpHeaders.RetryAfter, "60")
-                call.respondText("Authentication rate limited", status = HttpStatusCode.TooManyRequests)
+                call.respondText("""{"code":"rate_limited","message":"Authentication rate limited"}""",
+                    ContentType.Application.Json, HttpStatusCode.TooManyRequests)
                 return@get
             }
             val query = call.request.queryParameters
