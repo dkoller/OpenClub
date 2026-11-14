@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Java 21, Gradle 9.7.0, Node.js 22, pnpm 10.24.0, Docker
+- Java 21, Node.js 22, pnpm 10.24.0, Docker. Gradle is provided by the checked-in wrapper. For container-only use, Docker Compose is sufficient.
 - The selected architecture is documented in [ADR-0001](../../decisions/0001-stack-selection.md).
 
 ## Start locally
@@ -11,14 +11,14 @@
 docker compose up -d postgres
 cd apps/api
 DB_URL=jdbc:postgresql://localhost:5432/openclub \
-DB_USER=openclub DB_PASSWORD=openclub_dev gradle run
+DB_USER=openclub DB_PASSWORD=openclub_dev ./gradlew run
 ```
 
 In a second terminal:
 
 ```sh
 cd apps/web
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
@@ -29,7 +29,7 @@ These credentials are **development-only**, and the database is bound to localho
 ## Test
 
 ```sh
-cd apps/api && gradle test
+cd apps/api && ./gradlew test
 cd apps/web && pnpm test && pnpm build
 ```
 
@@ -42,15 +42,16 @@ Setting `DB_URL`, `DB_USER` and `DB_PASSWORD` on API startup migrates the databa
 After starting PostgreSQL and running the API once to migrate the schema, from `apps/api` run:
 
 ```sh
-gradle generateJooq
+./gradlew generateJooq
 ```
 
 This generates database types from the local migrated schema into `build/generated-src/jooq`. The generator XML uses **local-only** connection settings; change it to secure environment-provided credentials when configuring nonlocal code generation.
 
+On Windows without WSL, use `gradlew.bat` instead of `./gradlew`. Do not manually edit `pnpm-lock.yaml`: update it using `pnpm install` when dependencies change.
+
 ## Deferred intentionally
 
 - Authentication, membership APIs, deployment and business logic
-- CI-generated/pinned pnpm lockfile and a committed Gradle wrapper (requires a checked-in verified wrapper binary)
 - Continuous database connection pool and generated jOOQ types wired into feature code
 
 The first code PR establishes a working skeleton, not a production-ready service.
