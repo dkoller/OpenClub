@@ -35,7 +35,8 @@ internal fun Application.installBrowserLogin(
                 call.response.cookies.append(cookies.loginBinding(pending.browserBinding))
                 call.respondRedirect(pending.authorization.url.toASCIIString(), permanent = false)
             } catch (_: Exception) {
-                call.respondText("Authentication unavailable", status = HttpStatusCode.ServiceUnavailable)
+                call.respondText("""{"code":"unavailable","message":"Authentication unavailable"}""",
+                    ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
             }
         }
         get("/api/v1/auth/callback") {
@@ -57,7 +58,8 @@ internal fun Application.installBrowserLogin(
             if (!errors.isNullOrEmpty() || state.isNullOrBlank() || code.isNullOrBlank() ||
                 code.length > 4096 || code.any(Char::isISOControl)
             ) {
-                call.respondText("Invalid authentication response", status = HttpStatusCode.BadRequest)
+                call.respondText("""{"code":"invalid","message":"Invalid authentication response"}""",
+                    ContentType.Application.Json, HttpStatusCode.BadRequest)
                 return@get
             }
             try {
@@ -66,7 +68,8 @@ internal fun Application.installBrowserLogin(
                     code, call.request.cookies[cookies.sessionName],
                 )
                 if (issued == null) {
-                    call.respondText("Authentication rejected", status = HttpStatusCode.Unauthorized)
+                    call.respondText("""{"code":"unauthenticated","message":"Authentication rejected"}""",
+                        ContentType.Application.Json, HttpStatusCode.Unauthorized)
                 } else {
                     call.response.cookies.append(cookies.session(issued.handle))
                     call.response.headers.append(HttpHeaders.Location, "/")
@@ -74,7 +77,8 @@ internal fun Application.installBrowserLogin(
                 }
             } catch (_: Exception) {
                 // No token, nonce, code or provider error is ever reflected to the client.
-                call.respondText("Authentication unavailable", status = HttpStatusCode.ServiceUnavailable)
+                call.respondText("""{"code":"unavailable","message":"Authentication unavailable"}""",
+                    ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
             }
         }
     }
