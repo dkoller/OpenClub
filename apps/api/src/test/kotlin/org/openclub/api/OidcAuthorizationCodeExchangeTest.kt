@@ -140,6 +140,65 @@ class OidcAuthorizationCodeExchangeTest {
     }
 
     @Test
+    fun chunkedTokenResponseHonorsExactByteLimit() {
+        val extraByte = java.util.concurrent.atomic.AtomicBoolean(false)
+        withServer({ exchange, issuer ->
+            val tokenJson = tokens(idToken(issuer))
+            val length = 16 * 1024 + if (extraByte.get()) 1 else 0
+            val padded = tokenJson + " ".repeat(length - tokenJson.toByteArray(StandardCharsets.UTF_8).size)
+            val bytes = padded.toByteArray(StandardCharsets.UTF_8)
+            assertEquals(length, bytes.size)
+            exchange.sendResponseHeaders(200, 0) // Chunked: no Content-Length
+            exchange.responseBody.use { stream ->
+                var index = 0
+                while (index < bytes.size) {
+                    val n = minOf(2048, bytes.size - index)
+                    stream.write(bytes, index, n)
+                    index += n
+                }
+            }
+        }) { issuer, exchange ->
+            assertEquals(VerifiedOidcIdentity(issuer, "subject-123"), exchange.redeem("code-1", login))
+            extraByte.set(true)
+            val failure = assertThrows(Exception::class.java) { exchange.redeem("code-2", login) }
+            val chain = generateSequence(failure as Throwable?) { it.cause }
+                .map { it.message.orEmpty() }.toList()
+            assertTrue(chain.any { it.contains("OIDC token response too large") }, "$chain")
+        }
+    }
+
+    @Test
+    fun tokenResponseBodyStallExpiresWholeResponseDeadline() {
+        val release = java.util.concurrent.CountDownLatch(1)
+        val headersSent = java.util.concurrent.CountDownLatch(1)
+        withServer({ exchange, _ ->
+            try {
+                exchange.sendResponseHeaders(200, 0)
+                exchange.responseBody.use {
+                    it.write('{'.code)
+                    it.flush()
+                    headersSent.countDown()
+                    release.await(12, java.util.concurrent.TimeUnit.SECONDS)
+                }
+            } catch (_: java.io.IOException) {
+                // Cancellation can close the connection before the test server finishes.
+            } finally {
+                headersSent.countDown()
+            }
+        }) { _, exchange ->
+            try {
+                val started = System.nanoTime()
+                assertThrows(Exception::class.java) { exchange.redeem("code", login) }
+                val elapsedMs = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
+                assertTrue(headersSent.await(1, java.util.concurrent.TimeUnit.SECONDS))
+                assertTrue(elapsedMs in 4_000..8_000, "A stalled token body must time out: ${elapsedMs}ms")
+            } finally {
+                release.countDown()
+            }
+        }
+    }
+
+    @Test
     fun rejectsUnsafeTokenEndpointAndInvalidCodesBeforeNetwork() {
         val base = "https://trusted.example/realm"
         val settings = OidcSettings(
