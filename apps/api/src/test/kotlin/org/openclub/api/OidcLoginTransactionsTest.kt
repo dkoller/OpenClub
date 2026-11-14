@@ -40,7 +40,7 @@ class OidcLoginTransactionsTest {
             val one = store.start()
             val two = store.start()
             try {
-                assertEquals(2, db.fetchValue("SELECT COUNT(*) FROM oidc_login_transactions WHERE expires_at > CURRENT_TIMESTAMP"))
+                assertEquals(2L, db.fetchValue("SELECT COUNT(*) FROM oidc_login_transactions WHERE expires_at > CURRENT_TIMESTAMP"))
                 assertFalse(db.fetchExists(
                     DSL.table(DSL.name("oidc_login_transactions")),
                     DSL.field(DSL.name("state_hash"), String::class.java).eq(one.authorization.state)
