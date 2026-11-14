@@ -41,6 +41,9 @@ jobs:
           DB_USER: openclub
           DB_PASSWORD: openclub_dev
         run: gradle test --no-daemon
+      - name: Verify jOOQ code generation from migrated schema
+        working-directory: apps/api
+        run: gradle generateJooq --no-daemon
 
   web:
     runs-on: ubuntu-latest
