@@ -8,11 +8,13 @@ import java.security.SecureRandom
 import java.util.Base64
 import java.util.UUID
 
-/** Handle belongs exclusively in an HttpOnly cookie; CSRF token is returned by /auth/me later. */
+/** Handle belongs exclusively in an HttpOnly cookie; CSRF token is returned by /auth/me. */
 internal data class IssuedSession(val handle: String, val csrfToken: String)
 
 /** Authentication proves a person, not membership or a club-specific role. */
 internal data class ActiveSession(val personId: UUID, val csrfToken: String)
+
+internal enum class LogoutResult { REVOKED, UNAUTHENTICATED, FORBIDDEN }
 
 /**
  * Internal PostgreSQL-backed opaque sessions. [personId] must already be resolved
@@ -51,6 +53,29 @@ internal class AuthSessions(
 
     /** Refresh idle expiry only for valid, unexpired sessions. */
     fun find(handle: String?): ActiveSession? = touch(handle, null)
+
+    /** Lock the session so rotation/re-login cannot race CSRF validation and deletion. */
+    fun logout(handle: String?, csrfToken: String?): LogoutResult {
+        if (!validSecret(handle)) return LogoutResult.UNAUTHENTICATED
+        return database.transactionResult { configuration ->
+            val db = DSL.using(configuration)
+            val row = db.fetchOne(
+                """SELECT csrf_token FROM auth_sessions WHERE session_hash = ?
+                   AND idle_expires_at > CURRENT_TIMESTAMP
+                   AND absolute_expires_at > CURRENT_TIMESTAMP FOR UPDATE""",
+                digest(handle!!),
+            )
+            if (row == null) LogoutResult.UNAUTHENTICATED
+            else if (!validSecret(csrfToken) || !MessageDigest.isEqual(
+                    row.get("csrf_token", String::class.java)!!.toByteArray(StandardCharsets.US_ASCII),
+                    csrfToken!!.toByteArray(StandardCharsets.US_ASCII),
+                )) LogoutResult.FORBIDDEN
+            else {
+                db.execute("DELETE FROM auth_sessions WHERE session_hash = ?", digest(handle))
+                LogoutResult.REVOKED
+            }
+        }
+    }
 
     /**
      * For a future state-changing route, also check the synchronizer token.

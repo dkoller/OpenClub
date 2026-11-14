@@ -3,7 +3,7 @@ info:
   title: OpenClub browser authentication — proposed contract
   version: 0.1.0-proposal
   description: >
-    DESIGN ONLY. These endpoints are NOT IMPLEMENTED. See docs/contracts/auth-api-review.md.
+Opt-in login/callback and session routes are implemented; rate limiting remains proposed. See docs/contracts/auth-api-review.md.
     Cookies are issued and interpreted only by the same-origin Ktor BFF.
 servers:
   - url: /api
@@ -114,7 +114,8 @@ paths:
       summary: Revoke the current server-side session
       description: >
         Require exact configured Origin, Content-Type application/json and a
-        matching session-bound X-CSRF-Token, then revoke the session and expire
+        matching session-bound X-CSRF-Token and an empty JSON object body (maximum
+        256 bytes), then atomically validate/revoke the active session and expire
         its cookie. No provider logout requirement. No cross-origin CORS.
         Session-storage failures return 503; never report successful revocation or
         clear the session cookie as proof of logout when revocation could not be confirmed.

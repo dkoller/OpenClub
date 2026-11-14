@@ -27,7 +27,9 @@ fun main() {
         }
         val port = environment["PORT"]?.toIntOrNull() ?: 8080
         embeddedServer(Netty, port = port, host = "0.0.0.0") {
-            module(login, authConfig?.cookies)
+            module(login, authConfig?.cookies,
+                authConfig?.let { PostgresBrowserSessions(requireNotNull(database)) },
+                authConfig?.publicOrigin?.toASCIIString()?.removeSuffix("/"))
         }.start(wait = true)
     } finally {
         database?.close()
@@ -37,6 +39,8 @@ fun main() {
 internal fun Application.module(
     login: BrowserLoginOperations? = null,
     cookiePolicy: AuthCookiePolicy? = null,
+    sessions: BrowserSessionOperations? = null,
+    publicOrigin: String? = null,
 ) {
     routing {
         // Liveness only; this endpoint does not imply database readiness.
@@ -45,4 +49,5 @@ internal fun Application.module(
         }
     }
     if (login != null) installBrowserLogin(login, requireNotNull(cookiePolicy))
+    if (sessions != null) installSessionRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin))
 }

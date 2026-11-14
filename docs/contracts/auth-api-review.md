@@ -38,3 +38,11 @@ Use `__Host-openclub_login` and `__Host-openclub_session` for HTTPS with `Secure
 The Ktor runtime pool/dispatcher and fail-closed OIDC config, cookie construction, discovery/JWKS freshness strategy, browser-bound transaction route and callback, request-size and rate limits, session issuance and Origin+CSRF guards must be reviewed and tested independently. Implementers should use the agreed status/response contract above and update this proposal to an **implemented** contract in the same PR that exposes HTTP routes.
 
 No production identity, user account, seed password, external OAuth token or administrative privilege is created by this contract PR.
+
+### Session HTTP implementation note (2026-11-14)
+
+Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.
+Logout requires exact Origin, JSON `{}` and session-bound CSRF, with transactional
+validation/revocation before cookie clearing. See [session API](../security/session-api.md).
+R05 remains open pending CI, independent review, Keycloak E2E, JWKS freshness,
+rate limits and cleanup; club authorization, bootstrap and privacy gates remain.

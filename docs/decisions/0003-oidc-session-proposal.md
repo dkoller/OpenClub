@@ -49,3 +49,11 @@ OpenClub needs trusted sign-in, club-scoped roles, a self-hostable pilot environ
 - [ ] Obtain appropriate privacy review before any real pilot identities are used.
 
 **No login code or privileges are introduced by this ADR.** Its architecture is accepted, but do not expose membership endpoints until authentication, authorization, bootstrap and privacy controls have been implemented and tested.
+
+### Session HTTP implementation note (2026-11-14)
+
+Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.
+Logout requires exact Origin, JSON `{}` and session-bound CSRF, with transactional
+validation/revocation before cookie clearing. See [session API](../security/session-api.md).
+R05 remains open pending CI, independent review, Keycloak E2E, JWKS freshness,
+rate limits and cleanup; club authorization, bootstrap and privacy gates remain.
