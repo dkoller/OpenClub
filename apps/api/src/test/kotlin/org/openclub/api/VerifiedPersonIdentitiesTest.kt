@@ -4,8 +4,11 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
 import org.jooq.DSLContext
+import org.jooq.ExecuteContext
+import org.jooq.ExecuteListener
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
+import org.jooq.impl.DefaultExecuteListenerProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -17,6 +20,7 @@ import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class VerifiedPersonIdentitiesTest {
     private val issuer = "https://identity.example/realms/openclub"
@@ -117,19 +121,53 @@ class VerifiedPersonIdentitiesTest {
         ) as Long
         val ready = CountDownLatch(2)
         val start = CountDownLatch(1)
+        val bothCandidatesInserted = CountDownLatch(2)
+        val insertedCandidates = AtomicInteger()
+        val attemptedBindings = AtomicInteger()
+        val deletedLosingCandidates = AtomicInteger()
+
+        // Test-only jOOQ listener: pause AFTER the real PostgreSQL persons INSERT
+        // succeeds in each uncommitted transaction, BEFORE either identity INSERT.
+        // This forces the ON CONFLICT race instead of depending on thread scheduling.
+        val listener = object : ExecuteListener {
+            override fun executeStart(ctx: ExecuteContext) {
+                if (ctx.sql()?.trimStart()?.uppercase()?.startsWith("INSERT INTO PERSON_IDENTITIES ") == true) {
+                    attemptedBindings.incrementAndGet()
+                }
+            }
+
+            override fun executeEnd(ctx: ExecuteContext) {
+                val sql = ctx.sql()?.trimStart()?.uppercase().orEmpty()
+                if (sql.startsWith("INSERT INTO PERSONS ")) {
+                    insertedCandidates.incrementAndGet()
+                    bothCandidatesInserted.countDown()
+                    check(bothCandidatesInserted.await(10, TimeUnit.SECONDS)) {
+                        "Both concurrent transactions must insert candidates before identity binding"
+                    }
+                } else if (sql.startsWith("DELETE FROM PERSONS ")) {
+                    deletedLosingCandidates.incrementAndGet()
+                }
+            }
+        }
+        val competingDb = DSL.using(
+            db.configuration().derive(DefaultExecuteListenerProvider(listener))
+        )
         val pool = Executors.newFixedThreadPool(2)
         try {
             val futures = (1..2).map {
                 pool.submit<UUID> {
                     ready.countDown()
                     check(start.await(10, TimeUnit.SECONDS))
-                    resolver(db).resolveOrCreate(identity)
+                    resolver(competingDb).resolveOrCreate(identity)
                 }
             }
             assertTrue(ready.await(10, TimeUnit.SECONDS))
             start.countDown()
             val results = futures.map { it.get(20, TimeUnit.SECONDS) }
             assertEquals(results[0], results[1])
+            assertEquals(2, insertedCandidates.get(), "Both candidate rows must have been inserted")
+            assertEquals(2, attemptedBindings.get(), "Both transactions must compete for the identity")
+            assertEquals(1, deletedLosingCandidates.get(), "The loser must remove its orphan candidate")
             assertEquals(1L, db.fetchValue(
                 "SELECT COUNT(*) FROM person_identities WHERE issuer = ? AND subject = ?",
                 identity.issuer, identity.subject,
