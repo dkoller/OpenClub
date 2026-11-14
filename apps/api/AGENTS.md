@@ -11,5 +11,6 @@ Read root `AGENTS.md` and ADR-0001 first.
 - Validate requests, enforce authorization and club isolation server-side, and use explicit transactions where appropriate.
 - jOOQ JDBC work is blocking: do not run it on an event-loop thread. Document the dispatcher/connection-pool approach before implementation.
 - Test SQL and migrations against PostgreSQL, including cross-club access denial.
+- The internal `ClubMembershipAccess` lookup takes a person ID resolved by **verified authentication**, never untrusted request input. It is not an HTTP authorization guard. See `docs/security/club-membership-access.md`.
 - Do not add service/facade/repository layers solely for ceremony.
 - Keep Kotlin formatting, static analysis and tests part of the normal PR checks once the backend is scaffolded.
