@@ -9,12 +9,21 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 
 fun main() {
-    // Optional during the scaffold: DB_URL enables local migration and connectivity validation.
-    DatabaseBootstrap.migrateIfConfigured()
-    val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
-    embeddedServer(Netty, port = port, host = "0.0.0.0") {
-        module()
-    }.start(wait = true)
+    val environment = System.getenv()
+    // Fail closed on invalid explicit OIDC settings. This does not enable auth routes.
+    val authConfigured = OidcRuntimeConfig.fromEnvironment(environment) != null
+    require(!authConfigured || !environment["DB_URL"].isNullOrBlank()) {
+        "OIDC authentication requires a PostgreSQL session database"
+    }
+    val database = DatabaseRuntime.openIfConfigured(environment)
+    try {
+        val port = environment["PORT"]?.toIntOrNull() ?: 8080
+        embeddedServer(Netty, port = port, host = "0.0.0.0") {
+            module()
+        }.start(wait = true)
+    } finally {
+        database?.close()
+    }
 }
 
 fun Application.module() {
