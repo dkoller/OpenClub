@@ -46,6 +46,8 @@ paths:
         missing or duplicate code/state, expired/replayed transaction and incorrect
         browser. Redeem code with confidential PKCE, validate signed ID token,
         resolve exact issuer+subject to a person and mint a fresh server-side session.
+        On success, revoke any previous session presented by this browser before
+        completing the callback; replacing its cookie alone is insufficient.
         Clear pre-auth binding on both success and failure. No club permissions implied.
       security: []
       parameters:
@@ -88,6 +90,7 @@ paths:
       description: >
         Requires an unexpired server-side session. Does not return club roles,
         provider tokens or any credential. Reject unknown cookies; no caching.
+        Session-storage failures return 503, not 401, and disclose no identity or CSRF token.
       security:
         - browserSession: []
       responses:
@@ -102,6 +105,8 @@ paths:
                 $ref: '#/components/schemas/SessionView'
         '401':
           $ref: '#/components/responses/Unauthenticated'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /v1/auth/logout:
     post:
       tags: [Browser authentication]
@@ -111,6 +116,8 @@ paths:
         Require exact configured Origin, Content-Type application/json and a
         matching session-bound X-CSRF-Token, then revoke the session and expire
         its cookie. No provider logout requirement. No cross-origin CORS.
+        Session-storage failures return 503; never report successful revocation or
+        clear the session cookie as proof of logout when revocation could not be confirmed.
       security:
         - browserSession: []
       parameters:
@@ -145,6 +152,8 @@ paths:
           $ref: '#/components/responses/Unauthenticated'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
 components:
   securitySchemes:
     browserSession:
