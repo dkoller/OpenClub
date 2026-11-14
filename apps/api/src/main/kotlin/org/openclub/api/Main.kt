@@ -41,6 +41,7 @@ internal fun Application.module(
     cookiePolicy: AuthCookiePolicy? = null,
     sessions: BrowserSessionOperations? = null,
     publicOrigin: String? = null,
+    authAdmission: AuthAdmissionLimiter = AuthAdmissionLimiter(),
 ) {
     routing {
         // Liveness only; this endpoint does not imply database readiness.
@@ -48,6 +49,6 @@ internal fun Application.module(
             call.respondText("""{"status":"ok"}""", ContentType.Application.Json)
         }
     }
-    if (login != null) installBrowserLogin(login, requireNotNull(cookiePolicy))
+    if (login != null) installBrowserLogin(login, requireNotNull(cookiePolicy), authAdmission)
     if (sessions != null) installSessionRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin))
 }
