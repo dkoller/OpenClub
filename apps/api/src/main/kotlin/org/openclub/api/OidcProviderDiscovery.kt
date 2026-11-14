@@ -10,8 +10,14 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.time.Duration
+import java.util.concurrent.CompletionStage
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Flow
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * Fetches metadata only from a preconfigured issuer and accepts OIDC endpoints
@@ -79,11 +85,51 @@ private fun fetchOidcDocument(uri: URI): String {
         .header("Accept", "application/json")
         .GET()
         .build()
-    val response = http.send(request, HttpResponse.BodyHandlers.ofInputStream())
-    response.body().use { body ->
-        require(response.statusCode() == 200) { "OIDC discovery request failed" }
-        val bytes = body.readNBytes(256 * 1024 + 1)
-        require(bytes.size <= 256 * 1024) { "OIDC discovery response too large" }
-        return String(bytes, StandardCharsets.UTF_8)
+    // Unlike ofInputStream(), this subscriber completes only after the entire body.
+    // get(timeout) covers headers AND body; cancellation aborts a stalled exchange.
+    val pending = http.sendAsync(request, HttpResponse.BodyHandler { LimitedOidcBodySubscriber() })
+    val response = try {
+        pending.get(5, TimeUnit.SECONDS)
+    } catch (e: TimeoutException) {
+        pending.cancel(true)
+        throw IllegalStateException("OIDC discovery body deadline exceeded", e)
+    } catch (e: InterruptedException) {
+        pending.cancel(true)
+        Thread.currentThread().interrupt()
+        throw IllegalStateException("OIDC discovery interrupted", e)
+    } catch (e: ExecutionException) {
+        throw (e.cause ?: e)
     }
+    require(response.statusCode() == 200) { "OIDC discovery request failed" }
+    return String(response.body(), StandardCharsets.UTF_8)
+}
+
+private const val MAX_OIDC_DOCUMENT_BYTES = 256 * 1024L
+
+/** Prevent unbounded buffering even when Content-Length is absent or dishonest. */
+private class LimitedOidcBodySubscriber : HttpResponse.BodySubscriber<ByteArray> {
+    private val delegate = HttpResponse.BodySubscribers.ofByteArray()
+    private lateinit var subscription: Flow.Subscription
+    private var bytesReceived = 0L
+
+    override fun getBody(): CompletionStage<ByteArray> = delegate.body
+
+    override fun onSubscribe(subscription: Flow.Subscription) {
+        this.subscription = subscription
+        delegate.onSubscribe(subscription)
+    }
+
+    override fun onNext(item: List<ByteBuffer>) {
+        val incoming = item.sumOf { it.remaining().toLong() }
+        if (incoming > MAX_OIDC_DOCUMENT_BYTES - bytesReceived) {
+            subscription.cancel()
+            delegate.onError(IllegalArgumentException("OIDC discovery response too large"))
+            return
+        }
+        bytesReceived += incoming
+        delegate.onNext(item)
+    }
+
+    override fun onError(error: Throwable) = delegate.onError(error)
+    override fun onComplete() = delegate.onComplete()
 }

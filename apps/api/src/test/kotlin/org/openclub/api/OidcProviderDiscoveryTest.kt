@@ -93,6 +93,45 @@ class OidcProviderDiscoveryTest {
     }
 
     @Test
+    fun stalledResponseBodyDoesNotEscapeFiveSecondDeadline() {
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        val releaseBody = java.util.concurrent.CountDownLatch(1)
+        val headersSent = java.util.concurrent.CountDownLatch(1)
+        server.createContext("/realms/test/.well-known/openid-configuration") { exchange ->
+            try {
+                exchange.sendResponseHeaders(200, 0) // Chunked body: no Content-Length.
+                exchange.responseBody.use {
+                    it.write('{'.code)
+                    it.flush()
+                    headersSent.countDown()
+                    releaseBody.await(12, java.util.concurrent.TimeUnit.SECONDS)
+                }
+            } catch (_: java.io.IOException) {
+                // The client may close the connection when its deadline expires.
+            } finally {
+                headersSent.countDown()
+            }
+        }
+        server.start()
+        try {
+            val base = "http://127.0.0.1:${server.address.port}/realms/test"
+            val started = System.nanoTime()
+            assertThrows(Exception::class.java) {
+                OidcProviderDiscovery(settings(base)).load()
+            }
+            val elapsedMs = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
+            org.junit.jupiter.api.Assertions.assertTrue(headersSent.await(1, java.util.concurrent.TimeUnit.SECONDS))
+            org.junit.jupiter.api.Assertions.assertTrue(
+                elapsedMs in 4_000..8_000,
+                "A stalled body must fail near five seconds, not wait for the server: ${elapsedMs}ms"
+            )
+        } finally {
+            releaseBody.countDown()
+            server.stop(0)
+        }
+    }
+
+    @Test
     fun rejectsRedirectsAndOversizedDiscoveryResponsesOverHttp() {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         var responseCode = 302
