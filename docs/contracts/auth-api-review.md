@@ -41,6 +41,13 @@ No production identity, user account, seed password, external OAuth token or adm
 
 ### Session HTTP implementation note (2026-11-14)
 
+Build CI now validates all YAML OpenAPI documents in this directory with
+openapi-spec-validator 0.7.2, including YAML parsing and OpenAPI schema/reference
+validation. The contracts job runs independently of application path filters.
+Locally: install that pinned validator and run
+`openapi-spec-validator docs/contracts/auth-api-proposal.yaml` (repeat for
+`docs/contracts/openapi-draft.yaml`).
+
 Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.
 Logout requires exact Origin, JSON `{}` and session-bound CSRF, with transactional
 validation/revocation before cookie clearing. See [session API](../security/session-api.md).

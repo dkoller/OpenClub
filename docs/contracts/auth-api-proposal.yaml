@@ -3,7 +3,7 @@ info:
   title: OpenClub browser authentication — proposed contract
   version: 0.1.0-proposal
   description: >
-Opt-in login/callback and session routes are implemented; rate limiting remains proposed. See docs/contracts/auth-api-review.md.
+    Opt-in login/callback and session routes are implemented; rate limiting remains proposed. See docs/contracts/auth-api-review.md.
     Cookies are issued and interpreted only by the same-origin Ktor BFF.
 servers:
   - url: /api

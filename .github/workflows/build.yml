@@ -14,6 +14,23 @@ permissions:
   pull-requests: read
 
 jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install OpenAPI validator
+        run: python -m pip install openapi-spec-validator==0.7.2
+      - name: Validate OpenAPI YAML contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for contract in docs/contracts/*.yaml; do
+            openapi-spec-validator "$contract"
+          done
+
   changes:
     runs-on: ubuntu-latest
     outputs:
