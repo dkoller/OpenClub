@@ -16,6 +16,9 @@ Separate **person**, **authentication identity** and **club membership**:
 
 ## Auth design / undecided integration
 
+*Historical note (2026-11-14):* At the time of this ADR the provider and session implementation were undecided. [ADR-0003](0003-oidc-session-proposal.md) now selects Keycloak as the reference OIDC provider with server-side BFF sessions. [R05/E1](../security/oidc-identity-resolution.md) implements internal verified issuer + subject resolution, without enabling login routes or adopting existing members.
+
+
 Use an established OpenID Connect-compatible identity service rather than designing passwords, sessions or token signing ourselves. The **specific provider, login UI, token validation library and session architecture remain undecided**. No sign-in or admin/member endpoints are introduced in this PR.
 
 When auth is implemented: validate signature, issuer, audience, expiry and other necessary token claims; resolve verified issuer+subject to a person; confirm an active membership with the required role for the **requested club**. Do not take identity, authorization role or club membership from arbitrary browser headers or JSON. Protect against first-admin bootstrap and last-admin lockout. Never expose cross-club data to callers lacking explicit access. Choose an audit/retention policy before handling live membership data.
