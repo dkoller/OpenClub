@@ -19,6 +19,14 @@
 
 <!-- Exact build, test, formatting or manual checks run; state what you could not run. -->
 
+## Security and behavior review (apply where relevant)
+
+- [ ] I identified changed trust boundaries and tested relevant missing, malformed, ambiguous and adversarial inputs; or explain why this is not applicable.
+- [ ] For service/configuration changes, the affected service was started and its behavior verified; or explain why runtime validation was not possible.
+- [ ] For authentication, authorization, sessions or other high-risk changes, I requested independent security-focused review before merge.
+
+<!-- Describe negative tests, runtime evidence, review findings and residual risk. Reference docs/contributing/security-review.md. -->
+
 ## Review notes
 
 <!-- Authorization and club isolation impact? Dependencies? Contract/migrations? Risks or follow-ups? -->

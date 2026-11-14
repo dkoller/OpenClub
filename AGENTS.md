@@ -44,6 +44,7 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 
 - Preserve club/organization isolation. Enforce permissions server-side.
 - Apply least privilege and validate at trust boundaries.
+- For security-sensitive changes, identify abuse cases, test malformed/missing/ambiguous inputs and real failure behavior, and request an independent adversarial review before merge. Follow [security review checklist](docs/contributing/security-review.md).
 - Never commit secrets, credentials or private member data.
 - Consider export/deletion, privacy, and affordable self-hosting from the start.
 - Do not add paid dependencies or production/billing/authentication infrastructure without approval and a cost explanation.
@@ -52,4 +53,4 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 
 - ADR-0001 selects React/TypeScript/Vite frontend, Kotlin/Ktor backend, PostgreSQL with **jOOQ**, and Flyway migrations.
 - Follow accepted ADRs on `main` and any agreed task-specific decisions; do not silently override an accepted ADR.
-- Hosting, authentication provider and agent orchestration framework remain undecided.
+- ADR-0003 selects Keycloak as the self-hosted reference OIDC provider (other OIDC providers can be configured later) and a Kotlin/Ktor BFF with server-side sessions. Hosting and agent orchestration are undecided.
