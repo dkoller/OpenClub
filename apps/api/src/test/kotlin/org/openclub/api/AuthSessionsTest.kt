@@ -210,6 +210,27 @@ class AuthSessionsTest {
     }
 
     @Test
+    fun failedReplacementInsertRollsBackOldSessionRevocation() = withStore { sessions, db, person ->
+        val original = sessions.create(person)
+        // A non-existent person violates auth_sessions.person_id's foreign key.
+        // The delete runs first; that deletion MUST roll back with the insert.
+        val unknownPerson = UUID.randomUUID()
+        assertThrows(Exception::class.java) {
+            sessions.replace(original.handle, unknownPerson)
+        }
+        assertEquals(ActiveSession(person, original.csrfToken), sessions.find(original.handle))
+        assertEquals(1L, db.fetchValue(
+            "SELECT COUNT(*) FROM auth_sessions WHERE person_id = ?", person,
+        ))
+        val replacement = sessions.replace(original.handle, person)
+        assertNull(sessions.find(original.handle))
+        assertEquals(ActiveSession(person, replacement.csrfToken), sessions.find(replacement.handle))
+        assertEquals(1L, db.fetchValue(
+            "SELECT COUNT(*) FROM auth_sessions WHERE person_id = ?", person,
+        ))
+    }
+
+    @Test
     fun databaseOutageFailsClosedInsteadOfGrantingAccess() {
         val url = System.getenv("DB_URL")
         assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL via DB_URL")
