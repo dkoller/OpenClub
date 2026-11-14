@@ -48,6 +48,18 @@ internal class OidcIdTokenVerifier(
         val claims = validator.validate(token, Nonce(expectedNonce))
         // MVP supports a single audience; reject additional untrusted recipients.
         require(token.jwtClaimsSet.audience == listOf(settings.clientId)) { "Unexpected token audience" }
+        // Nimbus IDTokenValidator does not enforce optional nbf or azp for this policy.
+        val tokenClaims = token.jwtClaimsSet
+        if (tokenClaims.claims.containsKey("nbf")) {
+            val notBefore = tokenClaims.notBeforeTime
+            require(notBefore != null && notBefore.time <= System.currentTimeMillis() + 30_000L) {
+                "ID token is not yet valid"
+            }
+        }
+        val authorizedParty = tokenClaims.getClaim("azp")
+        require(authorizedParty == null || authorizedParty is String && authorizedParty == settings.clientId) {
+            "Unexpected authorized party"
+        }
         val subject = claims.subject?.value
         require(!subject.isNullOrBlank()) { "ID token requires a nonblank subject" }
         return VerifiedOidcIdentity(settings.issuer.toASCIIString(), subject)

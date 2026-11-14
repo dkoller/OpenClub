@@ -37,6 +37,8 @@ class OidcIdTokenVerifierTest {
         tokenNonce: String? = nonce,
         subject: String = "provider-subject",
         expiresAt: Instant = Instant.now().plusSeconds(300),
+        notBefore: Instant? = null,
+        authorizedParty: Any? = null,
     ): JWTClaimsSet {
         val builder = JWTClaimsSet.Builder()
             .issuer(tokenIssuer)
@@ -45,6 +47,8 @@ class OidcIdTokenVerifierTest {
             .issueTime(Date.from(Instant.now().minusSeconds(10)))
             .expirationTime(Date.from(expiresAt))
         if (tokenNonce != null) builder.claim("nonce", tokenNonce)
+        if (notBefore != null) builder.notBeforeTime(Date.from(notBefore))
+        if (authorizedParty != null) builder.claim("azp", authorizedParty)
         return builder.build()
     }
 
@@ -83,6 +87,34 @@ class OidcIdTokenVerifierTest {
         rejects(signed(claims(tokenNonce = null)))
         rejects(signed(claims(subject = "")))
         rejects(signed(), "z".repeat(43))
+    }
+
+    @Test
+    fun enforcesOptionalNotBeforeWithThirtySecondSkew() {
+        assertEquals(
+            VerifiedOidcIdentity(issuer, "provider-subject"),
+            verifier.verify(signed(claims(notBefore = Instant.now().plusSeconds(15))), nonce),
+        )
+        assertEquals(
+            VerifiedOidcIdentity(issuer, "provider-subject"),
+            verifier.verify(signed(claims(notBefore = Instant.now().minusSeconds(60))), nonce),
+        )
+        rejects(signed(claims(notBefore = Instant.now().plusSeconds(300))))
+    }
+
+    @Test
+    fun validatesAuthorizedPartyWhenPresent() {
+        assertEquals(
+            VerifiedOidcIdentity(issuer, "provider-subject"),
+            verifier.verify(signed(claims(authorizedParty = clientId)), nonce),
+        )
+        // An absent azp remains valid for the single-audience case.
+        assertEquals(
+            VerifiedOidcIdentity(issuer, "provider-subject"),
+            verifier.verify(signed(claims()), nonce),
+        )
+        rejects(signed(claims(authorizedParty = "other-client")))
+        rejects(signed(claims(authorizedParty = 42)))
     }
 
     @Test
