@@ -15,5 +15,20 @@ services:
       - ./dev/keycloak/openclub-realm.json:/opt/keycloak/data/import/openclub-dev-realm.json:ro
     # Startup is deliberately not a dependency of OpenClub's normal Compose stack.
     # Keycloak start-dev uses an embedded development database only.
+  # Optional development-only local issuer backchannel.
+  # Shares the API network namespace so http://localhost:8180 works *inside*
+  # the API container while Keycloak advertises the exact same browser issuer.
+  # The proxy is not started by the normal (non-auth) Compose stack.
+  oidc-backchannel:
+    image: nginx:1.27-alpine
+    network_mode: "service:api"
+    depends_on:
+      api:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    volumes:
+      - ./dev/keycloak/oidc-backchannel.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: "no"
 volumes:
   keycloak_dev_data:
