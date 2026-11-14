@@ -95,6 +95,33 @@ class AppRuntimeTest {
     }
 
     @Test
+    fun browserOriginNormalizesUppercaseHostsAndDefaultPorts() {
+        val uppercase = requireNotNull(OidcRuntimeConfig.fromEnvironment(prod + mapOf(
+            "OPENCLUB_PUBLIC_ORIGIN" to "https://APP.EXAMPLE",
+            "OPENCLUB_OIDC_REDIRECT_URI" to "https://APP.EXAMPLE/api/v1/auth/callback",
+        )))
+        assertEquals("https://app.example", uppercase.browserOrigin)
+
+        val explicitDefaultPort = requireNotNull(OidcRuntimeConfig.fromEnvironment(prod + mapOf(
+            "OPENCLUB_PUBLIC_ORIGIN" to "https://CLUB.EXAMPLE:443/",
+            "OPENCLUB_OIDC_REDIRECT_URI" to "https://CLUB.EXAMPLE:443/api/v1/auth/callback",
+        )))
+        assertEquals("https://club.example", explicitDefaultPort.browserOrigin)
+
+        val customPort = requireNotNull(OidcRuntimeConfig.fromEnvironment(prod + mapOf(
+            "OPENCLUB_PUBLIC_ORIGIN" to "https://CLUB.EXAMPLE:8443",
+            "OPENCLUB_OIDC_REDIRECT_URI" to "https://CLUB.EXAMPLE:8443/api/v1/auth/callback",
+        )))
+        assertEquals("https://club.example:8443", customPort.browserOrigin)
+
+        val httpDefault = requireNotNull(OidcRuntimeConfig.fromEnvironment(local + mapOf(
+            "OPENCLUB_PUBLIC_ORIGIN" to "http://LOCALHOST:80",
+            "OPENCLUB_OIDC_REDIRECT_URI" to "http://LOCALHOST:80/api/v1/auth/callback",
+        )))
+        assertEquals("http://localhost", httpDefault.browserOrigin)
+    }
+
+    @Test
     fun ownsBoundedPostgresPoolAndExecutesJdbcAwayFromCallerThread() = runBlocking {
         val url = System.getenv("DB_URL")
         assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL via DB_URL")
