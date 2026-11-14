@@ -17,7 +17,7 @@ internal data class VerifiedOidcIdentity(val issuer: String, val subject: String
 /**
  * Verifies OIDC ID tokens using Nimbus, with one configured issuer/client and an
  * explicitly trusted JWKS snapshot. Never build the key set from token header URLs.
- * Discovery, JWKS refresh, token exchange and HTTP callback wiring come later.
+ * The code-exchange runtime supplies a bounded, refreshable issuer-pinned snapshot.
  */
 internal class OidcIdTokenVerifier(
     private val settings: OidcSettings,

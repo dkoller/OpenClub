@@ -73,3 +73,11 @@ KEYCLOAK_DEV_ADMIN_PASSWORD=temporary-only-for-compose-validation \
 ```
 
 The command validates Compose syntax only and does **not** start the identity provider or test OIDC authentication. See [BFF security design](../security/oidc-bff-design.md) and [ADR-0003](../decisions/0003-oidc-session-proposal.md) for security requirements. No HTTP auth endpoints or OpenAPI behavior change in this PR.
+
+### JWKS rotation troubleshooting
+
+The API refreshes the startup-vetted JWKS URL after five minutes or on an unknown
+signing-key ID, with a shared 30-second cooldown. Publish replacement keys before
+using them. If the provider is unavailable after cache expiry, login fails closed;
+restore provider connectivity and retry after the cooldown. Changing metadata or
+the JWKS URL requires an API restart. See [refresh policy](../security/oidc-provider-discovery.md#jwks-runtime-refresh-2026-11-14).

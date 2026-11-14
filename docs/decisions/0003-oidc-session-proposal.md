@@ -50,6 +50,14 @@ OpenClub needs trusted sign-in, club-scoped roles, a self-hostable pilot environ
 
 **No login code or privileges are introduced by this ADR.** Its architecture is accepted, but do not expose membership endpoints until authentication, authorization, bootstrap and privacy controls have been implemented and tested.
 
+## JWKS runtime implementation note (2026-11-14)
+
+Issuer pinning and the BFF architecture are unchanged. The code-exchange runtime
+uses a five-minute public signing-key lifetime, serialized refresh and a shared
+30-second refresh-attempt cooldown against the startup-vetted JWKS URL. Expired
+keys fail closed on outage. See [refresh policy](../security/oidc-provider-discovery.md#jwks-runtime-refresh-2026-11-14)
+for rotation availability and key-removal limits. No new provider or deployment
+configuration is introduced; release gates remain open.
 ### Session HTTP implementation note (2026-11-14)
 
 Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.

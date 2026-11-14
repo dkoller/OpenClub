@@ -32,6 +32,7 @@ internal class OidcProviderDiscovery(
     internal data class Provider(
         val tokenEndpoint: URI,
         val publicKeys: JWKSet,
+        val reloadKeys: (() -> JWKSet)? = null,
     )
 
     fun load(): Provider {
@@ -51,6 +52,10 @@ internal class OidcProviderDiscovery(
         require(metadata.idTokenJWSAlgs?.contains(JWSAlgorithm.RS256) == true) {
             "Issuer does not advertise the required RS256 ID-token algorithm"
         }
+        return Provider(token, loadKeys(jwks)) { loadKeys(jwks) }
+    }
+
+    private fun loadKeys(jwks: URI): JWKSet {
         val keys = JWKSet.parse(fetchDocument(jwks)).keys
         require(keys.isNotEmpty() && keys.none(JWK::isPrivate)) { "Missing or private provider JWK" }
         val verifyingKeys = keys.filterIsInstance<RSAKey>().filter {
@@ -59,7 +64,8 @@ internal class OidcProviderDiscovery(
                 (it.algorithm == null || it.algorithm == JWSAlgorithm.RS256)
         }
         require(verifyingKeys.isNotEmpty()) { "No suitable public RS256 signing key" }
-        return Provider(token, JWKSet(verifyingKeys))
+        require(verifyingKeys.map { it.keyID }.distinct().size == verifyingKeys.size) { "Duplicate signing key ID" }
+        return JWKSet(verifyingKeys)
     }
 
     private fun secureEndpoint(uri: URI): Boolean =

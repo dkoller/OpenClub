@@ -103,6 +103,13 @@ The first pilot release is **not done** merely because the database tables or sc
 - Scope exclusions until pilot evidence: payments, accounting, events, competitions, integrations, chat, pushes, federation sync, nonprofit generalization and a custom multi-agent framework.
 - No tentative target dates or paid infrastructure commitments are implied by these priorities.
 
+### R05 JWKS refresh implementation slice (review pending)
+
+The code-exchange runtime now supports bounded refresh of the startup-vetted
+JWKS URL, five-minute key expiry and a shared 30-second attempt cooldown.
+See [refresh policy and remaining gates](security/oidc-provider-discovery.md#jwks-runtime-refresh-2026-11-14).
+This slice does not complete R05: real provider rotation/browser E2E, session
+endpoint verification, admission rate limits and expired-record cleanup remain.
 ### Session HTTP implementation note (2026-11-14)
 
 Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.

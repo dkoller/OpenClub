@@ -68,6 +68,25 @@ class OidcProviderDiscoveryTest {
     }
 
     @Test
+    fun reloadUsesOnlyPinnedJwksAndRevalidatesReplacement() {
+        val replacement = RSAKeyGenerator(2048).keyID("replacement").generate()
+        var keys = JWKSet(key.toPublicJWK()).toString()
+        val requests = mutableListOf<URI>()
+        val provider = OidcProviderDiscovery(settings()) { uri ->
+            requests.add(uri)
+            if (uri == URI(jwksUrl)) keys else metadata()
+        }.load()
+        keys = JWKSet(replacement.toPublicJWK()).toString()
+        assertEquals("replacement", requireNotNull(provider.reloadKeys).invoke().keys.single().keyID)
+        keys = JWKSet(replacement).toString(false)
+        assertThrows(Exception::class.java) { requireNotNull(provider.reloadKeys).invoke() }
+        keys = JWKSet(listOf(key.toPublicJWK(), key.toPublicJWK())).toString()
+        assertThrows(Exception::class.java) { requireNotNull(provider.reloadKeys).invoke() }
+        assertEquals(listOf(URI("$issuer/.well-known/openid-configuration")) +
+            List(4) { URI(jwksUrl) }, requests)
+    }
+
+    @Test
     fun loadsOnlyMatchingIssuerOriginAndPublicVerificationKeys() {
         val provider = discovery().load()
         assertEquals(URI(tokenUrl), provider.tokenEndpoint)
