@@ -1,5 +1,8 @@
 # Synthetic Keycloak OIDC fixtures (local/CI only)
 
+The follow-up [real browser journey](auth-browser-e2e.md) uses these fixtures;
+it depends on the session endpoints and must pass before claiming E2E login.
+
 **Scope:** Optional fixture provisioning for [R05/#14](https://github.com/dkoller/OpenClub/issues/14), not a normal startup step, default client or production realm. Main [Keycloak development runbook](keycloak-local.md).
 
 `dev/keycloak/provision-test-fixtures.sh` targets **only** `http://127.0.0.1:8180` and the `openclub-dev` realm. It creates/updates a confidential `openclub-bff` OIDC client with an exact `http://localhost:5173/api/v1/auth/callback` redirect URI, authorization-code standard flow enabled, **PKCE S256 required**, direct access grants/implicit/service accounts disabled, and no web origins. It creates one synthetic ordinary Keycloak user `openclub-ci-user` without email, roles or club memberships. A Keycloak user is **not** an OpenClub club administrator.

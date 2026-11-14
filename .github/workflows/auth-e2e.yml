@@ -1,0 +1,90 @@
+name: Keycloak browser authentication
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['apps/api/**', 'dev/auth-e2e/**', 'dev/keycloak/**', '.github/workflows/auth-e2e.yml']
+  push:
+    branches: [main]
+    paths: ['apps/api/**', 'dev/auth-e2e/**', 'dev/keycloak/**', '.github/workflows/auth-e2e.yml']
+permissions:
+  contents: read
+concurrency:
+  group: auth-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COMPOSE_PROJECT_NAME: openclub-auth-e2e
+      KEYCLOAK_DEV_ADMIN_PASSWORD: ci-only-disposable-admin-password
+      DB_URL: jdbc:postgresql://localhost:5432/openclub
+      DB_USER: openclub
+      DB_PASSWORD: openclub_dev
+      OPENCLUB_AUTH_MODE: development
+      OPENCLUB_PUBLIC_ORIGIN: http://localhost:5173
+      OPENCLUB_OIDC_ISSUER: http://localhost:8180/realms/openclub-dev
+      OPENCLUB_OIDC_AUTHORIZATION_ENDPOINT: http://localhost:8180/realms/openclub-dev/protocol/openid-connect/auth
+      OPENCLUB_OIDC_CLIENT_ID: openclub-bff
+      OPENCLUB_OIDC_REDIRECT_URI: http://localhost:5173/api/v1/auth/callback
+      PORT: '5173'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.24.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Start disposable PostgreSQL and Keycloak
+        run: |
+          set -euo pipefail
+          docker compose -f compose.yaml -f compose.auth.dev.yaml up -d postgres keycloak
+          for attempt in {1..90}; do
+            if curl -fsS --max-time 3 "$OPENCLUB_OIDC_ISSUER/.well-known/openid-configuration" -o /dev/null 2>/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'Keycloak readiness timed out' >&2
+          exit 1
+      - name: Generate ephemeral fixtures
+        run: |
+          set -euo pipefail
+          client_secret="$(openssl rand -hex 32)"
+          user_password="$(openssl rand -hex 32)"
+          echo "::add-mask::$client_secret"
+          echo "::add-mask::$user_password"
+          export OPENCLUB_E2E_CLIENT_SECRET="$client_secret"
+          export OPENCLUB_E2E_USER_PASSWORD="$user_password"
+          bash dev/keycloak/provision-test-fixtures.sh
+          echo "OPENCLUB_OIDC_CLIENT_SECRET=$client_secret" >> "$GITHUB_ENV"
+          echo "OPENCLUB_E2E_USER_PASSWORD=$user_password" >> "$GITHUB_ENV"
+      - name: Build API and start on the fixture callback origin
+        working-directory: apps/api
+        run: |
+          set -euo pipefail
+          ./gradlew installDist --no-daemon
+          nohup build/install/openclub-api/bin/openclub-api > "$RUNNER_TEMP/auth-api.log" 2>&1 &
+          for attempt in {1..60}; do
+            if curl -fsS --max-time 2 http://localhost:5173/health -o /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo 'API readiness timed out' >&2
+          exit 1
+      - name: Install Chromium and run real browser journey
+        working-directory: dev/auth-e2e
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          pnpm test
+      # No traces, screenshots, storage states or server logs are uploaded:
+      # callback URLs and HTTP diagnostics can contain authentication material.
+      - name: Stop disposable stack (preserve volumes)
+        if: always()
+        run: docker compose -f compose.yaml -f compose.auth.dev.yaml down
