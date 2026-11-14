@@ -3,6 +3,7 @@ package org.openclub.api
 import io.ktor.http.Cookie
 import io.ktor.http.CookieEncoding
 import java.net.URI
+import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 
@@ -73,9 +74,19 @@ internal class OidcRuntimeConfig private constructor(
     /** WHATWG-style IPv6 spelling: lowercase hex, compress the first longest zero run. */
     private fun canonicalIpv6(literal: String): String {
         require('%' !in literal) { "IPv6 zone identifiers are not valid browser origins" }
-        val address = InetAddress.getByName(literal) as? Inet6Address
-            ?: throw IllegalArgumentException("Expected an IPv6 address literal")
-        val bytes = address.address
+        // Java represents IPv4-mapped IPv6 as Inet4Address. Restore the
+        // 96-bit ::ffff: prefix rather than incorrectly rejecting a valid
+        // bracketed IPv6 URL authority.
+        val address = InetAddress.getByName(literal)
+        val bytes = when (address) {
+            is Inet6Address -> address.address
+            is Inet4Address -> ByteArray(16).also { mapped ->
+                mapped[10] = 0xff.toByte()
+                mapped[11] = 0xff.toByte()
+                address.address.copyInto(mapped, destinationOffset = 12)
+            }
+            else -> throw IllegalArgumentException("Expected an IPv6 address literal")
+        }
         val groups = IntArray(8) { i ->
             (bytes[i * 2].toInt() and 0xff) * 256 + (bytes[i * 2 + 1].toInt() and 0xff)
         }
