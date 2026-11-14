@@ -2,7 +2,7 @@
 
 **Last reviewed:** 2026-11-14 · **Status:** Foundation complete; membership MVP in progress · **Source of truth for open work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
 
-This roadmap inventories the work identified in the [original first-milestone plan](concepts/ai/first-milestone.md), [MVP proposal](concepts/product/mvp.md), accepted [stack ADR](decisions/0001-stack-selection.md), and [identity ADR](decisions/0002-identity-and-membership-model.md). The numbered **R01–R22** items are priority/dependency order, **not dates or commitments**. Each implementation PR stays below **2,000 added + deleted lines** and requires CI and human review.
+This roadmap inventories the work identified in the [original first-milestone plan](concepts/ai/first-milestone.md), [MVP proposal](concepts/product/mvp.md), accepted [stack ADR](decisions/0001-stack-selection.md), and [identity ADR](decisions/0002-identity-and-membership-model.md). The numbered **R01–R22** items are priority/dependency order, **not dates or commitments**. Each implementation PR stays below **1,000 added + deleted lines** and requires CI and human review.
 
 ## Priority rules and sequencing rationale
 
@@ -20,13 +20,15 @@ Dependency references indicate when implementation **must not outpace prerequisi
 | C02. MVP scope and project conventions | ✅ Done | [PR #2](https://github.com/dkoller/OpenClub/pull/2) | Constrain product scope to one club-management use case. |
 | C03. Technology stack ADR-0001 | ✅ Done | [PR #3](https://github.com/dkoller/OpenClub/pull/3) | Choose React/TS, Kotlin/Ktor, jOOQ/PostgreSQL and Flyway before scaffolding. |
 | C04. Ponytail-inspired agent rules and PR-size CI | ✅ Done | [PR #4](https://github.com/dkoller/OpenClub/pull/4) | Keep agent changes small, testable and reviewable. |
-| C05. Raise PR limit to strictly below 2,000 lines | ✅ Done | [PR #5](https://github.com/dkoller/OpenClub/pull/5) | Set a consistent enforceable budget for initial technical PRs. |
+| C05. Historical increase to fewer than 2,000 lines | ✅ Done (superseded) | [PR #5](https://github.com/dkoller/OpenClub/pull/5) | Temporarily accommodated generated build artifacts; the current policy above is stricter. |
 | C06. Runnable API/web/database scaffold and CI | ✅ Done | [PR #6](https://github.com/dkoller/OpenClub/pull/6) | Establish a tested executable baseline before domain features. |
 | C07. Cross-platform one-command Docker Compose | ✅ Done | [PR #7](https://github.com/dkoller/OpenClub/pull/7) | Let contributors run the stack consistently on Windows, macOS and Linux. |
 | C08. Pinned Gradle wrapper and pnpm lockfile | ✅ Done | [PR #8](https://github.com/dkoller/OpenClub/pull/8) | Make builds reproducible before feature contributions. |
 | C09. Person/identity/membership schema and ADR-0002 | ✅ Done | [PR #9](https://github.com/dkoller/OpenClub/pull/9) | Model multi-club roles correctly before security and API implementation. |
 
 **Important limitation:** The schema is not an authorization system. No member-management API or login flow has yet been implemented. The next items must establish these before handling real member data.
+
+**Current review budget:** maximum 999 added + deleted lines (target 500–700); this supersedes the historical C05 limit. All tracked issues use this limit.
 
 ## Open work: numbered GitHub issues
 
