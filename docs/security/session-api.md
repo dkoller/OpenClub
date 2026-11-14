@@ -32,5 +32,10 @@ Run apps/api/gradlew test (gradlew.bat on Windows) with DB_URL/DB_USER/DB_PASSWO
 pointing to a migrated synthetic PostgreSQL database. SessionRoutesTest exercises
 the HTTP boundary; AuthSessionsTest covers the actual PostgreSQL transaction,
 expiry, bad CSRF and concurrent logout. CI must run both before human merge.
-Real Keycloak browser E2E, JWKS rotation, rate limits and lifecycle cleanup remain
-separate work; R05 is not release-ready. No UI or club functionality is added.
+Real Keycloak browser E2E, JWKS rotation, process-local rate limits and lifecycle
+cleanup are now implemented; see [browser verification](../development/auth-browser-e2e.md),
+[rotation verification](../development/auth-jwks-rotation-e2e.md),
+[admission limits](auth-admission-limit.md) and [cleanup](auth-record-cleanup.md).
+R05 closeout requires CI and review; privacy, club authorization, first-admin
+bootstrap and web proxy integration remain release gates. No UI or club
+functionality is added.
