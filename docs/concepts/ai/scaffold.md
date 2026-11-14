@@ -33,7 +33,7 @@ cd apps/api && gradle test
 cd apps/web && pnpm test && pnpm build
 ```
 
-The Kotlin database integration test uses Testcontainers; Docker must be running.
+The Kotlin integration test uses a real PostgreSQL database when DB_URL, DB_USER and DB_PASSWORD are supplied. Without these, it is skipped; CI supplies PostgreSQL using a GitHub Actions service. Docker is needed to start the local Compose database.
 
 ## Flyway and jOOQ
 
