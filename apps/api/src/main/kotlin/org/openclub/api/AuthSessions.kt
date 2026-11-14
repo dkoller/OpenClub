@@ -1,6 +1,7 @@
 package org.openclub.api
 
 import org.jooq.DSLContext
+import org.jooq.impl.DSL
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -35,6 +36,18 @@ internal class AuthSessions(
         )
         return issued
     }
+
+    /**
+     * Re-login is all-or-nothing: an insert failure must not revoke a valid
+     * existing browser session. Use the transaction-scoped DSLContext for both
+     * statements, not this class's outer context.
+     */
+    fun replace(previousHandle: String?, personId: UUID): IssuedSession =
+        database.transactionResult { configuration ->
+            val sessions = AuthSessions(DSL.using(configuration), random)
+            if (previousHandle != null) sessions.revoke(previousHandle)
+            sessions.create(personId)
+        }
 
     /** Refresh idle expiry only for valid, unexpired sessions. */
     fun find(handle: String?): ActiveSession? = touch(handle, null)
