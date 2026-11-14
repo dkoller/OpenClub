@@ -23,7 +23,7 @@ internal object AuthRecordCleanup {
         val sessions = db.execute(
             """DELETE FROM auth_sessions WHERE session_hash IN (
                 SELECT session_hash FROM auth_sessions
-                WHERE idle_expires_at <= CURRENT_TIMESTAMP OR absolute_expires_at <= CURRENT_TIMESTAMP
+                WHERE idle_expires_at <= CURRENT_TIMESTAMP
                 ORDER BY idle_expires_at LIMIT ? FOR UPDATE SKIP LOCKED
             )""",
             batchSize,
