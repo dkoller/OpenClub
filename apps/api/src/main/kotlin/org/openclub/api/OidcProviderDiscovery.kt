@@ -104,10 +104,11 @@ private fun fetchOidcDocument(uri: URI): String {
     return String(response.body(), StandardCharsets.UTF_8)
 }
 
-private const val MAX_OIDC_DOCUMENT_BYTES = 256 * 1024L
-
 /** Prevent unbounded buffering even when Content-Length is absent or dishonest. */
-private class LimitedOidcBodySubscriber : HttpResponse.BodySubscriber<ByteArray> {
+internal class LimitedOidcBodySubscriber(
+    private val maxBytes: Long = 256 * 1024L,
+    private val sizeError: String = "OIDC discovery response too large",
+) : HttpResponse.BodySubscriber<ByteArray> {
     private val delegate = HttpResponse.BodySubscribers.ofByteArray()
     private lateinit var subscription: Flow.Subscription
     private var bytesReceived = 0L
@@ -121,9 +122,9 @@ private class LimitedOidcBodySubscriber : HttpResponse.BodySubscriber<ByteArray>
 
     override fun onNext(item: List<ByteBuffer>) {
         val incoming = item.sumOf { it.remaining().toLong() }
-        if (incoming > MAX_OIDC_DOCUMENT_BYTES - bytesReceived) {
+        if (incoming > maxBytes - bytesReceived) {
             subscription.cancel()
-            delegate.onError(IllegalArgumentException("OIDC discovery response too large"))
+            delegate.onError(IllegalArgumentException(sizeError))
             return
         }
         bytesReceived += incoming
