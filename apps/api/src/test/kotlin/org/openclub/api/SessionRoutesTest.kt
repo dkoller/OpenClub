@@ -148,6 +148,36 @@ class SessionRoutesTest {
     }
 
     @Test
+    fun expandedIpv6ConfigurationAcceptsBrowserCompressedOriginOnly() = testApplication {
+        val raw = "https://[2001:0db8:0:0:0:0:0:1]"
+        val config = requireNotNull(OidcRuntimeConfig.fromEnvironment(mapOf(
+            "OPENCLUB_AUTH_MODE" to "production",
+            "OPENCLUB_OIDC_ISSUER" to "https://id.example/realms/openclub",
+            "OPENCLUB_OIDC_AUTHORIZATION_ENDPOINT" to "https://id.example/realms/openclub/protocol/openid-connect/auth",
+            "OPENCLUB_OIDC_REDIRECT_URI" to "$raw/api/v1/auth/callback",
+            "OPENCLUB_OIDC_CLIENT_ID" to "openclub-bff",
+            "OPENCLUB_OIDC_CLIENT_SECRET" to "synthetic-test-secret-".repeat(3),
+            "OPENCLUB_PUBLIC_ORIGIN" to raw,
+        )))
+        val sessions = Sessions()
+        application {
+            module(cookiePolicy = config.cookies, sessions = sessions, publicOrigin = config.browserOrigin)
+        }
+        suspend fun logout(origin: String) = client.post("/api/v1/auth/logout") {
+            header(HttpHeaders.Origin, origin)
+            header(HttpHeaders.ContentType, "application/json")
+            header(HttpHeaders.Cookie, "__Host-openclub_session=$handle")
+            header("X-CSRF-Token", csrf)
+            setBody("{}")
+        }
+        assertEquals(HttpStatusCode.Forbidden, logout(raw).status)
+        assertEquals(HttpStatusCode.Forbidden, logout("https://[2001:db8::2]").status)
+        assertTrue(sessions.active)
+        assertEquals(HttpStatusCode.NoContent, logout("https://[2001:db8::1]").status)
+        assertFalse(sessions.active)
+    }
+
+    @Test
     fun logoutRejectsCsrfRevokesAndDoesNotLieOnDatabaseFailure() = testApplication {
         val sessions = Sessions()
         application { module(cookiePolicy = cookies, sessions = sessions, publicOrigin = origin) }
