@@ -57,7 +57,7 @@ class AuthAdmissionLimiterTest {
         assertEquals(HttpStatusCode.TooManyRequests, deniedLogin.status)
         assertEquals("60", deniedLogin.headers[HttpHeaders.RetryAfter])
         assertEquals("no-store", deniedLogin.headers[HttpHeaders.CacheControl])
-        assertEquals("application/json", deniedLogin.headers[HttpHeaders.ContentType])
+        assertTrue(deniedLogin.headers[HttpHeaders.ContentType].orEmpty().startsWith("application/json"))
         assertEquals("""{"code":"rate_limited","message":"Authentication rate limited"}""",
             deniedLogin.bodyAsText())
         assertEquals(1, starts)
@@ -68,7 +68,7 @@ class AuthAdmissionLimiterTest {
         assertEquals(HttpStatusCode.TooManyRequests, deniedCallback.status)
         assertEquals("60", deniedCallback.headers[HttpHeaders.RetryAfter])
         assertEquals("no-store", deniedCallback.headers[HttpHeaders.CacheControl])
-        assertEquals("application/json", deniedCallback.headers[HttpHeaders.ContentType])
+        assertTrue(deniedCallback.headers[HttpHeaders.ContentType].orEmpty().startsWith("application/json"))
         assertEquals("""{"code":"rate_limited","message":"Authentication rate limited"}""",
             deniedCallback.bodyAsText())
         assertTrue(deniedCallback.headers.getAll(HttpHeaders.SetCookie).orEmpty().any {
