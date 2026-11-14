@@ -1,6 +1,6 @@
-# R05 — Browser auth HTTP contract (design only)
+# R05 — Browser auth HTTP contract
 
-**Status:** Proposed contract, **no routes enabled**. [OpenAPI proposal](auth-api-proposal.yaml); parent [R05/#14](https://github.com/dkoller/OpenClub/issues/14). This standalone auth contract does not turn the [membership discussion draft](openapi-draft.yaml) into an implementation contract.
+**Status:** Opt-in HTTP routes implemented; no public release approved. [OpenAPI proposal](auth-api-proposal.yaml); parent [R05/#14](https://github.com/dkoller/OpenClub/issues/14). This standalone auth contract does not turn the [membership discussion draft](openapi-draft.yaml) into an implementation contract.
 
 ## Integration boundary
 
@@ -33,9 +33,14 @@ Use `__Host-openclub_login` and `__Host-openclub_session` for HTTPS with `Secure
 | Any auth response | `Cache-Control: no-store`; no user-controlled redirect |
 | Browser preflight from foreign origin | No credentialed CORS exemption |
 
-## Changes required before enabling routes
+## Implementation status and release boundary
 
-The Ktor runtime pool/dispatcher and fail-closed OIDC config, cookie construction, discovery/JWKS freshness strategy, browser-bound transaction route and callback, request-size and rate limits, session issuance and Origin+CSRF guards must be reviewed and tested independently. Implementers should use the agreed status/response contract above and update this proposal to an **implemented** contract in the same PR that exposes HTTP routes.
+The Ktor runtime pool/dispatcher, fail-closed OIDC configuration, cookie construction,
+issuer-pinned JWKS refresh, browser-bound login/callback, rate limits, session
+issuance, session routes, and Origin+CSRF guards have been implemented and tested.
+The [OpenAPI contract](auth-api-proposal.yaml) records the implemented opt-in routes;
+R05 closeout is pending merge and human review. This does not approve use with
+real member data before privacy, club authorization, bootstrap and proxy gates.
 
 No production identity, user account, seed password, external OAuth token or administrative privilege is created by this contract PR.
 
@@ -51,5 +56,6 @@ Locally: install that pinned validator and run
 Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.
 Logout requires exact Origin, JSON `{}` and session-bound CSRF, with transactional
 validation/revocation before cookie clearing. See [session API](../security/session-api.md).
-R05 remains open pending CI, independent review, Keycloak E2E, JWKS freshness,
-rate limits and cleanup; club authorization, bootstrap and privacy gates remain.
+Keycloak browser E2E, JWKS refresh, admission limits and cleanup are implemented.
+R05 closeout still requires CI and independent review; club authorization,
+bootstrap, privacy and web proxy integration remain release gates.
