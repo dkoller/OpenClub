@@ -44,7 +44,7 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 
 - Preserve club/organization isolation. Enforce permissions server-side.
 - Apply least privilege and validate at trust boundaries.
-- For security-sensitive changes, identify abuse cases, test malformed/missing/ambiguous inputs and real failure behavior, and request an independent adversarial review before merge. Follow [security review checklist](docs/contributing/security-review.md).
+- For security-sensitive changes, follow the [security review checklist](docs/contributing/security-review.md), including failure-case tests and independent review.
 - Never commit secrets, credentials or private member data.
 - Consider export/deletion, privacy, and affordable self-hosting from the start.
 - Do not add paid dependencies or production/billing/authentication infrastructure without approval and a cost explanation.
