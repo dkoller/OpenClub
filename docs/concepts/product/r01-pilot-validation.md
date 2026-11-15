@@ -49,7 +49,9 @@ Proposed responsibilities to validate:
 
 A person may hold multiple functions; role labels must not imply unrestricted access. Keep existing MVP ADMIN/MEMBER authorization constraints unless separately reviewed through R04/R06. Guardian relationships, volunteer identities and detailed team permissions are future design questions, not approved MVP features.
 
-**Permission matrix sign-off: Pending.** Confirm who can add/edit/export member data and which group may see which contact details. Do not assume minors' contact visibility is approved (R03).
+**Owner direction (2026-11-15):** Member-record editing permissions should be **configurable and assigned by club administrators**, not permanently determined by organizational group. Treat organizational functions, capabilities and permission scopes as separate concepts. A person may have multiple functions; grants must be enforced server-side and scoped to authorized clubs/records. Design should prevent unauthorized privilege escalation and removal of the last authorized administrator. This is product direction, **not** an approved endpoint contract or implemented permission system. R04/R06/R10 need to reconcile it with the current ADMIN/MEMBER MVP baseline; avoid introducing granular roles prematurely.
+
+**Permission matrix sign-off: Pending.** Confirm whether grants can target the whole club, teams, or individual records; who may delegate permissions; who can add/edit/export member data; and which group may see contact details. Do not assume minors' contact visibility is approved (R03).
 
 ## Stakeholder validation record
 
