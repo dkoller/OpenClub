@@ -1,6 +1,6 @@
 # R01 — Pilot workflow validation
 
-**Status:** Draft for stakeholder validation; not accepted.
+**Status:** Pilot administrator approved the synthetic requirements acceptance target on 2026-11-15; documentation review and R01 closeout still pending.
 **Related:** [R01/#10](https://github.com/dkoller/OpenClub/issues/10), [ADR-0004](../../decisions/0004-member-policy.md), [R03/#12](https://github.com/dkoller/OpenClub/issues/12), [R04/#13](https://github.com/dkoller/OpenClub/issues/13)
 
 ## Purpose and evidence rules
@@ -71,8 +71,8 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 | Preferred UI language(s) for pilot | _Owner requires German, English, French and Italian in first release; default and language-switch behavior pending confirmation_ | Owner decision captured |
 | Groups needing access | _Owner identified board, membership administrators, coaches, players, parents and volunteers; permission details pending_ | Partially captured |
 | Need for invitations in first usable release | _Owner preference: later; pilot unconfirmed_ | Pending |
-| Proposed acceptance flow reviewed | _Owner selected all three workflows; no independent review of synthetic acceptance script_ | Pending |
-| Stakeholder acceptance, requested changes and decision date | _Not recorded_ | Pending |
+| Proposed acceptance flow reviewed | _Pilot club administrator explicitly approved the three-workflow synthetic acceptance scenario on 2026-11-15; implementation/demo not tested_ | Approved target |
+| Stakeholder acceptance, requested changes and decision date | _2026-11-15: pilot club administrator approved the three-workflow synthetic acceptance scenario as initial requirements target; no changes requested in this approval_ | Requirements accepted |
 
 ## First usable release — owner-selected scope, 2026-11-15
 
@@ -94,7 +94,7 @@ The first release must support German, English, French and Italian. Its initial 
 6. Using a second fictional club, verify tenant isolation for member lists, team assignments and permission grants. Verify no delegated capability permits privilege escalation or removing the final authorized administrator.
 7. Demonstrate validation and denial errors without exposing private record details. Demonstrate the three workflows in **German, English, French and Italian**, including functional language switching if approved as the UI approach.
 
-**R01 acceptance:** A real pilot stakeholder or clearly designated representative reviews this *proposed* workflow, identifies must-have adjustments, and records approval or deviations. **Release acceptance:** Separate actual implementation, security/privacy reviews, cross-club integration tests and browser verification. R01 approval alone does not authorize real member data.
+**R01 requirements acceptance (recorded 2026-11-15):** The owner stated direct involvement in the pilot club administration and explicitly approved this three-workflow synthetic scenario as the initial requirements acceptance target. This is administrator requirements approval, **not** a claim that the workflow has been implemented or demonstrated. **Release acceptance:** Separate actual implementation, security/privacy reviews, cross-club integration tests and browser verification. R01 approval alone does not authorize real member data.
 
 ## Questions to ask at the pilot review
 
@@ -108,10 +108,10 @@ The first release must support German, English, French and Italian. Its initial 
 
 ## Decisions and hand-off
 
-- **Validated pilot scenario:** Pending. Owner selected Excel membership/administration first and specified member management, team assignments and configurable permissions as the first usable release; stakeholder review of the synthetic script remains pending.
+- **Validated pilot scenario:** Pilot club administrator explicitly approved the three-workflow synthetic requirements scenario on 2026-11-15. Runtime demonstration and release validation remain pending under R19.
 - **Preferred pilot language(s):** German, English, French and Italian required for the first release (owner, 2026-11-15). Default language and switching behavior remain proposed, not accepted.
-- **Changes to owner baseline:** Pending.
-- **Stakeholder acceptance (date, role, non-identifying reference):** Pending. On 2026-11-15 the owner stated direct involvement in club administration and ability to validate the workflow; this does not constitute sign-off.
+- **Changes to owner baseline:** Expanded first usable release from basic member management to include team assignments and configurable club/team-scoped permissions; the detailed Excel inventory, import and migration requirements are explicitly deferred.
+- **Stakeholder acceptance (date, role, non-identifying reference):** 2026-11-15, participating pilot club administrator (owner-reported role), accepted the initial synthetic requirements target. No private identifying details recorded; independent implementation acceptance remains outstanding.
 - **R03 hand-off:** Review contact visibility, minors and data lifecycle before real records.
 - **R04/R06/R10 hand-off:** Reconcile the expanded team and scoped-grant requirements with the contract and authorization model; create appropriately scoped feature issues instead of treating existing membership endpoints as sufficient.
 - **R19 hand-off:** Run the full synthetic demo only after its implementation and release prerequisites.
@@ -119,11 +119,11 @@ The first release must support German, English, French and Italian. Its initial 
 ## R01 completion checklist
 
 - [x] Real pilot stakeholder or explicitly identified representative participated (owner-reported club administration involvement, 2026-11-15; no identifying details published).
-- [ ] Primary administrative pain point and current workflow documented.
-- [ ] Accountless member entry and invitation timing verified.
-- [ ] Necessary fields and pilot languages verified.
-- [ ] Synthetic acceptance script approved or deviations recorded.
-- [ ] Privacy-related concerns linked to R03; contract changes linked to R04.
-- [ ] Human review and decision recorded under issue #10.
+- [x] Primary administrative pain point documented as fragmentation across Excel, WordPress, XPS, helfereinsatz.ch and others; detailed Excel workflow/inventory intentionally deferred.
+- [x] Administrator accepted accountless entry in the synthetic scenario; invitations remain later by prior owner decision.
+- [ ] Baseline first/last name required, email/phone optional, and four release languages accepted as owner direction; confirm whether these fields suffice for the pilot (Excel column inventory deferred).
+- [x] Pilot administrator explicitly approved the three-workflow synthetic requirements scenario on 2026-11-15.
+- [x] Privacy concerns linked to R03 and new team/scoped-permission contract and authorization work flagged for R04/R06/R10; detailed follow-up implementation issues still to be scoped.
+- [ ] PR #72 human review/merge and R01 closeout decision recorded under issue #10.
 
 **Testing:** Documentation-only change. No code or integration tests are claimed. Keep #10 open until evidence and human sign-off are documented.
