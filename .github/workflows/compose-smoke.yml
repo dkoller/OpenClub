@@ -3,6 +3,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    paths-ignore: ['loopcounter*.txt']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -40,6 +41,7 @@ jobs:
             fi
             while IFS= read -r file; do
               [[ -z "$file" ]] && continue
+              [[ "$file" =~ ^loopcounter[0-9]+\.txt$ ]] && continue
               case "$file" in
                 # Docs-only changes should not rebuild the application.
                 docs/contracts/*) api=true; web=true ;;

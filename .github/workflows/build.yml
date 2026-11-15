@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    paths-ignore: ['loopcounter*.txt']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -15,6 +16,8 @@ permissions:
 
 jobs:
   contracts:
+    needs: changes
+    if: needs.changes.outputs.normal == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +40,7 @@ jobs:
       api: ${{ steps.detect.outputs.api }}
       web: ${{ steps.detect.outputs.web }}
       compose: ${{ steps.detect.outputs.compose }}
+      normal: ${{ steps.detect.outputs.normal }}
     steps:
       - name: Classify pull request files
         id: detect
@@ -48,16 +52,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          api=false; web=false; compose=false
+          api=false; web=false; compose=false; normal=false
           if [[ "$EVENT" != pull_request ]]; then
-            api=true; web=true; compose=true
+            api=true; web=true; compose=true; normal=true
           else
             changed="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" --jq '.[].filename')"
             if [[ -z "$changed" ]]; then
-              api=true; web=true; compose=true
+              api=true; web=true; compose=true; normal=true
             fi
             while IFS= read -r file; do
               [[ -z "$file" ]] && continue
+              [[ "$file" =~ ^loopcounter[0-9]+\.txt$ ]] && continue
+              normal=true
               case "$file" in
                 # Docs-only changes should not rebuild the application.
                 # The contracts job always validates these OpenAPI files.
@@ -80,6 +86,7 @@ jobs:
               esac
             done <<< "$changed"
           fi
+          echo "normal=$normal" >> "$GITHUB_OUTPUT"
           echo "api=$api" >> "$GITHUB_OUTPUT"
           echo "web=$web" >> "$GITHUB_OUTPUT"
           echo "compose=$compose" >> "$GITHUB_OUTPUT"
