@@ -1,9 +1,8 @@
 package org.openclub.api.members
 
-import org.openclub.api.database.AdvisoryLocks
-
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
+import org.openclub.api.database.AdvisoryLocks
 import java.util.UUID
 
 /**
