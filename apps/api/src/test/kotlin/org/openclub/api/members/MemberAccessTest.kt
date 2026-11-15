@@ -25,6 +25,7 @@ class MemberAccessTest {
             val access = MemberAccess(database)
             val admin = UUID.randomUUID()
             val regular = UUID.randomUUID()
+            val regularMember = UUID.randomUUID()
             val outsider = UUID.randomUUID()
             val club = UUID.randomUUID()
             try {
@@ -39,7 +40,7 @@ class MemberAccessTest {
                 database.execute("""INSERT INTO members
                     (id, account_id, first_name, last_name, date_of_birth)
                     VALUES (?, ?, 'Example', 'Member', DATE '2015-01-01')""",
-                    UUID.randomUUID(), regular)
+                    regularMember, regular)
 
                 assertEquals(club, access.authorizedClubId(admin, MemberAccess.Permission.VIEW_CLUB))
                 assertEquals(club, access.authorizedClubId(regular, MemberAccess.Permission.VIEW_CLUB))
@@ -59,9 +60,9 @@ class MemberAccessTest {
                 database.execute("UPDATE members SET role = 'MEMBER' WHERE account_id = ?", admin)
                 assertNull(access.authorizedClubId(admin, MemberAccess.Permission.MANAGE_MEMBERS))
                 assertEquals(club, access.authorizedClubId(admin, MemberAccess.Permission.VIEW_CLUB))
-                database.execute("UPDATE members SET account_id = NULL WHERE account_id = ?", regular)
+                database.execute("UPDATE members SET account_id = NULL WHERE id = ?", regularMember)
                 assertNull(access.authorizedClubId(regular, MemberAccess.Permission.VIEW_CLUB))
-                database.execute("UPDATE members SET account_id = ? WHERE account_id IS NULL", regular)
+                database.execute("UPDATE members SET account_id = ? WHERE id = ?", regular, regularMember)
             } finally {
                 database.execute("DELETE FROM members WHERE account_id IN (?, ?)", admin, regular)
                 database.execute("DELETE FROM accounts WHERE id IN (?, ?, ?)", admin, regular, outsider)
