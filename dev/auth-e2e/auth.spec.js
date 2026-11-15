@@ -24,7 +24,7 @@ test('real Keycloak login, replay rejection, session replacement and logout', as
   expect(me.status()).toBe(200);
   expect(me.headers()['cache-control']).toBe('no-store');
   const identity = await me.json();
-  expect(Object.keys(identity).sort()).toEqual(['csrfToken', 'accountId']);
+  expect(Object.keys(identity).sort()).toEqual(['accountId', 'csrfToken']);
   expect(identity.accountId).toMatch(/^[0-9a-f-]{36}$/);
   expect(/^[A-Za-z0-9_-]{43}$/.test(identity.csrfToken)).toBe(true);
   const first = (await context.cookies(origin)).find(cookie => cookie.name === sessionName);
