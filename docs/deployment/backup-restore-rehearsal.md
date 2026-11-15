@@ -23,7 +23,7 @@ bash dev/verify-synthetic-restore.sh --synthetic-only
 The script builds a **fresh temporary Compose project**, inserts fixed synthetic
 club/member/team/assignment fixtures, creates a private custom-format PostgreSQL
 backup outside the checkout, restores it into a **different fresh project** and
-verifies relationships, club/team grants, a preserved archived member timestamp and lack of restored privileges for that archived record, and Flyway migration history against the source. It then starts the real API against the restored database and verifies its health endpoint, proving Flyway startup and connectivity succeed on the restored schema. Before invoking `pg_restore`, the script validates the archive's readable
+verifies relationships, club/team grants, a preserved archived member timestamp and lack of restored privileges for that archived record, and Flyway migration history against the source. The source also contains a fixed dummy browser session and unfinished OIDC login transaction. After restore verification, the script deletes both volatile authentication tables *before* starting the recovered API, then checks that no saved session or pending login survives. It then starts the real API against the restored database and verifies its health endpoint, proving Flyway startup and connectivity succeed on the restored schema. Before invoking `pg_restore`, the script validates the archive's readable
 custom-format manifest and **refuses a destination containing any public base
 tables**, even though its temporary destination is expected to be empty.
 Both temporary project volumes and the private dump are removed on exit
@@ -36,7 +36,7 @@ The [synthetic backup/restore GitHub Actions workflow](../../.github/workflows/s
 runs the **full Docker rehearsal** for PRs changing the script, Compose
 configuration, migrations or workflow, and can also be started manually.
 A green check on that specific workflow is reproducible evidence of a synthetic
-database restore **and recovered API startup** at that commit. The ordinary build job continues to syntax-check
+database restore, invalidation of restored browser-authentication state, **and recovered API startup** at that commit. The ordinary build job continues to syntax-check
 the script, which is not by itself a restore test. The workflow deliberately does
 not run on every unrelated PR to avoid unnecessary CI usage.
 
@@ -101,7 +101,7 @@ docker compose -p openclub_restore_drill exec -T postgres \
 
 Compare counts with the synthetic source and confirm the *same* known test
 records, Flyway migration history and expected team/grant relationships. A
-successful command exit alone is not an application recovery drill. For a
+successful command exit alone is not an application recovery drill. Restoring a snapshot may otherwise **resurrect sessions revoked after the backup** or pending authorization transactions. Before exposing a recovered production instance, a responsible operator must invalidate restored `auth_sessions` and `oidc_login_transactions` in a reviewed and audited recovery procedure, requiring everyone to authenticate again. That step must happen only against the intended recovered database, not an existing live installation. For a
 production plan, separately validate app startup, session/key recovery,
 permission boundaries, encryption, backup retention, monitoring, and the
 responsible operator's sign-off.
