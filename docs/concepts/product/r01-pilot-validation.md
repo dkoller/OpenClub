@@ -1,5 +1,7 @@
 # R01 — Pilot workflow validation
 
+> **Current implementation guidance (2026-11-15):** R01 requirements are accepted, but the multi-club synthetic journey below is historical. Merged PR #79 establishes one club per installation. R19 must instead test installation-local member/team/grant flows and rejection of a second club; there is no cross-club login or shared tenant database. See [ADR-0005](../../decisions/0005-single-club-installation.md).
+
 **Status:** R01 requirements discovery accepted and issue #10 closed on 2026-11-15; PRs #72 and #73 merged. This is not runtime, privacy or production acceptance.
 **Related:** [R01/#10](https://github.com/dkoller/OpenClub/issues/10), [ADR-0004](../../decisions/0004-member-policy.md), [R03/#12](https://github.com/dkoller/OpenClub/issues/12), [R04/#13](https://github.com/dkoller/OpenClub/issues/13)
 
