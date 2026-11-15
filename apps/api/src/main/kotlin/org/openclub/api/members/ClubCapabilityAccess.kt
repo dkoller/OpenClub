@@ -22,6 +22,7 @@ internal class ClubCapabilityAccess(private val database: DSLContext) {
                LIMIT 1""",
             accountId, capability.name, capability.name,
         ) != null
+
     /** Team grants never authorize club-level administration or member editing. */
     fun hasForTeam(accountId: UUID, teamId: UUID, capability: Capability): Boolean {
         require(capability == Capability.VIEW_TEAMS || capability == Capability.MANAGE_TEAMS) {
@@ -32,7 +33,7 @@ internal class ClubCapabilityAccess(private val database: DSLContext) {
                JOIN members actor ON actor.account_id = ?
                WHERE team.id = ? AND (
                    EXISTS (SELECT 1 FROM club_capability_grants g
-                           WHERE g.member_id = actor.id AND g.capability = ?)
+                           WHERE g.member_id = actor.id AND g.capability IN (?, 'MANAGE_TEAMS'))
                    OR EXISTS (SELECT 1 FROM team_capability_grants g
                               WHERE g.team_id = team.id AND g.member_id = actor.id
                                 AND g.capability IN (?, 'MANAGE_TEAMS'))
@@ -40,5 +41,4 @@ internal class ClubCapabilityAccess(private val database: DSLContext) {
             accountId, teamId, capability.name, capability.name,
         ) != null
     }
-
 }
