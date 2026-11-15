@@ -48,10 +48,11 @@ internal class CapabilityGrants(private val database: DSLContext) {
             )?.get("id", UUID::class.java) ?: return@transactionResult Change.DENIED
             if (actor == memberId) return@transactionResult Change.DENIED
 
-            val recipient = db.fetchOne("SELECT role FROM members WHERE id = ?", memberId)
+            val recipient = db.fetchOne("SELECT role, account_id FROM members WHERE id = ?", memberId)
                 ?: return@transactionResult Change.DENIED
             if (granting && capability == ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS &&
-                recipient.get("role", String::class.java) != "ADMIN"
+                (recipient.get("role", String::class.java) != "ADMIN" ||
+                    recipient.get("account_id", UUID::class.java) == null)
             ) return@transactionResult Change.DENIED
             if (scope == Scope.TEAM &&
                 db.fetchOne("SELECT 1 FROM teams WHERE id = ?", teamId) == null
@@ -64,7 +65,8 @@ internal class CapabilityGrants(private val database: DSLContext) {
                 val managers = db.fetchValue(
                     """SELECT COUNT(*) FROM members m
                        JOIN club_capability_grants g ON g.member_id = m.id
-                       WHERE m.role = 'ADMIN' AND g.capability = 'MANAGE_PERMISSIONS'""",
+                       WHERE m.role = 'ADMIN' AND m.account_id IS NOT NULL
+                         AND g.capability = 'MANAGE_PERMISSIONS'""",
                 )?.toString()?.toLongOrNull() ?: error("Cannot count permission managers")
                 if (managers <= 1) return@transactionResult Change.DENIED
             }
