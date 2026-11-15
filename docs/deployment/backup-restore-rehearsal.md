@@ -23,7 +23,7 @@ bash dev/verify-synthetic-restore.sh --synthetic-only
 The script builds a **fresh temporary Compose project**, inserts fixed synthetic
 club/member/team/assignment fixtures, creates a private custom-format PostgreSQL
 backup outside the checkout, restores it into a **different fresh project** and
-verifies relationships, club/team grants, and Flyway migration history against the source. It then starts the real API against the restored database and verifies its health endpoint, proving Flyway startup and connectivity succeed on the restored schema. Before invoking `pg_restore`, the script validates the archive's readable
+verifies relationships, club/team grants, a preserved archived member timestamp and lack of restored privileges for that archived record, and Flyway migration history against the source. It then starts the real API against the restored database and verifies its health endpoint, proving Flyway startup and connectivity succeed on the restored schema. Before invoking `pg_restore`, the script validates the archive's readable
 custom-format manifest and **refuses a destination containing any public base
 tables**, even though its temporary destination is expected to be empty.
 Both temporary project volumes and the private dump are removed on exit
