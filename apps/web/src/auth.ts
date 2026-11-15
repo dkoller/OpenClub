@@ -27,13 +27,19 @@ export async function loadClubAccess(request: typeof fetch = fetch): Promise<Clu
 function isSession(value: unknown): value is { accountId: string; csrfToken: string } {
   return value !== null && typeof value === 'object'
     && 'accountId' in value && typeof value.accountId === 'string'
+    && isUuid(value.accountId)
     && 'csrfToken' in value && typeof value.csrfToken === 'string'
+    && /^[A-Za-z0-9_-]{43}$/.test(value.csrfToken)
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
 function isClub(value: unknown): value is { id: string } {
   return value !== null && typeof value === 'object'
     && 'id' in value && typeof value.id === 'string'
-    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.id)
+    && isUuid(value.id)
 }
 
 export async function signOut(csrfToken: string, request: typeof fetch = fetch): Promise<boolean> {
