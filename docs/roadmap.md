@@ -1,6 +1,6 @@
 # OpenClub delivery roadmap
 
-**Last reviewed:** 2026-11-15 · **Status:** Single-club schema, operator bootstrap/recovery, verified sessions and internal member/team/capability foundations implemented; member/team/grant HTTP workflows, privacy sign-off and production release remain open · **Source of truth for work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
+**Last reviewed:** 2026-11-15 · **Status:** Single-club schema, operator bootstrap/recovery, verified sessions and internal member/team/capability foundations and an internal-only member archival primitive implemented; member/team/grant HTTP workflows, privacy sign-off and production release remain open · **Source of truth for work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
 
 This roadmap inventories the work identified in the [original first-milestone plan](concepts/ai/first-milestone.md), [MVP proposal](concepts/product/mvp.md), accepted [stack ADR](decisions/0001-stack-selection.md), and [identity ADR](decisions/0002-identity-and-membership-model.md). The numbered **R01–R22** items are priority/dependency order, **not dates or commitments**. Each implementation PR uses at most **5,000 added + deleted lines** and requires CI and human review.
 
