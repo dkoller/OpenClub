@@ -91,12 +91,21 @@ class MemberDirectoryTest {
                 assertEquals(listOf(special), directory.search(linked, "%").members.map { it.id })
                 assertEquals(listOf(special), directory.search(linked, "_").members.map { it.id })
                 assertEquals(listOf(special), directory.search(linked, "percent_%").members.map { it.id })
+                // A pagination cursor must never preserve revoked directory privileges.
+                val authorizedPage = directory.search(linked, limit = 1)
+                assertNotNull(authorizedPage.next)
                 db.execute("""DELETE FROM club_capability_grants
                     WHERE member_id = ? AND capability = 'VIEW_MEMBER_DIRECTORY'""",
                     fixtures.first().first)
-                assertTrue(directory.search(linked).members.isEmpty())
+                val revokedPage = directory.search(linked, limit = 1, after = authorizedPage.next)
+                assertTrue(revokedPage.members.isEmpty())
+                assertNull(revokedPage.next)
                 db.execute("""INSERT INTO club_capability_grants (member_id, capability)
                     VALUES (?, 'VIEW_MEMBER_DIRECTORY')""", fixtures.first().first)
+                assertEquals(
+                    expected[1],
+                    directory.search(linked, limit = 1, after = authorizedPage.next).members.single().id,
+                )
                 // Unlinking the actor revokes access on the very next query.
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", fixtures.first().first)
                 assertTrue(directory.search(linked).members.isEmpty())
