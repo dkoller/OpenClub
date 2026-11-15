@@ -265,7 +265,7 @@ components:
           minLength: 1
           description: Optional unless the club requires gender for players; not binary-only.
         isPlayer: { type: boolean, default: false }
-     Team:
+    Team:
       type: object
       required: [id, name]
       properties:
