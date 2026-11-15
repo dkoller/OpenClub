@@ -11,7 +11,7 @@ import kotlinx.coroutines.CancellationException
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
-import java.util.UUID
+import org.openclub.api.members.MemberAccess
 
 /** One installation has at most one club. Never accept an arbitrary tenant ID. */
 internal fun Application.installSingleClubRoutes(
@@ -30,9 +30,7 @@ internal fun Application.installSingleClubRoutes(
                     return@get
                 }
                 val clubId = database.onDatabaseThread { db ->
-                    db.fetchOne("""SELECT c.id FROM clubs c WHERE EXISTS (
-                        SELECT 1 FROM members m WHERE m.account_id = ?)""", session.accountId)
-                        ?.get("id", UUID::class.java)
+                    MemberAccess(db).authorizedClubId(session.accountId, MemberAccess.Permission.VIEW_CLUB)
                 }
                 if (clubId == null) {
                     call.respondText("""{"code":"forbidden","message":"Club membership required"}""",
