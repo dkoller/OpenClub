@@ -87,6 +87,30 @@ class AdminRecoveryTest {
                     'other@example.invalid', '+41000000000', 'ADMIN')""", secondAdmin)
                 assertThrows(IllegalStateException::class.java) { recovery.rebind(input) }
                 db.execute("DELETE FROM members WHERE id = ?", secondAdmin)
+                // Recovery must not accept a replacement identity being removed by
+                // a concurrent transaction before the administrator is rebound.
+                source.connection.use { removingIdentity ->
+                    removingIdentity.autoCommit = false
+                    try {
+                        DSL.using(removingIdentity, SQLDialect.POSTGRES).execute(
+                            "DELETE FROM account_identities WHERE account_id = ?", replacement)
+                        source.connection.use { attempting ->
+                            val candidate = DSL.using(attempting, SQLDialect.POSTGRES)
+                            candidate.execute("SET lock_timeout = '250ms'")
+                            try {
+                                val blocked = assertThrows(DataAccessException::class.java) {
+                                    AdminRecovery(candidate).rebind(input)
+                                }
+                                assertEquals("55P03", blocked.sqlState())
+                            } finally {
+                                candidate.execute("RESET lock_timeout")
+                            }
+                        }
+                    } finally {
+                        removingIdentity.rollback()
+                    }
+                }
+                assertEquals(old, linked())
                 // A concurrent protected role/grant mutation holds this lock;
                 // recovery must wait rather than trust a stale sole-admin count.
                 source.connection.use { holding ->
