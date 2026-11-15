@@ -4,8 +4,8 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
 import org.jooq.SQLDialect
-import org.jooq.impl.DSL
 import org.jooq.exception.DataAccessException
+import org.jooq.impl.DSL
 import org.openclub.api.database.AdvisoryLocks
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
