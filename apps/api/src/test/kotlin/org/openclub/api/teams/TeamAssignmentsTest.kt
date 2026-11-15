@@ -97,8 +97,10 @@ class TeamAssignmentsTest {
                 assertFalse(operations.remove(manager, team!!))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_TEAMS')", managerMember)
                 assertTrue(operations.remove(manager, otherTeam!!))
-                assertEquals(0, db.fetchCount(org.jooq.impl.DSL.table("member_team_assignments")
-                    .where(org.jooq.impl.DSL.field("team_id").eq(otherTeam))))
+                assertEquals(0, db.fetchOne(
+                    "SELECT COUNT(*) AS total FROM member_team_assignments WHERE team_id = ?",
+                    otherTeam,
+                )?.get("total", Int::class.java))
                 // Unlinking manager immediately revokes all access.
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", managerMember)
                 assertFalse(operations.assign(manager, team!!, child))
