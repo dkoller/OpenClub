@@ -59,3 +59,8 @@ The original R01 dependency and R02 session-architecture uncertainty in the tabl
 - First-release team assignments ([#75](https://github.com/dkoller/OpenClub/issues/75)) and configurable club/team-scoped capability grants with restricted delegation ([#76](https://github.com/dkoller/OpenClub/issues/76)). Four supported UI languages.
 
 The current [OpenAPI discussion draft](openapi-draft.yaml) still shows historical `ADMIN/MEMBER` and `AddMember` schemas. **Do not implement it as written.** Revise contract, pagination, field-level access, tenant-safe 401/403/404 behavior and first-admin bootstrap semantics under [R04/#13](https://github.com/dkoller/OpenClub/issues/13) after coordinating with R03 privacy and R06 authorization. Auth-only contract validation in CI does not imply acceptance of the club/member shapes.
+
+
+## Single-club contract pivot (2026-11-15)
+
+Owner selected one club per installation after R01 closure. R04 must **replace** legacy `/v1/clubs/{clubId}` tenant-selection and list/create-many-clubs assumptions with installation-local member, team, grant and club-settings operations. A controlled one-time setup is separate from normal member APIs. Existing historical contract draft remains explicitly **not implementation-ready**. Internal legacy `club_id` schema columns may persist through migration, but cannot imply runtime multi-club support. See proposed [ADR-0005](../decisions/0005-club-owned-member-profiles.md), #74, R06 and R07.
