@@ -20,10 +20,10 @@ internal class MemberArchive(private val database: DSLContext) {
             // SQL revocation, so denied requests never delete dependencies.
             val authorized = db.fetchOne(
                 """SELECT 1 FROM members actor
-                   JOIN club_capability_grants grant ON grant.member_id = actor.id
+                   JOIN club_capability_grants g ON g.member_id = actor.id
                    WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND grant.capability = 'EDIT_MEMBERS'
-                   FOR SHARE OF actor, grant""",
+                     AND g.capability = 'EDIT_MEMBERS'
+                   FOR SHARE OF actor, g""",
                 actorAccountId,
             ) != null
             if (!authorized) return@transactionResult false
