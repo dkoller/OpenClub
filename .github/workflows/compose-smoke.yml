@@ -42,6 +42,7 @@ jobs:
               [[ -z "$file" ]] && continue
               case "$file" in
                 # Docs-only changes should not rebuild the application.
+                loopcounter[0-9]*.txt) ;; # Counter marker never triggers application checks.
                 docs/contracts/*) api=true; web=true ;;
                 docs/*|README.md|AGENTS.md|apps/api/AGENTS.md|apps/web/AGENTS.md|.github/pull_request_template.md|.github/workflows/pr-size.yml) ;;
                 apps/api/*)
