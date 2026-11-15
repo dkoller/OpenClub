@@ -128,7 +128,7 @@ class TeamScopedGrantsTest {
                 assertTrue(access.hasForTeam(coachAccount, adults, manage))
                 // Deleting the local member must cascade the grant immediately.
                 db.execute("DELETE FROM members WHERE id = ?", coach)
-                assertEquals(0, db.fetchValue(
+                assertEquals(0L, db.fetchValue(
                     "SELECT COUNT(*) FROM team_capability_grants WHERE member_id = ?", coach))
                 assertFalse(access.hasForTeam(coachAccount, adults, manage))
                 db.execute("DELETE FROM teams WHERE id = ?", adults)
