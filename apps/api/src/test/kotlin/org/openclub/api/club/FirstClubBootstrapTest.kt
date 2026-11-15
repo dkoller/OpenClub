@@ -61,6 +61,13 @@ class FirstClubBootstrapTest {
                     )
                 }
                 assertEquals(1, db.fetchCount(DSL.table("members")))
+                assertEquals(1, db.fetchCount(DSL.table("club_capability_grants")))
+                assertEquals(1L, db.fetchValue(
+                    """SELECT COUNT(*) FROM club_capability_grants g
+                       JOIN members m ON m.id = g.member_id
+                       WHERE m.account_id = ? AND g.capability = 'MANAGE_PERMISSIONS'""",
+                    account,
+                ))
                 assertTrue(created != null)
             } finally {
                 db.execute("DELETE FROM members WHERE account_id = ?", account)
