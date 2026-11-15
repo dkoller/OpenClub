@@ -29,6 +29,7 @@ class MemberDetailsUpdateTest {
             val outsider = UUID.randomUUID()
             val editor = UUID.randomUUID()
             val target = UUID.randomUUID()
+            val youth = UUID.randomUUID()
             try {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
                     club, "update-" + club)
@@ -81,6 +82,26 @@ class MemberDetailsUpdateTest {
                 assertThrows(DataAccessException::class.java) {
                     service.update(account, target, update.copy(gender = null))
                 }
+                // A child may have no contacts; becoming an adult must atomically
+                // satisfy both adult-contact fields, even for a details UPDATE.
+                db.execute("""INSERT INTO members
+                    (id, first_name, last_name, date_of_birth)
+                    VALUES (?, 'Young', 'Synthetic', ?)""",
+                    youth, LocalDate.now().minusYears(10))
+                assertThrows(DataAccessException::class.java) {
+                    service.update(account, youth, MemberDetailsUpdate.Input(
+                        "Adult", "Synthetic", LocalDate.of(1990, 1, 1)))
+                }
+                val unchanged = db.fetchOne(
+                    "SELECT first_name, email, phone, date_of_birth FROM members WHERE id = ?", youth)
+                assertEquals("Young", unchanged?.get("first_name", String::class.java))
+                assertNull(unchanged?.get("email", String::class.java))
+                assertNull(unchanged?.get("phone", String::class.java))
+                assertEquals(LocalDate.now().minusYears(10),
+                    unchanged?.get("date_of_birth", LocalDate::class.java))
+                assertTrue(service.update(account, youth, MemberDetailsUpdate.Input(
+                    "Adult", "Synthetic", LocalDate.of(1990, 1, 1),
+                    "adult@example.invalid", "+41000000002")))
                 db.execute("DELETE FROM club_capability_grants WHERE member_id = ? AND capability = 'EDIT_MEMBERS'",
                     editor)
                 assertFalse(service.update(account, target, update))
@@ -88,7 +109,7 @@ class MemberDetailsUpdateTest {
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", editor)
                 assertFalse(service.update(account, target, update))
             } finally {
-                db.execute("DELETE FROM members WHERE id IN (?, ?)", editor, target)
+                db.execute("DELETE FROM members WHERE id IN (?, ?, ?)", editor, target, youth)
                 db.execute("DELETE FROM accounts WHERE id IN (?, ?)", account, outsider)
                 db.execute("DELETE FROM clubs WHERE id = ?", club)
             }
