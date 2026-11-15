@@ -22,7 +22,9 @@ internal class MemberRoles(private val database: DSLContext) {
                 """SELECT m.id FROM members m
                    JOIN club_capability_grants g ON g.member_id = m.id
                    WHERE m.account_id = ? AND m.role = 'ADMIN'
-                     AND g.capability = 'MANAGE_PERMISSIONS'""",
+                     AND g.capability = 'MANAGE_PERMISSIONS'
+                     AND EXISTS (SELECT 1 FROM account_identities ai
+                                 WHERE ai.account_id = m.account_id)""",
                 actorAccountId,
             )?.get("id", UUID::class.java) ?: return@transactionResult Change.DENIED
             // Even a permission manager cannot demote or promote themself.
@@ -39,8 +41,9 @@ internal class MemberRoles(private val database: DSLContext) {
                 val managers = db.fetchValue(
                     """SELECT COUNT(*) FROM members m
                        JOIN club_capability_grants g ON g.member_id = m.id
-                       WHERE m.role = 'ADMIN' AND m.account_id IS NOT NULL
-                         AND g.capability = 'MANAGE_PERMISSIONS'""",
+                       WHERE m.role = 'ADMIN' AND g.capability = 'MANAGE_PERMISSIONS'
+                         AND EXISTS (SELECT 1 FROM account_identities ai
+                                     WHERE ai.account_id = m.account_id)""",
                 )?.toString()?.toLongOrNull() ?: error("Cannot count permission managers")
                 val targetManagesPermissions = db.fetchOne(
                     """SELECT 1 FROM club_capability_grants
