@@ -24,8 +24,8 @@ test('real Keycloak login, replay rejection, session replacement and logout', as
   expect(me.status()).toBe(200);
   expect(me.headers()['cache-control']).toBe('no-store');
   const identity = await me.json();
-  expect(Object.keys(identity).sort()).toEqual(['csrfToken', 'personId']);
-  expect(identity.personId).toMatch(/^[0-9a-f-]{36}$/);
+  expect(Object.keys(identity).sort()).toEqual(['csrfToken', 'accountId']);
+  expect(identity.accountId).toMatch(/^[0-9a-f-]{36}$/);
   expect(/^[A-Za-z0-9_-]{43}$/.test(identity.csrfToken)).toBe(true);
   const first = (await context.cookies(origin)).find(cookie => cookie.name === sessionName);
   expect(first).toBeDefined();
@@ -50,7 +50,7 @@ test('real Keycloak login, replay rejection, session replacement and logout', as
     expect(second.value === first.value).toBe(false);
     expect((await oldSession.get('/api/v1/auth/me')).status()).toBe(401);
     const current = await (await context.request.get('/api/v1/auth/me')).json();
-    expect(current.personId === identity.personId).toBe(true);
+    expect(current.accountId === identity.accountId).toBe(true);
     // Real same-origin browser fetch supplies Origin and the current cookie.
     const logout = await page.evaluate(async csrfToken => {
       const response = await fetch('/api/v1/auth/logout', {
