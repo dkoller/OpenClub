@@ -16,8 +16,6 @@ permissions:
 
 jobs:
   changed-lines:
-    # TEMPORARY: owner-approved all-in-one pre-production reset. Restore in follow-up PR.
-    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
       - name: Count additions and deletions in the full PR
