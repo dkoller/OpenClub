@@ -15,19 +15,21 @@ member and session data, including secrets; never commit, upload, or email it.
 Start an isolated synthetic source project and confirm its identity. Populate it
 with known **synthetic** club/member/team/grant fixtures and record the expected
 counts; an empty database is not a meaningful restore test. Set a restrictive
-file-creation mask before redirecting a dump:
+file-creation mask before redirecting a dump. Keep the file **outside the repository** and retain its private path for the restore command in the same shell:
 
 ```sh
+set -e
 umask 077
+DUMP_PATH="$(mktemp "${TMPDIR:-/tmp}/openclub-synthetic.XXXXXX")"
 docker compose -p openclub_source up -d --build
 docker compose -p openclub_source ps
 docker compose -p openclub_source exec -T postgres \
   pg_dump -U openclub -d openclub --format=custom --no-owner \
-  > openclub-synthetic.dump
-test -s openclub-synthetic.dump
+  > "$DUMP_PATH"
+test -s "$DUMP_PATH"
 ```
 
-`pg_dump` must exit successfully; the nonempty-file check alone is insufficient.
+`pg_dump` must exit successfully; `set -e` stops this shell sequence on failure, and the nonempty-file check alone is insufficient. Do not store the dump in the checkout, even though common dump extensions are gitignored as a defense in depth.
 Use an appropriately secured location for the dump. Do not put passwords in
 command arguments or captured logs. The example Compose stack uses development
 credentials only, not production-safe defaults.
@@ -45,7 +47,7 @@ docker compose -p openclub_restore_drill exec -T postgres \
   pg_isready -U openclub -d openclub
 docker compose -p openclub_restore_drill exec -T postgres \
   pg_restore --exit-on-error --no-owner --no-privileges \
-  -U openclub -d openclub < openclub-synthetic.dump
+  -U openclub -d openclub < "$DUMP_PATH"
 ```
 
 Only restore into a fresh disposable database, **never** a populated or live
@@ -79,7 +81,7 @@ docker compose -p openclub_restore_drill down --volumes
 docker compose -p openclub_source start
 ```
 
-Securely retain or dispose of the dump according to the applicable data policy.
+Securely retain or dispose of the dump according to the applicable data policy. For this disposable local rehearsal, remove the file with `rm -- "$DUMP_PATH"` after verification and **only** after confirming that the file is the intended temporary synthetic backup. Do not delete a production backup using this command.
 This does not establish a backup schedule, encrypted off-site retention,
 production recovery time objective, or an audited real-data restore. Those remain
 open under [R18/#27](https://github.com/dkoller/OpenClub/issues/27).
