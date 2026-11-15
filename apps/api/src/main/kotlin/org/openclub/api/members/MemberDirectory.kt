@@ -29,11 +29,11 @@ internal class MemberDirectory(private val database: DSLContext) {
         val rows = database.fetch(
             """SELECT target.id, target.first_name, target.last_name
                FROM members target
-               JOIN members actor ON actor.account_id = ?
+               JOIN members actor ON actor.account_id = ? AND actor.archived_at IS NULL
                JOIN club_capability_grants g ON g.member_id = actor.id
                    AND g.capability = 'VIEW_MEMBER_DIRECTORY'
                JOIN clubs club ON TRUE
-               WHERE (? = '' OR POSITION(LOWER(?) IN LOWER(target.first_name || ' ' || target.last_name)) > 0
+               WHERE target.archived_at IS NULL AND (? = '' OR POSITION(LOWER(?) IN LOWER(target.first_name || ' ' || target.last_name)) > 0
                    OR POSITION(LOWER(?) IN LOWER(target.last_name || ' ' || target.first_name)) > 0)
                $afterSql
                ORDER BY target.last_name, target.first_name, target.id

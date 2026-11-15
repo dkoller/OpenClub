@@ -72,3 +72,29 @@ Names, dates and contact lengths are validated before persistence; the PostgreSQ
 Club settings are not yet editable through HTTP. Flyway V7 rejects database updates that **lower the adult age threshold** while any existing newly adult member lacks email or phone, or that **enable required player gender** while any existing player lacks that field. Operators must explicitly correct local synthetic records before tightening either policy; rejected settings changes keep the prior policy. The member validation trigger now reads the singleton club row with `FOR SHARE`, serializing member writes against policy-row updates so concurrent transactions cannot evade the new rule. PostgreSQL tests cover both rejections, subsequent valid transitions, and enforcement on later member edits.
 
 This does not create a retention decision, authorise publication of DOB/gender/contact data, resolve real-world birthday-driven transitions, or approve a settings UI. R03/R04 and operational/privacy acceptance remain blocking.
+
+## Internal-only archived member lifecycle (V10; #26)
+
+Flyway V10 adds nullable `members.archived_at` to distinguish inactive records
+from active members without irreversible erasure. The database rejects any
+archived row retaining a linked account or the ADMIN role. The internal
+`MemberArchive.archive(verifiedSessionAccountId, memberId)` operation requires
+current explicit `EDIT_MEMBERS`, targets an **unlinked ordinary MEMBER** only,
+and sets the timestamp while clearing team assignments and all club/team grants
+in one transaction. It serializes privilege revocation through the existing
+permission-mutation advisory lock. Repeating archive or acting without authority
+returns false. Linked members and administrators cannot be archived through this
+path; first unlink and perform separate reviewed authorization decisions.
+
+Active member directory queries exclude archived records; detail updates, role
+changes, team assignments, capability grants, and club-access checks refuse
+archived targets. Team assignment locks its target member row to serialize with
+archival and avoid a post-archive assignment race. Synthetic PostgreSQL tests
+verify the visibility, revocation, non-reactivation, and database constraints.
+
+**Not a deletion or release approval:** Archived personal details remain in the
+installation database and backups. There is no HTTP endpoint, browser UI,
+restore action, retention duration, or erasure mechanism. R03 privacy review,
+R04 API contract, audit behavior, authorized unlink, and operator retention
+policy remain prerequisites for real club data. Do not call an archived record
+anonymized or permanently deleted.

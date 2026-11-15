@@ -31,7 +31,7 @@ internal class MemberRoles(private val database: DSLContext) {
             // Even a permission manager cannot demote or promote themself.
             if (actor == targetMemberId) return@transactionResult Change.DENIED
 
-            val existing = db.fetchOne("SELECT role FROM members WHERE id = ?", targetMemberId)
+            val existing = db.fetchOne("SELECT role FROM members WHERE id = ? AND archived_at IS NULL", targetMemberId)
                 ?.get("role", String::class.java) ?: return@transactionResult Change.DENIED
             if (existing == role.name) return@transactionResult Change.UNCHANGED
 
