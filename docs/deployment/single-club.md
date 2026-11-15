@@ -16,7 +16,7 @@ curl --fail http://localhost:5173/api/health
 
 The basic stack starts without authentication. OIDC is opt-in; without it there are **no member administration endpoints enabled**. To configure a local test OIDC provider, follow [Keycloak development setup](../development/keycloak-local.md). The nginx/Vite proxies preserve `/api` so Ktor routes remain reachable.
 
-**First-club setup:** an operator-only bootstrap command now creates the sole club and first ADMIN member atomically. It is **not an HTTP route**. No second club can be created. The human-reviewed recovery process remains open in [R07/#16](https://github.com/dkoller/OpenClub/issues/16). Use **synthetic data only** until privacy and production requirements are approved.
+**First-club setup:** an operator-only bootstrap command now creates the sole club and first ADMIN member atomically. Flyway V9 also enforces a maximum **raw** club display-name length of 200 characters for direct SQL changes, including whitespace padding (the original nonblank rule still applies). It is **not an HTTP route**. No second club can be created. The human-reviewed recovery process remains open in [R07/#16](https://github.com/dkoller/OpenClub/issues/16). Use **synthetic data only** until privacy and production requirements are approved.
 
 ## Operator-only first-club bootstrap (pre-production)
 
