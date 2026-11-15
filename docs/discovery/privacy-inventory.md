@@ -12,7 +12,7 @@ OpenClub starts with sports clubs; some pilot members may be minors. **Do not** 
 | `persons` | Display name + stable UUID | Minimum viable member record; restrict via memberships | Duplicate resolution, deletion, correction |
 | `person_identities` | Verified issuer/subject association | Login binding, not a public directory | Account unlink, provider migration |
 | `memberships` | Club-person link, role, timestamp | Club-specific administration only | Leave club, historic retention, role audit |
-| Future contact fields | Not collected today | Do not add until pilot validates need | Consent/notification/guardian rules |
+| Future club-local personal fields | Names, date of birth, adult email + phone, optional player gender required by policy (not yet implemented) | R01 validated product need; minimize access and never share between clubs | Purpose, lawful basis, gender representation, retention, age threshold and minors' access |
 
 ## Decision checklist before handling live data
 
@@ -31,7 +31,7 @@ The [Swiss FDPIC's guidance for clubs and associations](https://www.edoeb.admin.
 
 ## Explicit blockers
 
-- Pilot workflows and minimum fields unresolved: [#10](https://github.com/dkoller/OpenClub/issues/10).
+- Pilot requirements are accepted and [R01/#10](https://github.com/dkoller/OpenClub/issues/10) is closed; privacy and exact data handling are still unresolved under R03.
 - Data subject rights, log retention, hosting and consent arrangements need review: [#36](https://github.com/dkoller/OpenClub/issues/36).
 - R03 completion requires a responsible human review; this document only structures the work.
 
@@ -40,3 +40,10 @@ For implementation, add PostgreSQL-backed isolation tests and avoid real member 
 ## Product decisions and outstanding privacy work (2026-11-14)
 
 [ADR-0004](../decisions/0004-member-policy.md) specifies required first and last names, optional email/phone, and a **same-club directory visible to all authenticated members**. This is a product access decision, **not approval to publish all contacts for real users**, especially minors. Review user notice, applicable lawful basis, visibility restrictions for youth, possible per-club field access, controller responsibilities, and retention/erasure/backup policy before processing live records. Archive, export and configurable retention are incremental goals; exact retention periods remain undecided.
+
+
+## Accepted R01 field and isolation requirements (2026-11-15; not privacy sign-off)
+
+The historical `persons`/global person inventory above describes the *current foundation*, not an approved future data storage model. Under R01, a person's **club-local** name, date of birth, email, phone and gender must never be copied, exposed, auto-filled or synchronized across clubs, even if a shared login identity belongs to both. Review the global `person`/identity design through [#74](https://github.com/dkoller/OpenClub/issues/74) before extending member CRUD.
+
+First name, last name and date of birth are required for every person in a club; **both email and phone required for adults**, optional minors; gender required for players only when explicitly enabled by their club. The age threshold, access-to-full-DOB/gender, age-based contact rationale, minor protections, data subject requests and retention must be reviewed under R03. The old 2026-11-14 note saying email/phone are optional for all people and DOB is unneeded is superseded; it is not current guidance. No real data should be loaded into unfinished club/member endpoints.
