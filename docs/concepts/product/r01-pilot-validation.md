@@ -27,13 +27,13 @@ This is **owner-reported discovery**, not an independently confirmed stakeholder
 
 | Existing application | Candidate replacement scope (to validate) |
 | --- | --- |
-| Excel | Member and club administration, lists and imports |
+| Excel | **First replacement chosen:** member and club administration; lists and imports still to validate |
 | WordPress | Public club website and content |
 | XPS | Team/coaching/training workflows |
 | helfereinsatz.ch | Volunteer scheduling and shifts |
 | Other applications | Inventory pending |
 
-**Next validation:** Determine which application/workflow to replace first, what data needs migration, which roles participate, and which languages are required. Agree on one narrow synthetic acceptance journey that proves a useful first replacement without shipping every module at once.
+**First replacement selected (owner, 2026-11-15):** Excel membership and administration. **Next validation:** Determine the actual spreadsheet fields and workflows, whether initial import is required, what data needs migration, which roles participate, and which languages are required. Agree on one narrow synthetic acceptance journey that proves a useful first replacement without shipping every module at once.
 
 ## Stakeholder validation record
 
@@ -79,7 +79,7 @@ This is **owner-reported discovery**, not an independently confirmed stakeholder
 
 ## Decisions and hand-off
 
-- **Validated pilot scenario:** Pending.
+- **Validated pilot scenario:** Pending. Owner selected Excel membership and administration as the first replacement; specific workflow and acceptance remain unvalidated.
 - **Preferred pilot language(s):** Pending.
 - **Changes to owner baseline:** Pending.
 - **Stakeholder acceptance (date, role, non-identifying reference):** Pending.
