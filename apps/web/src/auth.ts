@@ -1,6 +1,6 @@
 export type ClubAccess =
   | { state: 'signed-out' }
-  | { state: 'not-member' }
+  | { state: 'not-member'; csrfToken: string }
   | { state: 'ready'; csrfToken: string }
   | { state: 'unavailable' }
 
@@ -14,7 +14,7 @@ export async function loadClubAccess(request: typeof fetch = fetch): Promise<Clu
 
     const club = await request('/api/v1/club', { credentials: 'same-origin' })
     if (club.status === 401) return { state: 'signed-out' }
-    if (club.status === 403) return { state: 'not-member' }
+    if (club.status === 403) return { state: 'not-member', csrfToken: details.csrfToken }
     if (!club.ok) return { state: 'unavailable' }
     return { state: 'ready', csrfToken: details.csrfToken }
   } catch {
