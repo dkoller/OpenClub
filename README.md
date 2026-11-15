@@ -10,9 +10,9 @@ Help volunteers manage club administration without requiring expensive software 
 
 ## First vertical slice
 
-A club administrator should be able to create a club, invite a member, assign a club role, and view a membership list with proper organization isolation.
+The pilot administrator approved a first usable release demonstrating **member management, team assignments and configurable club/team-scoped permissions** in **German, English, French and Italian**. Members may be entered before login; invitations come later. The first existing system targeted for replacement is Excel membership administration.
 
-This is a **working hypothesis**, not a final commitment. See [MVP scope](docs/concepts/product/mvp.md).
+Each club owns its member personal data independently: no cross-club sharing or auto-sync, even where one login belongs to multiple clubs. First/last names and date of birth are required for all; adult email and phone required, optional for minors; player gender required only if configured by that club. These are **requirements**, not implemented features or permission to use real personal data. See [accepted R01 pilot requirements](docs/concepts/product/r01-pilot-validation.md) and [R01/#10](https://github.com/dkoller/OpenClub/issues/10).
 
 ## Project documents
 
