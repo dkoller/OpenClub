@@ -20,16 +20,13 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
     )
 
     fun update(actorAccountId: UUID, memberId: UUID, input: Input): Boolean {
-        val first = validName(input.firstName)
-        val last = validName(input.lastName)
+        val first = MemberFieldValidation.name(input.firstName)
+        val last = MemberFieldValidation.name(input.lastName)
         require(input.dateOfBirth.isAfter(LocalDate.of(1850, 1, 1)) &&
             !input.dateOfBirth.isAfter(LocalDate.now())) { "Invalid birth date" }
-        val email = input.email?.trim()?.takeIf(String::isNotEmpty)
-        val phone = input.phone?.trim()?.takeIf(String::isNotEmpty)
-        val gender = input.gender?.trim()?.takeIf(String::isNotEmpty)
-        require(email == null || email.length in 3..320) { "Invalid email length" }
-        require(phone == null || phone.length <= 40) { "Invalid phone length" }
-        require(gender == null || gender.length <= 200) { "Invalid gender length" }
+        val email = MemberFieldValidation.email(input.email)
+        val phone = MemberFieldValidation.phone(input.phone)
+        val gender = MemberFieldValidation.gender(input.gender)
 
         return database.execute(
             """UPDATE members SET first_name = ?, last_name = ?, date_of_birth = ?,
@@ -45,7 +42,4 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         ) == 1
     }
 
-    private fun validName(value: String): String = value.trim().also {
-        require(it.length in 1..200) { "Invalid member name" }
-    }
 }
