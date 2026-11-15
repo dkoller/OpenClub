@@ -4,30 +4,15 @@ import org.jooq.DSLContext
 import java.util.UUID
 
 /**
- * Installation-local authorization. accountId must come from a verified session,
- * never from HTTP fields. This is the interim ADMIN/MEMBER policy; granular
- * team and capability grants are deliberately deferred to #76.
+ * Installation-local club ID lookup for a trusted, verified session account.
+ * This is not a member-edit permission: writes require explicit capabilities.
  */
 internal class MemberAccess(private val database: DSLContext) {
-    internal enum class Role { ADMIN, MEMBER }
-    internal enum class Permission { VIEW_CLUB, MANAGE_MEMBERS }
-
-    fun roleFor(accountId: UUID): Role? {
-        val role = database.fetchValue(
-            "SELECT role FROM members WHERE account_id = ?", accountId,
-        ) ?: return null
-        return Role.valueOf(role.toString())
-    }
-
-    /** Null means denied: no club, unlinked account, or insufficient role. */
-    fun authorizedClubId(accountId: UUID, permission: Permission): UUID? =
+    /** Null means denied: no club or no linked local member. */
+    fun authorizedClubId(accountId: UUID): UUID? =
         database.fetchOne(
             """SELECT c.id FROM clubs c
-               JOIN members m ON m.account_id = ?
-               WHERE (? = FALSE OR m.role = 'ADMIN')""",
-            accountId, permission == Permission.MANAGE_MEMBERS,
+               JOIN members m ON m.account_id = ?""",
+            accountId,
         )?.get("id", UUID::class.java)
-
-    fun canManageMembers(accountId: UUID): Boolean =
-        authorizedClubId(accountId, Permission.MANAGE_MEMBERS) != null
 }
