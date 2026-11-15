@@ -37,9 +37,9 @@ This review was written before pilot acceptance and R05 completion. The historic
 
 - [ ] Paths, auth/session/CSRF and privilege rules finalized.
 - [ ] Errors and nondisclosure rules standardized.
-- [ ] Pilot fields and invitations decision incorporated.
+- [ ] Incorporate accepted R01 fields (mandatory DOB, adult email + phone, club-configured player gender), accountless member creation and later invitations into a reviewed replacement club/member contract; the draft still has outdated shapes.
 - [ ] Testable examples for cross-club and last-admin rejection.
-- [ ] Contract validation in CI.
+- [ ] Validate the **approved replacement club/member contract** and cover it with contract tests; YAML syntax checks already exist in CI, but do not imply semantic acceptance.
 - [ ] Version status changed from `0.0.0-draft` only after the above are approved.
 
 This review introduces no runtime endpoint or new dependency. The draft remains non-binding.
