@@ -78,6 +78,10 @@ class TeamAssignmentsTest {
                 assertThrows(DataAccessException::class.java) {
                     db.execute("UPDATE teams SET name = ' JUNIORS ' WHERE id = ?", otherTeam)
                 }
+                assertThrows(DataAccessException::class.java) {
+                    db.execute("UPDATE teams SET name = ? WHERE id = ?",
+                        "x" + " ".repeat(200), otherTeam)
+                }
                 assertEquals("Adults", db.fetchValue(
                     "SELECT name FROM teams WHERE id = ?", otherTeam))
 
