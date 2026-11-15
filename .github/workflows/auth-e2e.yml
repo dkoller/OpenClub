@@ -37,6 +37,7 @@ jobs:
     timeout-minutes: 20
     env:
       COMPOSE_PROJECT_NAME: openclub-auth-e2e
+      OPENCLUB_E2E_DISPOSABLE: 'true'
       KEYCLOAK_DEV_ADMIN_PASSWORD: ci-only-disposable-admin-password
       DB_URL: jdbc:postgresql://localhost:5432/openclub
       DB_USER: openclub

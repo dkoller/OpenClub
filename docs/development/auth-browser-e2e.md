@@ -18,7 +18,9 @@ The API runs on localhost:8080, while the real Vite frontend serves
 localhost:5173 and forwards /api requests (including the callback) to the API.
 Keycloak runs on localhost:8180. No auth endpoint or browser UI is mocked.
 The browser suite verifies both the BFF/Keycloak/database boundary and the
-frontend's signed-out, signed-in-but-unlinked, four-language and logout flows
+frontend's signed-out, signed-in-but-unlinked, four-language and logout flows,
+and a restricted operator bootstrap that turns a previously unlinked verified
+synthetic account into a single-club administrator
 through the actual development proxy. This is not a production nginx/TLS
 end-to-end test.
 
@@ -36,7 +38,15 @@ pnpm test
 ```
 
 Keep `OPENCLUB_E2E_USER_PASSWORD` in the test process environment. Never use real
-identities. Traces, screenshots, videos and saved browser state are disabled;
+identities. The bootstrap browser test is explicitly gated by `OPENCLUB_E2E_DISPOSABLE=true`
+and must **never** run against an installation with data worth retaining.
+The CI workflow uses the ephemeral synthetic PostgreSQL project; the test
+creates its single club through the existing restricted Gradle operator task,
+not an unapproved browser endpoint. A local rerun on a previously initialized
+database cannot perform bootstrap again and must start with a separate fresh
+synthetic project. Do not force-reset an installation to make the test pass.
+
+Traces, screenshots, videos and saved browser state are disabled;
 do not upload server logs containing callback codes. Generated credentials are
 masked in CI. Containers are stopped without deleting volumes; local operators
 must explicitly manage their disposable fixture volumes.
