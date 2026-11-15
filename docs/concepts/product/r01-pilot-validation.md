@@ -53,7 +53,9 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 
 **Owner direction (2026-11-15):** Grants must support **club-wide and team-specific scopes**. Individual-record permissions are not part of the currently selected model. Define capabilities independently from roles: e.g. viewing members, editing permitted member fields, changing team assignments, administering membership roles, and managing club settings. A team-scoped edit grant must not imply permission to change club membership, security roles or login identities. A person may be assigned to multiple teams; changes in team association must invalidate outdated access. The precise matrix is illustrative and remains subject to R04/R06 security review, tests and privacy requirements.
 
-**Permission matrix sign-off: Pending.** Confirm who may create, delegate and revoke permission grants; who can add/edit/export member data; and which group may see contact details. Do not assume minors' contact visibility is approved (R03).
+**Delegation decision (owner, 2026-11-15):** Only club administrators explicitly authorized to manage permissions may assign, modify or revoke grants. Authorization to manage members or teams does not itself imply authorization to manage permissions. Enforce delegation rights server-side; prevent unauthorized self-escalation and loss of the final authorized administrator. Exact bootstrap, grant and recovery semantics remain for R06/R07/R10 security design.
+
+**Permission matrix sign-off: Pending.** Confirm which capabilities may be granted at team scope, who can add/edit/export member data, and which groups may see contact details. Do not assume minors' contact visibility is approved (R03).
 
 ## Stakeholder validation record
 
