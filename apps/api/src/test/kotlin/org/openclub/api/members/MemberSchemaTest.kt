@@ -33,10 +33,15 @@ class MemberSchemaTest {
                     db.execute("INSERT INTO members (id, club_id, first_name, last_name) VALUES (?, ?, ?, ?)",
                         UUID.randomUUID(), club, "No", "Birthdate")
                 }
+                assertThrows(org.jooq.exception.DataAccessException::class.java) {
+                    db.execute("""INSERT INTO members (id, club_id, first_name, last_name, date_of_birth)
+                        VALUES (?, ?, 'Missing', 'Contacts', DATE '1990-01-01')""",
+                        UUID.randomUUID(), club)
+                }
                 val member = UUID.randomUUID()
                 db.execute("""INSERT INTO members (id, club_id, first_name, last_name, date_of_birth)
                     VALUES (?, ?, 'Accountless', 'Child', DATE '2018-04-10')""", member, club)
-                assertEquals(1, db.fetchValue(
+                assertEquals(1L, db.fetchValue(
                     "SELECT COUNT(*) FROM members WHERE id = ? AND account_id IS NULL", member
                 ))
             } finally {

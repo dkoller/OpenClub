@@ -33,8 +33,8 @@ class MemberAccessTest {
                     database.execute("INSERT INTO accounts (id) VALUES (?)", account)
                 }
                 database.execute("""INSERT INTO members
-                    (id, club_id, account_id, first_name, last_name, date_of_birth, role)
-                    VALUES (?, ?, ?, 'Example', 'Admin', DATE '1990-01-01', 'ADMIN')""",
+                    (id, club_id, account_id, first_name, last_name, date_of_birth, email, phone, role)
+                    VALUES (?, ?, ?, 'Example', 'Admin', DATE '1990-01-01', 'admin@example.invalid', '+41000000000', 'ADMIN')""",
                     UUID.randomUUID(), club, admin)
                 database.execute("""INSERT INTO members
                     (id, club_id, account_id, first_name, last_name, date_of_birth)

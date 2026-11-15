@@ -66,7 +66,7 @@ class VerifiedAccountsTest {
                 club, "Synthetic club", "club-" + club)
             db.execute("INSERT INTO accounts (id, display_name) VALUES (?, ?)",
                 existing, "Unlinked OpenClub account")
-            db.execute("INSERT INTO members (id, club_id, account_id, first_name, last_name, date_of_birth, role) VALUES (?, ?, ?, 'Sample', 'Admin', DATE '1990-01-01', ?)",
+            db.execute("INSERT INTO members (id, club_id, account_id, first_name, last_name, date_of_birth, email, phone, role) VALUES (?, ?, ?, 'Sample', 'Admin', DATE '1990-01-01', 'admin@example.invalid', '+41000000000', ?)",
                 membership, club, existing, "ADMIN")
 
             resolved = resolver(db).resolveOrCreate(identity)

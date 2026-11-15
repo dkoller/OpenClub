@@ -6,6 +6,7 @@ CREATE TABLE clubs (
     name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 200),
     slug TEXT NOT NULL UNIQUE CHECK (length(slug) BETWEEN 3 AND 60 AND slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
     gender_required_for_players BOOLEAN NOT NULL DEFAULT FALSE,
+    adult_age_years INTEGER NOT NULL DEFAULT 18 CHECK (adult_age_years BETWEEN 13 AND 25),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (singleton)
 );
@@ -68,3 +69,26 @@ CREATE TABLE auth_sessions (
 );
 CREATE INDEX auth_sessions_account_idx ON auth_sessions(account_id);
 CREATE INDEX auth_sessions_expiration_idx ON auth_sessions(idle_expires_at, absolute_expires_at);
+
+-- Enforce member field rules during writes; adulthood transitions need R03 follow-up.
+CREATE FUNCTION validate_member_fields() RETURNS trigger AS $$
+DECLARE policy RECORD;
+BEGIN
+    SELECT adult_age_years, gender_required_for_players INTO STRICT policy
+      FROM clubs WHERE id = NEW.club_id;
+    IF NEW.date_of_birth > CURRENT_DATE THEN
+        RAISE EXCEPTION 'Birth date cannot be in the future';
+    END IF;
+    IF NEW.date_of_birth <= (CURRENT_DATE - make_interval(years => policy.adult_age_years))::date
+       AND (NULLIF(trim(NEW.email), '') IS NULL OR NULLIF(trim(NEW.phone), '') IS NULL) THEN
+        RAISE EXCEPTION 'Adult member requires both email and phone';
+    END IF;
+    IF NEW.is_player AND policy.gender_required_for_players
+       AND NULLIF(trim(NEW.gender), '') IS NULL THEN
+        RAISE EXCEPTION 'Player gender required by club policy';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER members_validate BEFORE INSERT OR UPDATE ON members
+    FOR EACH ROW EXECUTE FUNCTION validate_member_fields();
