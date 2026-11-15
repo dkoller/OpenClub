@@ -40,3 +40,8 @@ Merged [PR #72](https://github.com/dkoller/OpenClub/pull/72) and [PR #73](https:
 - **First usable release:** Member management, team assignments and configurable permissions, with German, English, French and Italian supported. The detailed Excel inventory/import/migration requirements are intentionally deferred; invitations remain later.
 
 The former policy proposing universal same-club access to contact data is **not privacy approval**. R03 must resolve minors' contact visibility, birth-date/gender access, data minimization, lawful basis and retention before real records. Track the schema, teams and permissions follow-ups in [#74](https://github.com/dkoller/OpenClub/issues/74), [#75](https://github.com/dkoller/OpenClub/issues/75) and [#76](https://github.com/dkoller/OpenClub/issues/76). R04/R06/R10 must specify safe club-local data/permission contracts and tests. These product decisions do not imply functionality is implemented.
+
+
+## Single-club deployment pivot (2026-11-15)
+
+After R01 acceptance, the owner selected **one club per standalone installation** instead of multi-club tenancy. The per-club member field and configurable permission requirements above remain valid, but each installation owns exactly one club and database. Previous cross-club access and globally shared person concerns are addressed structurally by independent deployments and the removal of multi-club member/profile routing; local privacy/security authorization remains essential. This supersedes multi-club passages in prior ADRs for the first release, without changing existing Flyway migration history. See proposed [ADR-0005](0005-club-owned-member-profiles.md) and #74.
