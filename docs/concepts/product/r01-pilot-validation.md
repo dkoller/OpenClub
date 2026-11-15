@@ -35,6 +35,22 @@ This is **owner-reported discovery**, not an independently confirmed stakeholder
 
 **First replacement selected (owner, 2026-11-15):** Excel membership and administration. **Explicitly deferred by owner:** Inventorying Excel columns, evaluating import requirements and specifying data migration. These are open questions, not accepted R01 requirements or prerequisites for continued discovery. Continue validation with the participating roles, preferred languages and a narrow synthetic acceptance journey without assuming that import is part of the first release.
 
+## Pilot user groups — owner feedback, 2026-11-15
+
+The owner identified six groups needing OpenClub access: **club board/committee**, **membership administrators**, **team managers/coaches**, **players/ordinary members**, **parents/guardians**, and **volunteers**. This is a stakeholder-reported *access audience*, not approval of six technical roles or a completed authorization design.
+
+Proposed responsibilities to validate:
+- Board/committee: governance and assigned administrative tasks, not blanket access to private data.
+- Membership administrators: member and membership management.
+- Team managers/coaches: assigned team and player management.
+- Players/members: own profile and permitted club/team information.
+- Parents/guardians: permissions for verified linked children, subject to minors' privacy review.
+- Volunteers: view/manage own assignments; some may not be members.
+
+A person may hold multiple functions; role labels must not imply unrestricted access. Keep existing MVP ADMIN/MEMBER authorization constraints unless separately reviewed through R04/R06. Guardian relationships, volunteer identities and detailed team permissions are future design questions, not approved MVP features.
+
+**Permission matrix sign-off: Pending.** Confirm who can add/edit/export member data and which group may see which contact details. Do not assume minors' contact visibility is approved (R03).
+
 ## Stakeholder validation record
 
 | Question | Response / evidence | Status |
@@ -47,6 +63,7 @@ This is **owner-reported discovery**, not an independently confirmed stakeholder
 | Can members exist without accounts? | _Owner preference: yes; pilot unconfirmed_ | Pending |
 | Minimum fields and why each is necessary | _Owner baseline: names required, email/phone optional; pilot unconfirmed_ | Pending |
 | Preferred UI language(s) for pilot | _Not confirmed_ | Pending |
+| Groups needing access | _Owner identified board, membership administrators, coaches, players, parents and volunteers; permission details pending_ | Partially captured |
 | Need for invitations in first usable release | _Owner preference: later; pilot unconfirmed_ | Pending |
 | Proposed acceptance flow reviewed | _Not reviewed_ | Pending |
 | Stakeholder acceptance, requested changes and decision date | _Not recorded_ | Pending |
