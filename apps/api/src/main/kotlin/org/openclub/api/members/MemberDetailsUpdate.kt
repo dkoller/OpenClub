@@ -30,11 +30,11 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         return database.execute(
             """UPDATE members SET first_name = ?, last_name = ?, date_of_birth = ?,
                   email = ?, phone = ?, gender = ?, is_player = ?
-               WHERE id = ? AND EXISTS (
+               WHERE id = ? AND archived_at IS NULL AND EXISTS (
                    SELECT 1 FROM members actor
                    JOIN club_capability_grants g ON g.member_id = actor.id
                    JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND g.capability = 'EDIT_MEMBERS'
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL AND g.capability = 'EDIT_MEMBERS'
                )""",
             first, last, birthDate, email, phone, gender,
             input.isPlayer, memberId, actorAccountId,
