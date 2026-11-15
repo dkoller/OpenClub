@@ -2,6 +2,7 @@ package org.openclub.api.club
 
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
+import org.openclub.api.database.AdvisoryLocks
 import java.util.UUID
 
 /**
@@ -23,7 +24,7 @@ internal class AdminRecovery(private val database: DSLContext) {
         database.transaction { configuration ->
             val db = DSL.using(configuration)
             // Same application-level lock as initial bootstrap; serializes recoveries.
-            db.fetchValue("SELECT pg_advisory_xact_lock(672018, 1)")
+            db.fetchValue(AdvisoryLocks.BOOTSTRAP)
             check(db.fetchOne("SELECT 1 FROM clubs WHERE id = ?", input.clubId) != null) {
                 "Installation club does not match"
             }

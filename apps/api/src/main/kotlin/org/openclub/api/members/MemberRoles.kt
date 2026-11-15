@@ -2,6 +2,7 @@ package org.openclub.api.members
 
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
+import org.openclub.api.database.AdvisoryLocks
 import java.util.UUID
 
 /**
@@ -17,7 +18,7 @@ internal class MemberRoles(private val database: DSLContext) {
             val db = DSL.using(transaction)
             // Shared with CapabilityGrants: grant and role mutations cannot
             // race one another into removing the final permission manager.
-            db.fetchValue("SELECT pg_advisory_xact_lock(672018, 3)")
+            db.fetchValue(AdvisoryLocks.PERMISSION_MUTATION)
             val actor = db.fetchOne(
                 """SELECT m.id FROM members m
                    JOIN club_capability_grants g ON g.member_id = m.id

@@ -2,6 +2,7 @@ package org.openclub.api.club
 
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
+import org.openclub.api.database.AdvisoryLocks
 import java.time.LocalDate
 import java.util.UUID
 
@@ -34,7 +35,7 @@ internal class FirstClubBootstrap(private val database: DSLContext) {
         return database.transactionResult { configuration ->
             val db = DSL.using(configuration)
             // Serialize competing bootstrap attempts, even from different processes.
-            db.fetchValue("SELECT pg_advisory_xact_lock(672018, 1)")
+            db.fetchValue(AdvisoryLocks.BOOTSTRAP)
             check(db.fetchCount(DSL.table("clubs")) == 0) {
                 "Club already initialized"
             }
