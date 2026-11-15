@@ -70,6 +70,17 @@ class TeamAssignmentsTest {
                 assertThrows(DataAccessException::class.java) {
                     operations.create(manager, "juniors")
                 }
+                // Direct SQL bypassing the service's trim must not allow a second team name.
+                assertThrows(DataAccessException::class.java) {
+                    db.execute("INSERT INTO teams (id, name) VALUES (?, '  jUnIoRs  ')",
+                        UUID.randomUUID())
+                }
+                assertThrows(DataAccessException::class.java) {
+                    db.execute("UPDATE teams SET name = ' JUNIORS ' WHERE id = ?", otherTeam)
+                }
+                assertEquals("Adults", db.fetchValue(
+                    "SELECT name FROM teams WHERE id = ?", otherTeam))
+
                 assertThrows(IllegalArgumentException::class.java) {
                     operations.create(manager, " ")
                 }
