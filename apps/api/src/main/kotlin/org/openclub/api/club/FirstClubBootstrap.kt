@@ -1,9 +1,8 @@
 package org.openclub.api.club
 
-import org.openclub.api.database.AdvisoryLocks
-
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
+import org.openclub.api.database.AdvisoryLocks
 import java.time.LocalDate
 import java.util.UUID
 
