@@ -51,8 +51,11 @@ internal class AdminRecovery(private val database: DSLContext) {
                    WHERE id = ? AND account_id = ? AND role = 'ADMIN'""",
                 input.replacementAccountId, input.adminMemberId, input.oldAccountId,
             ) == 1) { "Administrator link changed during recovery" }
-            // Old browser sessions must not continue to authorize the administrator.
-            db.execute("DELETE FROM auth_sessions WHERE account_id = ?", input.oldAccountId)
+            // Revoke existing sessions on both accounts. A replacement account may
+            // already be signed in as an unlinked user and must reauthenticate
+            // after receiving administrator privileges.
+            db.execute("DELETE FROM auth_sessions WHERE account_id IN (?, ?)",
+                input.oldAccountId, input.replacementAccountId)
         }
     }
 }
