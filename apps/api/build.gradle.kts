@@ -57,3 +57,10 @@ tasks.register<JavaExec>("generateJooq") {
 sourceSets.main {
     java.srcDir(layout.buildDirectory.dir("generated-src/jooq"))
 }
+
+tasks.register<JavaExec>("bootstrapFirstClub") {
+    group = "application"
+    description = "Operator-only, one-time setup of the sole club and first administrator."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("org.openclub.api.club.BootstrapCliKt")
+}
