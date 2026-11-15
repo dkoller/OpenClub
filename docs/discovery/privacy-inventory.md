@@ -1,54 +1,66 @@
-# R03 — Member data and privacy inventory
+# R03 — Single-club privacy inventory and approval gates
 
-**Status:** Provisional discovery, **not legal approval**. Parent: [#12](https://github.com/dkoller/OpenClub/issues/12); unresolved decision issue [#36](https://github.com/dkoller/OpenClub/issues/36).
+**Status:** Working privacy assessment, **not legal approval or permission to use real data**. Tracked by [#12](https://github.com/dkoller/OpenClub/issues/12). The applicable jurisdiction and responsible club operator must be identified before any pilot processes real personal data.
 
-OpenClub starts with sports clubs; some pilot members may be minors. **Do not** seed, import or publish real membership data until the club's responsible administrator approves data handling and local law has been considered.
+OpenClub deploys **one club per independent installation and PostgreSQL database**. It has no global person directory, no cross-installation login or data sharing, and no tenant selector. The old `persons`, `person_identities` and `memberships` model was removed in pre-production PR #79. Real member records have never been approved for import or use.
 
-## Initial database inventory
+## Actual V1 PostgreSQL data inventory
 
-| Table | Personal data | Need and access boundary | Lifecycle questions |
+| Table | Data stored | Proposed purpose | Exposure / lifecycle boundary |
 | --- | --- | --- | --- |
-| `clubs` | Club name/slug (usually non-personal) | Public or authorized visibility to be agreed | Club closure/export |
-| `persons` | Display name + stable UUID | Minimum viable member record; restrict via memberships | Duplicate resolution, deletion, correction |
-| `person_identities` | Verified issuer/subject association | Login binding, not a public directory | Account unlink, provider migration |
-| `memberships` | Club-person link, role, timestamp | Club-specific administration only | Leave club, historic retention, role audit |
-| Future club-local personal fields | Names, date of birth, adult email + phone, optional player gender required by policy (not yet implemented) | R01 validated product need; minimize access and never share between clubs | Purpose, lawful basis, gender representation, retention, age threshold and minors' access |
+| `clubs` | Club UUID, name, slug, adult threshold and gender-required policy, timestamps | One installation's configuration | Only authorized users; name may identify a small organization/person |
+| `accounts` | Local account UUID, placeholder display label, creation timestamp | Technical OIDC principal | Not a member directory; deletion requires session and identity cleanup |
+| `account_identities` | OIDC issuer, case-sensitive subject, local account link, timestamps | Bind a **verified** identity, not match by email | High-value identifiers; never in member summaries or ordinary logs |
+| `members` | Local member UUID, optional account link, names, DOB, email, phone, gender, player flag, interim ADMIN/MEMBER role, creation timestamp | Member administration, age/player rule checks | Full fields are private; basic name directory itself needs approval; export/correction/retention unresolved |
+| `auth_sessions` | Session-handle hash, account link, CSRF token, created/used/expiry times | Authenticated browser sessions | No plaintext handle in database; short retention and expiry cleanup |
+| `oidc_login_transactions` | Hashed state/browser binding, nonce, PKCE verifier, expiry | Short-lived login completion | Security-only; expiry cleanup, no public exposure |
 
-## Decision checklist before handling live data
+Member birth date is **mandatory for all**; email **and** phone are mandatory for adults under a club-configured threshold (currently default 18); player gender is mandatory only when explicitly enabled by club policy. These are **accepted product requirements**, not a conclusion about data-protection necessity or lawful basis. The database validates writes; birthdays or policy changes require further lifecycle handling.
 
-1. Identify the **controller** (which club or organization) and operational processor(s); document responsibilities.
-2. Confirm applicable legal jurisdictions and draft an accessible privacy notice covering purpose, contact, recipients, hosting and rights.
-3. Determine collection purpose and legal justification per data category; do not blindly assume all data always requires consent or that consent is never needed.
-4. Specify **per-category retention and deletion triggers** rather than inventing a universal number of months/years.
-5. Plan correct/edit, club-scoped export, erasure/anonymization and backups-expiry behavior; define what happens if a person belongs to several clubs.
-6. Define least-privilege access: no cross-club directory, sensitive fields or administrative logs readable by unauthorized actors.
-7. Consider minors, possible guardian consent/communications, photographs and other potentially sensitive sports data **only when requested**.
-8. Decide incident handling, audit minimization and whether the use case requires a risk assessment / DPIA.
+## Proposed least-disclosure baseline — requires club/privacy approval
 
-## Research note for Swiss associations
+Until the data controller explicitly approves a field/role matrix, the application must **not expose member-list or member-detail HTTP APIs**. The internal query introduced in merged [PR #86](https://github.com/dkoller/OpenClub/pull/86) selects only name and local UUID and is not registered as an HTTP route. Authentication and interim ADMIN/MEMBER role alone do not justify broad visibility.
 
-The [Swiss FDPIC's guidance for clubs and associations](https://www.edoeb.admin.ch/en/data-protection-in-clubs-and-associations) highlights purpose limitation, transparency and data minimization, and notes that ordinary membership-related processing does **not automatically require consent**. It also distinguishes photograph publication and explains that data should be erased or anonymized when no longer necessary unless retention obligations apply. This is guidance, **not** a substitute for assessing the actual club's jurisdiction and context.
+| Data / action | Suggested initial boundary for review | Decision status |
+| --- | --- | --- |
+| Name and local member ID | Authorized members with explicit directory-read grant; visibility of children still assessed | **Open** |
+| Full DOB, including minors | Restricted administration for a documented age/eligibility purpose; avoid birthday disclosure | **Open** |
+| Email and phone, adults | Explicitly approved contact-related capability; never assume all club members can view | **Open** |
+| Email and phone, minors | Deny general directory access by default; resolve verified guardian/coach/administration needs | **Open** |
+| Gender and player status | Restrict to approved sports/eligibility workflows; do not assume binary options | **Open** |
+| Authentication issuer/subject and session secrets | System/authorized technical operators only; never member-list or export defaults | **Technical restriction; operator review open** |
+| Member creation/update/archive | Explicitly delegated capability with audited authorization and accountless record support | **Open (#76/#18)** |
+| Export, erasure, correction | Verified request, scope-limited operator action with documented statutory exceptions | **Open (#26)** |
 
-## Explicit blockers
+Do not introduce guardian relationships, photographs, health information or membership-wide contact disclosure without separate requirement and privacy review. Installation isolation is not a substitute for least-privilege authorization inside a club.
 
-- Pilot requirements are accepted and [R01/#10](https://github.com/dkoller/OpenClub/issues/10) is closed; privacy and exact data handling are still unresolved under R03.
-- Data subject rights, log retention, hosting and consent arrangements need review: [#36](https://github.com/dkoller/OpenClub/issues/36).
-- R03 completion requires a responsible human review; this document only structures the work.
+## Controller decisions required before first real-data pilot
 
-For implementation, add PostgreSQL-backed isolation tests and avoid real member data in CI or repository fixtures.
+The accountable club representative and, where needed, qualified privacy counsel must record **actual decisions**, reviewer and date in an operator-controlled private register (not committed personal details). Never assume Swiss law applies solely because a developer is in Switzerland.
 
-## Product decisions and outstanding privacy work (2026-11-14)
+| Gate | What must be decided and evidenced | Responsible sign-off |
+| --- | --- | --- |
+| Jurisdiction and roles | Where members and hosting are located, controller, operators/processors and cross-border recipient arrangements | Club/controller + operator |
+| Purpose and lawful basis | Necessity of names, exact DOB, both adult contacts, conditional gender, and what notice/consent (if any) applies | Club/controller + privacy reviewer |
+| Minor safeguards | Who can view child/guardian contacts, youth eligibility, parental/guardian verification and when access expires | Club/controller + privacy reviewer |
+| Field-level matrix | Directory visibility by capabilities and club/team scope; deny default for unapproved fields | Club/controller + security reviewer |
+| Age rule | Exact local adult threshold, birthday transition checks, effects of club policy changes and how missing historical data is handled | Club/controller |
+| Retention triggers | Active/archived/departed member lifecycle, category-specific durations, statutory holds and secure deletion | Club/controller |
+| Subject rights | Identity verification, correction, export, deletion/anonymization workflow, response responsibility and exceptions | Club/controller |
+| Infrastructure | Hosting location, backups/encryption/restore, backup expiry/erasure, secrets, incident response and processor terms | Operator + club/controller |
+| Access evidence | Audit events without PII payloads, unauthorized access tests and revocation behavior | Security reviewer |
 
-[ADR-0004](../decisions/0004-member-policy.md) specifies required first and last names, optional email/phone, and a **same-club directory visible to all authenticated members**. This is a product access decision, **not approval to publish all contacts for real users**, especially minors. Review user notice, applicable lawful basis, visibility restrictions for youth, possible per-club field access, controller responsibilities, and retention/erasure/backup policy before processing live records. Archive, export and configurable retention are incremental goals; exact retention periods remain undecided.
+**No durations, consent mechanism, guardian entitlement, or legal basis have been approved.** The table is an approval checklist, not a substitute for policy or law.
 
+## Implementation guardrails and remaining work
 
-## Accepted R01 field and isolation requirements (2026-11-15; not privacy sign-off)
+- Keep all sample identities fictitious; prohibit real member data in git, CI, screenshots, logs and demo fixtures.
+- Require explicit reviewed R04 OpenAPI contract and #76 permission model before exposing any member HTTP response. Restrict list DTOs to minimum approved fields; 401 unauthenticated, 403 insufficient permission, and nondisclosing 404 for non-visible individual members.
+- Do not auto-merge an OIDC account with a member using matching email/name. Invitation-based linking requires independent verification (#20).
+- Record role/grant changes and exports in minimal audit events; do not print DOB, contact data, gender or tokens in application logs.
+- Test archive, export, erasure, backup restoration and policy transitions on synthetic data before real use (#26/#27).
+- Document an actionable incident owner, privacy-notice delivery and operator support before any pilot (#27/#28).
 
-The historical `persons`/global person inventory above describes the *superseded foundation*, not an approved future data storage model. Under R01, a person's **club-local** name, date of birth, email, phone and gender must never be copied, exposed, auto-filled or synchronized across clubs, even if a shared login identity belongs to both. Review the global `person`/identity design through [#74](https://github.com/dkoller/OpenClub/issues/74) before extending member CRUD.
+## Reference only
 
-First name, last name and date of birth are required for every person in a club; **both email and phone required for adults**, optional minors; gender required for players only when explicitly enabled by their club. The age threshold, access-to-full-DOB/gender, age-based contact rationale, minor protections, data subject requests and retention must be reviewed under R03. The old 2026-11-14 note saying email/phone are optional for all people and DOB is unneeded is superseded; it is not current guidance. No real data should be loaded into unfinished club/member endpoints.
-
-
-## Schema reset status (2026-11-15)
-
-The initial table inventory above is **historical and superseded**. Fresh pre-production `V1__single_club.sql` defines exactly one `clubs` row per installation, independently scoped `accounts` and `account_identities`, optional account-linked `members` with first/last names and DOB, and OIDC transaction/session tables. No multi-club `persons` or `memberships` schema remains. `members` stores only this installation's club data, never globally reused profiles. Server-side policies and database triggers check both contacts for adults (provisional default age 18) and club-required player gender on writes. Age transitions, field access and legal approvals remain R03 work; the schema alone is not privacy clearance. See [ADR-0005](../decisions/0005-single-club-installation.md).
+For Switzerland, the [FDPIC guidance for clubs and associations](https://www.edoeb.admin.ch/en/data-protection-in-clubs-and-associations) provides a useful starting point on purpose limitation, transparency and data minimization. It is not a determination of the project's governing law or a general permission to process children's data. See [ADR-0004](../decisions/0004-member-policy.md), [single-club ADR-0005](../decisions/0005-single-club-installation.md), and [the unapproved member OpenAPI draft](../contracts/openapi-draft.yaml).
