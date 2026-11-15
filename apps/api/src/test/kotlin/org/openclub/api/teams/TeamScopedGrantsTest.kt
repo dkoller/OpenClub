@@ -131,6 +131,11 @@ class TeamScopedGrantsTest {
                 assertEquals(0L, db.fetchValue(
                     "SELECT COUNT(*) FROM team_capability_grants WHERE member_id = ?", coach))
                 assertFalse(access.hasForTeam(coachAccount, adults, manage))
+                // Independently prove that deleting a team cascades its remaining grants.
+                db.execute("""INSERT INTO team_capability_grants
+                    (team_id, member_id, capability) VALUES (?, ?, 'VIEW_TEAMS')""", adults, player)
+                assertEquals(1L, db.fetchValue(
+                    "SELECT COUNT(*) FROM team_capability_grants WHERE team_id = ?", adults))
                 db.execute("DELETE FROM teams WHERE id = ?", adults)
                 assertEquals(0, db.fetchOne(
                     "SELECT COUNT(*) AS total FROM team_capability_grants"
