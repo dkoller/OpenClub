@@ -4,7 +4,9 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
 import org.jooq.SQLDialect
+import org.jooq.exception.DataAccessException
 import org.jooq.impl.DSL
+import org.openclub.api.database.AdvisoryLocks
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -85,6 +87,29 @@ class AdminRecoveryTest {
                     'other@example.invalid', '+41000000000', 'ADMIN')""", secondAdmin)
                 assertThrows(IllegalStateException::class.java) { recovery.rebind(input) }
                 db.execute("DELETE FROM members WHERE id = ?", secondAdmin)
+                // A concurrent protected role/grant mutation holds this lock;
+                // recovery must wait rather than trust a stale sole-admin count.
+                source.connection.use { holding ->
+                    holding.autoCommit = false
+                    try {
+                        DSL.using(holding, SQLDialect.POSTGRES)
+                            .fetchValue(AdvisoryLocks.PERMISSION_MUTATION)
+                        source.connection.use { attempting ->
+                            val candidate = DSL.using(attempting, SQLDialect.POSTGRES)
+                            candidate.execute("SET lock_timeout = '250ms'")
+                            try {
+                                val blocked = assertThrows(DataAccessException::class.java) {
+                                    AdminRecovery(candidate).rebind(input)
+                                }
+                                assertEquals("55P03", blocked.sqlState())
+                            } finally {
+                                candidate.execute("RESET lock_timeout")
+                            }
+                        }
+                    } finally {
+                        holding.rollback()
+                    }
+                }
                 assertEquals(old, linked())
                 assertEquals(2, db.fetchCount(DSL.table("auth_sessions")))
                 recovery.rebind(input)
