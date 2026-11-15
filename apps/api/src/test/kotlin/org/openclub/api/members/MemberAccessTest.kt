@@ -41,6 +41,13 @@ class MemberAccessTest {
                     VALUES (?, ?, 'Example', 'Member', DATE '2015-01-01')""",
                     UUID.randomUUID(), regular)
 
+                assertEquals(club, access.authorizedClubId(admin, MemberAccess.Permission.VIEW_CLUB))
+                assertEquals(club, access.authorizedClubId(regular, MemberAccess.Permission.VIEW_CLUB))
+                assertNull(access.authorizedClubId(outsider, MemberAccess.Permission.VIEW_CLUB))
+                assertEquals(club, access.authorizedClubId(admin, MemberAccess.Permission.MANAGE_MEMBERS))
+                assertNull(access.authorizedClubId(regular, MemberAccess.Permission.MANAGE_MEMBERS))
+                assertNull(access.authorizedClubId(outsider, MemberAccess.Permission.MANAGE_MEMBERS))
+
                 assertEquals(MemberAccess.Role.ADMIN, access.roleFor(admin))
                 assertEquals(MemberAccess.Role.MEMBER, access.roleFor(regular))
                 assertNull(access.roleFor(outsider))
