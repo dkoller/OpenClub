@@ -33,7 +33,7 @@ For each changed trust boundary, test applicable cases, not merely the happy pat
 - Record findings as reproducible regression tests and update instructions where a generally reusable lesson exists.
 - Human approval is mandatory. No automatic merges.
 
-Do not turn this list into a requirement for irrelevant tests in low-risk PRs. Select cases based on the actual trust boundary and normally keep PRs under 1,000 changed lines (single reset PR #79 has a temporary owner-approved exception).
+Do not turn this list into a requirement for irrelevant tests in low-risk PRs. Select cases based on the actual trust boundary and keep PRs at or below 5,000 changed lines (smaller security reviews are strongly preferred; PR #79 was a historical pre-production reset exception).
 
 
 **Single-club reset:** Verify a second club row cannot be persisted, unauthenticated/unlinked accounts cannot see local club information, and independent installations cannot accidentally share data or credentials. Member/team permissions still require negative tests; do not substitute the singleton DB constraint for authorization.
