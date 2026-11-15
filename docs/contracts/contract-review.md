@@ -81,3 +81,33 @@ The [OpenAPI discussion draft](openapi-draft.yaml) has been reworked for single-
 ## Single-club contract pivot (2026-11-15)
 
 Owner selected one club per installation after R01 closure. R04 must **replace** legacy `/v1/clubs/{clubId}` tenant-selection and list/create-many-clubs assumptions with installation-local member, team, grant and club-settings operations. A controlled one-time setup is separate from normal member APIs. Existing historical contract draft remains explicitly **not implementation-ready**. The fresh V1 single-club schema has no member `club_id` tenant selector; no legacy Flyway migration path is provided because the project was never live. See accepted [ADR-0005](../decisions/0005-single-club-installation.md), #74, R06 and R07.
+
+## Member archival and team-roster proposals (2026-11-15; not approved)
+
+The working draft now includes **proposed only** `POST /v1/members/{memberId}/archive`,
+`POST /v1/members/{memberId}/reactivate`, and
+`GET /v1/teams/{teamId}/members` operations. These are documentation of
+implementation gaps, not registered routes:
+
+- Archive requires an explicit `EDIT_MEMBERS` actor, an unlinked ordinary
+  member, Origin and session CSRF, and an approved retention/audit procedure.
+  Archived personal data remains in the database and backups; archive is not
+  erasure or an export/deletion solution.
+- Reactivation must **never** silently reinstate OIDC links, team assignments,
+  role privileges or old capability grants. Current adult-contact and player
+  policy continues to apply. Review conflict, unauthorised and already-active
+  behavior before implementation.
+- The team roster requires BOTH `VIEW_MEMBER_DIRECTORY` and the exact team's
+  viewing/managing grant (or equivalent club-wide team grant). Only the local
+  member UUID and first/last names may be returned; not birth dates, gender,
+  contacts or account identities. Even minors' **names** require R03 review.
+- Future opaque cursors must protect integrity and bind scope, filter and
+  actor permissions. The existing internal typed `After` key is **not**
+  suitable for direct HTTP exposure; wrong-team and missing-resource errors
+  must not leak member existence.
+
+The current PostgreSQL services already enforce parts of these rules internally
+and have synthetic tests, but public APIs, localized browser workflows, audit,
+retention, data-subject rights and legal/privacy sign-off are missing. GitHub
+OpenAPI syntax validation cannot establish authorization or privacy approval.
+Keep the entire contract at `0.0.0-draft` until independently reviewed.
