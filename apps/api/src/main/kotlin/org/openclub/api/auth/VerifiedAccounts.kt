@@ -1,4 +1,7 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.database.*
+import org.openclub.api.members.*
 
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
@@ -12,7 +15,7 @@ import java.util.UUID
  * membership are NEVER used to adopt an existing person or grant club roles.
  * Blocking JDBC: future Ktor handlers must use a bounded I/O dispatcher.
  */
-internal class VerifiedPersonIdentities(
+internal class VerifiedAccounts(
     private val database: DSLContext,
     private val settings: OidcSettings,
 ) {
@@ -28,11 +31,11 @@ internal class VerifiedPersonIdentities(
             find(tx, identity)?.let { return@transactionResult it }
             val candidate = UUID.randomUUID()
             tx.execute(
-                "INSERT INTO persons (id, display_name) VALUES (?, ?)",
+                "INSERT INTO accounts (id, display_name) VALUES (?, ?)",
                 candidate, "Unlinked OpenClub account",
             )
             val inserted = tx.execute(
-                """INSERT INTO person_identities (id, person_id, issuer, subject)
+                """INSERT INTO account_identities (id, account_id, issuer, subject)
                    VALUES (?, ?, ?, ?)
                    ON CONFLICT (issuer, subject) DO NOTHING""",
                 UUID.randomUUID(), candidate, identity.issuer, identity.subject,
@@ -43,7 +46,7 @@ internal class VerifiedPersonIdentities(
                 // Another concurrent login won the unique (issuer, subject) key.
                 // Remove our unlinked candidate *inside the transaction*. PostgreSQL
                 // READ COMMITTED can now see the committed winner on a fresh SELECT.
-                tx.execute("DELETE FROM persons WHERE id = ?", candidate)
+                tx.execute("DELETE FROM accounts WHERE id = ?", candidate)
                 find(tx, identity)
                     ?: throw IllegalStateException("Verified OIDC identity binding unavailable")
             }
@@ -52,7 +55,7 @@ internal class VerifiedPersonIdentities(
 
     private fun find(db: DSLContext, identity: VerifiedOidcIdentity): UUID? =
         db.fetchOne(
-            "SELECT person_id FROM person_identities WHERE issuer = ? AND subject = ?",
+            "SELECT account_id FROM account_identities WHERE issuer = ? AND subject = ?",
             identity.issuer, identity.subject,
-        )?.get("person_id", UUID::class.java)
+        )?.get("account_id", UUID::class.java)
 }

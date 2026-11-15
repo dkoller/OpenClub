@@ -1,4 +1,7 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.database.*
+import org.openclub.api.members.*
 
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -41,7 +44,7 @@ internal fun Application.installSessionRoutes(
                         ContentType.Application.Json, HttpStatusCode.Unauthorized)
                 } else {
                     // Both fields are server-owned UUID/base64url values, never arbitrary user text.
-                    call.respondText("""{"personId":"${session.personId}","csrfToken":"${session.csrfToken}"}""",
+                    call.respondText("""{"accountId":"${session.accountId}","csrfToken":"${session.csrfToken}"}""",
                         ContentType.Application.Json)
                 }
             } catch (cancelled: CancellationException) {

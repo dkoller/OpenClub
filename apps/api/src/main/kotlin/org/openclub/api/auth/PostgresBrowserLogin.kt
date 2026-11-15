@@ -1,4 +1,7 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.database.*
+import org.openclub.api.members.*
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -39,7 +42,7 @@ internal class PostgresBrowserLogin(
             exchange.redeem(code, consumed)
         }
         return database.onDatabaseThread { db ->
-            val person = VerifiedPersonIdentities(db, settings).resolveOrCreate(verified)
+            val person = VerifiedAccounts(db, settings).resolveOrCreate(verified)
             // The old session must survive any failure to insert its replacement.
             AuthSessions(db).replace(previousSession, person)
         }
