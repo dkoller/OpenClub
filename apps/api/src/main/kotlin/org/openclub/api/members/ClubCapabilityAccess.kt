@@ -6,8 +6,8 @@ import java.util.UUID
 /**
  * Installation-local, live database permission check. Use only an account ID
  * from a verified session; never trust a caller-supplied actor or capability.
- * Team assignment mutation requires an explicit MANAGE_TEAMS grant; per-team
- * delegation and narrower team-scoped grants remain tracked under #76.
+ * Team-scoped checks allow only VIEW_TEAMS and MANAGE_TEAMS. Delegation
+ * and member-field visibility remain separate review gates.
  */
 internal class ClubCapabilityAccess(private val database: DSLContext) {
     enum class Capability { VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS }
@@ -22,4 +22,23 @@ internal class ClubCapabilityAccess(private val database: DSLContext) {
                LIMIT 1""",
             accountId, capability.name, capability.name,
         ) != null
+    /** Team grants never authorize club-level administration or member editing. */
+    fun hasForTeam(accountId: UUID, teamId: UUID, capability: Capability): Boolean {
+        require(capability == Capability.VIEW_TEAMS || capability == Capability.MANAGE_TEAMS) {
+            "Only team capabilities can be checked at team scope"
+        }
+        return database.fetchOne(
+            """SELECT 1 FROM teams team
+               JOIN members actor ON actor.account_id = ?
+               WHERE team.id = ? AND (
+                   EXISTS (SELECT 1 FROM club_capability_grants g
+                           WHERE g.member_id = actor.id AND g.capability = ?)
+                   OR EXISTS (SELECT 1 FROM team_capability_grants g
+                              WHERE g.team_id = team.id AND g.member_id = actor.id
+                                AND g.capability IN (?, 'MANAGE_TEAMS'))
+               ) LIMIT 1""",
+            accountId, teamId, capability.name, capability.name,
+        ) != null
+    }
+
 }
