@@ -27,8 +27,23 @@ describe('single-club session', () => {
   it('accepts a server-authorized local club', async () => {
     const request = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: 'account', csrfToken: 'secret' }) })
-      .mockResolvedValueOnce({ ok: true, status: 200 })
+      .mockResolvedValueOnce({ ok: true, status: 200,
+        json: async () => ({ id: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411360' }) })
     expect(await loadClubAccess(request)).toEqual({ state: 'ready', csrfToken: 'secret' })
+  })
+
+  it('does not consider malformed or non-200 club results to be authorized', async () => {
+    for (const clubResponse of [
+      { ok: true, status: 204 },
+      { ok: true, status: 200, json: async () => ({}) },
+      { ok: true, status: 200, json: async () => ({ id: 'not-a-uuid' }) },
+      { ok: true, status: 200, json: async () => ({ id: '' }) },
+    ]) {
+      const request = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: 'account', csrfToken: 'secret' }) })
+        .mockResolvedValueOnce(clubResponse)
+      expect(await loadClubAccess(request)).toEqual({ state: 'unavailable' })
+    }
   })
 
   it('fails closed for invalid session data or lookup outages', async () => {
