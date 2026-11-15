@@ -16,6 +16,19 @@ internal class MemberArchive(private val database: DSLContext) {
             val db = DSL.using(configuration)
             // Archiving revokes grants; coordinate with other privilege mutations.
             db.fetchValue(AdvisoryLocks.PERMISSION_MUTATION)
+            // Lock the member row before cleaning up dependencies. Grant and
+            // assignment inserts take a sharing lock on this same row.
+            val eligible = db.fetchOne(
+                """SELECT id FROM members WHERE id = ? AND role = 'MEMBER'
+                   AND account_id IS NULL AND archived_at IS NULL FOR UPDATE""",
+                targetMemberId,
+            ) != null
+            if (!eligible) return@transactionResult false
+
+            // Both removal and archival roll back if the actor lost edit rights.
+            db.execute("DELETE FROM team_capability_grants WHERE member_id = ?", targetMemberId)
+            db.execute("DELETE FROM club_capability_grants WHERE member_id = ?", targetMemberId)
+            db.execute("DELETE FROM member_team_assignments WHERE member_id = ?", targetMemberId)
             val archived = db.execute(
                 """UPDATE members SET archived_at = CURRENT_TIMESTAMP
                    WHERE id = ? AND role = 'MEMBER' AND account_id IS NULL
@@ -30,10 +43,6 @@ internal class MemberArchive(private val database: DSLContext) {
             ) == 1
             if (!archived) return@transactionResult false
 
-            // Revoke all dormant access and active assignments in the same commit.
-            db.execute("DELETE FROM team_capability_grants WHERE member_id = ?", targetMemberId)
-            db.execute("DELETE FROM club_capability_grants WHERE member_id = ?", targetMemberId)
-            db.execute("DELETE FROM member_team_assignments WHERE member_id = ?", targetMemberId)
             true
         }
 }
