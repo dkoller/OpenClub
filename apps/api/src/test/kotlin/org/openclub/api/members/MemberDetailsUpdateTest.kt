@@ -74,16 +74,29 @@ class MemberDetailsUpdateTest {
                 assertThrows(IllegalArgumentException::class.java) {
                     service.update(account, target, update.copy(dateOfBirth = LocalDate.now().plusDays(1)))
                 }
+                // A rejected policy update must not partially persist any changed fields.
+                val beforeRejectedUpdate = db.fetchOne(
+                    """SELECT first_name, last_name, date_of_birth, email, phone, gender,
+                              is_player, role, account_id FROM members WHERE id = ?""", target
+                )?.intoMap()
+                assertNotNull(beforeRejectedUpdate)
                 assertThrows(DataAccessException::class.java) {
-                    service.update(account, target, update.copy(email = null))
+                    service.update(account, target, update.copy(
+                        firstName = "MustNotPersist", email = null))
                 }
+                assertEquals(beforeRejectedUpdate, db.fetchOne(
+                    """SELECT first_name, last_name, date_of_birth, email, phone, gender,
+                              is_player, role, account_id FROM members WHERE id = ?""", target
+                )?.intoMap())
                 db.execute("UPDATE clubs SET gender_required_for_players = TRUE WHERE id = ?", club)
                 assertThrows(DataAccessException::class.java) {
                     service.update(account, target, update.copy(gender = null))
                 }
                 db.execute("DELETE FROM club_capability_grants WHERE member_id = ? AND capability = 'EDIT_MEMBERS'",
                     editor)
-                assertFalse(service.update(account, target, update))
+                assertFalse(service.update(account, target, update.copy(firstName = "DeniedAfterRevoke")))
+                assertEquals("Changed", db.fetchValue(
+                    "SELECT first_name FROM members WHERE id = ?", target))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'EDIT_MEMBERS')", editor)
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", editor)
                 assertFalse(service.update(account, target, update))
