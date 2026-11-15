@@ -1,8 +1,8 @@
 # OpenClub delivery roadmap
 
-**Last reviewed:** 2026-11-15 · **Status:** Single-club schema, operator bootstrap/recovery, verified sessions and internal member/team/capability foundations and an internal-only member archival primitive implemented; member/team/grant HTTP workflows, privacy sign-off and production release remain open · **Source of truth for work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
+**Last reviewed:** 2026-11-15 · **Status:** Single-club schema, operator bootstrap/recovery, verified sessions, complete single-club browser landing, internal member/team/grant and archive/restore foundations; member/team/grant HTTP workflows, privacy sign-off and production release remain open · **Source of truth for work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
 
-This roadmap inventories the work identified in the [original first-milestone plan](concepts/ai/first-milestone.md), [MVP proposal](concepts/product/mvp.md), accepted [stack ADR](decisions/0001-stack-selection.md), and [identity ADR](decisions/0002-identity-and-membership-model.md). The numbered **R01–R22** items are priority/dependency order, **not dates or commitments**. Each implementation PR uses at most **5,000 added + deleted lines** and requires CI and human review.
+This roadmap inventories the work identified in the [original first-milestone plan](concepts/ai/first-milestone.md), [MVP proposal](concepts/product/mvp.md), accepted [stack ADR](decisions/0001-stack-selection.md), and [identity ADR](decisions/0002-identity-and-membership-model.md). The numbered **R01–R22** items are priority/dependency order, **not dates or commitments**. Each implementation PR uses at most **5,000 added + deleted lines** and requires applicable CI and review; the owner-authorized controlled development loop may merge after checks pass without a separate per-PR owner approval (see root `AGENTS.md`). Production/privacy/security approvals remain separate.
 
 **Current architectural direction (2026-11-15):** **one club per OpenClub installation and independent database**; the historical multi-tenant roadmap entries below are superseded as described in the final section and accepted [ADR-0005](decisions/0005-single-club-installation.md). No club switcher or global person domain is part of the intended first release. PR #79 replaced the pre-production schema with a fresh singleton V1 and preserved R05 authentication; there is no backward-compatible migration for old development volumes.
 
@@ -13,6 +13,10 @@ This roadmap inventories the work identified in the [original first-milestone pl
 - [PRs #87–#88](https://github.com/dkoller/OpenClub/pull/88): privacy decision inventory (not legal sign-off) and explicit club-wide capability checks
 - [PRs #89–#92](https://github.com/dkoller/OpenClub/pull/92): internal team assignments, team-scoped capabilities, and reviewed serialized grant/revoke logic
 - [PR #93](https://github.com/dkoller/OpenClub/pull/93): browser-only four-language preference persistence
+- [PRs #164–#165](https://github.com/dkoller/OpenClub/pull/165): internal member archive/reactivation; [PR #167](https://github.com/dkoller/OpenClub/pull/167): database-enforced inactive-member access
+- [PR #168](https://github.com/dkoller/OpenClub/pull/168): privacy-minimized team roster under dual directory/team grants, internal only
+- [PRs #169–#170](https://github.com/dkoller/OpenClub/pull/170): real React/Vite/Keycloak browser sign-in, unlinked denial, operator bootstrap, authorized landing; R12/#21 closed
+- [PRs #166 and #171](https://github.com/dkoller/OpenClub/pull/171): actual synthetic PostgreSQL restore CI and recovered Kotlin API startup evidence (not a production drill)
 
 **Implementation versus acceptance:** The OpenAPI member/team/grant operations are still marked `NOT IMPLEMENTED` / `0.0.0-draft`, and the R03 inventory remains unapproved for live personal data. Closing a tracking issue does not itself approve handling real member records. Do not infer deployment readiness from internal PostgreSQL tests.
 
@@ -76,7 +80,7 @@ Dependency references indicate when implementation **must not outpace prerequisi
 
 | Order | Priority | Issue / expected outcome | Why here | Dependencies |
 | --- | --- | --- | --- | --- |
-| R12 | **P0** | [#21 — Frontend sign-in and single-club landing](https://github.com/dkoller/OpenClub/issues/21) | Authenticated local-club entry without a club switcher. | R05, R08 |
+| R12 ✅ complete | **P0** | [#21 — Frontend sign-in and single-club landing](https://github.com/dkoller/OpenClub/issues/21) | Authenticated local-club entry without a club switcher. | R05, R08 |
 | R13 | **P0** | [#22 — Club management screen](https://github.com/dkoller/OpenClub/issues/22) | Connects secure bootstrap/club endpoints to a usable flow. | R07, R08, R12 |
 | R14 | **P0** | [#23 — Member/role management screen](https://github.com/dkoller/OpenClub/issues/23) | Completes the first visible end-to-end administrator workflow. | R09, R10, R12, R13 |
 
@@ -152,3 +156,28 @@ R01 [#10](https://github.com/dkoller/OpenClub/issues/10) closed after merged [PR
 
 
 **Implementation status after merged PR #79 and #80:** The fresh database schema enforces one club row and local accounts/members. A guarded `GET /api/v1/club` (401/403/200) and four-language sign-in landing are present; other R08/R12 UI and R06 capability work are **not yet complete**. Independent-deployment runbook: [single-club operations](deployment/single-club.md). CI and production acceptance remain separate from the architecture decision; PR-size enforcement was restored in #80.
+
+## R12 browser landing closeout (2026-11-15; merged)
+
+[R12/#21](https://github.com/dkoller/OpenClub/issues/21) is closed after
+[PR #169](https://github.com/dkoller/OpenClub/pull/169) exercised the actual
+React/Vite proxy and Keycloak Chromium journey (including language persistence,
+login, unlinked-account denial and logout), and
+[PR #170](https://github.com/dkoller/OpenClub/pull/170) verified the restricted
+one-time operator bootstrap enables the previously unlinked account's
+single-club landing. Both passed their required CI. This verifies the
+**pre-production frontend auth journey**, not a complete member UI or
+production nginx/TLS/OIDC recovery sign-off. R13/R14 and R03 still block
+live pilot use.
+
+## R18 recovery rehearsal evidence (2026-11-15; partial)
+
+[PR #166](https://github.com/dkoller/OpenClub/pull/166) ran a synthetic
+PostgreSQL dump/restore check in GitHub Actions with club, member, team,
+assignment, grant and Flyway-history assertions;
+[PR #171](https://github.com/dkoller/OpenClub/pull/171) verified current
+Kotlin API startup against that restored database. These checks passed.
+R18/#27 stays open: real operator restore drills, cost estimates, encryption,
+off-site retention, secrets/TLS, rollback, operational sign-off and privacy
+approvals have **not** been demonstrated. The CI drill uses only disposable
+synthetic data and must not be used as a production recovery claim.
