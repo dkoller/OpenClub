@@ -30,8 +30,8 @@ internal class MemberDirectory(private val database: DSLContext) {
             """SELECT target.id, target.first_name, target.last_name
                FROM members target
                JOIN members actor ON actor.account_id = ?
-               JOIN club_capability_grants grant ON grant.member_id = actor.id
-                   AND grant.capability = 'VIEW_MEMBER_DIRECTORY'
+               JOIN club_capability_grants g ON g.member_id = actor.id
+                   AND g.capability = 'VIEW_MEMBER_DIRECTORY'
                JOIN clubs club ON TRUE
                WHERE (? = '' OR POSITION(LOWER(?) IN LOWER(target.first_name || ' ' || target.last_name)) > 0
                    OR POSITION(LOWER(?) IN LOWER(target.last_name || ' ' || target.first_name)) > 0)
