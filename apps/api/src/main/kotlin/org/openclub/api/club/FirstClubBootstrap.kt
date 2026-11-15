@@ -35,16 +35,16 @@ internal class FirstClubBootstrap(private val database: DSLContext) {
             val db = DSL.using(configuration)
             // Serialize competing bootstrap attempts, even from different processes.
             db.fetchValue("SELECT pg_advisory_xact_lock(672018, 1)")
-            check(db.fetchValue("SELECT COUNT(*) FROM clubs", Int::class.java) == 0) {
+            check(db.fetchCount(DSL.table("clubs")) == 0) {
                 "Club already initialized"
             }
-            check(db.fetchValue("SELECT COUNT(*) FROM members", Int::class.java) == 0) {
+            check(db.fetchCount(DSL.table("members")) == 0) {
                 "Existing members require operator investigation"
             }
-            check(db.fetchValue(
-                "SELECT COUNT(*) FROM account_identities WHERE account_id = ?",
-                Int::class.java, input.accountId,
-            )!! > 0) { "Bootstrap account must have a verified OIDC identity" }
+            check(db.fetchOne(
+                "SELECT 1 FROM account_identities WHERE account_id = ? LIMIT 1",
+                input.accountId,
+            ) != null) { "Bootstrap account must have a verified OIDC identity" }
             val clubId = UUID.randomUUID()
             db.execute(
                 "INSERT INTO clubs (id, name, slug) VALUES (?, ?, ?)",
