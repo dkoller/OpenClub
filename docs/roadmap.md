@@ -8,7 +8,7 @@ This roadmap inventories the work identified in the [original first-milestone pl
 
 ## Priority rules and sequencing rationale
 
-1. **P0 — required for a safe first working slice:** pilot intent, identity, authorization, backend and browser membership management, plus cross-club tests. Security guards precede exposed data-modifying endpoints, even when a demo could be built faster without them.
+1. **P0 — required for a safe first working slice:** pilot intent, identity, authorization, backend and browser membership management, plus local authorization and independent-deployment isolation tests. Security guards precede exposed data-modifying endpoints, even when a demo could be built faster without them.
 2. **P1 — required to validate and operate the MVP responsibly:** invitations if needed, browser tests, privacy workflows, hosting/backups, pilot evaluation and measuring AI collaboration. These can be split into small PRs and some run in parallel, but pilot release requires the relevant privacy/operations work.
 3. **P2 — explicitly after MVP evidence:** agent orchestration and broad product expansion. Their value and ongoing costs are still unproven.
 
@@ -28,7 +28,7 @@ Dependency references indicate when implementation **must not outpace prerequisi
 | C08. Pinned Gradle wrapper and pnpm lockfile | ✅ Done | [PR #8](https://github.com/dkoller/OpenClub/pull/8) | Make builds reproducible before feature contributions. |
 | C09. Person/identity/membership schema and ADR-0002 | ✅ Done | [PR #9](https://github.com/dkoller/OpenClub/pull/9) | Model multi-club roles correctly before security and API implementation. |
 
-**Decision update (2026-11-14):** [ADR-0003](decisions/0003-oidc-session-proposal.md) confirms Keycloak OIDC + Kotlin BFF architecture; [ADR-0004](decisions/0004-member-policy.md) records onboarding, directory visibility and lifecycle direction. R01 pilot requirements are now accepted (#10 closed; PRs #72–#73). R05 authentication is complete (#14 closed); privacy/minors' contact visibility, club authorization, first-admin implementation and club/member API acceptance remain open. These decisions guide R01–R18 without implying completion.
+**Decision update (2026-11-14):** [ADR-0003](decisions/0003-oidc-session-proposal.md) confirms Keycloak OIDC + Kotlin BFF architecture; [ADR-0004](decisions/0004-member-policy.md) records onboarding, directory visibility and lifecycle direction. R01 pilot requirements are now accepted (#10 closed; PRs #72–#73). The single-club reset PR #79 and PR-size restoration PR #80 are merged. R05 authentication is complete (#14 closed); privacy/minors' contact visibility, club authorization, first-admin implementation and club/member API acceptance remain open. These decisions guide R01–R18 without implying completion.
 
 **Important limitation:** Opt-in OIDC authentication is implemented and tested with synthetic identities; the schema and login are not club authorization. Club authorization (R06), first-admin bootstrap (R07), privacy acceptance (R03) and the web proxy path integration are still required before real member data.
 
