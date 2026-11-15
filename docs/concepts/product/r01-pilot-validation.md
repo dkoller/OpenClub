@@ -51,7 +51,9 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 
 **Owner direction (2026-11-15):** Member-record editing permissions should be **configurable and assigned by club administrators**, not permanently determined by organizational group. Treat organizational functions, capabilities and permission scopes as separate concepts. A person may have multiple functions; grants must be enforced server-side and scoped to authorized clubs/records. Design should prevent unauthorized privilege escalation and removal of the last authorized administrator. This is product direction, **not** an approved endpoint contract or implemented permission system. R04/R06/R10 need to reconcile it with the current ADMIN/MEMBER MVP baseline; avoid introducing granular roles prematurely.
 
-**Permission matrix sign-off: Pending.** Confirm whether grants can target the whole club, teams, or individual records; who may delegate permissions; who can add/edit/export member data; and which group may see contact details. Do not assume minors' contact visibility is approved (R03).
+**Owner direction (2026-11-15):** Grants must support **club-wide and team-specific scopes**. Individual-record permissions are not part of the currently selected model. Define capabilities independently from roles: e.g. viewing members, editing permitted member fields, changing team assignments, administering membership roles, and managing club settings. A team-scoped edit grant must not imply permission to change club membership, security roles or login identities. A person may be assigned to multiple teams; changes in team association must invalidate outdated access. The precise matrix is illustrative and remains subject to R04/R06 security review, tests and privacy requirements.
+
+**Permission matrix sign-off: Pending.** Confirm who may create, delegate and revoke permission grants; who can add/edit/export member data; and which group may see contact details. Do not assume minors' contact visibility is approved (R03).
 
 ## Stakeholder validation record
 
