@@ -59,7 +59,12 @@ class MemberAccessTest {
                 // Database changes take effect at the next check: no stale role cache.
                 database.execute("UPDATE members SET role = 'MEMBER' WHERE account_id = ?", admin)
                 assertNull(access.authorizedClubId(admin, MemberAccess.Permission.MANAGE_MEMBERS))
+                assertFalse(access.canManageMembers(admin))
+                assertEquals(MemberAccess.Role.MEMBER, access.roleFor(admin))
                 assertEquals(club, access.authorizedClubId(admin, MemberAccess.Permission.VIEW_CLUB))
+                database.execute("UPDATE members SET role = 'ADMIN' WHERE account_id = ?", admin)
+                assertEquals(MemberAccess.Role.ADMIN, access.roleFor(admin))
+                assertTrue(access.canManageMembers(admin))
                 database.execute("UPDATE members SET account_id = NULL WHERE id = ?", regularMember)
                 assertNull(access.authorizedClubId(regular, MemberAccess.Permission.VIEW_CLUB))
                 database.execute("UPDATE members SET account_id = ? WHERE id = ?", regular, regularMember)
