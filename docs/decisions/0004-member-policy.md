@@ -6,7 +6,7 @@
 
 ## Confirmed decisions
 
-1. **Club creation:** Configurable per deployment; **approval/invitation required by default**. Deliver the controlled first-admin path first. An installation operator can choose an open new-club creation mode in a later phase, but neither mode permits taking over an existing club.
+1. **Club creation:** Configurable per deployment; **approval/invitation required by default**. Deliver the controlled first-admin path first. Superseded: each installation can bootstrap only its one club; no public open-club creation mode exists.
 2. **Member onboarding:** Admins can enter people **without accounts**; later add invitation-based onboarding and verified account linking. Never link a person's record to an OIDC account by unverified email alone.
 3. **MVP member fields:** First name and last name required; email and phone optional. Keep a person's login identity separate from contact data; do not silently collect birth date, home address or guardian details.
 4. **Visibility:** Authenticated, authorized members can read their **own club's** member directory and contact information; only club **ADMIN** users can add/change members or roles. Outsiders and members of other clubs have no access. A member's permissions are scoped to the club being requested.
@@ -44,4 +44,4 @@ The former policy proposing universal same-club access to contact data is **not 
 
 ## Single-club deployment pivot (2026-11-15)
 
-After R01 acceptance, the owner selected **one club per standalone installation** instead of multi-club tenancy. The per-club member field and configurable permission requirements above remain valid, but each installation owns exactly one club and database. Previous cross-club access and globally shared person concerns are addressed structurally by independent deployments and the removal of multi-club member/profile routing; local privacy/security authorization remains essential. This supersedes multi-club passages in prior ADRs for the first release, without changing existing Flyway migration history. See proposed [ADR-0005](0005-single-club-installation.md) and #74.
+After R01 acceptance, the owner selected **one club per standalone installation** instead of multi-club tenancy. The per-club member field and configurable permission requirements above remain valid, but each installation owns exactly one club and database. Previous cross-club access and globally shared person concerns are addressed structurally by independent deployments and the removal of multi-club member/profile routing; local privacy/security authorization remains essential. This supersedes multi-club passages in prior ADRs for the first release, with the owner-approved never-live Flyway reset already merged in PR #79. See accepted [ADR-0005](0005-single-club-installation.md) and #74.
