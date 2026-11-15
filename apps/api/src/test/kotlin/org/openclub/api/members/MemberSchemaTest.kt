@@ -79,6 +79,14 @@ class MemberSchemaTest {
                 assertEquals("x".repeat(200), db.fetchOne(
                     "SELECT gender FROM members WHERE id = ?", member
                 )?.get("gender", String::class.java))
+                // Whitespace padding must not bypass raw field size bounds.
+                val padded = "x" + " ".repeat(200)
+                for (column in listOf("first_name", "last_name", "gender", "email", "phone")) {
+                    assertThrows(org.jooq.exception.DataAccessException::class.java) {
+                        db.execute("UPDATE members SET $column = ? WHERE id = ?", padded, member)
+                    }
+                }
+
                 assertEquals(1L, db.fetchValue(
                     "SELECT COUNT(*) FROM members WHERE id = ? AND account_id IS NULL", member
                 ))
