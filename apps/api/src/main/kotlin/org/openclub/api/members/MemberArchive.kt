@@ -16,24 +16,38 @@ internal class MemberArchive(private val database: DSLContext) {
             val db = DSL.using(configuration)
             // Archiving revokes grants; coordinate with other privilege mutations.
             db.fetchValue(AdvisoryLocks.PERMISSION_MUTATION)
-            val archived = db.execute(
-                """UPDATE members SET archived_at = CURRENT_TIMESTAMP
-                   WHERE id = ? AND role = 'MEMBER' AND account_id IS NULL
-                     AND archived_at IS NULL
-                     AND EXISTS (
-                       SELECT 1 FROM members actor
-                       JOIN club_capability_grants grants ON grants.member_id = actor.id
-                       WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                         AND grants.capability = 'EDIT_MEMBERS'
-                     )""",
-                targetMemberId, actorAccountId,
-            ) == 1
-            if (!archived) return@transactionResult false
+            // Lock the actor and their grant first, including against direct
+            // SQL revocation, so denied requests never delete dependencies.
+            val authorized = db.fetchOne(
+                """SELECT 1 FROM members actor
+                   JOIN club_capability_grants g ON g.member_id = actor.id
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND g.capability = 'EDIT_MEMBERS'
+                   FOR SHARE OF actor, g""",
+                actorAccountId,
+            ) != null
+            if (!authorized) return@transactionResult false
 
-            // Revoke all dormant access and active assignments in the same commit.
+            // Lock the member row before cleaning up dependencies. Grant and
+            // assignment inserts take a sharing lock on this same row.
+            val eligible = db.fetchOne(
+                """SELECT id FROM members WHERE id = ? AND role = 'MEMBER'
+                   AND account_id IS NULL AND archived_at IS NULL FOR UPDATE""",
+                targetMemberId,
+            ) != null
+            if (!eligible) return@transactionResult false
+
+            // The actor and target locks hold the authorization boundary
+            // stable until the transaction commits.
             db.execute("DELETE FROM team_capability_grants WHERE member_id = ?", targetMemberId)
             db.execute("DELETE FROM club_capability_grants WHERE member_id = ?", targetMemberId)
             db.execute("DELETE FROM member_team_assignments WHERE member_id = ?", targetMemberId)
+            check(db.execute(
+                """UPDATE members SET archived_at = CURRENT_TIMESTAMP
+                   WHERE id = ? AND role = 'MEMBER' AND account_id IS NULL
+                     AND archived_at IS NULL""",
+                targetMemberId,
+            ) == 1) { "Member changed while archival locks were held" }
             true
         }
 }

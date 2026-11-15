@@ -66,9 +66,25 @@ class MemberArchiveTest {
                 assertFalse(archive.archive(account, linkedMember))
                 assertFalse(archive.archive(account, admin))
                 assertNull(db.fetchValue("SELECT archived_at FROM members WHERE id = ?", archived))
+                // Direct SQL cannot archive a member while grants/assignments remain.
+                assertThrows(DataAccessException::class.java) {
+                    db.execute("UPDATE members SET archived_at = CURRENT_TIMESTAMP WHERE id = ?", archived)
+                }
                 assertTrue(archive.archive(account, archived))
                 assertFalse(archive.archive(account, archived))
                 assertNotNull(db.fetchValue("SELECT archived_at FROM members WHERE id = ?", archived))
+                // Bypass attempts by direct SQL are rejected even without the service.
+                assertThrows(DataAccessException::class.java) {
+                    db.execute("INSERT INTO club_capability_grants VALUES (?, 'VIEW_TEAMS')", archived)
+                }
+                assertThrows(DataAccessException::class.java) {
+                    db.execute("INSERT INTO team_capability_grants VALUES (?, ?, 'VIEW_TEAMS')",
+                        team, archived)
+                }
+                assertThrows(DataAccessException::class.java) {
+                    db.execute("INSERT INTO member_team_assignments VALUES (?, ?)",
+                        team, archived)
+                }
                 assertEquals(0, db.fetchValue(
                     "SELECT COUNT(*) FROM club_capability_grants WHERE member_id = ?", archived)?.toString()?.toInt())
                 assertEquals(0, db.fetchValue(
