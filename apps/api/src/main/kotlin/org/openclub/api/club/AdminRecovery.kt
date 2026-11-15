@@ -42,6 +42,12 @@ internal class AdminRecovery(private val database: DSLContext) {
                 "SELECT 1 FROM account_identities WHERE account_id = ? LIMIT 1",
                 input.replacementAccountId,
             ) != null) { "Replacement account must have a verified OIDC identity" }
+            // Serialize concurrent session INSERTs through their FK's account-row
+            // lock, so a pre-recovery login cannot escape session revocation.
+            check(db.fetchOne(
+                "SELECT 1 FROM accounts WHERE id = ? FOR UPDATE",
+                input.replacementAccountId,
+            ) != null) { "Replacement account does not exist" }
             check(db.fetchOne(
                 "SELECT 1 FROM members WHERE account_id = ? LIMIT 1",
                 input.replacementAccountId,
@@ -51,8 +57,11 @@ internal class AdminRecovery(private val database: DSLContext) {
                    WHERE id = ? AND account_id = ? AND role = 'ADMIN'""",
                 input.replacementAccountId, input.adminMemberId, input.oldAccountId,
             ) == 1) { "Administrator link changed during recovery" }
-            // Old browser sessions must not continue to authorize the administrator.
-            db.execute("DELETE FROM auth_sessions WHERE account_id = ?", input.oldAccountId)
+            // Revoke existing sessions on both accounts. A replacement account may
+            // already be signed in as an unlinked user and must reauthenticate
+            // after receiving administrator privileges.
+            db.execute("DELETE FROM auth_sessions WHERE account_id IN (?, ?)",
+                input.oldAccountId, input.replacementAccountId)
         }
     }
 }
