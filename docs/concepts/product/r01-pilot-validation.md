@@ -133,3 +133,8 @@ The first release must support German, English, French and Italian. Its initial 
 - [x] Member-field policy follow-up PR #73 merged; R01/#10 closed as a requirements-discovery milestone. Runtime and privacy gates remain open.
 
 **Testing:** The R01 documentation PRs #72 and #73 are merged and issue #10 is closed as a requirements milestone. No code/integration tests or R19 demonstration are claimed. Privacy, schema and release-acceptance gates remain open.
+
+
+## Post-R01 architecture decision (2026-11-15)
+
+After accepting the R01 requirements, the owner chose **one club per independently deployed OpenClub installation**, reusable by any club. This supersedes the multi-club scenario and cross-club switcher in the *historical synthetic script above*: for the first release, no tenant routing or shared person/profile layer is needed. Replace the second-club acceptance step with validation that a second club **cannot** be created in the same installation, plus independent-database and secure local-access checks. The approved member, team, configurable permissions, four-language and field requirements are otherwise unchanged. This is a design change after R01 closure, not an assertion that the original second-club demo was performed. See [proposed ADR-0005](../../decisions/0005-single-club-installation.md) and [#74](https://github.com/dkoller/OpenClub/issues/74).

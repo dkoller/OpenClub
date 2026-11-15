@@ -1,271 +1,197 @@
 openapi: 3.1.0
 info:
-  title: OpenClub membership API — discussion draft
+  title: OpenClub single-club management API — working draft
   version: 0.0.0-draft
   description: >
-    NOT APPROVED FOR IMPLEMENTATION. Historical discussion schemas predate accepted
-    R01 pilot requirements (2026-11-15). First and last name plus club-local date
-    of birth are mandatory for all; email and phone are both required for adults,
-    optional for minors; player gender may be club-required. Personal data must
-    never transfer between clubs, even for a shared login identity. Club/team
-    capability grants and team assignments must also be modeled. The example
-    AddMember, Membership and role schemas below DO NOT meet these requirements.
-    R01 is closed and OIDC sessions are implemented, but R03 privacy, R04 final
-    contract, R06 authorization and R07 bootstrap gates remain open. No
-    unauthenticated club/member mutations. See docs/contracts/contract-review.md.
+    NOT APPROVED FOR IMPLEMENTATION. The runtime currently implements only
+    authenticated GET /v1/club (when OIDC is configured) plus the separately
+    documented /v1/auth routes. Member, team, grant and first-admin APIs below
+    are proposals pending R03 privacy, R04 contract acceptance and R06/R07
+    authorization. Exactly one club exists per installation; no clubId tenant
+    selector, cross-club data directory, or club switcher is supported.
 servers:
   - url: /api
 security:
   - browserSession: []
 tags:
-  - name: Clubs
+  - name: Club
   - name: Members
+  - name: Teams
+  - name: Permissions
 paths:
-  /v1/clubs:
+  /v1/club:
     get:
-      tags: [Clubs]
-      summary: List clubs available to the signed-in person
-      operationId: listMyClubs
+      tags: [Club]
+      operationId: readMyClub
+      summary: Read the single installation club after authorized login
+      description: >
+        Implemented minimal response: local club UUID only. Authentication
+        does not imply club membership. No club name or private data is sent.
       responses:
         '200':
-          description: Authorized clubs only
+          description: Current installation's club ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClubReference'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/members:
+    get:
+      tags: [Members]
+      operationId: listLocalMembers
+      summary: Proposed authorized member directory
+      description: >
+        NOT IMPLEMENTED. Field-level visibility and pagination need R03/R04
+        approval. Default responses must not expose full birth dates, gender or
+        contact data to unauthorized accounts.
+      responses:
+        '200':
+          description: Local member list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Club'
+                  $ref: '#/components/schemas/Member'
         '401':
           $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
-      tags: [Clubs]
-      summary: Create club with protected first-admin bootstrap (design TBD)
-      operationId: createClub
+      tags: [Members]
+      operationId: addLocalMember
+      summary: Proposed admin creation of an accountless member
       description: >
-        No open self-registration privilege. Only implement after R07 bootstrap
-        and authenticated actor rules are approved.
+        NOT IMPLEMENTED. Require local member-edit grant, Origin and CSRF
+        checks, date of birth for everyone, both email and phone for adults,
+        and gender only for players if configured by the installation's club.
+        Adulthood threshold and field visibility require review.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateClub'
+              $ref: '#/components/schemas/NewMember'
       responses:
         '201':
-          description: Club created
+          description: Created local member
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Club'
+                $ref: '#/components/schemas/Member'
         '400':
           $ref: '#/components/responses/Invalid'
         '401':
           $ref: '#/components/responses/Unauthenticated'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '409':
-          $ref: '#/components/responses/Conflict'
-  /v1/clubs/{clubId}/members:
-    parameters:
-      - $ref: '#/components/parameters/ClubId'
+  /v1/teams:
     get:
-      tags: [Members]
-      summary: List members and permitted contacts within one authorized club
-      description: >
-        Requires authenticated membership in the requested club (ADMIN or MEMBER).
-        Scope to the club; field-level contact privacy for minors still requires review.
-      operationId: listClubMembers
-      parameters:
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 25
-        - name: cursor
-          in: query
-          schema:
-            type: string
-        - name: search
-          in: query
-          schema:
-            type: string
-            maxLength: 200
+      tags: [Teams]
+      operationId: listLocalTeams
+      summary: Proposed local team list (not implemented)
       responses:
         '200':
-          description: Memberships belonging to the authorized club
+          description: Teams in this installation's club
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MemberPage'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    post:
-      tags: [Members]
-      summary: Add a person to a club without requiring a login
-      description: Requires ADMIN membership of the requested club; invitation flow is later.
-      operationId: addClubMember
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddMember'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+  /v1/permission-grants:
+    get:
+      tags: [Permissions]
+      operationId: listLocalGrants
+      summary: Proposed authorized club/team capability grants (not implemented)
       responses:
-        '201':
-          description: Membership created
+        '200':
+          description: Scoped grants
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Membership'
-        '400':
-          $ref: '#/components/responses/Invalid'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-  /v1/clubs/{clubId}/members/{membershipId}/role:
-    parameters:
-      - $ref: '#/components/parameters/ClubId'
-      - name: membershipId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-    put:
-      tags: [Members]
-      summary: Set club-scoped role; requires ADMIN and last-admin protection
-      operationId: setMembershipRole
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [role]
-              properties:
-                role:
-                  $ref: '#/components/schemas/Role'
-      responses:
-        '204':
-          description: Role updated
-        '400':
-          $ref: '#/components/responses/Invalid'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Grant'
 components:
   securitySchemes:
     browserSession:
       type: apiKey
       in: cookie
-      name: openclub_session
-      description: Approved Ktor BFF opaque HttpOnly session-cookie architecture; CSRF, store and exact cookie settings pending.
-  parameters:
-    ClubId:
-      name: clubId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
+      name: __Host-openclub_session
+      description: >
+        Verified OIDC-backed server-side session, with local loopback
+        development cookie openclub_dev_session. A login is not an authorization.
   schemas:
-    Role:
-      type: string
-      enum: [ADMIN, MEMBER]
-    Club:
+    ClubReference:
       type: object
       additionalProperties: false
-      required: [id, slug, name]
+      required: [id]
       properties:
         id: { type: string, format: uuid }
-        slug: { type: string, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' }
-        name: { type: string }
-    CreateClub:
+    NewMember:
       type: object
       additionalProperties: false
-      required: [name, slug]
-      properties:
-        name: { type: string, minLength: 1, maxLength: 200 }
-        slug: { type: string, minLength: 3, maxLength: 60, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' }
-    AddMember:
-      type: object
-      additionalProperties: false
-      required: [firstName, lastName]
+      required: [firstName, lastName, dateOfBirth]
       properties:
         firstName: { type: string, minLength: 1, maxLength: 200 }
         lastName: { type: string, minLength: 1, maxLength: 200 }
+        dateOfBirth: { type: string, format: date }
         email: { type: string, format: email, maxLength: 320 }
         phone: { type: string, maxLength: 40 }
-    Membership:
+        gender: { type: string }
+        isPlayer: { type: boolean, default: false }
+    Member:
+      allOf:
+        - $ref: '#/components/schemas/NewMember'
+        - type: object
+          required: [id, role]
+          properties:
+            id: { type: string, format: uuid }
+            role: { type: string, enum: [ADMIN, MEMBER] }
+    Team:
       type: object
-      additionalProperties: false
-      required: [id, clubId, personId, firstName, lastName, role]
+      required: [id, name]
       properties:
         id: { type: string, format: uuid }
-        clubId: { type: string, format: uuid }
-        personId: { type: string, format: uuid }
-        firstName: { type: string }
-        lastName: { type: string }
-        email: { type: string, format: email }
-        phone: { type: string }
-        role: { $ref: '#/components/schemas/Role' }
-    MemberPage:
+        name: { type: string, minLength: 1 }
+    Grant:
       type: object
-      additionalProperties: false
-      required: [items, nextCursor]
+      required: [memberId, capability, scope]
       properties:
-        items:
-          type: array
-          items: { $ref: '#/components/schemas/Membership' }
-        nextCursor:
-          type: [string, 'null']
+        memberId: { type: string, format: uuid }
+        capability: { type: string }
+        scope: { type: string, enum: [CLUB, TEAM] }
+        teamId: { type: string, format: uuid }
     Error:
       type: object
-      additionalProperties: false
       required: [code, message]
       properties:
         code: { type: string }
         message: { type: string }
   responses:
     Invalid:
-      description: Invalid input
+      description: Input rejected
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     Unauthenticated:
-      description: Signed-in session missing or expired
+      description: Session missing or expired
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     Forbidden:
-      description: Authenticated actor has insufficient permission
+      description: No local club membership or insufficient grants
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
-    NotFound:
-      description: Resource absent or concealed from caller
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/Error' }
-    Conflict:
-      description: Duplicate, stale update or last-admin protection
+    Unavailable:
+      description: Database or authorization service unavailable
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }

@@ -45,7 +45,7 @@ paths:
         Single-use state and binding cookie required. Reject provider error,
         missing or duplicate code/state, expired/replayed transaction and incorrect
         browser. Redeem code with confidential PKCE, validate signed ID token,
-        resolve exact issuer+subject to a person and mint a fresh server-side session.
+        resolve exact issuer+subject to an installation-local account and mint a fresh server-side session.
         On success, revoke any previous session presented by this browser before
         completing the callback; replacing its cookie alone is insufficient.
         Clear pre-auth binding on both success and failure. No club permissions implied.
@@ -168,9 +168,9 @@ components:
     SessionView:
       type: object
       additionalProperties: false
-      required: [personId, csrfToken]
+      required: [accountId, csrfToken]
       properties:
-        personId:
+        accountId:
           type: string
           format: uuid
         csrfToken:

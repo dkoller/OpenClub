@@ -1,5 +1,9 @@
 package org.openclub.api
 
+import org.openclub.api.auth.*
+import org.openclub.api.database.*
+import org.openclub.api.members.*
+
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode

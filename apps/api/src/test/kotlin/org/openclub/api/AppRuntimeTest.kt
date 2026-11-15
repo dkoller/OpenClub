@@ -1,5 +1,9 @@
 package org.openclub.api
 
+import org.openclub.api.auth.*
+import org.openclub.api.database.*
+import org.openclub.api.members.*
+
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

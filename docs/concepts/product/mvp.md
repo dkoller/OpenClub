@@ -1,6 +1,6 @@
 # OpenClub MVP proposal
 
-**Status:** Historical MVP proposal (14 November 2026); R01 pilot requirements accepted 15 November 2026 supersede scope below. See [pilot worksheet](r01-pilot-validation.md).
+**Status:** Historical MVP proposal (14 November 2026). First-release requirements and one-club-per-installation architecture accepted 15 November 2026 supersede scope below. See [pilot worksheet](r01-pilot-validation.md).
 
 ## Problem
 
@@ -60,3 +60,8 @@ Avoid implementing speculative requirements until these choices are reviewed.
 The pilot floorball club uses disconnected Excel, WordPress, XPS, helfereinsatz.ch and other software. OpenClub aims to **replace** these tools progressively and be the source of truth **within each club**, rather than act as an integration hub or use a shared cross-club directory. Excel membership/administration is the first replacement; spreadsheet field inventory and migration/import behavior are deferred.
 
 The initial usable release must demonstrate member creation/search/edit/archive, team assignments and configurable **club/team-scoped** permission grants, in German, English, French and Italian. Club administrators explicitly authorized for permission management alone can grant/revoke capabilities. Personal data must **never be shared between clubs**, even for one authenticated identity. Names and date of birth are mandatory for all; both phone and email mandatory for adults, optional for minors; gender mandatory for players only if their club requires it. Adulthood threshold, privacy for minors and details of technical storage/authorization require follow-up design under R03/R04/R06. The pilot administrator accepted this *synthetic requirements scenario*, not an implemented release; see [R01/#10](https://github.com/dkoller/OpenClub/issues/10) and [R19/#28](https://github.com/dkoller/OpenClub/issues/28).
+
+
+## One club per installation (accepted 2026-11-15)
+
+Each independently operated OpenClub deployment holds exactly one club, with its own PostgreSQL database and local account/member records. Global persons, multi-club memberships, club switching and cross-tenant APIs in the original proposal are **not** first-release features. Member management, multiple team assignments and configurable club/team permission grants remain required, in DE/EN/FR/IT. First name, last name and DOB are mandatory; adult email plus phone and configured player gender are mandatory. See [ADR-0005](../../decisions/0005-single-club-installation.md) and [R19](https://github.com/dkoller/OpenClub/issues/28).

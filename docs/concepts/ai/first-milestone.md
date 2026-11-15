@@ -1,4 +1,4 @@
-# First development milestone: validated membership slice
+# First development milestone: validated membership slice (historical)
 
 **Status:** Historical milestone sketch (partly superseded). For current priorities, status and GitHub issues, use [the numbered roadmap](../../roadmap.md). This file is not a live tracking board.
 
@@ -43,3 +43,8 @@ A focused change with a clear purpose, reproducible build/test commands, up-to-d
 ## Guiding rule
 
 Ship a working use case before building sophisticated agent infrastructure. Record cross-agent discussions in issues and PRs so work survives context resets.
+
+
+## Architectural supersession (2026-11-15)
+
+This early milestone describes the original multi-club `persons` / `memberships` implementation. For the current target, each installation owns exactly one club; members are local records, verified login accounts are separate, and no club switcher/global person directory is required. See [ADR-0005](../../decisions/0005-single-club-installation.md). Historical task checkboxes above remain for traceability, not implementation guidance.

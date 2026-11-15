@@ -6,3 +6,7 @@
 body { margin: 0; }
 main { max-width: 40rem; margin: 6rem auto; padding: 1.5rem; }
 h1 { margin-bottom: 0.5rem; }
+
+select { margin-left: 0.5rem; padding: 0.25rem; }
+button, a { display: inline-block; padding: 0.5rem 0.75rem; }
+button { cursor: pointer; }

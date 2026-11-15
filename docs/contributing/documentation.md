@@ -9,7 +9,7 @@
 3. Update affected documentation and tests **in the same PR**. Record command checks honestly; do not claim they ran when they did not.
 4. In the PR description, list updated documents and the impact, or explicitly write **`Documentation: no changes needed`** with a brief reason. The template contains a required review checklist.
 5. Preserve old ADRs, original proposals and research notes as history; add a dated implementation note or a new ADR to explain changes, rather than silently presenting historical discussion as current architecture.
-6. Check relative Markdown links and keep the diff strictly below **1,000 added + deleted lines**. Split major changes into independently valid PRs; do not omit necessary docs or tests to fit.
+6. Normally keep the diff strictly below **1,000 added + deleted lines**. The owner approved a **one-time pre-production single-club reset exception in PR #79**; the size-check job is temporarily skipped there and must be restored in a separate PR. Do not treat this as a standing waiver. Never omit necessary docs or tests.
 
 ## Impact checklist
 

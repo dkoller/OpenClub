@@ -2,7 +2,7 @@
 
 An open-source project exploring a free-to-use platform for clubs, starting with sports clubs and a floorball-club use case.
 
-**Status:** Early working scaffold: React/TypeScript frontend, Kotlin/Ktor API, PostgreSQL, jOOQ and Flyway. Membership workflows are not yet implemented.
+**Status:** Pre-production one-club reset in progress. Verified OIDC login, an authorized single-club lookup, a multilingual login landing and the fresh local schema are implemented on the reset branch; member/team/grant workflows and production readiness remain unfinished.
 
 ## Goal
 
@@ -22,6 +22,7 @@ Each club owns its member personal data independently: no cross-club sharing or 
 - [Optional local Keycloak setup](docs/development/keycloak-local.md)
 - [Membership and privacy-related product decisions](docs/decisions/0004-member-policy.md)
 - [Numbered roadmap, GitHub issues and completed milestones](docs/roadmap.md)
+- [Single-club deployment and safe fresh-database setup](docs/deployment/single-club.md)
 - [Original milestone concept](docs/concepts/ai/first-milestone.md)
 - [AI-assisted development concept](docs/concepts/ai/ai-agent-development.md)
 - [Agent contribution rules](AGENTS.md)
@@ -35,3 +36,8 @@ Run locally with `docker compose up -d --build`; stop with `docker compose down`
 ## License
 
 [MIT](LICENSE).
+
+
+## Deployment scope decision (2026-11-15)
+
+OpenClub targets **one club per installation**, with an independently operated database and configuration; the same open-source code can serve different clubs via separate deployments. The existing multi-club database model is historical foundation work and requires a safe migration before the new model is implemented. The proposal is tracked in [ADR-0005](docs/decisions/0005-single-club-installation.md) and [#74](https://github.com/dkoller/OpenClub/issues/74); it is not yet an implemented feature or permission to load live personal data.

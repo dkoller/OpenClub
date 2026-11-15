@@ -1,6 +1,6 @@
 # R05 / C5-D2 — process-scoped backend runtime
 
-**Status:** Internal wiring only. No login, callback, `/auth/me`, logout or member routes are enabled. Parent [R05/#14](https://github.com/dkoller/OpenClub/issues/14).
+**Status:** Historical internal-wiring note. R05 login/callback/session/logout were subsequently implemented, and PR #79 introduces an installation-local authorized club lookup. This text does not describe the current runtime. Parent [R05/#14](https://github.com/dkoller/OpenClub/issues/14).
 
 ## PostgreSQL ownership and bounded JDBC work
 
@@ -23,3 +23,6 @@ No cookie is currently issued. The next HTTP PRs must implement the exact same-o
 ## Validation
 
 Kotlin tests cover default-disabled/partial config, HTTPS vs explicit loopback, issuer and callback origin pinning, redacted secrets and cookie attributes/format. PostgreSQL integration test exercises bounded-dispatcher query on a real CI database, with configuration failure tests. Neither real credentials nor accounts are used. Health response remains unchanged; no OpenAPI routes changed.
+
+
+**One-club reset:** Authentication is bound to local `accounts` / `account_identities`, not global `persons`. Refer to [ADR-0005](../decisions/0005-single-club-installation.md) and the implemented session contract; login does not imply member rights.

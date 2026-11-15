@@ -17,7 +17,7 @@ For each changed trust boundary, test applicable cases, not merely the happy pat
 - **Missing:** null, blank, absent cookie/header/claim, missing authority/host or required identifier.
 - **Malformed:** invalid URI/JSON, bad encoding, partial/opaque URLs, illegal values or corrupt tokens.
 - **Ambiguous:** Unicode/IDN hostnames, normalization, case/port differences, duplicate fields, conflicting claims, unexpected redirects.
-- **Adversarial:** wrong issuer/audience/host, forged/replayed/expired state, mismatched nonce, cross-club identity, invalid CSRF and fixation attempts.
+- **Adversarial:** wrong issuer/audience/host, forged/replayed/expired state, mismatched nonce, unauthorized local-account identity, invalid CSRF and fixation attempts.
 - **Operational:** process restart, fresh data volume, database/provider outage, incorrect secrets and production versus local-only mode.
 
 **Example incident 1 — Keycloak import (PR #50):** Valid Compose YAML and valid realm JSON did not prove Keycloak actually imported `openclub-dev`. A service-start smoke test and discovery request caught the gap. When configuration affects a runtime service, test **that service's behavior**, not syntax alone.
@@ -33,4 +33,7 @@ For each changed trust boundary, test applicable cases, not merely the happy pat
 - Record findings as reproducible regression tests and update instructions where a generally reusable lesson exists.
 - Human approval is mandatory. No automatic merges.
 
-Do not turn this list into a requirement for irrelevant tests in low-risk PRs. Select cases based on the actual trust boundary and keep PRs under 1,000 changed lines.
+Do not turn this list into a requirement for irrelevant tests in low-risk PRs. Select cases based on the actual trust boundary and normally keep PRs under 1,000 changed lines (single reset PR #79 has a temporary owner-approved exception).
+
+
+**Single-club reset:** Verify a second club row cannot be persisted, unauthenticated/unlinked accounts cannot see local club information, and independent installations cannot accidentally share data or credentials. Member/team permissions still require negative tests; do not substitute the singleton DB constraint for authorization.
