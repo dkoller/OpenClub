@@ -39,7 +39,8 @@ internal class MemberRoles(private val database: DSLContext) {
                 val managers = db.fetchValue(
                     """SELECT COUNT(*) FROM members m
                        JOIN club_capability_grants g ON g.member_id = m.id
-                       WHERE m.role = 'ADMIN' AND g.capability = 'MANAGE_PERMISSIONS'""",
+                       WHERE m.role = 'ADMIN' AND m.account_id IS NOT NULL
+                         AND g.capability = 'MANAGE_PERMISSIONS'""",
                 )?.toString()?.toLongOrNull() ?: error("Cannot count permission managers")
                 val targetManagesPermissions = db.fetchOne(
                     """SELECT 1 FROM club_capability_grants
@@ -50,10 +51,9 @@ internal class MemberRoles(private val database: DSLContext) {
                     return@transactionResult Change.DENIED
                 }
             }
-            db.execute(
+            if (db.execute(
                 "UPDATE members SET role = ? WHERE id = ?",
                 role.name, targetMemberId,
-            )
-            Change.UPDATED
+            ) == 1) Change.UPDATED else Change.DENIED
         }
 }
