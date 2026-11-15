@@ -52,11 +52,21 @@ class SingleClubRoutesTest {
                         database = database,
                     )
                 }
-                assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/club").status)
+                val unauthenticated = client.get("/api/v1/club")
+                assertEquals(HttpStatusCode.Unauthorized, unauthenticated.status)
+                assertEquals("no-store", unauthenticated.headers[HttpHeaders.CacheControl])
+                assertEquals("""{"code":"unauthenticated","message":"Authentication required"}""", unauthenticated.bodyAsText())
+                val invalidSession = client.get("/api/v1/club") {
+                    header(HttpHeaders.Cookie, "openclub_dev_session=invalid")
+                }
+                assertEquals(HttpStatusCode.Unauthorized, invalidSession.status)
+                assertEquals("no-store", invalidSession.headers[HttpHeaders.CacheControl])
                 val denied = client.get("/api/v1/club") {
                     header(HttpHeaders.Cookie, "openclub_dev_session=valid")
                 }
                 assertEquals(HttpStatusCode.Forbidden, denied.status)
+                assertEquals("no-store", denied.headers[HttpHeaders.CacheControl])
+                assertEquals("""{"code":"forbidden","message":"Club membership required"}""", denied.bodyAsText())
 
                 runBlocking {
                     database.onDatabaseThread {
