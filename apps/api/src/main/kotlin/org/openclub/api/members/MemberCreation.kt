@@ -21,16 +21,13 @@ internal class MemberCreation(private val database: DSLContext) {
     )
 
     fun create(actorAccountId: UUID, input: Input): UUID? {
-        val firstName = validName(input.firstName)
-        val lastName = validName(input.lastName)
+        val firstName = MemberFieldValidation.name(input.firstName)
+        val lastName = MemberFieldValidation.name(input.lastName)
         require(input.dateOfBirth.isAfter(LocalDate.of(1850, 1, 1))) { "Invalid birth date" }
         require(!input.dateOfBirth.isAfter(LocalDate.now())) { "Birth date cannot be in the future" }
-        val email = input.email?.trim()?.takeIf(String::isNotEmpty)
-        val phone = input.phone?.trim()?.takeIf(String::isNotEmpty)
-        val gender = input.gender?.trim()?.takeIf(String::isNotEmpty)
-        require(email == null || email.length in 3..320) { "Invalid email length" }
-        require(phone == null || phone.length <= 40) { "Invalid phone length" }
-        require(gender == null || gender.length <= 200) { "Invalid gender length" }
+        val email = MemberFieldValidation.email(input.email)
+        val phone = MemberFieldValidation.phone(input.phone)
+        val gender = MemberFieldValidation.gender(input.gender)
 
         val newId = UUID.randomUUID()
         val created = database.execute(
@@ -49,7 +46,4 @@ internal class MemberCreation(private val database: DSLContext) {
         return if (created == 1) newId else null
     }
 
-    private fun validName(value: String): String = value.trim().also {
-        require(it.length in 1..200) { "Invalid member name" }
-    }
 }
