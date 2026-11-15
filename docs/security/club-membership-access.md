@@ -92,6 +92,22 @@ archived targets. Team assignment locks its target member row to serialize with
 archival and avoid a post-archive assignment race. Synthetic PostgreSQL tests
 verify the visibility, revocation, non-reactivation, and database constraints.
 
+### Database-level archive invariants (V11)
+
+V11 rejects direct SQL `INSERT`/`UPDATE` into club grants, team grants and
+team assignments when the referenced member is archived. Grant/assignment
+writes take a sharing lock on the member row, serializing with archive updates.
+Setting `archived_at` by direct SQL fails while any such grant or assignment
+still exists. The internal archive service takes the permission-mutation lock,
+then holds the editor's current `EDIT_MEMBERS` grant and the target row locked,
+removes dependent rows and archives in **one transaction**. A denied or failed
+attempt does not commit partial privilege removal. Synthetic PostgreSQL tests
+cover direct-SQL bypass attempts, unauthorized archiving and cleanup.
+
+These constraints guard data integrity; database operators still need strict
+privilege separation and audit review. They do not approve a public archive
+endpoint or access to private member records.
+
 The internal `MemberReactivation.reactivate(verifiedSessionAccountId, memberId)`
 operation may return an archived, unlinked ordinary MEMBER to active status
 only with a current `EDIT_MEMBERS` grant. It never recreates removed club/team
