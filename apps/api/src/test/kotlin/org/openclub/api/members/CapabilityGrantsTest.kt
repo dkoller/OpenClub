@@ -80,6 +80,10 @@ class CapabilityGrantsTest {
                     grants.grant(account, member, manageTeams, teamScope, juniors))
                 assertEquals(CapabilityGrants.Change.DENIED,
                     grants.grant(account, member, manageTeams, teamScope, UUID.randomUUID()))
+                // An accountless ADMIN cannot serve as a recoverable manager.
+                assertEquals(CapabilityGrants.Change.DENIED,
+                    grants.grant(account, secondAdmin, managePermissions, clubScope))
+                db.execute("UPDATE members SET account_id = ? WHERE id = ?", outsider, secondAdmin)
                 assertEquals(CapabilityGrants.Change.GRANTED,
                     grants.grant(account, secondAdmin, managePermissions, clubScope))
                 assertEquals(CapabilityGrants.Change.REVOKED,
