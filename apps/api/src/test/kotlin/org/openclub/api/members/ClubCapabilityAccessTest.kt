@@ -85,6 +85,13 @@ class ClubCapabilityAccessTest {
                 assertFalse(access.has(memberAccount, directory))
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", admin)
                 assertFalse(access.has(adminAccount, permissions))
+                // A member's club-wide grants must not survive deletion.
+                db.execute("INSERT INTO club_capability_grants VALUES (?, ?)", member, directory.name)
+                assertTrue(access.has(memberAccount, directory))
+                db.execute("DELETE FROM members WHERE id = ?", member)
+                assertEquals(0L, db.fetchValue(
+                    "SELECT COUNT(*) FROM club_capability_grants WHERE member_id = ?", member))
+                assertFalse(access.has(memberAccount, directory))
             } finally {
                 db.execute("DELETE FROM members WHERE id IN (?, ?)", admin, member)
                 db.execute("DELETE FROM accounts WHERE id IN (?, ?, ?)",
