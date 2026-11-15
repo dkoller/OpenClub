@@ -72,4 +72,66 @@ class ClubPolicyChangeTest {
             }
         }
     }
+
+    @Test
+    fun uncommittedMemberInsertBlocksPolicyChangeUntilItCanBeRechecked() {
+        val url = System.getenv("DB_URL")
+        assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL")
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = url
+            username = requireNotNull(System.getenv("DB_USER"))
+            password = requireNotNull(System.getenv("DB_PASSWORD"))
+            maximumPoolSize = 3
+        }).use { source ->
+            Flyway.configure().dataSource(source).load().migrate()
+            val db = DSL.using(source, SQLDialect.POSTGRES)
+            val club = UUID.randomUUID()
+            val member = UUID.randomUUID()
+            try {
+                db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
+                    club, "policy-race-" + club)
+                val today = requireNotNull(db.fetchOne("SELECT CURRENT_DATE AS today")
+                    ?.get("today", LocalDate::class.java))
+                source.connection.use { inserting ->
+                    inserting.autoCommit = false
+                    try {
+                        DSL.using(inserting, SQLDialect.POSTGRES).execute(
+                            """INSERT INTO members (id, first_name, last_name, date_of_birth)
+                               VALUES (?, 'Uncommitted', 'Minor', ?)""",
+                            member, today.minusYears(17))
+                        source.connection.use { changing ->
+                            changing.autoCommit = false
+                            try {
+                                val concurrent = DSL.using(changing, SQLDialect.POSTGRES)
+                                concurrent.execute("SET LOCAL lock_timeout = '250ms'")
+                                // The policy UPDATE must wait for the member's shared club lock,
+                                // rather than miss the uncommitted, contactless future adult.
+                                val failure = assertThrows(DataAccessException::class.java) {
+                                    concurrent.execute(
+                                        "UPDATE clubs SET adult_age_years = 16 WHERE id = ?", club)
+                                }
+                                assertEquals("55P03", failure.sqlState())
+                            } finally {
+                                changing.rollback()
+                            }
+                        }
+                        inserting.commit()
+                    } finally {
+                        inserting.rollback()
+                    }
+                }
+                // Once the insert commits, the new policy must also fail the field check.
+                assertThrows(DataAccessException::class.java) {
+                    db.execute("UPDATE clubs SET adult_age_years = 16 WHERE id = ?", club)
+                }
+                assertEquals(18, db.fetchOne(
+                    "SELECT adult_age_years FROM clubs WHERE id = ?", club
+                )?.get("adult_age_years", Int::class.java))
+            } finally {
+                db.execute("DELETE FROM members WHERE id = ?", member)
+                db.execute("DELETE FROM clubs WHERE id = ?", club)
+            }
+        }
+    }
+
 }
