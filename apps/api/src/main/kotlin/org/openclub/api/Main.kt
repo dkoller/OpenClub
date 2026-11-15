@@ -68,6 +68,10 @@ internal fun Application.module(
         get("/health") {
             call.respondText("""{"status":"ok"}""", ContentType.Application.Json)
         }
+        // The web proxy keeps /api; Docker health checks use the direct route.
+        get("/api/health") {
+            call.respondText("""{"status":"ok"}""", ContentType.Application.Json)
+        }
     }
     if (login != null) installBrowserLogin(login, requireNotNull(cookiePolicy), authAdmission)
     if (sessions != null) installSessionRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin))
