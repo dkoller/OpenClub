@@ -45,7 +45,7 @@ jobs:
               case "$file" in
                 # Docs-only changes should not rebuild the application.
                 docs/contracts/*) api=true; web=true ;;
-                docs/*|README.md|AGENTS.md|apps/api/AGENTS.md|apps/web/AGENTS.md|.github/pull_request_template.md|.github/workflows/pr-size.yml) ;;
+                docs/*|README.md|.gitignore|AGENTS.md|apps/api/AGENTS.md|apps/web/AGENTS.md|.github/pull_request_template.md|.github/workflows/pr-size.yml) ;;
                 apps/api/*)
                   api=true
                   [[ "$file" == apps/api/Dockerfile || "$file" == apps/api/.dockerignore ]] && compose=true
