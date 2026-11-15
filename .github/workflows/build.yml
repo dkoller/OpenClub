@@ -60,7 +60,10 @@ jobs:
               [[ -z "$file" ]] && continue
               case "$file" in
                 # Docs-only changes should not rebuild the application.
-                docs/contracts/*) api=true; web=true ;;
+                # The contracts job always validates these OpenAPI files.
+                # No generated Kotlin/TS clients consume them yet, so do not
+                # rebuild API and web for contract-only documentation PRs.
+                docs/contracts/*) ;;
                 docs/*|README.md|AGENTS.md|apps/api/AGENTS.md|apps/web/AGENTS.md|.github/pull_request_template.md|.github/workflows/pr-size.yml) ;;
                 apps/api/*)
                   api=true
