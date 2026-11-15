@@ -17,6 +17,8 @@ The [working YAML](openapi-draft.yaml) now makes the first member API slice revi
 - **Errors:** 401 without session, 403 for insufficient permission, 404 for a non-existent or non-visible member resource, 400 for validation or cursor errors, 409 for write conflict, and 503 for storage outage. All errors must avoid private field echoes and differ only where the caller is authorized to know an ID exists.
 - **Field policy:** every member has name + DOB; both email and phone for adults (age threshold provisionally 18, configurable per club); player gender required only if enabled, with no binary-only assumption. R03 must approve policy, privacy and field-level access.
 
+**Privacy decision tracker:** The updated [R03 single-club inventory and approval matrix](../discovery/privacy-inventory.md) lists real V1 data categories and explicitly unresolved access, retention and legal decisions. This is not sign-off for public member endpoints.
+
 **Unresolved approval gates:** R03 lawful basis, minors' visibility/guardian relationships, exact permission matrix (#76), detailed member update/archive and confidential member-detail contract (#18), role changes/last-admin (#19), teams (#75), and operator review of error/pagination stability. Keep `0.0.0-draft` and do not close #13 or implement these routes until those boundaries are reviewed. YAML validation is only syntax/schema validation, **not** owner/privacy/security acceptance.
 
 ## Historical multi-club draft review (superseded)
