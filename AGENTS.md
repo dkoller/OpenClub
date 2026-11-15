@@ -12,7 +12,7 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 
 ## Every pull request
 
-- **Normal limit: additions + deletions must be strictly below 1,000 lines** for the full PR against its base. The owner temporarily exempted the single-club pre-production reset (#79); the check is disabled on this branch and MUST be restored in a separate follow-up PR before other large changes are accepted.
+- **Hard limit: additions + deletions must be strictly below 1,000 lines** for each PR against its base. Target 500–700 to leave headroom. PR #79 was an owner-approved one-time reset exception; this follow-up restores the check for subsequent work.
 - Count tests, docs, config, generated source and lockfiles; no exemptions for generated files. Binary changes do not count as text lines and require explicit reviewer scrutiny.
 - Split oversized work into independently useful, reviewable PRs. Never omit tests to meet the limit.
 - Document the purpose, acceptance criteria, testing performed/not performed, and known risks.
