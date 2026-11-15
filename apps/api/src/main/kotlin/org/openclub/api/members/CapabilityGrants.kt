@@ -52,11 +52,12 @@ internal class CapabilityGrants(private val database: DSLContext) {
             if (actor == memberId) return@transactionResult Change.DENIED
 
             val recipient = db.fetchOne(
-                """SELECT m.role, EXISTS (
+                """SELECT m.role, m.archived_at, EXISTS (
                        SELECT 1 FROM account_identities ai WHERE ai.account_id = m.account_id
                    ) AS verified FROM members m WHERE m.id = ?""", memberId,
             )
                 ?: return@transactionResult Change.DENIED
+            if (recipient.get("archived_at") != null) return@transactionResult Change.DENIED
             if (granting && capability == ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS &&
                 (recipient.get("role", String::class.java) != "ADMIN" ||
                     recipient.get("verified", Boolean::class.java) != true)
