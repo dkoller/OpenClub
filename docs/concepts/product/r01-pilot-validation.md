@@ -68,7 +68,7 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 | When and by whom member records are first entered | _Not confirmed_ | Pending |
 | Can members exist without accounts? | _Owner preference: yes; pilot unconfirmed_ | Pending |
 | Minimum fields and why each is necessary | _Owner baseline: names required, email/phone optional; pilot unconfirmed_ | Pending |
-| Preferred UI language(s) for pilot | _Not confirmed_ | Pending |
+| Preferred UI language(s) for pilot | _Owner requires German, English, French and Italian in first release; default and language-switch behavior pending confirmation_ | Owner decision captured |
 | Groups needing access | _Owner identified board, membership administrators, coaches, players, parents and volunteers; permission details pending_ | Partially captured |
 | Need for invitations in first usable release | _Owner preference: later; pilot unconfirmed_ | Pending |
 | Proposed acceptance flow reviewed | _Not reviewed_ | Pending |
@@ -103,7 +103,7 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 ## Decisions and hand-off
 
 - **Validated pilot scenario:** Pending. Owner selected Excel membership and administration as the first replacement; specific workflow and acceptance remain unvalidated.
-- **Preferred pilot language(s):** Pending.
+- **Preferred pilot language(s):** German, English, French and Italian required for the first release (owner, 2026-11-15). Default language and switching behavior remain proposed, not accepted.
 - **Changes to owner baseline:** Pending.
 - **Stakeholder acceptance (date, role, non-identifying reference):** Pending.
 - **R03 hand-off:** Review contact visibility, minors and data lifecycle before real records.
