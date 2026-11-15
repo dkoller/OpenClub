@@ -3,11 +3,16 @@ info:
   title: OpenClub membership API — discussion draft
   version: 0.0.0-draft
   description: >
-    NOT APPROVED FOR IMPLEMENTATION. Depends on R01 pilot workflow and R02
-    authentication implementation details. Decisions on roles and data fields
-    follow ADR-0004; privacy and bootstrap specifics are still pending.
-    No unauthenticated club/member mutations.
-    See docs/contracts/contract-review.md for unresolved security and scope requirements.
+    NOT APPROVED FOR IMPLEMENTATION. Historical discussion schemas predate accepted
+    R01 pilot requirements (2026-11-15). First and last name plus club-local date
+    of birth are mandatory for all; email and phone are both required for adults,
+    optional for minors; player gender may be club-required. Personal data must
+    never transfer between clubs, even for a shared login identity. Club/team
+    capability grants and team assignments must also be modeled. The example
+    AddMember, Membership and role schemas below DO NOT meet these requirements.
+    R01 is closed and OIDC sessions are implemented, but R03 privacy, R04 final
+    contract, R06 authorization and R07 bootstrap gates remain open. No
+    unauthenticated club/member mutations. See docs/contracts/contract-review.md.
 servers:
   - url: /api
 security:
