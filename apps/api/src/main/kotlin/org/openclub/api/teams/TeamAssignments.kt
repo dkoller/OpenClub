@@ -63,7 +63,7 @@ internal class TeamAssignments(private val database: DSLContext) {
                                   WHERE g.member_id = actor.id AND g.team_id = ?
                                     AND g.capability = 'MANAGE_TEAMS')
                    )
-               ) ON CONFLICT DO NOTHING""",
+               ) FOR UPDATE OF member ON CONFLICT DO NOTHING""",
             memberId, teamId, actorAccountId, teamId,
         ) == 1
 
