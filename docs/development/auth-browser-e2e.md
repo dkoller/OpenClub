@@ -14,17 +14,20 @@ logout it resubmits the revoked cookie to prove database revocation, rather than
 merely observing that the browser dropped its cookie. Contract:
 [auth API](../contracts/auth-api-proposal.yaml).
 
-The API runs directly on localhost:5173, matching the fixture's exact callback;
-Keycloak runs on localhost:8180. The callback landing page can be an API 404;
-no frontend content or UI is required. No auth endpoint is mocked. This verifies
-the browser/BFF/Keycloak/database boundary, not React or the deployment proxy.
-The existing web proxies strip `/api` while Ktor auth routes include `/api`;
-that integration mismatch requires a separate runtime change before web release.
+The API runs on localhost:8080, while the real Vite frontend serves
+localhost:5173 and forwards /api requests (including the callback) to the API.
+Keycloak runs on localhost:8180. No auth endpoint or browser UI is mocked.
+The browser suite verifies both the BFF/Keycloak/database boundary and the
+frontend's signed-out, signed-in-but-unlinked, four-language and logout flows
+through the actual development proxy. This is not a production nginx/TLS
+end-to-end test.
 
 For local reproduction, use a disposable PostgreSQL and Keycloak stack, provision
 the fixtures using [the fixture runbook](keycloak-e2e-fixtures.md), then start the
-API with the environment shown in `.github/workflows/auth-e2e.yml` and the same
-ephemeral client secret. In `dev/auth-e2e`, run:
+API with the environment shown in `.github/workflows/auth-e2e.yml`, port 8080
+and the same ephemeral client secret. Start Vite from `apps/web` with
+`pnpm install --frozen-lockfile && pnpm dev --host 127.0.0.1`, and verify
+`http://localhost:5173/api/health`. In `dev/auth-e2e`, run:
 
 ```sh
 pnpm install --frozen-lockfile
@@ -42,5 +45,5 @@ Exhaustive invalid-token, wrong-issuer/audience and expiry cases remain verifier
 and HTTP/DB test responsibilities. The separate [real rotation test](auth-jwks-rotation-e2e.md)
 verifies signing-key change without API restart; [admission limits](../security/auth-admission-limit.md)
 and [cleanup](../security/auth-record-cleanup.md) have their own regression tests.
-This test does not verify deployment HTTPS cookie settings, web proxy routing or
-privacy/authorization/first-admin release gates. R05 closeout still requires review.
+This test does not verify deployment HTTPS cookie settings, production nginx
+routing or privacy/authorization/first-admin release gates. R05 closeout still requires review.
