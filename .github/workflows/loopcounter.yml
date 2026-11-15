@@ -1,0 +1,17 @@
+name: Loop counter checkpoint
+
+on:
+  pull_request:
+    paths:
+      - 'loopcounter*.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  checkpoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Wait 20 seconds for a counter checkpoint
+        run: sleep 20
