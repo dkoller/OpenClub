@@ -16,7 +16,27 @@ curl --fail http://localhost:5173/api/health
 
 The basic stack starts without authentication. OIDC is opt-in; without it there are **no member administration endpoints enabled**. To configure a local test OIDC provider, follow [Keycloak development setup](../development/keycloak-local.md). The nginx/Vite proxies preserve `/api` so Ktor routes remain reachable.
 
-**First-club setup:** the database now enforces at most one club row; secure first-admin provisioning and recovery are still [R07/#16](https://github.com/dkoller/OpenClub/issues/16), **not an unauthenticated public setup endpoint**. No second club may be created in an installation. Use synthetic test fixtures until bootstrap and privacy are approved.
+**First-club setup:** an operator-only bootstrap command now creates the sole club and first ADMIN member atomically. It is **not an HTTP route**. No second club can be created. The human-reviewed recovery process remains open in [R07/#16](https://github.com/dkoller/OpenClub/issues/16). Use **synthetic data only** until privacy and production requirements are approved.
+
+## Operator-only first-club bootstrap (pre-production)
+
+1. Configure local OIDC and **sign in once** as the intended first administrator. The verified callback creates an unlinked account, not a member or admin.
+2. Using restricted database operator access, obtain the local account UUID by looking up its **verified issuer + subject** in `account_identities` (joining `accounts` if necessary). Never identify a person by email alone, and never accept a client-supplied account ID without independent operator verification.
+3. On a restricted operator shell with `DB_URL`, `DB_USER`, and `DB_PASSWORD` set, supply the following bootstrap environment variables. Do not put real credentials or personal details in the repository, shell history, or CI logs.
+
+| Variable | Meaning |
+| --- | --- |
+| `OPENCLUB_BOOTSTRAP_CONFIRM` | Literal `create-first-club` |
+| `OPENCLUB_BOOTSTRAP_ACCOUNT_ID` | UUID of that previously verified local account |
+| `OPENCLUB_BOOTSTRAP_CLUB_NAME` | Club display name |
+| `OPENCLUB_BOOTSTRAP_CLUB_SLUG` | Unique lowercase slug |
+| `OPENCLUB_BOOTSTRAP_FIRST_NAME`, `OPENCLUB_BOOTSTRAP_LAST_NAME` | First administrator's local member names |
+| `OPENCLUB_BOOTSTRAP_BIRTH_DATE` | ISO date `YYYY-MM-DD` |
+| `OPENCLUB_BOOTSTRAP_EMAIL`, `OPENCLUB_BOOTSTRAP_PHONE` | First administrator's contact fields |
+
+From `apps/api`, run `./gradlew bootstrapFirstClub` (Windows: `gradlew.bat bootstrapFirstClub`). The task uses the ordinary application dependencies and configured PostgreSQL database. It fails closed if the club or any local members already exist, the selected account lacks a verified identity binding, or required fields fail validation. A transaction-level advisory lock serializes concurrent bootstrap attempts; the database singleton constraint remains a second line of defense. The command creates no OIDC credentials, browser session, or web-exposed admin registration endpoint.
+
+**Recovery:** Never rerun bootstrap on an initialized installation and never reset a live database to recover access. Lost-admin recovery requires a separately approved operator procedure with identity re-verification, backup, a recorded authorization decision, and a reviewed transactional change; it is not implemented in this PR.
 
 ## Fresh database only — schema reset
 
@@ -45,7 +65,7 @@ Before any real-data pilot, the operator must document (1) hosting and recurring
 
 ## Next engineering gates
 
-- [#74](https://github.com/dkoller/OpenClub/issues/74): complete local member/account schema and initialization, with tests.
-- [R07/#16](https://github.com/dkoller/OpenClub/issues/16): protected one-time club and first-admin bootstrap.
+- [#74](https://github.com/dkoller/OpenClub/issues/74): architecture and schema foundation completed in merged PR #79.
+- [R07/#16](https://github.com/dkoller/OpenClub/issues/16): complete operator recovery, threat review and bootstrap acceptance tests; initial operator CLI is implemented.
 - [R04/#13](https://github.com/dkoller/OpenClub/issues/13), [R06/#15](https://github.com/dkoller/OpenClub/issues/15): approved contracts and server authorization.
 - [R15/#24](https://github.com/dkoller/OpenClub/issues/24), [R18/#27](https://github.com/dkoller/OpenClub/issues/27): local security tests and operational validation.
