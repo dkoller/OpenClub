@@ -1,4 +1,7 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.database.*
+import org.openclub.api.members.*
 
 import java.net.URI
 import java.net.URLEncoder

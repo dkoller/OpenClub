@@ -1,4 +1,7 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.database.*
+import org.openclub.api.members.*
 
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
@@ -12,12 +15,12 @@ import java.util.UUID
 internal data class IssuedSession(val handle: String, val csrfToken: String)
 
 /** Authentication proves a person, not membership or a club-specific role. */
-internal data class ActiveSession(val personId: UUID, val csrfToken: String)
+internal data class ActiveSession(val accountId: UUID, val csrfToken: String)
 
 internal enum class LogoutResult { REVOKED, UNAUTHENTICATED, FORBIDDEN }
 
 /**
- * Internal PostgreSQL-backed opaque sessions. [personId] must already be resolved
+ * Internal PostgreSQL-backed opaque sessions. [accountId] must already be resolved
  * from a VERIFIED issuer+subject identity, never directly from request data.
  *
  * Every call is blocking JDBC; run off Ktor event loops on a bounded I/O dispatcher.
@@ -27,14 +30,14 @@ internal class AuthSessions(
     private val database: DSLContext,
     private val random: SecureRandom = SecureRandom(),
 ) {
-    fun create(personId: UUID): IssuedSession {
+    fun create(accountId: UUID): IssuedSession {
         val issued = newSecrets()
         database.execute(
             """INSERT INTO auth_sessions
-               (session_hash, person_id, csrf_token, idle_expires_at, absolute_expires_at)
+               (session_hash, account_id, csrf_token, idle_expires_at, absolute_expires_at)
                VALUES (?, ?, ?, CURRENT_TIMESTAMP + INTERVAL '30 minutes',
                        CURRENT_TIMESTAMP + INTERVAL '12 hours')""",
-            digest(issued.handle), personId, issued.csrfToken,
+            digest(issued.handle), accountId, issued.csrfToken,
         )
         return issued
     }
@@ -44,11 +47,11 @@ internal class AuthSessions(
      * existing browser session. Use the transaction-scoped DSLContext for both
      * statements, not this class's outer context.
      */
-    fun replace(previousHandle: String?, personId: UUID): IssuedSession =
+    fun replace(previousHandle: String?, accountId: UUID): IssuedSession =
         database.transactionResult { configuration ->
             val sessions = AuthSessions(DSL.using(configuration), random)
             if (previousHandle != null) sessions.revoke(previousHandle)
-            sessions.create(personId)
+            sessions.create(accountId)
         }
 
     /** Refresh idle expiry only for valid, unexpired sessions. */
@@ -97,14 +100,14 @@ internal class AuthSessions(
               AND idle_expires_at > CURRENT_TIMESTAMP
               AND absolute_expires_at > CURRENT_TIMESTAMP
               $csrfCondition
-            RETURNING person_id, csrf_token"""
+            RETURNING account_id, csrf_token"""
         val row = if (csrfToken != null) {
             database.fetchOne(statement, digest(handle!!), csrfToken)
         } else {
             database.fetchOne(statement, digest(handle!!))
         } ?: return null
         return ActiveSession(
-            requireNotNull(row.get("person_id", UUID::class.java)),
+            requireNotNull(row.get("account_id", UUID::class.java)),
             requireNotNull(row.get("csrf_token", String::class.java)),
         )
     }
@@ -132,8 +135,8 @@ internal class AuthSessions(
             database.execute("DELETE FROM auth_sessions WHERE session_hash = ?", digest(handle!!)) == 1
 
     /** Invoke only from trusted account/identity lifecycle logic, not raw request IDs. */
-    fun revokeAllForPerson(personId: UUID): Int =
-        database.execute("DELETE FROM auth_sessions WHERE person_id = ?", personId)
+    fun revokeAllForAccount(accountId: UUID): Int =
+        database.execute("DELETE FROM auth_sessions WHERE account_id = ?", accountId)
 
     fun pruneExpired(): Int =
         database.execute(
