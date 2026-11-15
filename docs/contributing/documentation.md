@@ -9,7 +9,7 @@
 3. Update affected documentation and tests **in the same PR**. Record command checks honestly; do not claim they ran when they did not.
 4. In the PR description, list updated documents and the impact, or explicitly write **`Documentation: no changes needed`** with a brief reason. The template contains a required review checklist.
 5. Preserve old ADRs, original proposals and research notes as history; add a dated implementation note or a new ADR to explain changes, rather than silently presenting historical discussion as current architecture.
-6. Keep each PR strictly below **1,000 added + deleted lines**. PR #79 was a one-time owner-approved reset exception; the CI limit is restored by this follow-up. Split major changes into independently valid PRs; never omit necessary docs or tests.
+6. Keep each PR at most **5,000 added + deleted lines**. The owner raised the historical 999-line limit on 2026-11-15. Split major changes into independently valid PRs; never omit necessary docs or tests.
 
 ## Impact checklist
 
