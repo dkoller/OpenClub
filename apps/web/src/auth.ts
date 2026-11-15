@@ -6,13 +6,13 @@ export type ClubAccess =
 
 export async function loadClubAccess(request: typeof fetch = fetch): Promise<ClubAccess> {
   try {
-    const session = await request('/api/v1/auth/me', { credentials: 'same-origin' })
+    const session = await request('/api/v1/auth/me', { credentials: 'same-origin', cache: 'no-store' })
     if (session.status === 401) return { state: 'signed-out' }
     if (!session.ok) return { state: 'unavailable' }
     const details: unknown = await session.json()
     if (!isSession(details)) return { state: 'unavailable' }
 
-    const club = await request('/api/v1/club', { credentials: 'same-origin' })
+    const club = await request('/api/v1/club', { credentials: 'same-origin', cache: 'no-store' })
     if (club.status === 401) return { state: 'signed-out' }
     if (club.status === 403) return { state: 'not-member', csrfToken: details.csrfToken }
     if (club.status !== 200) return { state: 'unavailable' }

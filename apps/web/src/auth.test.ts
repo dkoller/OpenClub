@@ -6,6 +6,7 @@ describe('single-club session', () => {
     const request = vi.fn().mockResolvedValue({ status: 401 })
     expect(await loadClubAccess(request)).toEqual({ state: 'signed-out' })
     expect(request).toHaveBeenCalledTimes(1)
+    expect(request).toHaveBeenCalledWith('/api/v1/auth/me', { credentials: 'same-origin', cache: 'no-store' })
   })
 
   it('returns to sign-in if the session expires between the two authorization checks', async () => {
@@ -13,7 +14,7 @@ describe('single-club session', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411361', csrfToken: 'x'.repeat(43) }) })
       .mockResolvedValueOnce({ status: 401, ok: false })
     expect(await loadClubAccess(request)).toEqual({ state: 'signed-out' })
-    expect(request.mock.calls[1][0]).toBe('/api/v1/club')
+    expect(request).toHaveBeenNthCalledWith(2, '/api/v1/club', { credentials: 'same-origin', cache: 'no-store' })
   })
 
   it('does not authorize an unlinked account', async () => {
