@@ -8,6 +8,14 @@ describe('single-club session', () => {
     expect(request).toHaveBeenCalledTimes(1)
   })
 
+  it('returns to sign-in if the session expires between the two authorization checks', async () => {
+    const request = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: 'account', csrfToken: 'secret' }) })
+      .mockResolvedValueOnce({ status: 401, ok: false })
+    expect(await loadClubAccess(request)).toEqual({ state: 'signed-out' })
+    expect(request.mock.calls[1][0]).toBe('/api/v1/club')
+  })
+
   it('does not authorize an unlinked account', async () => {
     const request = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: 'account', csrfToken: 'secret' }) })
