@@ -52,10 +52,14 @@ class AdminRecoveryTest {
                     (id, account_id, first_name, last_name, date_of_birth, email, phone)
                     VALUES (?, ?, 'Sample', 'Member', DATE '1990-01-01',
                     'member@example.invalid', '+41000000000')""", otherMember, occupied)
-                db.execute("""INSERT INTO auth_sessions
-                    (session_hash, account_id, csrf_token, idle_expires_at, absolute_expires_at)
-                    VALUES (?, ?, ?, CURRENT_TIMESTAMP + INTERVAL '10 minutes',
-                    CURRENT_TIMESTAMP + INTERVAL '1 hour')""", sessionHash, old, "x".repeat(43))
+                // An already-authenticated replacement must not inherit admin rights
+                // merely because an operator rebinds the administrator member.
+                for ((account, hash) in listOf(old to sessionHash, replacement to "b".repeat(64))) {
+                    db.execute("""INSERT INTO auth_sessions
+                        (session_hash, account_id, csrf_token, idle_expires_at, absolute_expires_at)
+                        VALUES (?, ?, ?, CURRENT_TIMESTAMP + INTERVAL '10 minutes',
+                        CURRENT_TIMESTAMP + INTERVAL '1 hour')""", hash, account, "x".repeat(43))
+                }
                 val recovery = AdminRecovery(db)
                 fun linked(): UUID? = db.fetchOne(
                     "SELECT account_id FROM members WHERE id = ?", admin,
@@ -82,7 +86,7 @@ class AdminRecoveryTest {
                 assertThrows(IllegalStateException::class.java) { recovery.rebind(input) }
                 db.execute("DELETE FROM members WHERE id = ?", secondAdmin)
                 assertEquals(old, linked())
-                assertEquals(1, db.fetchCount(DSL.table("auth_sessions")))
+                assertEquals(2, db.fetchCount(DSL.table("auth_sessions")))
                 recovery.rebind(input)
                 assertEquals(replacement, linked())
                 assertEquals(0, db.fetchCount(DSL.table("auth_sessions")))
