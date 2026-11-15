@@ -60,7 +60,7 @@ The original R01 dependency and R02 session-architecture uncertainty in the tabl
 - **Never share, auto-fill, query or sync another club's personal data**, including for one authentication identity. Global `personId` references/DTOs in the current draft are not proof that this boundary is safe. See [#74](https://github.com/dkoller/OpenClub/issues/74).
 - First-release team assignments ([#75](https://github.com/dkoller/OpenClub/issues/75)) and configurable club/team-scoped capability grants with restricted delegation ([#76](https://github.com/dkoller/OpenClub/issues/76)). Four supported UI languages.
 
-The current [OpenAPI discussion draft](openapi-draft.yaml) still shows historical `ADMIN/MEMBER` and `AddMember` schemas. **Do not implement it as written.** Revise contract, pagination, field-level access, tenant-safe 401/403/404 behavior and first-admin bootstrap semantics under [R04/#13](https://github.com/dkoller/OpenClub/issues/13) after coordinating with R03 privacy and R06 authorization. Auth-only contract validation in CI does not imply acceptance of the club/member shapes.
+The [OpenAPI discussion draft](openapi-draft.yaml) has been reworked for single-club paths, but remains **unapproved**; proposed member/team/grant shapes and interim roles are not authorization approval. **Do not implement the unapproved paths as written.** Revise contract, pagination, field-level access, tenant-safe 401/403/404 behavior and first-admin bootstrap semantics under [R04/#13](https://github.com/dkoller/OpenClub/issues/13) after coordinating with R03 privacy and R06 authorization. Auth-only contract validation in CI does not imply acceptance of the club/member shapes.
 
 
 ## Single-club contract pivot (2026-11-15)
