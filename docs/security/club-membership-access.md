@@ -24,7 +24,7 @@ Flyway `V2__club_capability_grants.sql` introduces **installation-local**, expli
 
 ## Installation-local teams and assignments (#75)
 
-Flyway V3 adds `teams` and `member_team_assignments`, using local member/team UUIDs and a unique (team, member) pair. Team names are unique ignoring case; deleting a team/member cascades its assignments. Members may belong to multiple teams without copying their personal data. V3 also extends the fixed club-wide grants with `VIEW_TEAMS` and `MANAGE_TEAMS` **without automatically granting either capability**.
+Flyway V3 adds `teams` and `member_team_assignments`, using local member/team UUIDs and a unique (team, member) pair. Team names are unique ignoring case **and surrounding whitespace**, including for direct SQL writes (V6 normalized unique index); deleting a team/member cascades its assignments. Members may belong to multiple teams without copying their personal data. V3 also extends the fixed club-wide grants with `VIEW_TEAMS` and `MANAGE_TEAMS` **without automatically granting either capability**.
 
 `TeamAssignments` is **internal-only**, not a Ktor route. Its trusted account ID must come from a verified session. Creation, rename, deletion, assignment and unassignment each check an explicit `MANAGE_TEAMS` grant inside the same SQL statement performing the mutation; list requires `VIEW_TEAMS` or `MANAGE_TEAMS`. A valid login, ADMIN role alone, ordinary team membership and permission to edit members cannot manage teams. Duplicate assignments return false even under competing insertions, and deleting a team removes its assignments.
 
