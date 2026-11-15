@@ -23,7 +23,7 @@ bash dev/verify-synthetic-restore.sh --synthetic-only
 The script builds a **fresh temporary Compose project**, inserts fixed synthetic
 club/member/team/assignment fixtures, creates a private custom-format PostgreSQL
 backup outside the checkout, restores it into a **different fresh project** and
-verifies relationships, club/team grants, and Flyway migration history against the source. Both temporary project
+verifies relationships, club/team grants, and Flyway migration history against the source. It then starts the real API against the restored database and verifies its health endpoint, proving Flyway startup and connectivity succeed on the restored schema. Both temporary project
 volumes and the private dump are removed on exit (including failure); the script
 must **never** be run against a project containing records worth keeping.
 It does not access any existing Compose project by name. This is a disposable
@@ -33,7 +33,7 @@ The [synthetic backup/restore GitHub Actions workflow](../../.github/workflows/s
 runs the **full Docker rehearsal** for PRs changing the script, Compose
 configuration, migrations or workflow, and can also be started manually.
 A green check on that specific workflow is reproducible evidence of a synthetic
-database restore at that commit. The ordinary build job continues to syntax-check
+database restore **and recovered API startup** at that commit. The ordinary build job continues to syntax-check
 the script, which is not by itself a restore test. The workflow deliberately does
 not run on every unrelated PR to avoid unnecessary CI usage.
 
