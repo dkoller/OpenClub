@@ -5,6 +5,8 @@ test('real frontend shows session, membership denial, language and logout states
   if (!password) throw new Error('Disposable synthetic login password required');
 
   await page.goto('/');
+  // Chromium's default locale may be English; explicitly exercise German.
+  await page.locator('#language').selectOption('de');
   await expect(page.getByRole('status')).toHaveText('Bitte anmelden.');
   await page.locator('#language').selectOption('en');
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
