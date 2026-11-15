@@ -60,6 +60,13 @@ internal class MemberRoles(private val database: DSLContext) {
             if (db.execute(
                 "UPDATE members SET role = ? WHERE id = ?",
                 role.name, targetMemberId,
-            ) == 1) Change.UPDATED else Change.DENIED
+            ) != 1) return@transactionResult Change.DENIED
+            // No dormant permission-manager grant may reactivate on later promotion.
+            db.execute(
+                """DELETE FROM club_capability_grants
+                   WHERE member_id = ? AND capability = 'MANAGE_PERMISSIONS'""",
+                targetMemberId,
+            )
+            Change.UPDATED
         }
 }
