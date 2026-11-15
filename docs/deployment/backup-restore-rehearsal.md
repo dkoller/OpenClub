@@ -1,7 +1,8 @@
 # Disposable PostgreSQL backup and restore rehearsal
 
 **Pre-production only.** Use synthetic OpenClub data. This procedure demonstrates the
-commands for a local rehearsal; it is **not evidence that a restore has been run**,
+commands for a local rehearsal. A passing GitHub synthetic-restore job verifies
+an isolated development backup/restore, **not** a production restore drill,
 nor approval to operate with real member records. See [single-club operations](single-club.md).
 
 The example uses the repository's `compose.yaml` (`postgres` service, database
@@ -22,15 +23,19 @@ bash dev/verify-synthetic-restore.sh --synthetic-only
 The script builds a **fresh temporary Compose project**, inserts fixed synthetic
 club/member/team/assignment fixtures, creates a private custom-format PostgreSQL
 backup outside the checkout, restores it into a **different fresh project** and
-verifies relationships and Flyway migration history. Both temporary project
+verifies relationships, club/team grants, and Flyway migration history against the source. Both temporary project
 volumes and the private dump are removed on exit (including failure); the script
 must **never** be run against a project containing records worth keeping.
 It does not access any existing Compose project by name. This is a disposable
 development smoke check, not encrypted/off-site backup or production approval.
 
-The CI build only syntax-checks the script. Run the Docker rehearsal explicitly
-to obtain actual restore evidence; do not report a successful restore from CI
-syntax validation alone.
+The [synthetic backup/restore GitHub Actions workflow](../../.github/workflows/synthetic-restore.yml)
+runs the **full Docker rehearsal** for PRs changing the script, Compose
+configuration, migrations or workflow, and can also be started manually.
+A green check on that specific workflow is reproducible evidence of a synthetic
+database restore at that commit. The ordinary build job continues to syntax-check
+the script, which is not by itself a restore test. The workflow deliberately does
+not run on every unrelated PR to avoid unnecessary CI usage.
 
 ## 1. Capture a private backup from a disposable source
 
