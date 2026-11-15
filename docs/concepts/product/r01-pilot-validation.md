@@ -71,24 +71,30 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 | Preferred UI language(s) for pilot | _Owner requires German, English, French and Italian in first release; default and language-switch behavior pending confirmation_ | Owner decision captured |
 | Groups needing access | _Owner identified board, membership administrators, coaches, players, parents and volunteers; permission details pending_ | Partially captured |
 | Need for invitations in first usable release | _Owner preference: later; pilot unconfirmed_ | Pending |
-| Proposed acceptance flow reviewed | _Not reviewed_ | Pending |
+| Proposed acceptance flow reviewed | _Owner selected all three workflows; no independent review of synthetic acceptance script_ | Pending |
 | Stakeholder acceptance, requested changes and decision date | _Not recorded_ | Pending |
+
+## First usable release — owner-selected scope, 2026-11-15
+
+The owner expects **all three** workflows in the first usable release: **member management**, **team assignments** and **configurable permissions**. This expands the earlier membership-only proposal. This is a **product acceptance target**, not a claim that the features exist or that the real pilot has accepted the demo. Refine R04/R06 and add appropriately scoped follow-up delivery work for teams and permission grants; do not silently force these features into existing R09/R10 tickets.
+
+The first release must support German, English, French and Italian. Its initial data migration/import behavior and existing Excel column inventory remain explicitly deferred.
 
 ## Proposed acceptance scenario (synthetic only)
 
-**Persona:** An authorized club administrator managing a sample floorball club.
+**Persona:** An authorized administrator for fictional club **Example Falcons**.
 
-**Fixture:** Club **Example Falcons** and fictional members **Alex Example**, **Sam Sample**, **Taylor Demo**. No real member data or deliverable email addresses.
+**Fixtures:** Fictional members **Alex Example**, **Sam Sample** and **Taylor Demo**; fictional teams **Falcons Juniors** and **Falcons Adults**. Use no real personal data.
 
-1. Given an operator-approved club and an authorized ADMIN, sign in through the supported OIDC flow.
-2. Add Alex Example with a first and last name **without** inviting them or creating an account; contact fields can be omitted.
-3. Add Sam Sample with optional synthetic contact fields.
-4. List and search the club directory; confirm names and configured visibility are correct.
-5. Assign or change an allowed club role as ADMIN; an ordinary member must not perform administrative changes.
-6. Using a separate example club and identity, verify no cross-club member access or mutation.
-7. Demonstrate validation errors with a missing required name and a denied action with an insufficient role.
+1. Sign in as an authorized club administrator. Create Alex Example without a login account, using only first and last name; optionally capture synthetic contact details for Sam Sample.
+2. List and search members, edit a member's permitted fields and archive a former member without deleting their identity indiscriminately. Verify ordinary members cannot make unauthorized changes.
+3. Assign Alex Example to Falcons Juniors, move or assign a member to another team as permitted, and confirm a person may have multiple appropriate team relationships.
+4. As an explicitly authorized permission administrator, grant a fictional coach a **team-scoped** member-edit capability for Falcons Juniors. Show that the coach can perform the permitted operation there but cannot edit Falcons Adults members outside that scope.
+5. Demonstrate a **club-wide** grant on an authorized test account, revoke it and verify subsequent attempts are denied. Neither member/team administration nor an ordinary administrator role should automatically allow managing grants.
+6. Using a second fictional club, verify tenant isolation for member lists, team assignments and permission grants. Verify no delegated capability permits privilege escalation or removing the final authorized administrator.
+7. Demonstrate validation and denial errors without exposing private record details. Demonstrate the three workflows in **German, English, French and Italian**, including functional language switching if approved as the UI approach.
 
-**Acceptance check:** Stakeholder confirms whether this solves their real first administrative task, identifies any missing must-have behavior, and approves the priority and language for a future runnable demo. This is a *proposed script*, **not a completed demo or test result**. Runtime integration and privacy controls remain separately gated under R03/R06–R19.
+**R01 acceptance:** A real pilot stakeholder or clearly designated representative reviews this *proposed* workflow, identifies must-have adjustments, and records approval or deviations. **Release acceptance:** Separate actual implementation, security/privacy reviews, cross-club integration tests and browser verification. R01 approval alone does not authorize real member data.
 
 ## Questions to ask at the pilot review
 
@@ -96,18 +102,18 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 2. Who creates records, and do people typically join the club before receiving an account?
 3. Which of first name, last name, email and phone are essential, optional or unnecessary? Why?
 4. Which languages must the first pilot UI support?
-5. Is adding, finding and changing the club role of a member enough for the first usable release? What is the one missing must-have, if any?
+5. The owner selected member management, team assignments and configurable permissions together: does this synthetic flow represent the first usable release, and what must change?
 6. Do you handle minors? Who should be able to see their and guardians' contact data? Record concerns for R03, **not** a privacy sign-off.
 7. Does the synthetic acceptance script reflect the task, and what would make you reject it?
 
 ## Decisions and hand-off
 
-- **Validated pilot scenario:** Pending. Owner selected Excel membership and administration as the first replacement; specific workflow and acceptance remain unvalidated.
+- **Validated pilot scenario:** Pending. Owner selected Excel membership/administration first and specified member management, team assignments and configurable permissions as the first usable release; stakeholder review of the synthetic script remains pending.
 - **Preferred pilot language(s):** German, English, French and Italian required for the first release (owner, 2026-11-15). Default language and switching behavior remain proposed, not accepted.
 - **Changes to owner baseline:** Pending.
 - **Stakeholder acceptance (date, role, non-identifying reference):** Pending.
 - **R03 hand-off:** Review contact visibility, minors and data lifecycle before real records.
-- **R04 hand-off:** Freeze club/member API contract only after the pilot behavior is confirmed.
+- **R04/R06/R10 hand-off:** Reconcile the expanded team and scoped-grant requirements with the contract and authorization model; create appropriately scoped feature issues instead of treating existing membership endpoints as sufficient.
 - **R19 hand-off:** Run the full synthetic demo only after its implementation and release prerequisites.
 
 ## R01 completion checklist
