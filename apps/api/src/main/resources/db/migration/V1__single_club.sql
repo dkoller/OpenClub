@@ -30,7 +30,6 @@ CREATE INDEX account_identities_account_idx ON account_identities(account_id);
 -- One local member may exist before an account is linked by verified invitation.
 CREATE TABLE members (
     id UUID PRIMARY KEY,
-    club_id UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
     account_id UUID UNIQUE REFERENCES accounts(id) ON DELETE SET NULL,
     first_name TEXT NOT NULL CHECK (length(trim(first_name)) BETWEEN 1 AND 200),
     last_name TEXT NOT NULL CHECK (length(trim(last_name)) BETWEEN 1 AND 200),
@@ -75,7 +74,7 @@ CREATE FUNCTION validate_member_fields() RETURNS trigger AS $$
 DECLARE policy RECORD;
 BEGIN
     SELECT adult_age_years, gender_required_for_players INTO STRICT policy
-      FROM clubs WHERE id = NEW.club_id;
+      FROM clubs;
     IF NEW.date_of_birth > CURRENT_DATE THEN
         RAISE EXCEPTION 'Birth date cannot be in the future';
     END IF;

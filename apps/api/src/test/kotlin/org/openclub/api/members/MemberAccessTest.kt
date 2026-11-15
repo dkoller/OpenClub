@@ -33,13 +33,13 @@ class MemberAccessTest {
                     database.execute("INSERT INTO accounts (id) VALUES (?)", account)
                 }
                 database.execute("""INSERT INTO members
-                    (id, club_id, account_id, first_name, last_name, date_of_birth, email, phone, role)
-                    VALUES (?, ?, ?, 'Example', 'Admin', DATE '1990-01-01', 'admin@example.invalid', '+41000000000', 'ADMIN')""",
-                    UUID.randomUUID(), club, admin)
+                    (id, account_id, first_name, last_name, date_of_birth, email, phone, role)
+                    VALUES (?, ?, 'Example', 'Admin', DATE '1990-01-01', 'admin@example.invalid', '+41000000000', 'ADMIN')""",
+                    UUID.randomUUID(), admin)
                 database.execute("""INSERT INTO members
-                    (id, club_id, account_id, first_name, last_name, date_of_birth)
+                    (id, account_id, first_name, last_name, date_of_birth)
                     VALUES (?, ?, ?, 'Example', 'Member', DATE '2015-01-01')""",
-                    UUID.randomUUID(), club, regular)
+                    UUID.randomUUID(), regular)
 
                 assertEquals(MemberAccess.Role.ADMIN, access.roleFor(admin))
                 assertEquals(MemberAccess.Role.MEMBER, access.roleFor(regular))
@@ -48,7 +48,7 @@ class MemberAccessTest {
                 assertFalse(access.canManageMembers(regular))
                 assertFalse(access.canManageMembers(outsider))
             } finally {
-                database.execute("DELETE FROM members WHERE club_id = ?", club)
+                database.execute("DELETE FROM members WHERE account_id IN (?, ?)", admin, regular)
                 database.execute("DELETE FROM accounts WHERE id IN (?, ?, ?)", admin, regular, outsider)
                 database.execute("DELETE FROM clubs WHERE id = ?", club)
             }

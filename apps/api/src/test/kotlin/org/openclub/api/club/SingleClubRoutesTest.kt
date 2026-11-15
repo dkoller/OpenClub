@@ -1,6 +1,7 @@
 package org.openclub.api.club
 
 import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
@@ -60,10 +61,10 @@ class SingleClubRoutesTest {
                 runBlocking {
                     database.onDatabaseThread {
                         it.execute("""INSERT INTO members
-                            (id, club_id, account_id, first_name, last_name, date_of_birth, email, phone, role)
-                            VALUES (?, ?, ?, 'Synthetic', 'Admin', DATE '1990-01-01',
+                            (id, account_id, first_name, last_name, date_of_birth, email, phone, role)
+                            VALUES (?, ?, 'Synthetic', 'Admin', DATE '1990-01-01',
                               'sample@example.invalid', '+41000000000', 'ADMIN')""",
-                            member, club, account)
+                            member, account)
                     }
                 }
                 val allowed = client.get("/api/v1/club") {

@@ -30,9 +30,8 @@ internal fun Application.installSingleClubRoutes(
                     return@get
                 }
                 val clubId = database.onDatabaseThread { db ->
-                    db.fetchOne("""SELECT c.id FROM clubs c
-                        JOIN members m ON m.club_id = c.id
-                        WHERE m.account_id = ?""", session.accountId)
+                    db.fetchOne("""SELECT c.id FROM clubs c WHERE EXISTS (
+                        SELECT 1 FROM members m WHERE m.account_id = ?)""", session.accountId)
                         ?.get("id", UUID::class.java)
                 }
                 if (clubId == null) {

@@ -23,6 +23,7 @@ class MemberSchemaTest {
             Flyway.configure().dataSource(source).load().migrate()
             val db = DSL.using(source, SQLDialect.POSTGRES)
             val club = UUID.randomUUID()
+            val member = UUID.randomUUID()
             try {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, ?, ?)", club, "Pilot", "pilot-" + club)
                 assertThrows(org.jooq.exception.DataAccessException::class.java) {
@@ -30,22 +31,21 @@ class MemberSchemaTest {
                         UUID.randomUUID(), "Other", "other-" + UUID.randomUUID())
                 }
                 assertThrows(org.jooq.exception.DataAccessException::class.java) {
-                    db.execute("INSERT INTO members (id, club_id, first_name, last_name) VALUES (?, ?, ?, ?)",
-                        UUID.randomUUID(), club, "No", "Birthdate")
+                    db.execute("INSERT INTO members (id, first_name, last_name) VALUES (?, ?, ?)",
+                        UUID.randomUUID(), "No", "Birthdate")
                 }
                 assertThrows(org.jooq.exception.DataAccessException::class.java) {
-                    db.execute("""INSERT INTO members (id, club_id, first_name, last_name, date_of_birth)
-                        VALUES (?, ?, 'Missing', 'Contacts', DATE '1990-01-01')""",
-                        UUID.randomUUID(), club)
+                    db.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth)
+                        VALUES (?, 'Missing', 'Contacts', DATE '1990-01-01')""",
+                        UUID.randomUUID())
                 }
-                val member = UUID.randomUUID()
-                db.execute("""INSERT INTO members (id, club_id, first_name, last_name, date_of_birth)
-                    VALUES (?, ?, 'Accountless', 'Child', DATE '2018-04-10')""", member, club)
+                db.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth)
+                    VALUES (?, 'Accountless', 'Child', DATE '2018-04-10')""", member)
                 assertEquals(1L, db.fetchValue(
                     "SELECT COUNT(*) FROM members WHERE id = ? AND account_id IS NULL", member
                 ))
             } finally {
-                db.execute("DELETE FROM members WHERE club_id = ?", club)
+                db.execute("DELETE FROM members WHERE id = ?", member)
                 db.execute("DELETE FROM clubs WHERE id = ?", club)
             }
         }
