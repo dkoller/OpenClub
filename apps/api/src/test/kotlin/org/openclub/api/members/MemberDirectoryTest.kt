@@ -46,6 +46,10 @@ class MemberDirectoryTest {
                 }
                 val directory = MemberDirectory(db)
                 assertEquals(emptyList<MemberDirectory.Summary>(), directory.search(outsider).members)
+                // Even linked accounts have no directory visibility without a grant.
+                assertTrue(directory.search(linked).members.isEmpty())
+                db.execute("""INSERT INTO club_capability_grants (member_id, capability)
+                    VALUES (?, 'VIEW_MEMBER_DIRECTORY')""", fixtures.first().first)
                 val first = directory.search(linked, limit = 2)
                 assertEquals(listOf("Amy", "Ben"), first.members.map { it.firstName })
                 assertNotNull(first.next)
@@ -60,6 +64,12 @@ class MemberDirectoryTest {
                 }
                 assertThrows(IllegalArgumentException::class.java) { directory.search(linked, limit = 51) }
                 assertThrows(IllegalArgumentException::class.java) { directory.search(linked, limit = 0) }
+                db.execute("""DELETE FROM club_capability_grants
+                    WHERE member_id = ? AND capability = 'VIEW_MEMBER_DIRECTORY'""",
+                    fixtures.first().first)
+                assertTrue(directory.search(linked).members.isEmpty())
+                db.execute("""INSERT INTO club_capability_grants (member_id, capability)
+                    VALUES (?, 'VIEW_MEMBER_DIRECTORY')""", fixtures.first().first)
                 // Unlinking the actor revokes access on the very next query.
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", fixtures.first().first)
                 assertTrue(directory.search(linked).members.isEmpty())

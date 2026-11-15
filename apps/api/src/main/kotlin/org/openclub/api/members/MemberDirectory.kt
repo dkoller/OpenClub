@@ -7,8 +7,8 @@ import java.util.UUID
  * Internal-only member directory query. Not exposed over HTTP until privacy
  * and capability rules (#12/#76) approve directory visibility.
  *
- * The installation-local actor is checked in the same SQL statement as the
- * read, so unlinked accounts cannot bypass the lookup.
+ * The installation-local actor's explicit directory-read grant is checked
+ * in the same SQL statement as the read; linking an account alone is insufficient.
  */
 internal class MemberDirectory(private val database: DSLContext) {
     data class Summary(val id: UUID, val firstName: String, val lastName: String)
@@ -30,6 +30,8 @@ internal class MemberDirectory(private val database: DSLContext) {
             """SELECT target.id, target.first_name, target.last_name
                FROM members target
                JOIN members actor ON actor.account_id = ?
+               JOIN club_capability_grants g ON g.member_id = actor.id
+                   AND g.capability = 'VIEW_MEMBER_DIRECTORY'
                JOIN clubs club ON TRUE
                WHERE (? = '' OR POSITION(LOWER(?) IN LOWER(target.first_name || ' ' || target.last_name)) > 0
                    OR POSITION(LOWER(?) IN LOWER(target.last_name || ' ' || target.first_name)) > 0)
