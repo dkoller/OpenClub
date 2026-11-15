@@ -19,7 +19,15 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 - **Documentation is part of the change:** update affected README, setup/runbook, API contract, ADR, roadmap and examples **in the same PR** whenever behavior, configuration, dependencies or decisions change. Do not postpone known mismatches to a later cleanup PR.
 - If a change has no documentation impact, explicitly state **"Documentation: no changes needed"** and why in the PR. Update historical documents only with clear status/context annotations; never rewrite history silently.
 - Keep production changes and sensitive configuration behind explicit human approval.
-- Required CI checks must pass; human approval is required to merge. Do not self-merge.
+- Required CI checks must pass before merging. The repository owner explicitly authorized automatic merges for the controlled development loop on 2026-11-15; this authorization does not extend to production deployment, secrets, spending, or security/privacy exceptions. Outside that loop, require human merge approval.
+
+## Controlled development loop (owner direction, 2026-11-15)
+
+- Continue through consecutive useful increments within one execution rather than stopping after a fixed number of PRs. Do not stop at or wait for a checkpoint.
+- Prefer meaningful coherent increments; **5,000** changed lines is the upper bound, not an instruction to force tiny PRs or pad large ones.
+- For each increment, review issues, code and docs; implement a complete scoped change; perform Ponytail review; run applicable CI; fix failures; and merge only when all required checks pass and the change satisfies the safety gates above.
+- Only create or advance `loopcounterN.txt` **when execution actually must end**, recording the next resume point, never as a reason to end. Counter must never exceed 100. The dedicated counter CI check waits 20 seconds.
+- If truly blocked, document the precise blocker and any incomplete checks. Never claim asynchronous work will continue once the execution ends.
 
 ## Working method
 
