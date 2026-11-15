@@ -2,7 +2,7 @@
 
 **Status:** Review findings, **not API acceptance**. See [draft contract](openapi-draft.yaml), [R04 #13](https://github.com/dkoller/OpenClub/issues/13) and [finding #37](https://github.com/dkoller/OpenClub/issues/37).
 
-This document reviews the merged proposal without inventing decisions that depend on an unconfirmed pilot or unapproved authentication provider.
+This review was written before pilot acceptance and R05 completion. The historical findings below are preserved; **R01/#10 is now closed** and OIDC/Ktor BFF architecture is selected/implemented. The draft contract remains **unapproved**, especially for member data ownership, field requirements and scoped permissions.
 
 ## What the current draft gets right
 
@@ -47,3 +47,15 @@ This review introduces no runtime endpoint or new dependency. The draft remains 
 ## Decisions received on 2026-11-14
 
 [ADR-0003](../decisions/0003-oidc-session-proposal.md) selects self-hosted Keycloak as OIDC reference and Ktor BFF sessions. [ADR-0004](../decisions/0004-member-policy.md) confirms manual accountless member creation first; required given/family name; optional contact fields; authenticated same-club directory reads for ADMIN/MEMBER, and ADMIN-only writes. The OpenAPI **draft** reflects these choices but remains unapproved pending session/CSRF design, first-admin issuance, pilot validation and privacy review (especially youth contact visibility). The current database schema must be migrated before implementing these new fields.
+
+
+## R01 reconciliation (2026-11-15; R04 remains open)
+
+The original R01 dependency and R02 session-architecture uncertainty in the table above are historical. Requirements accepted by the pilot administrator in merged PRs #72–#73 require:
+
+- First/last name and **club-local date of birth mandatory for every member**; both email and phone mandatory for adults and optional for minors; age-of-adulthood threshold still to decide.
+- Gender optional except when a club explicitly requires it for players; do not assume binary-only representation.
+- **Never share, auto-fill, query or sync another club's personal data**, including for one authentication identity. Global `personId` references/DTOs in the current draft are not proof that this boundary is safe. See [#74](https://github.com/dkoller/OpenClub/issues/74).
+- First-release team assignments ([#75](https://github.com/dkoller/OpenClub/issues/75)) and configurable club/team-scoped capability grants with restricted delegation ([#76](https://github.com/dkoller/OpenClub/issues/76)). Four supported UI languages.
+
+The current [OpenAPI discussion draft](openapi-draft.yaml) still shows historical `ADMIN/MEMBER` and `AddMember` schemas. **Do not implement it as written.** Revise contract, pagination, field-level access, tenant-safe 401/403/404 behavior and first-admin bootstrap semantics under [R04/#13](https://github.com/dkoller/OpenClub/issues/13) after coordinating with R03 privacy and R06 authorization. Auth-only contract validation in CI does not imply acceptance of the club/member shapes.
