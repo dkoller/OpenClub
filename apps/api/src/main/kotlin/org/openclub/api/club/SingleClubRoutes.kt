@@ -30,7 +30,7 @@ internal fun Application.installSingleClubRoutes(
                     return@get
                 }
                 val clubId = database.onDatabaseThread { db ->
-                    MemberAccess(db).authorizedClubId(session.accountId, MemberAccess.Permission.VIEW_CLUB)
+                    MemberAccess(db).authorizedClubId(session.accountId)
                 }
                 if (clubId == null) {
                     call.respondText("""{"code":"forbidden","message":"Club membership required"}""",
