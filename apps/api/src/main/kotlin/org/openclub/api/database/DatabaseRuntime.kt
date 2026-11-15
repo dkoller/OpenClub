@@ -1,4 +1,4 @@
-package org.openclub.api
+package org.openclub.api.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
