@@ -31,3 +31,7 @@ coverage/
 dev/auth-e2e/node_modules/
 dev/auth-e2e/test-results/
 dev/auth-e2e/playwright-report/
+# Local PostgreSQL backups (may contain private members and authentication records)
+*.dump
+*.pgdump
+*.backup
