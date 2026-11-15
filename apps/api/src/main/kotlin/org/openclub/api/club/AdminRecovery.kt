@@ -41,8 +41,9 @@ internal class AdminRecovery(private val database: DSLContext) {
                 ?.get("total", Int::class.java) == 1) {
                 "Recovery is limited to installations with exactly one administrator"
             }
+            // Keep at least one verified identity binding stable until recovery commits.
             check(db.fetchOne(
-                "SELECT 1 FROM account_identities WHERE account_id = ? LIMIT 1",
+                "SELECT 1 FROM account_identities WHERE account_id = ? LIMIT 1 FOR SHARE",
                 input.replacementAccountId,
             ) != null) { "Replacement account must have a verified OIDC identity" }
             // Serialize concurrent session INSERTs through their FK's account-row
