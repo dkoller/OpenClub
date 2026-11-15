@@ -38,7 +38,7 @@ class MemberAccessTest {
                     UUID.randomUUID(), admin)
                 database.execute("""INSERT INTO members
                     (id, account_id, first_name, last_name, date_of_birth)
-                    VALUES (?, ?, ?, 'Example', 'Member', DATE '2015-01-01')""",
+                    VALUES (?, ?, 'Example', 'Member', DATE '2015-01-01')""",
                     UUID.randomUUID(), regular)
 
                 assertEquals(MemberAccess.Role.ADMIN, access.roleFor(admin))
