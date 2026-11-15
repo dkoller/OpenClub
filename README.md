@@ -2,7 +2,7 @@
 
 An open-source project exploring a free-to-use platform for clubs, starting with sports clubs and a floorball-club use case.
 
-**Status:** Single-club pre-production reset merged in [PR #79](https://github.com/dkoller/OpenClub/pull/79); PR-size enforcement restored in [PR #80](https://github.com/dkoller/OpenClub/pull/80). Verified OIDC login, uncached guarded single-club lookup, four-language login landing, and fresh local schema exist. The language selector honors a previously saved preference or the browser language (DE/EN/FR/IT), falls back to German, and stores the next selection locally; it does not send a language preference to the backend. An already-expired session is treated as signed out during browser logout; other logout failures remain visible. Operator-only first-admin bootstrap and recovery are implemented. Member/team/grant database foundations and internal-only accountless-member archival and reactivation are in place, but member/team/permission HTTP workflows and the full UI are **not implemented**. Privacy/legal approval and production readiness remain outstanding.
+**Status:** Single-club pre-production reset merged in [PR #79](https://github.com/dkoller/OpenClub/pull/79); PR-size enforcement restored in [PR #80](https://github.com/dkoller/OpenClub/pull/80). Verified OIDC login, uncached guarded single-club lookup, four-language login landing, and fresh local schema exist. The language selector honors a previously saved preference or the browser language (DE/EN/FR/IT), falls back to German, and stores the next selection locally; it does not send a language preference to the backend. An already-expired session is treated as signed out during browser logout; other logout failures remain visible. Operator-only first-admin bootstrap and recovery are implemented. Member/team/grant database foundations, internal-only permission-filtered team rosters, and accountless-member archival/reactivation are in place, but member/team/permission HTTP workflows and the full UI are **not implemented**. Privacy/legal approval and production readiness remain outstanding.
 
 ## Goal
 
@@ -21,6 +21,7 @@ Each independent installation owns its club's member data: no shared database, c
 - [Authentication architecture](docs/decisions/0003-oidc-session-proposal.md)
 - [Optional local Keycloak setup](docs/development/keycloak-local.md)
 - [Membership and privacy-related product decisions](docs/decisions/0004-member-policy.md)
+- [Internal team roster privacy and authorization boundary](docs/security/team-roster-visibility.md)
 - [Numbered roadmap, GitHub issues and completed milestones](docs/roadmap.md)
 - [Single-club deployment and safe fresh-database setup](docs/deployment/single-club.md)
 - [Original milestone concept](docs/concepts/ai/first-milestone.md)
