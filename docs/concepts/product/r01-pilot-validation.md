@@ -13,9 +13,9 @@ Record feedback without publishing names, contact details, real member records o
 
 - Deployment-configurable club creation, with operator approval by default.
 - Admin enters members **before** they have login accounts; invitations and verified account linking later.
-- Initial ADR-0004 baseline: required **first name** and **last name**; optional **email** and **phone**. **Updated owner requirement (2026-11-15): date of birth and gender are independently configurable as required for players at the club level; otherwise optional.** Address and guardian fields are not approved.
+- Initial ADR-0004 baseline (superseded in part): required **first name** and **last name**, optional **email** and **phone**. **Updated owner requirements (2026-11-15): email and phone are both mandatory for adults, optional for minors; date of birth and gender are independently club-configurable requirements for players, optional otherwise.** Adult/minor determination when date of birth is absent and the relevant age threshold are unresolved; do not infer either category from a missing birth date. Address and guardian fields are not approved.
 - ADMIN manages membership and roles. Same-club authenticated directory access is proposed but requires privacy review, particularly for minors.
-- Multi-club membership and cross-club isolation are mandatory.
+- Multi-club membership and **strict personal-data isolation** are mandatory: a shared authentication/identity reference must not share, auto-populate or synchronize personal fields between clubs.
 
 These are summarized from ADR-0004. Do not turn provisional pilot assumptions into implementation requirements without recording stakeholder answers.
 
@@ -60,6 +60,8 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 
 **Club-level conditional field policy (owner decision, 2026-11-15):** Both `dateOfBirthRequiredForPlayers` and `genderRequiredForPlayers` are independent club policies. Each field is optional for non-players and for players of a club that does not require it. A sports club such as the pilot floorball club intends to enable both; a non-sports club such as an orchestra may leave them disabled. Do not infer a policy solely from club category. Validate required values before granting/activating player status and when changing policies, with safe handling of existing records to be designed. A member's personal fields must not be made globally mandatory just because one club requires them; apply rules in the context of the relevant club membership/player registration. Definition of "player" is an implementation decision for teams/domain contracts. Do not silently require gender for all members or assume binary gender values. R03 must review purpose, legal/privacy considerations, visibility, retention and special care for minors; do not expose either field to all directory users by default.
 
+**Club-isolated personal data and adult contact rule (owner decision, 2026-11-15):** Club membership records maintain their own personal fields. Even if an identity is associated with several clubs, one club must never read, copy, automatically synchronize or infer another club's first/last name, email, phone, date of birth, gender or other personal data. Only club-scoped access is authorized; shared login identifiers are not a shared directory. **Both email and phone are required for adults**, while optional for minors, regardless of player status. The age threshold, who establishes or verifies adult/minor status when birth date is optional, and handling of incomplete legacy data need explicit design before implementation. Do not solve the paradox by making birth date globally mandatory or by guessing adulthood from absent data. Adult contacts and minors' data require R03 privacy review.
+
 ## Stakeholder validation record
 
 | Question | Response / evidence | Status |
@@ -70,7 +72,7 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 | Current workflow (spreadsheet, chat, other) and top administrative pain point | _Owner reports fragmented Excel, WordPress, XPS, helfereinsatz.ch and other systems; independent pilot verification pending_ | Partially captured |
 | When and by whom member records are first entered | _Not confirmed_ | Pending |
 | Can members exist without accounts? | _Owner preference: yes; pilot unconfirmed_ | Pending |
-| Minimum fields and why each is necessary | _Owner confirms first/last name required, email/phone optional. Date of birth and gender each required for players only when the club enables the respective policy; otherwise optional. Full use and visibility require R03 review._ | Owner-confirmed |
+| Minimum fields and why each is necessary | _Owner confirms first/last name required; **both email and phone required for adults**, optional for minors; date of birth and gender separately club-configurable for players and optional otherwise. Adult/minor determination without birth date and visibility require follow-up._ | Owner-confirmed |
 | Preferred UI language(s) for pilot | _Owner requires German, English, French and Italian in first release; default and language-switch behavior pending confirmation_ | Owner decision captured |
 | Groups needing access | _Owner identified board, membership administrators, coaches, players, parents and volunteers; permission details pending_ | Partially captured |
 | Need for invitations in first usable release | _Owner preference: later; pilot unconfirmed_ | Pending |
@@ -89,12 +91,12 @@ The first release must support German, English, French and Italian. Its initial 
 
 **Fixtures:** Fictional members **Alex Example**, **Sam Sample** and **Taylor Demo**; fictional teams **Falcons Juniors** and **Falcons Adults**. Use no real personal data.
 
-1. Sign in as an authorized club administrator. Create Alex Example without a login account, using only first and last name; optionally capture synthetic contact details for Sam Sample. For a club that requires birth date and gender for players, verify Alex can be recorded as a non-player without either value.
+1. Sign in as an authorized club administrator. Create a fictional **minor non-player** without a login, using first and last name but no contact fields. For an **adult** sample record, verify both email and phone are required, while a minor may omit both. For a club requiring birth date and gender for players, verify a non-player can omit both; adult status in these fixtures is explicitly specified without assuming an implementation mechanism.
 2. List and search members, edit a member's permitted fields and archive a former member without deleting their identity indiscriminately. Verify ordinary members cannot make unauthorized changes.
-3. Before registering Alex Example as a player for Falcons Juniors, verify missing required birth date and gender are rejected when both club policies are enabled. Supply synthetic permitted values, assign Alex to Falcons Juniors, move or assign a member to another team as permitted, and confirm a person may have multiple appropriate team relationships. Verify the same optional values are not required by another club when its policies are off.
+3. Before registering a fictional member as a player for Falcons Juniors, verify missing required birth date and gender are rejected when both club policies are enabled. Supply synthetic permitted values, assign the member, and confirm multiple legitimate team relationships. In a separate club with both policies off, verify birth date and gender remain optional without reusing the first club's personal values.
 4. As an explicitly authorized permission administrator, grant a fictional coach a **team-scoped** member-edit capability for Falcons Juniors. Show that the coach can perform the permitted operation there but cannot edit Falcons Adults members outside that scope.
 5. Demonstrate a **club-wide** grant on an authorized test account, revoke it and verify subsequent attempts are denied. Neither member/team administration nor an ordinary administrator role should automatically allow managing grants.
-6. Using a second fictional club, verify tenant isolation for member lists, team assignments and permission grants. Verify no delegated capability permits privilege escalation or removing the final authorized administrator.
+6. Using a second fictional club, verify tenant isolation for member lists, personal fields, team assignments and permission grants. Even when the same login identity is associated with both clubs, verify that contact and other personal records are independently entered/managed and never exposed, copied or synchronized between them. Verify no delegated capability permits privilege escalation or removing the final authorized administrator.
 7. Demonstrate validation and denial errors without exposing private record details. Demonstrate the three workflows in **German, English, French and Italian**, including functional language switching if approved as the UI approach.
 
 **R01 requirements acceptance (recorded 2026-11-15):** The owner stated direct involvement in the pilot club administration and explicitly approved this three-workflow synthetic scenario as the initial requirements acceptance target. This is administrator requirements approval, **not** a claim that the workflow has been implemented or demonstrated. **Release acceptance:** Separate actual implementation, security/privacy reviews, cross-club integration tests and browser verification. R01 approval alone does not authorize real member data.
@@ -103,7 +105,7 @@ The first release must support German, English, French and Italian. Its initial 
 
 1. Given that disconnected applications are the overarching problem, which single application/workflow should OpenClub replace **first**, and why? Walk through an example without sharing personal data.
 2. Who creates records, and do people typically join the club before receiving an account?
-3. Define when someone has *player* status and how the club-configurable birth-date and gender requirements apply at registration, policy changes, and across multiple club memberships. Who may access full values? First/last names remain required; email/phone optional.
+3. Define when someone has *player* status and how club-configurable birth-date and gender requirements apply. Decide how adulthood is established when date of birth is optional, including the age threshold and incomplete legacy records; both email and phone are required for adults and optional for minors. Personal data from one club must never flow to another, even for the same login identity.
 4. Which languages must the first pilot UI support?
 5. The owner selected member management, team assignments and configurable permissions together: does this synthetic flow represent the first usable release, and what must change?
 6. Do you handle minors? Who should be able to see their and guardians' contact data? Record concerns for R03, **not** a privacy sign-off.
@@ -113,10 +115,10 @@ The first release must support German, English, French and Italian. Its initial 
 
 - **Validated pilot scenario:** Pilot club administrator explicitly approved the three-workflow synthetic requirements scenario on 2026-11-15. Runtime demonstration and release validation remain pending under R19.
 - **Preferred pilot language(s):** German, English, French and Italian required for the first release (owner, 2026-11-15). Default language and switching behavior remain proposed, not accepted.
-- **Changes to owner baseline:** Expanded first usable release to include team assignments and configurable club/team-scoped permissions; **club-configurable date of birth and gender requirements for players (independent settings); optional otherwise**. Detailed Excel inventory, import and migration requirements explicitly deferred.
+- **Changes to owner baseline:** Expanded first usable release to team assignments and configurable permissions; **both email and phone required for adults, optional for minors**, **club-configurable date of birth and gender requirements for players (independent settings), optional otherwise**, and **no personal-data sharing between clubs**. Detailed Excel inventory, import and migration requirements explicitly deferred.
 - **Stakeholder acceptance (date, role, non-identifying reference):** 2026-11-15, participating pilot club administrator (owner-reported role), accepted the initial synthetic requirements target. No private identifying details recorded; independent implementation acceptance remains outstanding.
-- **R03 hand-off:** Review contact visibility, **date of birth and gender** purpose, minimization/access/retention (especially for minors), and data lifecycle before real records.
-- **R04/R06/R10 hand-off:** Reconcile the expanded team and scoped-grant requirements with the contract and authorization model; create appropriately scoped feature issues instead of treating existing membership endpoints as sufficient.
+- **R03 hand-off:** Review adult contact-field collection, minors' privacy, date-of-birth/gender purpose, minimization, access, retention and lifecycle before real records.
+- **R04/R06/R10 hand-off:** Enforce club-local personal-data ownership even with a shared login reference; model adult/minor status and conditional contact rules without presuming birth dates are present. Reconcile team and scoped-grant requirements with contracts and authorization; create appropriately scoped implementation issues.
 - **R19 hand-off:** Run the full synthetic demo only after its implementation and release prerequisites.
 
 ## R01 completion checklist
@@ -124,7 +126,7 @@ The first release must support German, English, French and Italian. Its initial 
 - [x] Real pilot stakeholder or explicitly identified representative participated (owner-reported club administration involvement, 2026-11-15; no identifying details published).
 - [x] Primary administrative pain point documented as fragmentation across Excel, WordPress, XPS, helfereinsatz.ch and others; detailed Excel workflow/inventory intentionally deferred.
 - [x] Administrator accepted accountless entry in the synthetic scenario; invitations remain later by prior owner decision.
-- [x] Pilot administrator confirmed first/last name required, email/phone optional and club-configurable date-of-birth and gender requirements for players, optional otherwise; four release languages accepted. Privacy controls and player-status enforcement remain R03/implementation work; Excel inventory deferred.
+- [x] Pilot administrator confirmed first/last name required; email **and** phone required for adults and optional for minors; club-configurable birth-date and gender requirements for players; strict club-local personal-data isolation; four release languages. Adult/minor verification, privacy controls and policy enforcement remain follow-up design; Excel inventory deferred.
 - [x] Pilot administrator explicitly approved the three-workflow synthetic requirements scenario on 2026-11-15.
 - [x] Privacy concerns linked to R03 and new team/scoped-permission contract and authorization work flagged for R04/R06/R10; detailed follow-up implementation issues still to be scoped.
 - [x] Pilot worksheet PR #72 merged (user-confirmed 2026-11-15).
