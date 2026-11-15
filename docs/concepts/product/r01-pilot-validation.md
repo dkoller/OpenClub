@@ -19,6 +19,22 @@ Record feedback without publishing names, contact details, real member records o
 
 These are summarized from ADR-0004. Do not turn provisional pilot assumptions into implementation requirements without recording stakeholder answers.
 
+## Emerging product direction — owner feedback, 2026-11-15
+
+The owner reports that the real floorball club uses multiple disconnected applications, including **Excel**, **WordPress**, **XPS**, **helfereinsatz.ch**, and additional tools not yet inventoried. Fragmentation across member administration, teams/coaching, roles and communication is the reported overarching pain point. The owner prefers **replacement rather than permanent integration**: OpenClub should be the shared authoritative source for club people, membership and organizational relationships, with cohesive modules for the other workflows.
+
+This is **owner-reported discovery**, not an independently confirmed stakeholder interview. Do not claim the current application's detailed usage or duplicate-data flows are verified. A replacement roadmap is a long-term product direction, **not** an expansion of the R01 acceptance gate or the first membership MVP. Investigate data migration/export and switching costs before retiring an existing system; avoid assuming third-party exports are available.
+
+| Existing application | Candidate replacement scope (to validate) |
+| --- | --- |
+| Excel | Member and club administration, lists and imports |
+| WordPress | Public club website and content |
+| XPS | Team/coaching/training workflows |
+| helfereinsatz.ch | Volunteer scheduling and shifts |
+| Other applications | Inventory pending |
+
+**Next validation:** Determine which application/workflow to replace first, what data needs migration, which roles participate, and which languages are required. Agree on one narrow synthetic acceptance journey that proves a useful first replacement without shipping every module at once.
+
 ## Stakeholder validation record
 
 | Question | Response / evidence | Status |
@@ -26,7 +42,7 @@ These are summarized from ADR-0004. Do not turn provisional pilot assumptions in
 | Pilot organization or representative identified (use non-identifying reference only) | _Not recorded_ | Pending |
 | Stakeholder role and relevant experience | _Not recorded_ | Pending |
 | Interview/review date and format | _Not held_ | Pending |
-| Current workflow (spreadsheet, chat, other) and top administrative pain point | _Not confirmed_ | Pending |
+| Current workflow (spreadsheet, chat, other) and top administrative pain point | _Owner reports fragmented Excel, WordPress, XPS, helfereinsatz.ch and other systems; independent pilot verification pending_ | Partially captured |
 | When and by whom member records are first entered | _Not confirmed_ | Pending |
 | Can members exist without accounts? | _Owner preference: yes; pilot unconfirmed_ | Pending |
 | Minimum fields and why each is necessary | _Owner baseline: names required, email/phone optional; pilot unconfirmed_ | Pending |
@@ -53,7 +69,7 @@ These are summarized from ADR-0004. Do not turn provisional pilot assumptions in
 
 ## Questions to ask at the pilot review
 
-1. What is the single most time-consuming or error-prone member administration task today? Walk through one example without sharing real personal data.
+1. Given that disconnected applications are the overarching problem, which single application/workflow should OpenClub replace **first**, and why? Walk through an example without sharing personal data.
 2. Who creates records, and do people typically join the club before receiving an account?
 3. Which of first name, last name, email and phone are essential, optional or unnecessary? Why?
 4. Which languages must the first pilot UI support?
