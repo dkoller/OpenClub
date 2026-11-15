@@ -31,6 +31,9 @@ class MemberDirectoryTest {
                 Triple(UUID.randomUUID(), "Cora", "Sample"),
                 Triple(UUID.randomUUID(), "Dana", "Sample"),
             )
+            val duplicateA = UUID.randomUUID()
+            val duplicateB = UUID.randomUUID()
+            val special = UUID.randomUUID()
             try {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
                     club, "directory-" + club)
@@ -64,6 +67,30 @@ class MemberDirectoryTest {
                 }
                 assertThrows(IllegalArgumentException::class.java) { directory.search(linked, limit = 51) }
                 assertThrows(IllegalArgumentException::class.java) { directory.search(linked, limit = 0) }
+                // Equal names must not lose or repeat a row across UUID-keyed pages.
+                db.execute("""INSERT INTO members
+                    (id, first_name, last_name, date_of_birth, email, phone)
+                    VALUES (?, 'Zoe', 'Twin', DATE '1990-01-01', 'twin-a@example.invalid', '+41000000000'),
+                           (?, 'Zoe', 'Twin', DATE '1990-01-01', 'twin-b@example.invalid', '+41000000000'),
+                           (?, 'Percent_%', 'Literal', DATE '1990-01-01',
+                            'literal@example.invalid', '+41000000000')""",
+                    duplicateA, duplicateB, special)
+                val expected = directory.search(linked, limit = 50).members.map { it.id }
+                val seen = mutableListOf<UUID>()
+                var cursor: MemberDirectory.After? = null
+                for (index in expected.indices) {
+                    val page = directory.search(linked, limit = 1, after = cursor)
+                    assertEquals(1, page.members.size)
+                    seen.add(page.members.single().id)
+                    cursor = page.next
+                }
+                assertNull(cursor)
+                assertEquals(expected, seen)
+                assertEquals(setOf(duplicateA, duplicateB), seen.toSet().intersect(setOf(duplicateA, duplicateB)))
+                // '%' and '_' are literal substrings, never SQL LIKE wildcards.
+                assertEquals(listOf(special), directory.search(linked, "%").members.map { it.id })
+                assertEquals(listOf(special), directory.search(linked, "_").members.map { it.id })
+                assertEquals(listOf(special), directory.search(linked, "percent_%").members.map { it.id })
                 db.execute("""DELETE FROM club_capability_grants
                     WHERE member_id = ? AND capability = 'VIEW_MEMBER_DIRECTORY'""",
                     fixtures.first().first)
@@ -74,6 +101,7 @@ class MemberDirectoryTest {
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", fixtures.first().first)
                 assertTrue(directory.search(linked).members.isEmpty())
             } finally {
+                db.execute("DELETE FROM members WHERE id IN (?, ?, ?)", duplicateA, duplicateB, special)
                 fixtures.forEach { (id, _, _) -> db.execute("DELETE FROM members WHERE id = ?", id) }
                 db.execute("DELETE FROM accounts WHERE id IN (?, ?)", linked, outsider)
                 db.execute("DELETE FROM clubs WHERE id = ?", club)
