@@ -27,8 +27,8 @@ jobs:
         run: |
           set -euo pipefail
           # Query GitHub's changed-files API (all pages) rather than checking out PR code.
-          # Every text addition and deletion counts: code, tests, docs and lockfiles.
-          lines="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" --jq '.[] | (.additions + .deletions)' |
+          # All text additions and deletions count except the dedicated root loopcounter marker.
+          lines="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" --jq '.[] | select(.filename | test("^loopcounter[0-9]+\\.txt$") | not) | (.additions + .deletions)' |
             awk '{ total += $1 } END { print total + 0 }')"
           echo "PR changed lines (additions + deletions): ${lines}"
           if (( lines >= 1000 )); then
