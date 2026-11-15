@@ -64,7 +64,7 @@ class ArchivedMemberConcurrencyTest {
                             db.transaction { configuration ->
                                 val tx = DSL.using(configuration)
                                 contenderPid.set(requireNotNull(
-                                    tx.fetchValue("SELECT pg_backend_pid()", Int::class.java)))
+                                    tx.fetchOne("SELECT pg_backend_pid()")?.get(0, Int::class.java)))
                                 contenderReady.countDown()
                                 tx.execute(
                                     """INSERT INTO club_capability_grants (member_id, capability)
