@@ -2,7 +2,7 @@
 
 **Last reviewed:** 2026-11-15 · **Status:** Single-club schema, operator bootstrap/recovery, verified sessions and internal member/team/capability foundations implemented; member/team/grant HTTP workflows, privacy sign-off and production release remain open · **Source of truth for work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
 
-This roadmap inventories the work identified in the [original first-milestone plan](concepts/ai/first-milestone.md), [MVP proposal](concepts/product/mvp.md), accepted [stack ADR](decisions/0001-stack-selection.md), and [identity ADR](decisions/0002-identity-and-membership-model.md). The numbered **R01–R22** items are priority/dependency order, **not dates or commitments**. Each implementation PR stays below **1,000 added + deleted lines** and requires CI and human review.
+This roadmap inventories the work identified in the [original first-milestone plan](concepts/ai/first-milestone.md), [MVP proposal](concepts/product/mvp.md), accepted [stack ADR](decisions/0001-stack-selection.md), and [identity ADR](decisions/0002-identity-and-membership-model.md). The numbered **R01–R22** items are priority/dependency order, **not dates or commitments**. Each implementation PR uses at most **5,000 added + deleted lines** and requires CI and human review.
 
 **Current architectural direction (2026-11-15):** **one club per OpenClub installation and independent database**; the historical multi-tenant roadmap entries below are superseded as described in the final section and accepted [ADR-0005](decisions/0005-single-club-installation.md). No club switcher or global person domain is part of the intended first release. PR #79 replaced the pre-production schema with a fresh singleton V1 and preserved R05 authentication; there is no backward-compatible migration for old development volumes.
 
@@ -42,7 +42,7 @@ Dependency references indicate when implementation **must not outpace prerequisi
 
 **Important limitation:** Opt-in OIDC authentication is implemented and tested with synthetic identities; the schema and login are not club authorization. The initial linked-account club-read guard is implemented; fuller authorization (R06), approved first-admin recovery drill (R07), privacy acceptance (R03), and production deployment proof remain required before real member data.
 
-**Current review budget:** maximum 999 added + deleted lines (target 500–700); this supersedes the historical C05 limit. All tracked issues use this limit.
+**Current review budget (owner decision, 2026-11-15):** maximum 5,000 added + deleted lines. Prefer smaller complete, independently reviewable PRs when practical; this supersedes the historical 999-line policy and C05 limit.
 
 ## Roadmap items: completed and outstanding work
 
