@@ -13,7 +13,7 @@ Record feedback without publishing names, contact details, real member records o
 
 - Deployment-configurable club creation, with operator approval by default.
 - Admin enters members **before** they have login accounts; invitations and verified account linking later.
-- Initial ADR-0004 baseline: required **first name** and **last name**; optional **email** and **phone**. **Updated owner requirement (2026-11-15): date of birth must also be supported.** Whether date of birth is mandatory or optional remains undecided. Address and guardian fields are not approved.
+- Initial ADR-0004 baseline: required **first name** and **last name**; optional **email** and **phone**. **Updated owner requirement (2026-11-15): date of birth is required for players and optional for other people.** Address and guardian fields are not approved.
 - ADMIN manages membership and roles. Same-club authenticated directory access is proposed but requires privacy review, particularly for minors.
 - Multi-club membership and cross-club isolation are mandatory.
 
@@ -57,6 +57,9 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 
 **Permission matrix sign-off: Pending.** Confirm which capabilities may be granted at team scope, who can add/edit/export member data, and which groups may see contact details. Do not assume minors' contact visibility is approved (R03).
 
+
+**Conditional validation rule (owner decision, 2026-11-15):** A person may exist without a date of birth if they are not a player. Before a person is assigned player status, the application must ensure a valid birth date is available. The precise definition of player status and whether existing player records can temporarily lack birth dates during migration remain implementation/policy questions. Do not infer player status solely from an organizational role label or expose full birth dates to all directory users. R03 must review age-related data minimization, visibility and retention.
+
 ## Stakeholder validation record
 
 | Question | Response / evidence | Status |
@@ -67,7 +70,7 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 | Current workflow (spreadsheet, chat, other) and top administrative pain point | _Owner reports fragmented Excel, WordPress, XPS, helfereinsatz.ch and other systems; independent pilot verification pending_ | Partially captured |
 | When and by whom member records are first entered | _Not confirmed_ | Pending |
 | Can members exist without accounts? | _Owner preference: yes; pilot unconfirmed_ | Pending |
-| Minimum fields and why each is necessary | _Owner confirms date of birth is additionally needed; first/last name required, email/phone optional. Birth date requiredness and precise use/visibility remain undecided._ | Partially captured |
+| Minimum fields and why each is necessary | _Owner confirms first/last name required, email/phone optional, and birth date required for players but optional for others. Precise use and visibility require R03 review._ | Owner-confirmed |
 | Preferred UI language(s) for pilot | _Owner requires German, English, French and Italian in first release; default and language-switch behavior pending confirmation_ | Owner decision captured |
 | Groups needing access | _Owner identified board, membership administrators, coaches, players, parents and volunteers; permission details pending_ | Partially captured |
 | Need for invitations in first usable release | _Owner preference: later; pilot unconfirmed_ | Pending |
@@ -100,7 +103,7 @@ The first release must support German, English, French and Italian. Its initial 
 
 1. Given that disconnected applications are the overarching problem, which single application/workflow should OpenClub replace **first**, and why? Walk through an example without sharing personal data.
 2. Who creates records, and do people typically join the club before receiving an account?
-3. Is date of birth mandatory for all members or optional? Which administrative tasks require the full date (versus age category), and who may view it? First/last names remain required; email/phone optional.
+3. Confirm how the system identifies a *player* and when a birth date must be supplied (e.g. when assigning playing status or registering a player). Which roles may view the full date, and are derived age categories sufficient elsewhere? First/last names remain required; email/phone optional.
 4. Which languages must the first pilot UI support?
 5. The owner selected member management, team assignments and configurable permissions together: does this synthetic flow represent the first usable release, and what must change?
 6. Do you handle minors? Who should be able to see their and guardians' contact data? Record concerns for R03, **not** a privacy sign-off.
@@ -110,7 +113,7 @@ The first release must support German, English, French and Italian. Its initial 
 
 - **Validated pilot scenario:** Pilot club administrator explicitly approved the three-workflow synthetic requirements scenario on 2026-11-15. Runtime demonstration and release validation remain pending under R19.
 - **Preferred pilot language(s):** German, English, French and Italian required for the first release (owner, 2026-11-15). Default language and switching behavior remain proposed, not accepted.
-- **Changes to owner baseline:** Expanded first usable release to include team assignments and configurable club/team-scoped permissions; **date of birth added to requested member data** (requiredness pending). Detailed Excel inventory, import and migration requirements explicitly deferred.
+- **Changes to owner baseline:** Expanded first usable release to include team assignments and configurable club/team-scoped permissions; **date of birth required for players and optional for other people**. Detailed Excel inventory, import and migration requirements explicitly deferred.
 - **Stakeholder acceptance (date, role, non-identifying reference):** 2026-11-15, participating pilot club administrator (owner-reported role), accepted the initial synthetic requirements target. No private identifying details recorded; independent implementation acceptance remains outstanding.
 - **R03 hand-off:** Review contact visibility, **date of birth** minimization/access/retention (especially for minors), and data lifecycle before real records.
 - **R04/R06/R10 hand-off:** Reconcile the expanded team and scoped-grant requirements with the contract and authorization model; create appropriately scoped feature issues instead of treating existing membership endpoints as sufficient.
@@ -121,7 +124,7 @@ The first release must support German, English, French and Italian. Its initial 
 - [x] Real pilot stakeholder or explicitly identified representative participated (owner-reported club administration involvement, 2026-11-15; no identifying details published).
 - [x] Primary administrative pain point documented as fragmentation across Excel, WordPress, XPS, helfereinsatz.ch and others; detailed Excel workflow/inventory intentionally deferred.
 - [x] Administrator accepted accountless entry in the synthetic scenario; invitations remain later by prior owner decision.
-- [ ] First/last name required, email/phone optional; date of birth is additionally needed, but mandatory-versus-optional status and permitted uses/visibility still need confirmation. Four release languages accepted. Excel column inventory deferred.
+- [ ] First/last name required, email/phone optional; date of birth required for players and optional for others; its permissible uses/visibility still need R03 review. Four release languages accepted. Excel column inventory deferred.
 - [x] Pilot administrator explicitly approved the three-workflow synthetic requirements scenario on 2026-11-15.
 - [x] Privacy concerns linked to R03 and new team/scoped-permission contract and authorization work flagged for R04/R06/R10; detailed follow-up implementation issues still to be scoped.
 - [ ] PR #72 human review/merge and R01 closeout decision recorded under issue #10.
