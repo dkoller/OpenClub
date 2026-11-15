@@ -67,6 +67,23 @@ class MemberRolesTest {
                     roles.change(account, admin, MemberRoles.Role.MEMBER))
                 assertEquals(MemberRoles.Change.UPDATED,
                     roles.change(account, regular, MemberRoles.Role.ADMIN))
+                db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_PERMISSIONS')",
+                    regular)
+                assertEquals(MemberRoles.Change.UPDATED,
+                    roles.change(account, regular, MemberRoles.Role.MEMBER))
+                assertEquals(0, db.fetchValue(
+                    """SELECT COUNT(*) FROM club_capability_grants
+                       WHERE member_id = ? AND capability = 'MANAGE_PERMISSIONS'""",
+                    regular)?.toString()?.toInt())
+                // Even a stale permission grant must not wake up on promotion.
+                db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_PERMISSIONS')",
+                    regular)
+                assertEquals(MemberRoles.Change.UPDATED,
+                    roles.change(account, regular, MemberRoles.Role.ADMIN))
+                assertEquals(0, db.fetchValue(
+                    """SELECT COUNT(*) FROM club_capability_grants
+                       WHERE member_id = ? AND capability = 'MANAGE_PERMISSIONS'""",
+                    regular)?.toString()?.toInt())
                 assertEquals(MemberRoles.Change.UPDATED,
                     roles.change(account, regular, MemberRoles.Role.MEMBER))
                 assertEquals(MemberRoles.Change.DENIED,
