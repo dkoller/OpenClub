@@ -1,5 +1,7 @@
 # R01 — First pilot workflow (discussion draft)
 
+> **Historical discovery scenario:** The current architecture is one club per installation (merged PR #79). Multi-club switching/demo steps below are superseded; use the updated R19 single-club acceptance journey. See [ADR-0005](../decisions/0005-single-club-installation.md).
+
 **Status:** Historical discovery worksheet written before pilot acceptance. **R01/#10 is now closed** after direct pilot administrator approval and merged PRs #72–#73. Original questions below are archival; current requirements are in [the accepted R01 worksheet](../concepts/product/r01-pilot-validation.md).
 
 ## Proposed smallest demo
