@@ -150,6 +150,74 @@ paths:
           $ref: '#/components/responses/NotFound'
         '503':
           $ref: '#/components/responses/Unavailable'
+  /v1/members/{memberId}/archive:
+    post:
+      tags: [Members]
+      operationId: archiveLocalMember
+      summary: Proposed archive of an unlinked ordinary member (NOT IMPLEMENTED)
+      description: >
+        Internal-only MemberArchive currently requires a verified session actor
+        holding a live club-wide EDIT_MEMBERS grant, an unlinked MEMBER target,
+        and transactionally revokes all team assignments and capability grants.
+        Archived members disappear from active directory and team workflows,
+        but private records remain in database/backups. Not erasure or deletion.
+        Before HTTP exposure, approve R03 retention, actor audit, field policies,
+        exact configured Origin, session-bound CSRF, lifecycle authorization and
+        indistinguishable non-visible member IDs. No request body or actor ID.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204':
+          description: Target archived; never echo personal fields
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/members/{memberId}/reactivate:
+    post:
+      tags: [Members]
+      operationId: reactivateLocalMember
+      summary: Proposed reactivation without restored rights (NOT IMPLEMENTED)
+      description: >
+        Internal-only MemberReactivation restores only a currently archived,
+        unlinked MEMBER to active status under a live EDIT_MEMBERS grant.
+        It never restores old login links, team assignments or capability grants.
+        Current adult contact/gender policy must still validate at reactivation;
+        conflict and audit behavior require R03/R04 approval before HTTP access.
+        No request body or caller-provided actor account ID.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204':
+          description: Member reactivated without restoring old privileges
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /v1/members/{memberId}/role:
     put:
       tags: [Members]
@@ -216,6 +284,50 @@ paths:
           $ref: '#/components/responses/Unauthenticated'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /v1/teams/{teamId}/members:
+    get:
+      tags: [Teams]
+      operationId: listVisibleTeamMembers
+      summary: Proposed privacy-minimized exact-team roster (NOT IMPLEMENTED)
+      description: >
+        A verified session alone gives no directory access. The internal
+        TeamMemberDirectory requires BOTH explicit club-wide
+        VIEW_MEMBER_DIRECTORY and exact-team VIEW_TEAMS/MANAGE_TEAMS
+        (or the equivalent club-wide team capability) on each page.
+        Only active members' local UUIDs and first/last names can be returned.
+        Unknown teams and team IDs outside the caller's scope must not reveal
+        rosters. Public pagination cursors would require authenticated
+        integrity, filter/scope binding and privacy review; internal After
+        tuples are not safe to publish. R03 approval of minors' name visibility
+        is required before exposing any endpoint.
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - name: cursor
+          in: query
+          schema: { type: string, minLength: 1, maxLength: 512 }
+          description: Future opaque and authenticated cursor, never raw personal fields.
+      responses:
+        '200':
+          description: Authorized privacy-minimized roster page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MemberPage' }
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /v1/permission-grants:
     get:
       tags: [Permissions]
