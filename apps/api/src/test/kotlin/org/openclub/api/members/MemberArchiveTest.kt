@@ -70,11 +70,11 @@ class MemberArchiveTest {
                 assertFalse(archive.archive(account, archived))
                 assertNotNull(db.fetchValue("SELECT archived_at FROM members WHERE id = ?", archived))
                 assertEquals(0, db.fetchValue(
-                    "SELECT COUNT(*) FROM club_capability_grants WHERE member_id = ?", archived))
+                    "SELECT COUNT(*) FROM club_capability_grants WHERE member_id = ?", archived)?.toString()?.toInt())
                 assertEquals(0, db.fetchValue(
-                    "SELECT COUNT(*) FROM team_capability_grants WHERE member_id = ?", archived))
+                    "SELECT COUNT(*) FROM team_capability_grants WHERE member_id = ?", archived)?.toString()?.toInt())
                 assertEquals(0, db.fetchValue(
-                    "SELECT COUNT(*) FROM member_team_assignments WHERE member_id = ?", archived))
+                    "SELECT COUNT(*) FROM member_team_assignments WHERE member_id = ?", archived)?.toString()?.toInt())
                 assertTrue(MemberDirectory(db).search(account, "Target").members.isEmpty())
                 assertFalse(TeamAssignments(db).assign(account, team, archived))
                 assertFalse(MemberDetailsUpdate(db).update(account, archived,
