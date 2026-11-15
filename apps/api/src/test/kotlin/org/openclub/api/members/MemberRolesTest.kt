@@ -69,6 +69,8 @@ class MemberRolesTest {
 
                 db.execute("UPDATE members SET role = 'ADMIN' WHERE id = ?", second)
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_PERMISSIONS')", second)
+                // Link the second administrator before testing eligible-manager demotion.
+                db.execute("UPDATE members SET account_id = ? WHERE id = ?", outsider, second)
                 assertEquals(MemberRoles.Change.UPDATED,
                     roles.change(account, second, MemberRoles.Role.MEMBER))
                 assertEquals(MemberRoles.Change.DENIED,
