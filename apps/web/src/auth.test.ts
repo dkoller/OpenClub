@@ -10,7 +10,7 @@ describe('single-club session', () => {
 
   it('returns to sign-in if the session expires between the two authorization checks', async () => {
     const request = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: 'account', csrfToken: 'secret' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411361', csrfToken: 'x'.repeat(43) }) })
       .mockResolvedValueOnce({ status: 401, ok: false })
     expect(await loadClubAccess(request)).toEqual({ state: 'signed-out' })
     expect(request.mock.calls[1][0]).toBe('/api/v1/club')
@@ -18,18 +18,18 @@ describe('single-club session', () => {
 
   it('does not authorize an unlinked account', async () => {
     const request = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: 'account', csrfToken: 'secret' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411361', csrfToken: 'x'.repeat(43) }) })
       .mockResolvedValueOnce({ status: 403 })
-    expect(await loadClubAccess(request)).toEqual({ state: 'not-member', csrfToken: 'secret' })
+    expect(await loadClubAccess(request)).toEqual({ state: 'not-member', csrfToken: 'x'.repeat(43) })
     expect(request.mock.calls[1][0]).toBe('/api/v1/club')
   })
 
   it('accepts a server-authorized local club', async () => {
     const request = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: 'account', csrfToken: 'secret' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411361', csrfToken: 'x'.repeat(43) }) })
       .mockResolvedValueOnce({ ok: true, status: 200,
         json: async () => ({ id: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411360' }) })
-    expect(await loadClubAccess(request)).toEqual({ state: 'ready', csrfToken: 'secret' })
+    expect(await loadClubAccess(request)).toEqual({ state: 'ready', csrfToken: 'x'.repeat(43) })
   })
 
   it('does not consider malformed or non-200 club results to be authorized', async () => {
@@ -40,9 +40,26 @@ describe('single-club session', () => {
       { ok: true, status: 200, json: async () => ({ id: '' }) },
     ]) {
       const request = vi.fn()
-        .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: 'account', csrfToken: 'secret' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411361', csrfToken: 'x'.repeat(43) }) })
         .mockResolvedValueOnce(clubResponse)
       expect(await loadClubAccess(request)).toEqual({ state: 'unavailable' })
+    }
+  })
+
+  it('does not use invalid verified-session identifiers or CSRF values', async () => {
+    const id = '7f53bd36-6b66-4ce0-a4ed-3ca1b8411361'
+    for (const details of [
+      { accountId: '', csrfToken: 'x'.repeat(43) },
+      { accountId: 'account', csrfToken: 'x'.repeat(43) },
+      { accountId: id, csrfToken: '' },
+      { accountId: id, csrfToken: 'x'.repeat(42) },
+      { accountId: id, csrfToken: 'x'.repeat(42) + '!' },
+    ]) {
+      const request = vi.fn().mockResolvedValue({
+        status: 200, ok: true, json: async () => details,
+      })
+      expect(await loadClubAccess(request)).toEqual({ state: 'unavailable' })
+      expect(request).toHaveBeenCalledTimes(1)
     }
   })
 
