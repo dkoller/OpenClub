@@ -53,7 +53,6 @@ class MemberAccessTest {
                 assertEquals(club, access.authorizedClubId(admin))
                 database.execute("UPDATE members SET account_id = NULL WHERE id = ?", regularMember)
                 assertNull(access.authorizedClubId(regular))
-                assertNull(access.authorizedClubId(regular))
                 database.execute("UPDATE members SET account_id = ? WHERE id = ?", regular, regularMember)
                 assertEquals(club, access.authorizedClubId(regular))
             } finally {
