@@ -23,8 +23,11 @@ internal class AdminRecovery(private val database: DSLContext) {
         }
         database.transaction { configuration ->
             val db = DSL.using(configuration)
-            // Same application-level lock as initial bootstrap; serializes recoveries.
+            // Recoveries also serialize with protected role and grant changes,
+            // so the sole-admin precondition cannot change mid-transaction.
+            // Always acquire bootstrap before permission mutation to avoid lock inversion.
             db.fetchValue(AdvisoryLocks.BOOTSTRAP)
+            db.fetchValue(AdvisoryLocks.PERMISSION_MUTATION)
             check(db.fetchOne("SELECT 1 FROM clubs WHERE id = ?", input.clubId) != null) {
                 "Installation club does not match"
             }
