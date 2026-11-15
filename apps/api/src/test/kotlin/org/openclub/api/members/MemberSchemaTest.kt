@@ -40,6 +40,13 @@ class MemberSchemaTest {
                         VALUES (?, 'Missing', 'Contacts', DATE '1990-01-01')""",
                         UUID.randomUUID())
                 }
+                // Direct SQL inserts must enforce the same DOB boundaries as service writes.
+                for (invalid in listOf(LocalDate.now().plusDays(1), LocalDate.of(1850, 1, 1))) {
+                    assertThrows(org.jooq.exception.DataAccessException::class.java) {
+                        db.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth)
+                            VALUES (?, 'Invalid', 'Birthday', ?)""", UUID.randomUUID(), invalid)
+                    }
+                }
                 val childBirthday = LocalDate.now().minusYears(10)
                 db.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth)
                     VALUES (?, 'Accountless', 'Child', ?)""", member, childBirthday)
