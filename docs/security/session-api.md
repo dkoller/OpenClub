@@ -44,3 +44,5 @@ functionality is added.
 **Single-club scope:** `accountId` is an installation-local authentication reference, not member authorization. The local club may be read only through `GET /api/v1/club` with an authorized linked member; there is no club switcher.
 
 **Frontend session-expiry handling:** The signed-in landing checks `/auth/me` before `/club`. If the session expires or is revoked between those requests, a 401 from `/club` returns the frontend to the signed-out state (with the sign-in link), not a misleading service-outage message. A 403 remains the unlinked-member state; other failures remain unavailable. `auth.test.ts` verifies this race with synthetic responses.
+
+**Unlinked-account logout:** A valid authenticated session may lack local club membership (403 from `/club`). The single-club landing still offers **Sign out** in DE/EN/FR/IT: it retains the server-issued CSRF token from `/auth/me` and posts to the same protected logout endpoint. Membership is not required to end one's own session; no grant or member data is exposed.
