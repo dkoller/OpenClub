@@ -30,7 +30,7 @@ Dependency references indicate when implementation **must not outpace prerequisi
 
 **Decision update (2026-11-14):** [ADR-0003](decisions/0003-oidc-session-proposal.md) confirms Keycloak OIDC + Kotlin BFF architecture; [ADR-0004](decisions/0004-member-policy.md) records onboarding, directory visibility and lifecycle direction. R01 pilot requirements are now accepted (#10 closed; PRs #72–#73). The single-club reset PR #79 and PR-size restoration PR #80 are merged. R05 authentication is complete (#14 closed); privacy/minors' contact visibility, club authorization, first-admin implementation and club/member API acceptance remain open. These decisions guide R01–R18 without implying completion.
 
-**Important limitation:** Opt-in OIDC authentication is implemented and tested with synthetic identities; the schema and login are not club authorization. Club authorization (R06), first-admin bootstrap (R07), privacy acceptance (R03) and the web proxy path integration are still required before real member data.
+**Important limitation:** Opt-in OIDC authentication is implemented and tested with synthetic identities; the schema and login are not club authorization. The initial linked-account club-read guard is implemented; fuller authorization (R06), approved first-admin recovery drill (R07), privacy acceptance (R03), and production deployment proof remain required before real member data.
 
 **Current review budget:** maximum 999 added + deleted lines (target 500–700); this supersedes the historical C05 limit. All tracked issues use this limit.
 
