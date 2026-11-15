@@ -22,8 +22,7 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
     fun update(actorAccountId: UUID, memberId: UUID, input: Input): Boolean {
         val first = MemberFieldValidation.name(input.firstName)
         val last = MemberFieldValidation.name(input.lastName)
-        require(input.dateOfBirth.isAfter(LocalDate.of(1850, 1, 1)) &&
-            !input.dateOfBirth.isAfter(LocalDate.now())) { "Invalid birth date" }
+        val birthDate = MemberFieldValidation.birthDate(input.dateOfBirth)
         val email = MemberFieldValidation.email(input.email)
         val phone = MemberFieldValidation.phone(input.phone)
         val gender = MemberFieldValidation.gender(input.gender)
@@ -37,7 +36,7 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
                    JOIN clubs club ON TRUE
                    WHERE actor.account_id = ? AND g.capability = 'EDIT_MEMBERS'
                )""",
-            first, last, input.dateOfBirth, email, phone, gender,
+            first, last, birthDate, email, phone, gender,
             input.isPlayer, memberId, actorAccountId,
         ) == 1
     }
