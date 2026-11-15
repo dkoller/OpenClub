@@ -46,8 +46,11 @@ internal class MemberRoles(private val database: DSLContext) {
                                      WHERE ai.account_id = m.account_id)""",
                 )?.toString()?.toLongOrNull() ?: error("Cannot count permission managers")
                 val targetManagesPermissions = db.fetchOne(
-                    """SELECT 1 FROM club_capability_grants
-                       WHERE member_id = ? AND capability = 'MANAGE_PERMISSIONS'""",
+                    """SELECT 1 FROM club_capability_grants g
+                       JOIN members m ON m.id = g.member_id
+                       WHERE g.member_id = ? AND g.capability = 'MANAGE_PERMISSIONS'
+                         AND EXISTS (SELECT 1 FROM account_identities ai
+                                     WHERE ai.account_id = m.account_id)""",
                     targetMemberId,
                 ) != null
                 if (admins <= 1 || (targetManagesPermissions && managers <= 1)) {
