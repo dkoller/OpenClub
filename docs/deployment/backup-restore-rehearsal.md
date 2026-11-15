@@ -12,8 +12,10 @@ member and session data, including secrets; never commit, upload, or email it.
 
 ## 1. Capture a private backup from a disposable source
 
-Start your synthetic source stack as usual and verify that it is the intended
-Compose project. Set a restrictive file-creation mask before redirecting a dump:
+Start an isolated synthetic source project and confirm its identity. Populate it
+with known **synthetic** club/member/team/grant fixtures and record the expected
+counts; an empty database is not a meaningful restore test. Set a restrictive
+file-creation mask before redirecting a dump:
 
 ```sh
 umask 077
