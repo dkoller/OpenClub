@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    paths-ignore: ['loopcounter*.txt']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -57,7 +58,7 @@ jobs:
           else
             changed="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" --jq '.[].filename')"
             if [[ -z "$changed" ]]; then
-              api=true; web=true; compose=true
+              api=true; web=true; compose=true; normal=true
             fi
             while IFS= read -r file; do
               [[ -z "$file" ]] && continue
