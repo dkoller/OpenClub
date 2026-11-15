@@ -8,6 +8,7 @@ import org.jooq.impl.DSL
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 import java.util.UUID
 
 class MemberSchemaTest {
@@ -39,8 +40,19 @@ class MemberSchemaTest {
                         VALUES (?, 'Missing', 'Contacts', DATE '1990-01-01')""",
                         UUID.randomUUID())
                 }
+                val childBirthday = LocalDate.now().minusYears(10)
                 db.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth)
-                    VALUES (?, 'Accountless', 'Child', DATE '2018-04-10')""", member)
+                    VALUES (?, 'Accountless', 'Child', ?)""", member, childBirthday)
+                assertThrows(org.jooq.exception.DataAccessException::class.java) {
+                    db.execute("UPDATE members SET date_of_birth = ? WHERE id = ?",
+                        LocalDate.now().plusDays(1), member)
+                }
+                assertThrows(org.jooq.exception.DataAccessException::class.java) {
+                    db.execute("UPDATE members SET date_of_birth = DATE '1850-01-01' WHERE id = ?", member)
+                }
+                assertEquals(childBirthday, db.fetchOne(
+                    "SELECT date_of_birth FROM members WHERE id = ?", member
+                )?.get("date_of_birth", LocalDate::class.java))
                 assertEquals(1L, db.fetchValue(
                     "SELECT COUNT(*) FROM members WHERE id = ? AND account_id IS NULL", member
                 ))
