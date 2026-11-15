@@ -33,7 +33,7 @@ This is **owner-reported discovery**, not an independently confirmed stakeholder
 | helfereinsatz.ch | Volunteer scheduling and shifts |
 | Other applications | Inventory pending |
 
-**First replacement selected (owner, 2026-11-15):** Excel membership and administration. **Next validation:** Determine the actual spreadsheet fields and workflows, whether initial import is required, what data needs migration, which roles participate, and which languages are required. Agree on one narrow synthetic acceptance journey that proves a useful first replacement without shipping every module at once.
+**First replacement selected (owner, 2026-11-15):** Excel membership and administration. **Explicitly deferred by owner:** Inventorying Excel columns, evaluating import requirements and specifying data migration. These are open questions, not accepted R01 requirements or prerequisites for continued discovery. Continue validation with the participating roles, preferred languages and a narrow synthetic acceptance journey without assuming that import is part of the first release.
 
 ## Stakeholder validation record
 
