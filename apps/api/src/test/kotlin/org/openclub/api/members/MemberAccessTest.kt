@@ -12,7 +12,7 @@ import java.util.UUID
 
 class MemberAccessTest {
     @Test
-    fun onlyLinkedLocalAdminMayManageMembers() {
+    fun onlyLinkedLocalMembersMayReadClubId() {
         val url = System.getenv("DB_URL")
         assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL via DB_URL")
         HikariDataSource(HikariConfig().apply {
@@ -42,32 +42,20 @@ class MemberAccessTest {
                     VALUES (?, ?, 'Example', 'Member', DATE '2015-01-01')""",
                     regularMember, regular)
 
-                assertEquals(club, access.authorizedClubId(admin, MemberAccess.Permission.VIEW_CLUB))
-                assertEquals(club, access.authorizedClubId(regular, MemberAccess.Permission.VIEW_CLUB))
-                assertNull(access.authorizedClubId(outsider, MemberAccess.Permission.VIEW_CLUB))
-                assertEquals(club, access.authorizedClubId(admin, MemberAccess.Permission.MANAGE_MEMBERS))
-                assertNull(access.authorizedClubId(regular, MemberAccess.Permission.MANAGE_MEMBERS))
-                assertNull(access.authorizedClubId(outsider, MemberAccess.Permission.MANAGE_MEMBERS))
+                assertEquals(club, access.authorizedClubId(admin))
+                assertEquals(club, access.authorizedClubId(regular))
+                assertNull(access.authorizedClubId(outsider))
 
-                assertEquals(MemberAccess.Role.ADMIN, access.roleFor(admin))
-                assertEquals(MemberAccess.Role.MEMBER, access.roleFor(regular))
-                assertNull(access.roleFor(outsider))
-                assertTrue(access.canManageMembers(admin))
-                assertFalse(access.canManageMembers(regular))
-                assertFalse(access.canManageMembers(outsider))
-
-                // Database changes take effect at the next check: no stale role cache.
+                // Role labels do not affect the local club-ID read boundary.
                 database.execute("UPDATE members SET role = 'MEMBER' WHERE account_id = ?", admin)
-                assertNull(access.authorizedClubId(admin, MemberAccess.Permission.MANAGE_MEMBERS))
-                assertFalse(access.canManageMembers(admin))
-                assertEquals(MemberAccess.Role.MEMBER, access.roleFor(admin))
-                assertEquals(club, access.authorizedClubId(admin, MemberAccess.Permission.VIEW_CLUB))
+                assertEquals(club, access.authorizedClubId(admin))
                 database.execute("UPDATE members SET role = 'ADMIN' WHERE account_id = ?", admin)
-                assertEquals(MemberAccess.Role.ADMIN, access.roleFor(admin))
-                assertTrue(access.canManageMembers(admin))
+                assertEquals(club, access.authorizedClubId(admin))
                 database.execute("UPDATE members SET account_id = NULL WHERE id = ?", regularMember)
-                assertNull(access.authorizedClubId(regular, MemberAccess.Permission.VIEW_CLUB))
+                assertNull(access.authorizedClubId(regular))
+                assertNull(access.authorizedClubId(regular))
                 database.execute("UPDATE members SET account_id = ? WHERE id = ?", regular, regularMember)
+                assertEquals(club, access.authorizedClubId(regular))
             } finally {
                 database.execute("DELETE FROM members WHERE account_id IN (?, ?)", admin, regular)
                 database.execute("DELETE FROM accounts WHERE id IN (?, ?, ?)", admin, regular, outsider)
