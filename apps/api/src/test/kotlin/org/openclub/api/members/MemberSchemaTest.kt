@@ -50,8 +50,9 @@ class MemberSchemaTest {
                 assertThrows(org.jooq.exception.DataAccessException::class.java) {
                     db.execute("UPDATE members SET date_of_birth = DATE '1850-01-01' WHERE id = ?", member)
                 }
-                assertEquals(childBirthday, db.fetchValue(
-                    "SELECT date_of_birth FROM members WHERE id = ?", member, LocalDate::class.java))
+                assertEquals(childBirthday, db.fetchOne(
+                    "SELECT date_of_birth FROM members WHERE id = ?", member
+                )?.get("date_of_birth", LocalDate::class.java))
                 assertEquals(1L, db.fetchValue(
                     "SELECT COUNT(*) FROM members WHERE id = ? AND account_id IS NULL", member
                 ))
