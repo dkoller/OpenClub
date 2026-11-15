@@ -43,7 +43,20 @@ INSERT INTO teams (id, name) VALUES
 INSERT INTO member_team_assignments (team_id, member_id) VALUES
   ('33333333-3333-4333-8333-333333333333',
    '22222222-2222-4222-8222-222222222222');
+INSERT INTO club_capability_grants (member_id, capability) VALUES
+  ('22222222-2222-4222-8222-222222222222', 'VIEW_TEAMS');
+INSERT INTO team_capability_grants (team_id, member_id, capability) VALUES
+  ('33333333-3333-4333-8333-333333333333',
+   '22222222-2222-4222-8222-222222222222', 'VIEW_TEAMS');
 SQL
+
+# Compare the restore's Flyway version count against the actual source, not
+# a hardcoded migration number that can go stale after subsequent changes.
+migration_count="$(docker compose -p "$source_project" exec -T postgres \
+  psql -qAt -v ON_ERROR_STOP=1 -U openclub -d openclub \
+  -c 'SELECT COUNT(*) FROM flyway_schema_history WHERE success')"
+[[ "$migration_count" =~ ^[0-9]+$ ]] && (( migration_count > 0 ))
+
 
 docker compose -p "$source_project" exec -T postgres \
   pg_dump -U openclub -d openclub --format=custom --no-owner > "$dump"
@@ -58,14 +71,18 @@ docker compose -p "$restore_project" exec -T postgres \
   -U openclub -d openclub < "$dump"
 
 result="$(docker compose -p "$restore_project" exec -T postgres \
-  psql -qAt -v ON_ERROR_STOP=1 -U openclub -d openclub <<'SQL'
+  psql -qAt -v ON_ERROR_STOP=1 -v expected_migrations="$migration_count" \
+  -U openclub -d openclub <<'SQL'
 SELECT CASE WHEN
   (SELECT COUNT(*) FROM clubs) = 1
   AND (SELECT name FROM clubs) = 'Synthetic Recovery Club'
   AND (SELECT COUNT(*) FROM members WHERE first_name = 'Synthetic'
        AND email = 'synthetic@example.invalid') = 1
   AND (SELECT COUNT(*) FROM member_team_assignments) = 1
-  AND (SELECT COUNT(*) FROM flyway_schema_history WHERE success) >= 9
+  AND (SELECT COUNT(*) FROM club_capability_grants) = 1
+  AND (SELECT COUNT(*) FROM team_capability_grants) = 1
+  AND (SELECT COUNT(*) FROM flyway_schema_history WHERE success) =
+      :'expected_migrations'::integer
 THEN 'RESTORE_OK' ELSE 'RESTORE_FAILED' END;
 SQL
 )"
