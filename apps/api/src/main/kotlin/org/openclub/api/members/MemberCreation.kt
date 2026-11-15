@@ -23,8 +23,7 @@ internal class MemberCreation(private val database: DSLContext) {
     fun create(actorAccountId: UUID, input: Input): UUID? {
         val firstName = MemberFieldValidation.name(input.firstName)
         val lastName = MemberFieldValidation.name(input.lastName)
-        require(input.dateOfBirth.isAfter(LocalDate.of(1850, 1, 1))) { "Invalid birth date" }
-        require(!input.dateOfBirth.isAfter(LocalDate.now())) { "Birth date cannot be in the future" }
+        val birthDate = MemberFieldValidation.birthDate(input.dateOfBirth)
         val email = MemberFieldValidation.email(input.email)
         val phone = MemberFieldValidation.phone(input.phone)
         val gender = MemberFieldValidation.gender(input.gender)
@@ -40,7 +39,7 @@ internal class MemberCreation(private val database: DSLContext) {
                    JOIN clubs club ON TRUE
                    WHERE actor.account_id = ? AND g.capability = 'EDIT_MEMBERS'
                )""",
-            newId, firstName, lastName, input.dateOfBirth,
+            newId, firstName, lastName, birthDate,
             email, phone, gender, input.isPlayer, actorAccountId,
         )
         return if (created == 1) newId else null

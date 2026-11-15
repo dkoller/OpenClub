@@ -2,8 +2,23 @@ package org.openclub.api.members
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 
 class MemberFieldValidationTest {
+    @Test
+    fun validatesBirthDateBoundaries() {
+        val today = LocalDate.now()
+        assertEquals(today, MemberFieldValidation.birthDate(today))
+        assertEquals(LocalDate.of(1850, 1, 2),
+            MemberFieldValidation.birthDate(LocalDate.of(1850, 1, 2)))
+        assertThrows(IllegalArgumentException::class.java) {
+            MemberFieldValidation.birthDate(LocalDate.of(1850, 1, 1))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            MemberFieldValidation.birthDate(today.plusDays(1))
+        }
+    }
+
     @Test
     fun trimsAndValidatesNames() {
         assertEquals("Sam", MemberFieldValidation.name(" Sam "))
