@@ -1,50 +1,6 @@
 package org.openclub.api.auth
 
-import org.openclub.api.database.*
-import org.openclub.api.members.*
-
-import io.ktor.http.Cookie
-import io.ktor.http.CookieEncoding
 import java.net.URI
-import java.net.Inet4Address
-import java.net.Inet6Address
-import java.net.InetAddress
-
-/** This policy may create cookies only from opaque 256-bit URL-safe random handles. */
-internal class AuthCookiePolicy private constructor(private val production: Boolean) {
-    val loginName: String = if (production) "__Host-openclub_login" else "openclub_dev_login"
-    val sessionName: String = if (production) "__Host-openclub_session" else "openclub_dev_session"
-
-    fun loginBinding(handle: String): Cookie = issued(loginName, handle, 5 * 60)
-    fun session(handle: String): Cookie = issued(sessionName, handle, 12 * 60 * 60)
-    fun clearLogin(): Cookie = cookie(loginName, "", 0)
-    fun clearSession(): Cookie = cookie(sessionName, "", 0)
-
-    private fun issued(name: String, value: String, duration: Int): Cookie {
-        require(value.length == 43 && value.all { it.isLetterOrDigit() && it.isAscii() || it == '-' || it == '_' }) {
-            "Expected an opaque base64url cookie handle"
-        }
-        return cookie(name, value, duration)
-    }
-
-    private fun Char.isAscii(): Boolean = this in 'a'..'z' || this in 'A'..'Z' || this in '0'..'9'
-
-    private fun cookie(name: String, value: String, maxAge: Int): Cookie = Cookie(
-        name = name,
-        value = value,
-        encoding = CookieEncoding.RAW,
-        path = "/",
-        maxAge = maxAge,
-        secure = production,
-        httpOnly = true,
-        extensions = mapOf("SameSite" to "Lax"),
-    )
-
-    companion object {
-        fun production(): AuthCookiePolicy = AuthCookiePolicy(true)
-        fun localDevelopment(): AuthCookiePolicy = AuthCookiePolicy(false)
-    }
-}
 
 /**
  * Explicit opt-in only. Disabled mode does not load credentials or register
@@ -65,7 +21,7 @@ internal class OidcRuntimeConfig private constructor(
         get() {
             val host = publicOrigin.host.lowercase(java.util.Locale.ROOT)
             val authorityHost = if (host.startsWith("[") && host.endsWith("]")) {
-                "[${canonicalIpv6(host.substring(1, host.length - 1))}]"
+                "[${BrowserOrigin.canonicalIpv6(host.substring(1, host.length - 1))}]"
             } else host
             val port = publicOrigin.port.takeUnless {
                 it == -1 || (publicOrigin.scheme == "https" && it == 443) ||
@@ -73,50 +29,6 @@ internal class OidcRuntimeConfig private constructor(
             }
             return "${publicOrigin.scheme}://$authorityHost" + (port?.let { ":$it" } ?: "")
         }
-
-    /** WHATWG-style IPv6 spelling: lowercase hex, compress the first longest zero run. */
-    private fun canonicalIpv6(literal: String): String {
-        require('%' !in literal) { "IPv6 zone identifiers are not valid browser origins" }
-        // Java represents IPv4-mapped IPv6 as Inet4Address. Restore the
-        // 96-bit ::ffff: prefix rather than incorrectly rejecting a valid
-        // bracketed IPv6 URL authority.
-        val address = InetAddress.getByName(literal)
-        val bytes = when (address) {
-            is Inet6Address -> address.address
-            is Inet4Address -> ByteArray(16).also { mapped ->
-                mapped[10] = 0xff.toByte()
-                mapped[11] = 0xff.toByte()
-                address.address.copyInto(mapped, destinationOffset = 12)
-            }
-            else -> throw IllegalArgumentException("Expected an IPv6 address literal")
-        }
-        val groups = IntArray(8) { i ->
-            (bytes[i * 2].toInt() and 0xff) * 256 + (bytes[i * 2 + 1].toInt() and 0xff)
-        }
-        var bestStart = -1
-        var bestLength = 1
-        var i = 0
-        while (i < 8) {
-            if (groups[i] != 0) {
-                i++
-                continue
-            }
-            val start = i
-            while (i < 8 && groups[i] == 0) i++
-            if (i - start > bestLength) {
-                bestStart = start
-                bestLength = i - start
-            }
-        }
-        if (bestStart < 0) return groups.joinToString(":") { it.toString(16) }
-        val left = (0 until bestStart).joinToString(":") { groups[it].toString(16) }
-        val right = (bestStart + bestLength until 8).joinToString(":") { groups[it].toString(16) }
-        return when {
-            left.isEmpty() -> "::$right"
-            right.isEmpty() -> "$left::"
-            else -> "$left::$right"
-        }
-    }
 
     override fun toString(): String = "OidcRuntimeConfig(redacted)"
 
