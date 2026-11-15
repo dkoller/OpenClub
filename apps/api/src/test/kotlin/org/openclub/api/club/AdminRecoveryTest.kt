@@ -3,6 +3,7 @@ package org.openclub.api.club
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
+import org.jooq.DSLContext
 import org.jooq.SQLDialect
 import org.jooq.exception.DataAccessException
 import org.jooq.impl.DSL
@@ -14,6 +15,33 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class AdminRecoveryTest {
+    private fun assertRecoveryBlockedWhile(
+        source: HikariDataSource,
+        input: AdminRecovery.Input,
+        hold: (DSLContext) -> Unit,
+    ) {
+        source.connection.use { holding ->
+            holding.autoCommit = false
+            try {
+                hold(DSL.using(holding, SQLDialect.POSTGRES))
+                source.connection.use { attempting ->
+                    val candidate = DSL.using(attempting, SQLDialect.POSTGRES)
+                    candidate.execute("SET lock_timeout = '250ms'")
+                    try {
+                        val blocked = assertThrows(DataAccessException::class.java) {
+                            AdminRecovery(candidate).rebind(input)
+                        }
+                        assertEquals("55P03", blocked.sqlState())
+                    } finally {
+                        candidate.execute("RESET lock_timeout")
+                    }
+                }
+            } finally {
+                holding.rollback()
+            }
+        }
+    }
+
     @Test
     fun rebindsOnlySoleAdminToVerifiedUnlinkedAccountAndRevokesOldSessions() {
         val url = System.getenv("DB_URL")
@@ -89,50 +117,15 @@ class AdminRecoveryTest {
                 db.execute("DELETE FROM members WHERE id = ?", secondAdmin)
                 // Recovery must not accept a replacement identity being removed by
                 // a concurrent transaction before the administrator is rebound.
-                source.connection.use { removingIdentity ->
-                    removingIdentity.autoCommit = false
-                    try {
-                        DSL.using(removingIdentity, SQLDialect.POSTGRES).execute(
-                            "DELETE FROM account_identities WHERE account_id = ?", replacement)
-                        source.connection.use { attempting ->
-                            val candidate = DSL.using(attempting, SQLDialect.POSTGRES)
-                            candidate.execute("SET lock_timeout = '250ms'")
-                            try {
-                                val blocked = assertThrows(DataAccessException::class.java) {
-                                    AdminRecovery(candidate).rebind(input)
-                                }
-                                assertEquals("55P03", blocked.sqlState())
-                            } finally {
-                                candidate.execute("RESET lock_timeout")
-                            }
-                        }
-                    } finally {
-                        removingIdentity.rollback()
-                    }
+                assertRecoveryBlockedWhile(source, input) { holding ->
+                    holding.execute(
+                        "DELETE FROM account_identities WHERE account_id = ?", replacement)
                 }
                 assertEquals(old, linked())
                 // A concurrent protected role/grant mutation holds this lock;
                 // recovery must wait rather than trust a stale sole-admin count.
-                source.connection.use { holding ->
-                    holding.autoCommit = false
-                    try {
-                        DSL.using(holding, SQLDialect.POSTGRES)
-                            .fetchValue(AdvisoryLocks.PERMISSION_MUTATION)
-                        source.connection.use { attempting ->
-                            val candidate = DSL.using(attempting, SQLDialect.POSTGRES)
-                            candidate.execute("SET lock_timeout = '250ms'")
-                            try {
-                                val blocked = assertThrows(DataAccessException::class.java) {
-                                    AdminRecovery(candidate).rebind(input)
-                                }
-                                assertEquals("55P03", blocked.sqlState())
-                            } finally {
-                                candidate.execute("RESET lock_timeout")
-                            }
-                        }
-                    } finally {
-                        holding.rollback()
-                    }
+                assertRecoveryBlockedWhile(source, input) { holding ->
+                    holding.fetchValue(AdvisoryLocks.PERMISSION_MUTATION)
                 }
                 assertEquals(old, linked())
                 assertEquals(2, db.fetchCount(DSL.table("auth_sessions")))
