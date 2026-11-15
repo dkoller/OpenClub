@@ -180,7 +180,7 @@ paths:
       summary: Proposed authorized club/team capability grants (NOT IMPLEMENTED)
       description: >
         Internal team-specific VIEW_TEAMS and MANAGE_TEAMS grants exist in V4.
-        No HTTP grant listing, delegation or revoke endpoint exists. Only
+        An internal transactional grant/revoke service exists, but no HTTP grant listing, delegation or revoke endpoint exists. Only
         explicit permission-authorized ADMINs may eventually delegate, with
         last-manager, self-escalation and capability-scope checks. Do not expose
         the grant model before the authorization and privacy review.
