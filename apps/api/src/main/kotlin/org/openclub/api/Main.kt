@@ -2,6 +2,7 @@ package org.openclub.api
 
 import org.openclub.api.auth.*
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.club.installSingleClubRoutes
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +46,8 @@ fun main() {
         embeddedServer(Netty, port = port, host = "0.0.0.0") {
             module(login, authConfig?.cookies,
                 authConfig?.let { PostgresBrowserSessions(requireNotNull(database)) },
-                authConfig?.browserOrigin)
+                authConfig?.browserOrigin,
+                database = database)
         }.start(wait = true)
     } finally {
         runBlocking { cleanup?.cancelAndJoin() }
@@ -59,6 +61,7 @@ internal fun Application.module(
     sessions: BrowserSessionOperations? = null,
     publicOrigin: String? = null,
     authAdmission: AuthAdmissionLimiter = AuthAdmissionLimiter(),
+    database: DatabaseRuntime? = null,
 ) {
     routing {
         // Liveness only; this endpoint does not imply database readiness.
@@ -68,4 +71,5 @@ internal fun Application.module(
     }
     if (login != null) installBrowserLogin(login, requireNotNull(cookiePolicy), authAdmission)
     if (sessions != null) installSessionRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin))
+    if (sessions != null && database != null) installSingleClubRoutes(sessions, requireNotNull(cookiePolicy), database)
 }
