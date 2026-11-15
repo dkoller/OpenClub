@@ -1,6 +1,6 @@
 # R05 authentication implementation closeout (2026-11-14)
 
-**Status: proposed for human acceptance after this PR merges and CI passes.**
+**Status: R05 authentication engineering milestone accepted and issue #14 closed after merged PR #71 (2026-11-14).** This is a historical closeout evidence document, not a current request for acceptance.
 Parent: [R05/#14](https://github.com/dkoller/OpenClub/issues/14).
 This is an authentication implementation milestone, **not** approval to expose
 real club/member data or a public deployment.
@@ -15,7 +15,7 @@ real club/member data or a public deployment.
 | Issuer-pinned JWKS refresh and rotation verification | [#67](https://github.com/dkoller/OpenClub/pull/67), [#70](https://github.com/dkoller/OpenClub/pull/70) |
 | Process-local login/callback admission limits | [#68](https://github.com/dkoller/OpenClub/pull/68) |
 | Expired login/session record cleanup | [#69](https://github.com/dkoller/OpenClub/pull/69) |
-| JSON errors for all login/callback contract status codes | This closeout PR; requires CI and reviewer acceptance |
+| JSON errors for all login/callback contract status codes | Merged [PR #71](https://github.com/dkoller/OpenClub/pull/71); R05 engineering milestone accepted |
 
 The browser CI tests real Keycloak, PostgreSQL, login/logout, old-session
 revocation and signing-key rotation without restarting the API. Provider-outage
@@ -39,6 +39,4 @@ exercised through a real production-like network failure.
 - HTTPS reverse-proxy cookie behavior, operational deployment/backups and
   production-provider failure recovery require separate release acceptance.
 
-After merged-head CI and independent review, update the R05 issue's
-implementation checklist, cite the merged closeout PR, and close #14 **only
-as an engineering milestone**. Keep the distinct release gates open.
+R05/#14 was closed **only as an engineering milestone** after PR #71 merged. Keep the distinct release gates open. The original merge-commit CI verification note in #14 is historical; no fresh CI run is claimed here.
