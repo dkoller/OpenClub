@@ -2,7 +2,7 @@
 
 An open-source project exploring a free-to-use platform for clubs, starting with sports clubs and a floorball-club use case.
 
-**Status:** Single-club pre-production reset merged in [PR #79](https://github.com/dkoller/OpenClub/pull/79); PR-size enforcement restored in [PR #80](https://github.com/dkoller/OpenClub/pull/80). Verified OIDC login, guarded single-club lookup, four-language login landing, and fresh local schema exist. Bootstrap, member/team/grant workflows, privacy approval and production readiness remain unfinished.
+**Status:** Single-club pre-production reset merged in [PR #79](https://github.com/dkoller/OpenClub/pull/79); PR-size enforcement restored in [PR #80](https://github.com/dkoller/OpenClub/pull/80). Verified OIDC login, guarded single-club lookup, four-language login landing, and fresh local schema exist. The language selector honors a previously saved preference or the browser language (DE/EN/FR/IT), falls back to German, and stores the next selection locally; it does not send a language preference to the backend. Bootstrap, member/team/grant workflows, privacy approval and production readiness remain unfinished.
 
 ## Goal
 
