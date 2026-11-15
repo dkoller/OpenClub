@@ -79,7 +79,7 @@ Direct agent-to-agent clarification is allowed, but the result should be recorde
 7. Orchestrator integrates reviewed changes, and CI runs.
 8. Human reviews and approves the merge.
 
-Parallelize work *after* contracts are sufficiently stable. For a multi-tenant platform, club isolation and permissions are essential acceptance criteria.
+Parallelize work *after* contracts are sufficiently stable. For OpenClub's single-club-per-installation architecture, local authorization, capability boundaries, and independent database/secret isolation remain essential acceptance criteria.
 
 ## Example repository conventions
 
