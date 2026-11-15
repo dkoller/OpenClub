@@ -1,5 +1,7 @@
 package org.openclub.api.members
 
+import org.openclub.api.database.AdvisoryLocks
+
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import java.util.UUID
@@ -38,7 +40,7 @@ internal class CapabilityGrants(private val database: DSLContext) {
         return database.transactionResult { transaction ->
             val db = DSL.using(transaction)
             // Fixed installation-wide lock; both grants and revokes use the same order.
-            db.fetchValue("SELECT pg_advisory_xact_lock(672018, 3)")
+            db.fetchValue(AdvisoryLocks.PERMISSION_MUTATION)
             val actor = db.fetchOne(
                 """SELECT actor.id FROM members actor
                    JOIN club_capability_grants g ON g.member_id = actor.id
