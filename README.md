@@ -2,7 +2,7 @@
 
 An open-source project exploring a free-to-use platform for clubs, starting with sports clubs and a floorball-club use case.
 
-**Status:** Pre-production one-club reset in progress. Verified OIDC login, an authorized single-club lookup, a multilingual login landing and the fresh local schema are implemented on the reset branch; member/team/grant workflows and production readiness remain unfinished.
+**Status:** Single-club pre-production reset merged in [PR #79](https://github.com/dkoller/OpenClub/pull/79); PR-size enforcement restored in [PR #80](https://github.com/dkoller/OpenClub/pull/80). Verified OIDC login, guarded single-club lookup, four-language login landing, and fresh local schema exist. Bootstrap, member/team/grant workflows, privacy approval and production readiness remain unfinished.
 
 ## Goal
 
@@ -12,7 +12,7 @@ Help volunteers manage club administration without requiring expensive software 
 
 The pilot administrator approved a first usable release demonstrating **member management, team assignments and configurable club/team-scoped permissions** in **German, English, French and Italian**. Members may be entered before login; invitations come later. The first existing system targeted for replacement is Excel membership administration.
 
-Each club owns its member personal data independently: no cross-club sharing or auto-sync, even where one login belongs to multiple clubs. First/last names and date of birth are required for all; adult email and phone required, optional for minors; player gender required only if configured by that club. These are **requirements**, not implemented features or permission to use real personal data. See [accepted R01 pilot requirements](docs/concepts/product/r01-pilot-validation.md) and [R01/#10](https://github.com/dkoller/OpenClub/issues/10).
+Each independent installation owns its club's member data: no shared database, cross-installation data transfer, or automatic synchronization. First/last names and date of birth are required for all; adult email and phone required, optional for minors; player gender required only if configured by that club. These are **requirements**, not implemented features or permission to use real personal data. See [accepted R01 pilot requirements](docs/concepts/product/r01-pilot-validation.md) and [R01/#10](https://github.com/dkoller/OpenClub/issues/10).
 
 ## Project documents
 
@@ -40,4 +40,4 @@ Run locally with `docker compose up -d --build`; stop with `docker compose down`
 
 ## Deployment scope decision (2026-11-15)
 
-OpenClub targets **one club per installation**, with an independently operated database and configuration; the same open-source code can serve different clubs via separate deployments. The existing multi-club database model is historical foundation work and requires a safe migration before the new model is implemented. The proposal is tracked in [ADR-0005](docs/decisions/0005-single-club-installation.md) and [#74](https://github.com/dkoller/OpenClub/issues/74); it is not yet an implemented feature or permission to load live personal data.
+OpenClub targets **one club per installation**, with an independently operated database and configuration; the same open-source code can serve different clubs via separate deployments. The fresh single-club schema and basic authenticated club lookup are implemented in [PR #79](https://github.com/dkoller/OpenClub/pull/79) under [accepted ADR-0005](docs/decisions/0005-single-club-installation.md). Old development database volumes are **not migrated**: reset only deliberately disposable pre-production data, as documented in the [deployment guide](docs/deployment/single-club.md). This is **not** production/privacy approval.

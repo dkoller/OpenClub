@@ -1,6 +1,6 @@
 # ADR-0005: One club per independent OpenClub installation
 
-- **Status:** Architecture accepted by owner on 2026-11-15; implementation in progress, not production approved
+- **Status:** Accepted architecture; pre-production schema/auth foundation merged in PR #79 on 2026-11-15; further implementation and production/privacy approval outstanding
 - **Supersedes:** Multi-tenant/global-person and club-switching assumptions from ADR-0002, early MVP proposal and R01 historical scenario
 - **Work:** [#74](https://github.com/dkoller/OpenClub/issues/74), [R04/#13](https://github.com/dkoller/OpenClub/issues/13), [R06/#15](https://github.com/dkoller/OpenClub/issues/15), [R18/#27](https://github.com/dkoller/OpenClub/issues/27)
 
@@ -10,7 +10,7 @@ Exactly **one club per deployment and PostgreSQL database**, reusable for any sp
 
 A club's administrator can create member records without login. Verified OIDC accounts may later be explicitly linked to local members. Login alone grants no member or administrator authority; never adopt member records by matching email/name. Club-wide and team-specific capabilities, multiple team assignments, and four supported languages (DE/EN/FR/IT) remain required for the first usable release.
 
-## Pre-production schema reset in PR #79
+## Pre-production schema reset (merged PR #79)
 
 The owner confirmed **no live database exists** and authorized replacing, not incrementally upgrading, the old schema. Historical Flyway V1–V4 SQL files are removed and replaced by **fresh `V1__single_club.sql`**:
 

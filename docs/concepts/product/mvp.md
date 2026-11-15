@@ -1,6 +1,6 @@
 # OpenClub MVP proposal
 
-**Status:** Historical MVP proposal (14 November 2026). First-release requirements and one-club-per-installation architecture accepted 15 November 2026 supersede scope below. See [pilot worksheet](r01-pilot-validation.md).
+**Status:** Historical MVP proposal (14 November 2026), not current implementation guidance. First-release requirements and one-club-per-installation architecture accepted 15 November 2026 supersede scope below. See [pilot worksheet](r01-pilot-validation.md).
 
 ## Problem
 
