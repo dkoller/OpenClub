@@ -105,6 +105,17 @@ class SingleClubRoutesTest {
                 }
                 assertEquals(HttpStatusCode.Forbidden, unlinked.status)
                 assertEquals("no-store", unlinked.headers[HttpHeaders.CacheControl])
+                runBlocking {
+                    database.onDatabaseThread {
+                        it.execute("UPDATE members SET account_id = ? WHERE id = ?", account, member)
+                    }
+                }
+                val relinked = client.get("/api/v1/club") {
+                    header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                }
+                assertEquals(HttpStatusCode.OK, relinked.status)
+                assertEquals("no-store", relinked.headers[HttpHeaders.CacheControl])
+                assertEquals("""{"id":"$club"}""", relinked.bodyAsText())
             }
         } finally {
             runBlocking {
