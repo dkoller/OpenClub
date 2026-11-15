@@ -1,6 +1,6 @@
 # OpenClub delivery roadmap
 
-**Last reviewed:** 2026-11-15 · **Status:** R01 requirements complete; one-club-per-installation architecture chosen, implementation migration pending · **Source of truth for open work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
+**Last reviewed:** 2026-11-15 · **Status:** R01 complete; one-club reset and local auth landing under implementation in PR #79, member/team/permission release gates open · **Source of truth for open work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
 
 This roadmap inventories the work identified in the [original first-milestone plan](concepts/ai/first-milestone.md), [MVP proposal](concepts/product/mvp.md), accepted [stack ADR](decisions/0001-stack-selection.md), and [identity ADR](decisions/0002-identity-and-membership-model.md). The numbered **R01–R22** items are priority/dependency order, **not dates or commitments**. Each implementation PR stays below **1,000 added + deleted lines** and requires CI and human review.
 
@@ -138,4 +138,7 @@ R01 [#10](https://github.com/dkoller/OpenClub/issues/10) closed after merged [PR
 
 **Scope changes:** R07/#16 becomes one-time initial club/administrator setup; R08/#17 one-club settings/profile APIs rather than club creation/listing; R12/#21 sign-in and local landing without club switcher; R06/#15 local capability/team authorization without multi-tenant routing. R15/#24 must test singleton-club invariants, installation/database separation and privilege boundaries, rather than rely only on multi-club tests inside one database. R19/#28 must test the same accepted member/team/permission workflows within one club. #75 and #76 remain first-release requirements. R18/#27 must cover independent per-club hosting, costs, backups, upgrades and recovery.
 
-**Gate:** Before implementing the changed endpoints or deleting legacy tables, resolve and test migration for existing databases (including any legacy multi-club state), accountless member creation, OIDC account linking, first-admin authorization and preservation of login/session behavior. R03 privacy and the unapproved R04 OpenAPI contract remain blockers to handling real member data. See proposed [ADR-0005](decisions/0005-single-club-installation.md) and [#74](https://github.com/dkoller/OpenClub/issues/74).
+**Gate:** The owner authorized a fresh pre-production database reset: old Flyway V1–V4 history is deliberately replaced by new V1; existing volumes must fail without automated data loss. Before live use, validate accountless member creation, verified linking, first-admin authorization, database separation and preservation of login/session behavior. R03 privacy and the unapproved R04 OpenAPI contract remain blockers to handling real member data. See proposed [ADR-0005](decisions/0005-single-club-installation.md) and [#74](https://github.com/dkoller/OpenClub/issues/74).
+
+
+**Implementation status on reset PR #79:** The fresh database schema enforces one club row and local accounts/members. A guarded `GET /api/v1/club` (401/403/200) and four-language sign-in landing are present; other R08/R12 UI and R06 capability work are **not yet complete**. Independent-deployment runbook: [single-club operations](deployment/single-club.md). Full Kotlin/CI and production acceptance are separate from the architecture decision.

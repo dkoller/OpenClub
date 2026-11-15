@@ -57,3 +57,8 @@
 - [RFC 10017 — OAuth 2.0 for Browser-Based Applications](https://www.rfc-editor.org/rfc/rfc10017)
 - [OWASP — CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
 - [Nimbus OIDC SDK](https://connect2id.com/products/nimbus-oauth-openid-connect-sdk)
+
+
+## Current single-club implementation (2026-11-15)
+
+This was an early security design. The OIDC BFF/session architecture is implemented; the old proposed tenant-safe `404` across clubs is superseded by **one club per installation**. The local `GET /api/v1/club` returns 401 for no session and 403 for an authenticated but unlinked account. Cross-installation data isolation is an operations/database boundary, and club/team permissions remain R06/#76 work. See [ADR-0005](../decisions/0005-single-club-installation.md).
