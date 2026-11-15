@@ -99,6 +99,8 @@ jobs:
           exit 1
       - name: Start real frontend and test proxied API
         working-directory: apps/web
+        env:
+          API_PROXY_TARGET: http://127.0.0.1:8080
         run: |
           set -euo pipefail
           pnpm install --frozen-lockfile
