@@ -1,6 +1,6 @@
 # R01 — Pilot workflow validation
 
-**Status:** Pilot administrator approved the synthetic requirements acceptance target on 2026-11-15. Worksheet PR #72 merged; follow-up member-field policy PR #73 and R01 closeout remain pending.
+**Status:** R01 requirements discovery accepted and issue #10 closed on 2026-11-15; PRs #72 and #73 merged. This is not runtime, privacy or production acceptance.
 **Related:** [R01/#10](https://github.com/dkoller/OpenClub/issues/10), [ADR-0004](../../decisions/0004-member-policy.md), [R03/#12](https://github.com/dkoller/OpenClub/issues/12), [R04/#13](https://github.com/dkoller/OpenClub/issues/13)
 
 ## Purpose and evidence rules
@@ -68,7 +68,7 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 | --- | --- | --- |
 | Pilot organization or representative identified (use non-identifying reference only) | _Real floorball club confirmed by owner; club identity not recorded publicly_ | Owner-confirmed |
 | Stakeholder role and relevant experience | _Owner reports direct involvement in club administration and can validate workflow_ | Owner-confirmed |
-| Interview/review date and format | _2026-11-15: interactive owner/administrator discovery in chat; proposed acceptance script not yet formally reviewed or signed off_ | In progress |
+| Interview/review date and format | _2026-11-15: interactive owner/administrator discovery in chat; the administrator subsequently approved the synthetic acceptance scenario_ | Requirements accepted |
 | Current workflow (spreadsheet, chat, other) and top administrative pain point | _Owner reports fragmented Excel, WordPress, XPS, helfereinsatz.ch and other systems; independent pilot verification pending_ | Partially captured |
 | When and by whom member records are first entered | _Not confirmed_ | Pending |
 | Can members exist without accounts? | _Owner preference: yes; pilot unconfirmed_ | Pending |
@@ -130,6 +130,6 @@ The first release must support German, English, French and Italian. Its initial 
 - [x] Pilot administrator explicitly approved the three-workflow synthetic requirements scenario on 2026-11-15.
 - [x] Privacy concerns linked to R03 and new team/scoped-permission contract and authorization work flagged for R04/R06/R10; detailed follow-up implementation issues still to be scoped.
 - [x] Pilot worksheet PR #72 merged (user-confirmed 2026-11-15).
-- [ ] Player-field policy follow-up PR #73 reviewed and merged; R01 closeout decision recorded under issue #10.
+- [x] Member-field policy follow-up PR #73 merged; R01/#10 closed as a requirements-discovery milestone. Runtime and privacy gates remain open.
 
 **Testing:** Documentation-only change. No code or integration tests are claimed. Keep #10 open until evidence and human sign-off are documented.

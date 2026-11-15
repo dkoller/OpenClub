@@ -1,6 +1,6 @@
 # ADR-0004: MVP membership, visibility and lifecycle policies
 
-- **Status:** Accepted product direction; release-specific privacy and operational details still require approval
+- **Status:** Historical accepted baseline; R01 2026-11-15 requirements supersede field, access and MVP-scope assumptions below; privacy approval remains open
 - **Date:** 2026-11-14
 - **Related:** [R01 #10](https://github.com/dkoller/OpenClub/issues/10), [R03 #12](https://github.com/dkoller/OpenClub/issues/12), [R04 #13](https://github.com/dkoller/OpenClub/issues/13), [privacy finding #36](https://github.com/dkoller/OpenClub/issues/36)
 
@@ -27,3 +27,16 @@ The precise contact visibility for minors, controllers/processors, retention sch
 5. Verified invitations/account linking, then archive/export/erasure and configurable retention as separate PRs.
 
 Every behavior change must update OpenAPI, docs and tests in its own PR; each PR must stay **below 1,000 changed lines**.
+
+
+## Superseding pilot decisions (2026-11-15; R01 closed)
+
+Merged [PR #72](https://github.com/dkoller/OpenClub/pull/72) and [PR #73](https://github.com/dkoller/OpenClub/pull/73) record requirements accepted by the pilot club administrator. The earlier numbered decisions above are kept as historical context but **must not be used as the current member-field or authorization contract** where contradicted:
+
+- **Per-club personal data:** Names, contacts, date of birth, gender and other member details belong to individual club records. Even where a single OIDC identity is associated with several clubs, do not share, synchronize, auto-fill, infer or expose one club's personal data to another. Review ADR-0002's global `person` design before member CRUD.
+- **Required fields:** First name, last name and **date of birth** for every person. **Email and phone both required for adults**, optional for minors. Set the applicable age threshold explicitly in R03/R04; do not silently assume a value.
+- **Gender:** Optional except when the club explicitly requires it for its players; avoid a sport-based hardcoded default and a binary-only assumption. Define gender options and privacy controls under R03/R04.
+- **Authorization:** Configurable capability grants scoped to a club or individual team; **only explicitly permission-authorized club administrators** manage grants. Organizational functions (board, coach, guardian, volunteer, player) are not fixed security roles. Prevent privilege escalation and loss of the final authorized administrator. The old ADMIN/MEMBER model is only an implementation starting point, not the final accepted permission system.
+- **First usable release:** Member management, team assignments and configurable permissions, with German, English, French and Italian supported. The detailed Excel inventory/import/migration requirements are intentionally deferred; invitations remain later.
+
+The former policy proposing universal same-club access to contact data is **not privacy approval**. R03 must resolve minors' contact visibility, birth-date/gender access, data minimization, lawful basis and retention before real records. Track the schema, teams and permissions follow-ups in [#74](https://github.com/dkoller/OpenClub/issues/74), [#75](https://github.com/dkoller/OpenClub/issues/75) and [#76](https://github.com/dkoller/OpenClub/issues/76). R04/R06/R10 must specify safe club-local data/permission contracts and tests. These product decisions do not imply functionality is implemented.

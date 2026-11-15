@@ -30,3 +30,10 @@ When auth is implemented: validate signature, issuer, audience, expiry and other
 ## Deferred
 
 Invitations, membership status/lifecycle, contact details, guardian relationships, deletion workflows, multi-role assignments, organization hierarchy and sport-specific roles are intentionally omitted until requested by the first pilot.
+
+
+## Superseding R01 product requirements (2026-11-15; design reconciliation required)
+
+The original accepted schema in this ADR is historical evidence of the implemented foundation, **not** acceptance of its suitability for the current member-data policy. Merged R01 PRs [#72](https://github.com/dkoller/OpenClub/pull/72) and [#73](https://github.com/dkoller/OpenClub/pull/73) require **strictly club-local personal data**: name, contact information, date of birth, gender and any future personal details must never be read, copied, inferred, auto-filled or synchronized between clubs, even when one verified OIDC identity is related to more than one club. Globally resolved authentication references may support login, but must not themselves expose a cross-club personal directory.
+
+The existing global `person` and `memberships (club_id, person_id)` design must be reviewed before implementing member CRUD, including the definition of club-owned records, DTO boundaries, identity linkage and safe migrations. Do **not** assume adding fields to the global `person` table satisfies this requirement. Document any new architecture in an explicit follow-up ADR; do not rewrite the history of schema V2. Track the dedicated reconciliation under [#74](https://github.com/dkoller/OpenClub/issues/74), and coordinate with [R04/#13](https://github.com/dkoller/OpenClub/issues/13) and [R06/#15](https://github.com/dkoller/OpenClub/issues/15), with privacy review under [R03/#12](https://github.com/dkoller/OpenClub/issues/12). No live club-member records until isolation is implemented and tested.

@@ -1,6 +1,6 @@
 # OpenClub MVP proposal
 
-**Status:** Proposal for discussion, 14 November 2026.
+**Status:** Historical MVP proposal (14 November 2026); R01 pilot requirements accepted 15 November 2026 supersede scope below. See [pilot worksheet](r01-pilot-validation.md).
 
 ## Problem
 
@@ -53,3 +53,10 @@ Payments, accounting, event scheduling, tournaments, live scores, federation int
 5. Which stack best fits contributors and zero/low-cost hosting?
 
 Avoid implementing speculative requirements until these choices are reviewed.
+
+
+## Accepted pilot direction (2026-11-15; supersedes earlier proposal where inconsistent)
+
+The pilot floorball club uses disconnected Excel, WordPress, XPS, helfereinsatz.ch and other software. OpenClub aims to **replace** these tools progressively and be the source of truth **within each club**, rather than act as an integration hub or use a shared cross-club directory. Excel membership/administration is the first replacement; spreadsheet field inventory and migration/import behavior are deferred.
+
+The initial usable release must demonstrate member creation/search/edit/archive, team assignments and configurable **club/team-scoped** permission grants, in German, English, French and Italian. Club administrators explicitly authorized for permission management alone can grant/revoke capabilities. Personal data must **never be shared between clubs**, even for one authenticated identity. Names and date of birth are mandatory for all; both phone and email mandatory for adults, optional for minors; gender mandatory for players only if their club requires it. Adulthood threshold, privacy for minors and details of technical storage/authorization require follow-up design under R03/R04/R06. The pilot administrator accepted this *synthetic requirements scenario*, not an implemented release; see [R01/#10](https://github.com/dkoller/OpenClub/issues/10) and [R19/#28](https://github.com/dkoller/OpenClub/issues/28).
