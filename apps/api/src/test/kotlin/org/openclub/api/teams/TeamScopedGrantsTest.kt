@@ -123,6 +123,11 @@ class TeamScopedGrantsTest {
                 assertFalse(access.hasForTeam(coachAccount, adults, manage))
                 assertFalse(ops.assign(coachAccount, adults, player))
                 assertTrue(ops.list(coachAccount).isEmpty())
+                // Deleting the local member also deletes their scoped permissions.
+                db.execute("DELETE FROM members WHERE id = ?", coach)
+                assertEquals(0, db.fetchValue(
+                    "SELECT COUNT(*) FROM team_capability_grants WHERE member_id = ?", coach))
+                assertFalse(access.hasForTeam(coachAccount, adults, manage))
                 db.execute("DELETE FROM teams WHERE id = ?", adults)
                 assertEquals(0, db.fetchOne(
                     "SELECT COUNT(*) AS total FROM team_capability_grants"
