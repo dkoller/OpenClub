@@ -177,7 +177,13 @@ paths:
     get:
       tags: [Permissions]
       operationId: listLocalGrants
-      summary: Proposed authorized club/team capability grants (not implemented)
+      summary: Proposed authorized club/team capability grants (NOT IMPLEMENTED)
+      description: >
+        Internal team-specific VIEW_TEAMS and MANAGE_TEAMS grants exist in V4.
+        No HTTP grant listing, delegation or revoke endpoint exists. Only
+        explicit permission-authorized ADMINs may eventually delegate, with
+        last-manager, self-escalation and capability-scope checks. Do not expose
+        the grant model before the authorization and privacy review.
       responses:
         '200':
           description: Scoped grants; only authorized permission managers
@@ -279,11 +285,19 @@ components:
         name: { type: string, minLength: 1, maxLength: 200 }
         memberCount: { type: integer, minimum: 0 }
     Grant:
+      description: >
+        Proposed DTO, not an approved API. Team-scoped grants currently
+        permit only VIEW_TEAMS or MANAGE_TEAMS; the database rejects other
+        team capabilities. A TEAM scope requires a real installation-local
+        teamId. No arbitrary team IDs, ADMIN promotion or account linking.
       type: object
+      additionalProperties: false
       required: [memberId, capability, scope]
       properties:
         memberId: { type: string, format: uuid }
-        capability: { type: string }
+        capability:
+          type: string
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS]
         scope: { type: string, enum: [CLUB, TEAM] }
         teamId: { type: string, format: uuid }
     Error:
