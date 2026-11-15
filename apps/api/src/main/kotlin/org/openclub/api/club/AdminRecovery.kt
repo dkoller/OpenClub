@@ -42,6 +42,12 @@ internal class AdminRecovery(private val database: DSLContext) {
                 "SELECT 1 FROM account_identities WHERE account_id = ? LIMIT 1",
                 input.replacementAccountId,
             ) != null) { "Replacement account must have a verified OIDC identity" }
+            // Serialize concurrent session INSERTs through their FK's account-row
+            // lock, so a pre-recovery login cannot escape session revocation.
+            check(db.fetchOne(
+                "SELECT 1 FROM accounts WHERE id = ? FOR UPDATE",
+                input.replacementAccountId,
+            ) != null) { "Replacement account does not exist" }
             check(db.fetchOne(
                 "SELECT 1 FROM members WHERE account_id = ? LIMIT 1",
                 input.replacementAccountId,
