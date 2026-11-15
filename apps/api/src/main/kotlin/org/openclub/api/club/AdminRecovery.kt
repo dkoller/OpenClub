@@ -33,8 +33,8 @@ internal class AdminRecovery(private val database: DSLContext) {
                 input.adminMemberId, input.oldAccountId,
             ) != null) { "Administrator member and previous account do not match" }
             // Recovery must not be usable as an alternative to normal admin management.
-            check(db.fetchCount(DSL.table("members")
-                .where(DSL.field("role").eq("ADMIN"))) == 1) {
+            check(db.fetchOne("SELECT COUNT(*) AS total FROM members WHERE role = 'ADMIN'")
+                ?.get("total", Int::class.java) == 1) {
                 "Recovery is limited to installations with exactly one administrator"
             }
             check(db.fetchOne(
