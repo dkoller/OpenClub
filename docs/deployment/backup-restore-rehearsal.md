@@ -17,6 +17,7 @@ Compose project. Set a restrictive file-creation mask before redirecting a dump:
 
 ```sh
 umask 077
+docker compose -p openclub_source up -d --build
 docker compose -p openclub_source ps
 docker compose -p openclub_source exec -T postgres \
   pg_dump -U openclub -d openclub --format=custom --no-owner \
