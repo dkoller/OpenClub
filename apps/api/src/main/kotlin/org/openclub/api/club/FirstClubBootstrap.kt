@@ -34,7 +34,7 @@ internal class FirstClubBootstrap(private val database: DSLContext) {
         return database.transactionResult { configuration ->
             val db = DSL.using(configuration)
             // Serialize competing bootstrap attempts, even from different processes.
-            db.execute("SELECT pg_advisory_xact_lock(672018, 1)")
+            db.fetchValue("SELECT pg_advisory_xact_lock(672018, 1)")
             check(db.fetchValue("SELECT COUNT(*) FROM clubs", Int::class.java) == 0) {
                 "Club already initialized"
             }
