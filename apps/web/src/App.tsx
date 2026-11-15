@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { loadClubAccess, signOut, type ClubAccess } from './auth'
+import { readPreferredLanguage, type Language } from './language'
 
-type Language = 'de' | 'en' | 'fr' | 'it'
 const translations = {
   de: { heading: 'Willkommen bei OpenClub', intro: 'Eine Installation für einen Verein.', loading: 'Anmeldung wird geprüft…', signedOut: 'Bitte anmelden.', notMember: 'Für dieses Konto besteht noch keine Vereinsmitgliedschaft.', ready: 'Angemeldet und für diesen Verein berechtigt.', unavailable: 'Dienst momentan nicht verfügbar.', login: 'Anmelden', logout: 'Abmelden', error: 'Abmelden fehlgeschlagen.', language: 'Sprache' },
   en: { heading: 'Welcome to OpenClub', intro: 'One installation for one club.', loading: 'Checking sign-in…', signedOut: 'Please sign in.', notMember: 'This account is not yet a club member.', ready: 'Signed in and authorized for this club.', unavailable: 'Service temporarily unavailable.', login: 'Sign in', logout: 'Sign out', error: 'Could not sign out.', language: 'Language' },
@@ -10,7 +10,7 @@ const translations = {
 } satisfies Record<Language, Record<string, string>>
 
 export function App() {
-  const [language, setLanguage] = useState<Language>('de')
+  const [language, setLanguage] = useState<Language>(readPreferredLanguage)
   const [access, setAccess] = useState<ClubAccess | null>(null)
   const [error, setError] = useState(false)
   const words = translations[language]
@@ -20,6 +20,15 @@ export function App() {
     void loadClubAccess().then(result => { if (active) setAccess(result) })
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    document.documentElement.lang = language
+    try {
+      window.localStorage.setItem('openclub.language', language)
+    } catch {
+      // Browsers may disable storage; the selector still works for this visit.
+    }
+  }, [language])
 
   async function logout() {
     if (access?.state !== 'ready') return
