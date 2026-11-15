@@ -43,6 +43,17 @@ INSERT INTO members (id, first_name, last_name, date_of_birth, email, phone, arc
 VALUES ('44444444-4444-4444-8444-444444444444', 'Archived', 'Synthetic',
         DATE '1990-01-01', 'archived@example.invalid', '+41000000001',
         TIMESTAMPTZ '2026-01-01 00:00:00+00');
+-- Recovery must not bring back login sessions or unfinished OIDC handshakes.
+INSERT INTO accounts (id) VALUES ('55555555-5555-4555-8555-555555555555');
+INSERT INTO auth_sessions
+  (session_hash, account_id, csrf_token, idle_expires_at, absolute_expires_at)
+VALUES (repeat('a', 64), '55555555-5555-4555-8555-555555555555',
+        repeat('x', 43), CURRENT_TIMESTAMP + interval '1 hour',
+        CURRENT_TIMESTAMP + interval '1 day');
+INSERT INTO oidc_login_transactions
+  (state_hash, browser_hash, nonce, code_verifier, expires_at)
+VALUES (repeat('b', 64), repeat('c', 64), repeat('n', 43),
+        repeat('v', 43), CURRENT_TIMESTAMP + interval '5 minutes');
 INSERT INTO teams (id, name) VALUES
   ('33333333-3333-4333-8333-333333333333', 'Synthetic Team');
 INSERT INTO member_team_assignments (team_id, member_id) VALUES
@@ -110,6 +121,8 @@ SELECT CASE WHEN
        WHERE member_id = '44444444-4444-4444-8444-444444444444'::uuid)
   AND (SELECT COUNT(*) FROM club_capability_grants) = 1
   AND (SELECT COUNT(*) FROM team_capability_grants) = 1
+  AND (SELECT COUNT(*) FROM auth_sessions) = 1
+  AND (SELECT COUNT(*) FROM oidc_login_transactions) = 1
   AND (SELECT COUNT(*) FROM flyway_schema_history WHERE success) =
       :'expected_migrations'::integer
 THEN 'RESTORE_OK' ELSE 'RESTORE_FAILED' END;
@@ -117,6 +130,23 @@ SQL
 )"
 if [[ "$result" != "RESTORE_OK" ]]; then
   echo "Restore fixture/integrity verification failed: $result" >&2
+  exit 1
+fi
+# A restored snapshot can resurrect previously revoked sessions or replayable
+# pending login states. Discard both before the API can accept browser traffic.
+docker compose -p "$restore_project" exec -T postgres \
+  psql -v ON_ERROR_STOP=1 -U openclub -d openclub <<'SQL'
+BEGIN;
+DELETE FROM auth_sessions;
+DELETE FROM oidc_login_transactions;
+COMMIT;
+SQL
+remaining_auth="$(docker compose -p "$restore_project" exec -T postgres \
+  psql -qAt -v ON_ERROR_STOP=1 -U openclub -d openclub \
+  -c "SELECT (SELECT COUNT(*) FROM auth_sessions) +
+             (SELECT COUNT(*) FROM oidc_login_transactions)")"
+if [[ "$remaining_auth" != 0 ]]; then
+  echo "Restore left active sessions or unfinished OIDC login transactions" >&2
   exit 1
 fi
 # A recovered database is only useful if OpenClub can boot against it.
