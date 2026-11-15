@@ -69,6 +69,13 @@ describe('single-club session', () => {
     expect(await loadClubAccess(request)).toEqual({ state: 'unavailable' })
   })
 
+  it('treats an already expired session as signed out, but not other logout failures', async () => {
+    for (const [status, expected] of [[204, true], [401, true], [403, false], [503, false]] as const) {
+      const request = vi.fn().mockResolvedValue({ status })
+      expect(await signOut('secret', request)).toBe(expected)
+    }
+  })
+
   it('sends CSRF token and an empty JSON body for logout', async () => {
     const request = vi.fn().mockResolvedValue({ status: 204 })
     expect(await signOut('secret', request)).toBe(true)

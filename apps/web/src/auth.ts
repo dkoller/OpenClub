@@ -50,7 +50,7 @@ export async function signOut(csrfToken: string, request: typeof fetch = fetch):
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
       body: '{}',
     })
-    return result.status === 204
+    return result.status === 204 || result.status === 401
   } catch {
     return false
   }
