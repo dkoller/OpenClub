@@ -52,3 +52,8 @@ The project owner chose configurable new-club creation (approval by default), ma
 ## Accepted pilot supersession (2026-11-15)
 
 The first release now targets Excel membership administration, **member management + team assignments + configurable club/team-scoped grants**, in German, English, French and Italian. Member records can exist without login. First name, last name and date of birth are mandatory for all; email and phone mandatory for adults, optional minors; gender required for players only when configured by the club. **Personal fields remain local to each club** even if one verified identity has memberships in several clubs. The old table's unconfirmed pilot/member/provider/language entries are superseded. Requirements were accepted, not implemented; R03/R04/R06/R19 remain open. Excel columns/import/migration remain deferred.
+
+
+## Single-club architecture correction (2026-11-15)
+
+The owner subsequently selected exactly **one club per independent installation**, not a two-club login/switching journey. The earlier scenario and multi-club paragraphs are historical. The accepted fields, member/team/permission workflows and four languages remain, but a second-club creation attempt must be rejected within one installation. This is tracked in [ADR-0005](../decisions/0005-single-club-installation.md), #74 and the R19 synthetic demo; no real data should be used.

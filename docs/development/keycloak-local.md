@@ -1,6 +1,6 @@
 # Local Keycloak development identity provider
 
-**Scope:** Optional local OIDC test provider for [R05/#14](https://github.com/dkoller/OpenClub/issues/14), not an authentication implementation or production configuration. No user login flow is wired into Ktor/React yet. This setup is intentionally separate from the normal `docker compose up` path.
+**Scope:** Optional local OIDC test provider for [R05/#14](https://github.com/dkoller/OpenClub/issues/14), not an authentication implementation or production configuration. R05 implemented and tested Ktor OIDC login and sessions. The first-release web UI now has an installation-local sign-in landing; no real member data is enabled. This setup is intentionally separate from the normal `docker compose up` path.
 
 ## Start a fresh local instance
 
@@ -23,7 +23,7 @@ The imported realm `openclub-dev` intentionally contains **no preset users, pass
 
 ## Configure a test OIDC client
 
-In the Keycloak admin console, choose the `openclub-dev` realm and create an OIDC client named `openclub-bff` with **Client authentication ON** (confidential client), Standard flow ON, Direct access grants OFF, and implicit flow OFF. Use a narrowly scoped local callback URI such as `http://localhost:5173/api/v1/auth/callback`; do not use wildcard redirect URIs or production credentials. When the login implementation is added, require PKCE S256 and wire the client ID and generated secret through runtime configuration outside source control.
+In the Keycloak admin console, choose the `openclub-dev` realm and create an OIDC client named `openclub-bff` with **Client authentication ON** (confidential client), Standard flow ON, Direct access grants OFF, and implicit flow OFF. Use a narrowly scoped local callback URI such as `http://localhost:5173/api/v1/auth/callback`; do not use wildcard redirect URIs or production credentials. The implemented login requires PKCE S256 and wire the client ID and generated secret through runtime configuration outside source control.
 
 For reproducible synthetic browser-login tests, an **optional** [Keycloak fixture provisioning script](keycloak-e2e-fixtures.md) can create a restricted confidential client and test user with runtime-generated credentials. Normal startup still creates no users or clients; fixture provisioning is explicit and must never be used with real member data.
 
@@ -46,7 +46,7 @@ docker compose -f compose.yaml -f compose.auth.dev.yaml exec -T api \
 
 The `oidc-backchannel` service shares the API network namespace (`network_mode: service:api`) and serves a **loopback-only** `127.0.0.1:8180` proxy to `keycloak:8080`. This does **not** publish the proxy to the host or other containers. Keycloak continues to advertise `http://localhost:8180/realms/openclub-dev`; signed ID-token `iss` and discovery must match that exact string. The CI Compose smoke test fetches discovery and JWKS through this API-internal path, compares host/container issuer and checks API health.
 
-This is **development-only**: loopback HTTP, Keycloak's `start-dev` mode and the optional proxy must not ship as production defaults. Do not modify `OidcSettings` to accept arbitrary HTTP issuer hosts. Docker service startup does not imply a login works: an OIDC client, callback, sessions and the actual Ktor auth routes remain unconfigured. If the API container is replaced/recreated, restart the sharing proxy too: `docker compose -f compose.yaml -f compose.auth.dev.yaml up -d --force-recreate oidc-backchannel`.
+This is **development-only**: loopback HTTP, Keycloak's `start-dev` mode and the optional proxy must not ship as production defaults. Do not modify `OidcSettings` to accept arbitrary HTTP issuer hosts. Docker startup alone does not imply a login works: a separately configured OIDC client, callback, sessions and a verified member link are still required. If the API container is replaced/recreated, restart the sharing proxy too: `docker compose -f compose.yaml -f compose.auth.dev.yaml up -d --force-recreate oidc-backchannel`.
 
 ## Restart, reset and verify
 
@@ -72,7 +72,7 @@ KEYCLOAK_DEV_ADMIN_PASSWORD=temporary-only-for-compose-validation \
   docker compose -f compose.yaml -f compose.auth.dev.yaml config --quiet
 ```
 
-The command validates Compose syntax only and does **not** start the identity provider or test OIDC authentication. See [BFF security design](../security/oidc-bff-design.md) and [ADR-0003](../decisions/0003-oidc-session-proposal.md) for security requirements. No HTTP auth endpoints or OpenAPI behavior change in this PR.
+The command validates Compose syntax only and does **not** start the identity provider or test OIDC authentication. See [BFF security design](../security/oidc-bff-design.md) and [ADR-0003](../decisions/0003-oidc-session-proposal.md) for security requirements. This is a development-only provider guide; the current HTTP auth contract and installation-local club lookup are documented separately.
 
 ### JWKS rotation troubleshooting
 

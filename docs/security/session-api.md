@@ -9,7 +9,7 @@ Only that exact Origin header is accepted for logout; inbound headers are never 
 Forwarded/Host headers never establish trust.
 
 After browser login, same-origin GET /api/v1/auth/me with the HttpOnly session
-cookie returns only personId and csrfToken. Unknown, malformed, expired and
+cookie returns only accountId and csrfToken. Unknown, malformed, expired and
 revoked sessions return 401; storage failure returns generic 503.
 All session responses carry Cache-Control: no-store. No OAuth token or club
 membership/role is returned. Do not log the response's CSRF token.
@@ -39,3 +39,6 @@ cleanup are now implemented; see [browser verification](../development/auth-brow
 R05 closeout requires CI and review; privacy, club authorization, first-admin
 bootstrap and web proxy integration remain release gates. No UI or club
 functionality is added.
+
+
+**Single-club scope:** `accountId` is an installation-local authentication reference, not member authorization. The local club may be read only through `GET /api/v1/club` with an authorized linked member; there is no club switcher.
