@@ -89,6 +89,9 @@ class CapabilityGrantsTest {
                 assertEquals(CapabilityGrants.Change.DENIED,
                     grants.grant(account, secondAdmin, managePermissions, clubScope))
                 db.execute("UPDATE members SET account_id = ? WHERE id = ?", outsider, secondAdmin)
+                // No-op revoke must not be rejected as a last-manager lockout.
+                assertEquals(CapabilityGrants.Change.UNCHANGED,
+                    grants.revoke(account, secondAdmin, managePermissions, clubScope))
                 assertEquals(CapabilityGrants.Change.GRANTED,
                     grants.grant(account, secondAdmin, managePermissions, clubScope))
                 assertEquals(CapabilityGrants.Change.REVOKED,
