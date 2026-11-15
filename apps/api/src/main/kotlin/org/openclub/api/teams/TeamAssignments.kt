@@ -5,7 +5,8 @@ import java.util.UUID
 
 /**
  * Internal team operations. actorAccountId must come from a verified session.
- * No HTTP route exists; team-scoped delegation is separately tracked in #76.
+ * No HTTP route exists. Team grants allow scoped assignment mutations and
+ * visibility; team creation/rename/deletion remain strictly club-wide.
  */
 internal class TeamAssignments(private val database: DSLContext) {
     data class Team(val id: UUID, val name: String, val memberCount: Int)
@@ -55,11 +56,15 @@ internal class TeamAssignments(private val database: DSLContext) {
                JOIN members member ON member.id = ?
                WHERE team.id = ? AND EXISTS (
                    SELECT 1 FROM members actor
-                   JOIN club_capability_grants grants ON grants.member_id = actor.id
-                   JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND grants.capability = 'MANAGE_TEAMS'
+                   WHERE actor.account_id = ? AND (
+                       EXISTS (SELECT 1 FROM club_capability_grants g
+                               WHERE g.member_id = actor.id AND g.capability = 'MANAGE_TEAMS')
+                       OR EXISTS (SELECT 1 FROM team_capability_grants g
+                                  WHERE g.member_id = actor.id AND g.team_id = ?
+                                    AND g.capability = 'MANAGE_TEAMS')
+                   )
                ) ON CONFLICT DO NOTHING""",
-            memberId, teamId, actorAccountId,
+            memberId, teamId, actorAccountId, teamId,
         ) == 1
 
     fun unassign(actorAccountId: UUID, teamId: UUID, memberId: UUID): Boolean =
@@ -67,11 +72,15 @@ internal class TeamAssignments(private val database: DSLContext) {
             """DELETE FROM member_team_assignments
                WHERE team_id = ? AND member_id = ? AND EXISTS (
                    SELECT 1 FROM members actor
-                   JOIN club_capability_grants grants ON grants.member_id = actor.id
-                   JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND grants.capability = 'MANAGE_TEAMS'
+                   WHERE actor.account_id = ? AND (
+                       EXISTS (SELECT 1 FROM club_capability_grants g
+                               WHERE g.member_id = actor.id AND g.capability = 'MANAGE_TEAMS')
+                       OR EXISTS (SELECT 1 FROM team_capability_grants g
+                                  WHERE g.member_id = actor.id AND g.team_id = ?
+                                    AND g.capability = 'MANAGE_TEAMS')
+                   )
                )""",
-            teamId, memberId, actorAccountId,
+            teamId, memberId, actorAccountId, teamId,
         ) == 1
 
     fun list(actorAccountId: UUID): List<Team> =
@@ -81,10 +90,14 @@ internal class TeamAssignments(private val database: DSLContext) {
                LEFT JOIN member_team_assignments assignment ON assignment.team_id = team.id
                WHERE EXISTS (
                    SELECT 1 FROM members actor
-                   JOIN club_capability_grants grants ON grants.member_id = actor.id
-                   JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ?
-                     AND grants.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS')
+                   WHERE actor.account_id = ? AND (
+                       EXISTS (SELECT 1 FROM club_capability_grants g
+                               WHERE g.member_id = actor.id
+                                 AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS'))
+                       OR EXISTS (SELECT 1 FROM team_capability_grants g
+                                  WHERE g.member_id = actor.id AND g.team_id = team.id
+                                    AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS'))
+                   )
                )
                GROUP BY team.id, team.name ORDER BY team.name, team.id""",
             actorAccountId,
