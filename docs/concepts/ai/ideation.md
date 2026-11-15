@@ -1,5 +1,7 @@
 # AI ideation — OpenClub
 
+> **Historical ideation, not current implementation instructions:** OpenClub now uses one club per independent installation and database, with no multi-tenant persistence or global person. See [accepted ADR-0005](../../decisions/0005-single-club-installation.md) and merged PR #79.
+
 > Date: 13–14 November 2026  
 > Source: ChatGPT project discussion. This is a **structured reconstruction**, not a verbatim transcript. Proposals are not decisions unless explicitly marked.
 
