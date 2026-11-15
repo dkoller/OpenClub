@@ -8,7 +8,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.openclub.api.module
@@ -72,7 +71,30 @@ class SingleClubRoutesTest {
                     header(HttpHeaders.Cookie, "openclub_dev_session=valid")
                 }
                 assertEquals(HttpStatusCode.OK, allowed.status)
-                assertTrue(allowed.bodyAsText().contains(club.toString()))
+                assertEquals("no-store", allowed.headers[HttpHeaders.CacheControl])
+                assertEquals("""{"id":"$club"}""", allowed.bodyAsText())
+
+                // Ordinary members can see only the single club ID; unlinking denies access.
+                runBlocking {
+                    database.onDatabaseThread {
+                        it.execute("UPDATE members SET role = 'MEMBER' WHERE id = ?", member)
+                    }
+                }
+                val ordinary = client.get("/api/v1/club") {
+                    header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                }
+                assertEquals(HttpStatusCode.OK, ordinary.status)
+                assertEquals("""{"id":"$club"}""", ordinary.bodyAsText())
+                runBlocking {
+                    database.onDatabaseThread {
+                        it.execute("UPDATE members SET account_id = NULL WHERE id = ?", member)
+                    }
+                }
+                val unlinked = client.get("/api/v1/club") {
+                    header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                }
+                assertEquals(HttpStatusCode.Forbidden, unlinked.status)
+                assertEquals("no-store", unlinked.headers[HttpHeaders.CacheControl])
             }
         } finally {
             runBlocking {
