@@ -64,3 +64,10 @@ tasks.register<JavaExec>("bootstrapFirstClub") {
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("org.openclub.api.club.BootstrapCliKt")
 }
+
+tasks.register<JavaExec>("recoverSoleAdmin") {
+    group = "application"
+    description = "Restricted operator-only rebind of the sole administrator after login loss."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("org.openclub.api.club.AdminRecoveryCliKt")
+}

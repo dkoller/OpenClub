@@ -117,7 +117,7 @@ login and RSA key-rotation journeys run in CI. See [browser login](security/oidc
 **R05/#14 is closed after merged PR #71.** The
 R05 authentication milestone does not authorize public or member-data use: R02/#11
 operational recovery, R03/#12 privacy, R06/#15 club-scoped authorization,
-R07/#16 first-admin recovery/approval and frontend `/api` proxy-path integration remain
+R07/#16 first-admin recovery approval/drill and frontend `/api` proxy-path integration remain
 separate release gates. The browser E2E runs directly against the API, not the proxy.
 
 

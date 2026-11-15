@@ -36,7 +36,25 @@ The basic stack starts without authentication. OIDC is opt-in; without it there 
 
 From `apps/api`, run `./gradlew bootstrapFirstClub` (Windows: `gradlew.bat bootstrapFirstClub`). The task uses the ordinary application dependencies and configured PostgreSQL database. It fails closed if the club or any local members already exist, the selected account lacks a verified identity binding, or required fields fail validation. A transaction-level advisory lock serializes concurrent bootstrap attempts; the database singleton constraint remains a second line of defense. The command creates no OIDC credentials, browser session, or web-exposed admin registration endpoint.
 
-**Recovery:** Never rerun bootstrap on an initialized installation and never reset a live database to recover access. Lost-admin recovery requires a separately approved operator procedure with identity re-verification, backup, a recorded authorization decision, and a reviewed transactional change; it is not implemented in this PR.
+## Operator-only recovery of the sole administrator
+
+**Emergency only, not self-service.** This recovery command changes the account attached to the existing sole `ADMIN` member; it does not create members, promote roles, or change the club. It is not registered as an HTTP route. The operator's database credentials are the privileged recovery boundary; the CLI cannot independently prove the human's entitlement.
+
+Before executing: (1) confirm the old administrator's login is genuinely inaccessible; (2) obtain and verify written authorization from the club's designated responsible person and an independent reviewer, and keep the decision in a restricted incident record; (3) take and **verify** a recoverable database backup; (4) authenticate the replacement identity through the configured OIDC provider and independently check its issuer + subject and account UUID in `account_identities`; (5) verify the expected club ID, sole administrator member ID, and previous account ID from the database. **Never select accounts by email/name alone.** If the rightful owner is disputed, multiple administrators exist, or independent verification is impossible, stop and escalate instead of guessing.
+
+On a restricted operator shell with the same `DB_URL`, `DB_USER` and `DB_PASSWORD` as the installation, provide:
+
+| Variable | Meaning |
+| --- | --- |
+| `OPENCLUB_RECOVERY_CONFIRM` | Literal `rebind-sole-admin` |
+| `OPENCLUB_RECOVERY_CLUB_ID` | Expected installed club UUID |
+| `OPENCLUB_RECOVERY_MEMBER_ID` | Existing sole ADMIN member UUID |
+| `OPENCLUB_RECOVERY_OLD_ACCOUNT_ID` | Account currently linked to that member |
+| `OPENCLUB_RECOVERY_NEW_ACCOUNT_ID` | Different, verified OIDC account not linked to any member |
+
+Run `./gradlew recoverSoleAdmin` from `apps/api` (Windows: `gradlew.bat recoverSoleAdmin`). Do not put private IDs, credentials or approval evidence in committed files, command-line arguments, CI job output or shared logs. The command locks and verifies the one club and sole-admin member, requires an existing verified replacement account, rejects linked replacements, changes the member account association atomically, and **revokes all sessions for the previous account in the same transaction**. A retry with stale IDs fails; concurrent recoveries are serialized. A failed command leaves all access unchanged.
+
+Afterward, verify that the replacement account can sign in and that the old account cannot access club resources, record the outcome in the private incident log, and rotate/revoke the old provider identity if compromised. Do not delete the previous OIDC account or the existing club/member record as a shortcut. If there is no existing administrator member, more than one administrator, no trusted replacement identity, or a database inconsistency, this narrow recovery procedure intentionally refuses to act. Any broader manual repair requires a separate reviewed decision and backup. **This is not privacy/legal approval or readiness for real personal data.**
 
 ## Fresh database only — schema reset
 
@@ -66,6 +84,6 @@ Before any real-data pilot, the operator must document (1) hosting and recurring
 ## Next engineering gates
 
 - [#74](https://github.com/dkoller/OpenClub/issues/74): architecture and schema foundation completed in merged PR #79.
-- [R07/#16](https://github.com/dkoller/OpenClub/issues/16): complete operator recovery, threat review and bootstrap acceptance tests; initial operator CLI is implemented.
+- [R07/#16](https://github.com/dkoller/OpenClub/issues/16): operator-only bootstrap and sole-admin recovery implemented; CI, independent security review and documented approval/recovery drill remain acceptance gates.
 - [R04/#13](https://github.com/dkoller/OpenClub/issues/13), [R06/#15](https://github.com/dkoller/OpenClub/issues/15): approved contracts and server authorization.
 - [R15/#24](https://github.com/dkoller/OpenClub/issues/24), [R18/#27](https://github.com/dkoller/OpenClub/issues/27): local security tests and operational validation.
