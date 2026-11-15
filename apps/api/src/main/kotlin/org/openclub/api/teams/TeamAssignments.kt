@@ -53,7 +53,7 @@ internal class TeamAssignments(private val database: DSLContext) {
         database.execute(
             """INSERT INTO member_team_assignments (team_id, member_id)
                SELECT team.id, member.id FROM teams team
-               JOIN members member ON member.id = ?
+               JOIN members member ON member.id = ? AND member.archived_at IS NULL
                WHERE team.id = ? AND EXISTS (
                    SELECT 1 FROM members actor
                    WHERE actor.account_id = ? AND (
