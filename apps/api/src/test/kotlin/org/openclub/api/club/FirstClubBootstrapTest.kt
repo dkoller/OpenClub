@@ -1,0 +1,109 @@
+package org.openclub.api.club
+
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
+import org.flywaydb.core.Flyway
+import org.jooq.SQLDialect
+import org.jooq.exception.DataAccessException
+import org.jooq.impl.DSL
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.Test
+import java.time.LocalDate
+import java.util.UUID
+
+class FirstClubBootstrapTest {
+    @Test
+    fun verifiedAccountBecomesOnlyFirstAdminAtomically() {
+        val url = System.getenv("DB_URL")
+        assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL")
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = url
+            username = requireNotNull(System.getenv("DB_USER"))
+            password = requireNotNull(System.getenv("DB_PASSWORD"))
+        }).use { source ->
+            Flyway.configure().dataSource(source).load().migrate()
+            val db = DSL.using(source, SQLDialect.POSTGRES)
+            val account = UUID.randomUUID()
+            val other = UUID.randomUUID()
+            val identity = UUID.randomUUID()
+            var created: UUID? = null
+            val slug = "pilot-" + UUID.randomUUID()
+            val input = FirstClubBootstrap.Input(
+                account, "Synthetic pilot", slug, "Sample", "Admin",
+                LocalDate.of(1990, 1, 1), "sample@example.invalid", "+41000000000",
+            )
+            try {
+                db.execute("INSERT INTO accounts (id) VALUES (?), (?)", account, other)
+                val bootstrap = FirstClubBootstrap(db)
+                assertThrows(IllegalStateException::class.java) { bootstrap.create(input) }
+                assertEquals(0, db.fetchValue("SELECT COUNT(*) FROM clubs", Int::class.java))
+                db.execute(
+                    "INSERT INTO account_identities (id, account_id, issuer, subject) VALUES (?, ?, ?, ?)",
+                    identity, account, "https://issuer.example.invalid", "subject-" + account,
+                )
+                assertThrows(IllegalStateException::class.java) {
+                    bootstrap.create(input.copy(accountId = other))
+                }
+                created = bootstrap.create(input)
+                assertEquals(1, db.fetchValue("SELECT COUNT(*) FROM clubs", Int::class.java))
+                assertEquals(1, db.fetchValue(
+                    "SELECT COUNT(*) FROM members WHERE account_id = ? AND role = 'ADMIN'",
+                    Int::class.java, account,
+                ))
+                assertThrows(IllegalStateException::class.java) { bootstrap.create(input) }
+                assertThrows(DataAccessException::class.java) {
+                    db.execute(
+                        "INSERT INTO clubs (id, name, slug) VALUES (?, 'Second', ?)",
+                        UUID.randomUUID(), "second-" + UUID.randomUUID(),
+                    )
+                }
+                assertEquals(1, db.fetchValue("SELECT COUNT(*) FROM members", Int::class.java))
+                assertTrue(created != null)
+            } finally {
+                db.execute("DELETE FROM members WHERE account_id = ?", account)
+                if (created != null) db.execute("DELETE FROM clubs WHERE id = ?", created)
+                db.execute("DELETE FROM accounts WHERE id IN (?, ?)", account, other)
+            }
+        }
+    }
+
+    @Test
+    fun invalidAdministratorDataCannotInitializeClub() {
+        val url = System.getenv("DB_URL")
+        assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL")
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = url
+            username = requireNotNull(System.getenv("DB_USER"))
+            password = requireNotNull(System.getenv("DB_PASSWORD"))
+        }).use { source ->
+            Flyway.configure().dataSource(source).load().migrate()
+            val db = DSL.using(source, SQLDialect.POSTGRES)
+            val account = UUID.randomUUID()
+            val identity = UUID.randomUUID()
+            val input = FirstClubBootstrap.Input(
+                account, "Synthetic", "synthetic-" + UUID.randomUUID(),
+                "Test", "Admin", LocalDate.of(1990, 1, 1),
+                "test@example.invalid", "+41000000000",
+            )
+            try {
+                db.execute("INSERT INTO accounts (id) VALUES (?)", account)
+                db.execute(
+                    "INSERT INTO account_identities (id, account_id, issuer, subject) VALUES (?, ?, ?, ?)",
+                    identity, account, "https://issuer.example.invalid", "subject-" + account,
+                )
+                assertThrows(IllegalArgumentException::class.java) {
+                    FirstClubBootstrap(db).create(input.copy(slug = "../invalid"))
+                }
+                assertThrows(DataAccessException::class.java) {
+                    FirstClubBootstrap(db).create(input.copy(email = " "))
+                }
+                assertEquals(0, db.fetchValue("SELECT COUNT(*) FROM clubs", Int::class.java))
+            } finally {
+                db.execute("DELETE FROM accounts WHERE id = ?", account)
+            }
+        }
+    }
+}
