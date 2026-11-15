@@ -31,8 +31,8 @@ jobs:
           lines="$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" --jq '.[] | select(.filename | test("^loopcounter[0-9]+\\.txt$") | not) | (.additions + .deletions)' |
             awk '{ total += $1 } END { print total + 0 }')"
           echo "PR changed lines (additions + deletions): ${lines}"
-          if (( lines >= 1000 )); then
-            echo "::error::PR size ${lines} is not below 1,000. Split into smaller, independently reviewable PRs."
+          if (( lines > 5000 )); then
+            echo "::error::PR size ${lines} exceeds 5,000. Split into smaller, independently reviewable PRs."
             exit 1
           fi
-          echo "PR size check passed (${lines}/999)."
+          echo "PR size check passed (${lines}/5000)."

@@ -1,6 +1,6 @@
 # CI execution and path classification
 
-OpenClub uses a PR-size gate on every pull request (maximum **999** added + deleted lines) and selective application checks to reduce CI time for parallel contributors.
+OpenClub uses a PR-size gate on every pull request (maximum **5,000** added + deleted lines) and selective application checks to reduce CI time for parallel contributors.
 
 ## Pull-request behavior
 

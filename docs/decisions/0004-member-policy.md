@@ -26,7 +26,7 @@ The precise contact visibility for minors, controllers/processors, retention sch
 4. Directory read for authenticated members, edits for ADMIN only, with cross-club tests.
 5. Verified invitations/account linking, then archive/export/erasure and configurable retention as separate PRs.
 
-Every behavior change must update OpenAPI, docs and tests in its own PR; each PR must stay **below 1,000 changed lines**.
+Every behavior change must update OpenAPI, docs and tests in its own PR; each PR must stay **at or below 5,000 changed lines** (limit updated 2026-11-15; historical decision text otherwise unchanged).
 
 
 ## Superseding pilot decisions (2026-11-15; R01 closed)

@@ -12,7 +12,7 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 
 ## Every pull request
 
-- **Hard limit: additions + deletions must be strictly below 1,000 lines** for each PR against its base. Target 500–700 to leave headroom. PR #79 was an owner-approved one-time reset exception; this follow-up restores the check for subsequent work.
+- **Hard limit: at most 5,000 additions + deletions** for each PR against its base. Keep changes independently reviewable; prefer smaller increments where practical. This replaces the historical 999-line limit by owner decision on 2026-11-15.
 - Count tests, docs, config, generated source and lockfiles; no exemptions for generated files. The root `loopcounterN.txt` checkpoint marker is the sole text-line exception and has a dedicated 20-second CI check. Binary changes do not count as text lines and require explicit reviewer scrutiny.
 - Split oversized work into independently useful, reviewable PRs. Never omit tests to meet the limit.
 - Document the purpose, acceptance criteria, testing performed/not performed, and known risks.
