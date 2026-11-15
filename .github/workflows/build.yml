@@ -61,13 +61,13 @@ jobs:
             fi
             while IFS= read -r file; do
               [[ -z "$file" ]] && continue
-              [[ "$file" == loopcounter[0-9]*.txt ]] || normal=true
+              [[ "$file" =~ ^loopcounter[0-9]+\.txt$ ]] && continue
+              normal=true
               case "$file" in
                 # Docs-only changes should not rebuild the application.
                 # The contracts job always validates these OpenAPI files.
                 # No generated Kotlin/TS clients consume them yet, so do not
                 # rebuild API and web for contract-only documentation PRs.
-                loopcounter[0-9]*.txt) ;; # Counter marker never triggers application checks.
                 docs/contracts/*) ;;
                 docs/*|README.md|AGENTS.md|apps/api/AGENTS.md|apps/web/AGENTS.md|.github/pull_request_template.md|.github/workflows/pr-size.yml) ;;
                 apps/api/*)
