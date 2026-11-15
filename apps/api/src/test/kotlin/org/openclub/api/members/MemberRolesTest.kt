@@ -63,6 +63,23 @@ class MemberRolesTest {
                     roles.change(account, second, MemberRoles.Role.ADMIN))
                 assertEquals(MemberRoles.Change.UPDATED,
                     roles.change(account, second, MemberRoles.Role.MEMBER))
+                // Revoking the actor's explicit grant must immediately deny role mutation.
+                db.execute("""DELETE FROM club_capability_grants
+                    WHERE member_id = ? AND capability = 'MANAGE_PERMISSIONS'""", admin)
+                assertEquals(MemberRoles.Change.DENIED,
+                    roles.change(account, regular, MemberRoles.Role.MEMBER))
+                assertEquals("ADMIN", db.fetchValue(
+                    "SELECT role FROM members WHERE id = ?", regular))
+                db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_PERMISSIONS')", admin)
+                // An account with a grant but no verified identity must also fail closed.
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", account)
+                assertEquals(MemberRoles.Change.DENIED,
+                    roles.change(account, regular, MemberRoles.Role.MEMBER))
+                assertEquals("ADMIN", db.fetchValue(
+                    "SELECT role FROM members WHERE id = ?", regular))
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), account, UUID.randomUUID().toString())
                 assertEquals(MemberRoles.Change.DENIED,
                     roles.change(account, admin, MemberRoles.Role.MEMBER))
                 assertEquals(MemberRoles.Change.UPDATED,
