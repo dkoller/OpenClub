@@ -1,10 +1,20 @@
 # OpenClub delivery roadmap
 
-**Last reviewed:** 2026-11-15 · **Status:** R01 complete; one-club reset and local auth landing merged in PR #79; PR-size enforcement restored in PR #80, member/team/permission release gates open · **Source of truth for open work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
+**Last reviewed:** 2026-11-15 · **Status:** Single-club schema, operator bootstrap/recovery, verified sessions and internal member/team/capability foundations implemented; member/team/grant HTTP workflows, privacy sign-off and production release remain open · **Source of truth for work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
 
 This roadmap inventories the work identified in the [original first-milestone plan](concepts/ai/first-milestone.md), [MVP proposal](concepts/product/mvp.md), accepted [stack ADR](decisions/0001-stack-selection.md), and [identity ADR](decisions/0002-identity-and-membership-model.md). The numbered **R01–R22** items are priority/dependency order, **not dates or commitments**. Each implementation PR stays below **1,000 added + deleted lines** and requires CI and human review.
 
 **Current architectural direction (2026-11-15):** **one club per OpenClub installation and independent database**; the historical multi-tenant roadmap entries below are superseded as described in the final section and accepted [ADR-0005](decisions/0005-single-club-installation.md). No club switcher or global person domain is part of the intended first release. PR #79 replaced the pre-production schema with a fresh singleton V1 and preserved R05 authentication; there is no backward-compatible migration for old development volumes.
+
+## Implemented foundations since the single-club reset
+
+- [PRs #82–#83](https://github.com/dkoller/OpenClub/pull/83): restricted first-admin bootstrap and sole-admin recovery **operator commands**, not web registration
+- [PRs #84–#86](https://github.com/dkoller/OpenClub/pull/86): server-side local club authorization, proposed member contract, and internal-only name directory
+- [PRs #87–#88](https://github.com/dkoller/OpenClub/pull/88): privacy decision inventory (not legal sign-off) and explicit club-wide capability checks
+- [PRs #89–#92](https://github.com/dkoller/OpenClub/pull/92): internal team assignments, team-scoped capabilities, and reviewed serialized grant/revoke logic
+- [PR #93](https://github.com/dkoller/OpenClub/pull/93): browser-only four-language preference persistence
+
+**Implementation versus acceptance:** The OpenAPI member/team/grant operations are still marked `NOT IMPLEMENTED` / `0.0.0-draft`, and the R03 inventory remains unapproved for live personal data. Closing a tracking issue does not itself approve handling real member records. Do not infer deployment readiness from internal PostgreSQL tests.
 
 ## Priority rules and sequencing rationale
 
