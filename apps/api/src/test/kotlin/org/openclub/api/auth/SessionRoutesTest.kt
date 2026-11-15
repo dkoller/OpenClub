@@ -1,4 +1,9 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.auth.*
+import org.openclub.api.database.*
+import org.openclub.api.members.*
+import org.openclub.api.*
 
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -56,7 +61,7 @@ class SessionRoutesTest {
         }
         val ok = client.get("/api/v1/auth/me") { header(HttpHeaders.Cookie, "openclub_dev_session=$handle") }
         assertEquals(HttpStatusCode.OK, ok.status)
-        assertEquals("""{"personId":"$person","csrfToken":"$csrf"}""", ok.bodyAsText())
+        assertEquals("""{"accountId":"$person","csrfToken":"$csrf"}""", ok.bodyAsText())
         sessions.fail = true
         val unavailable = client.get("/api/v1/auth/me") { header(HttpHeaders.Cookie, "openclub_dev_session=$handle") }
         assertEquals(HttpStatusCode.ServiceUnavailable, unavailable.status)

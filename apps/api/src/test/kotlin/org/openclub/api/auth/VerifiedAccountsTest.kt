@@ -1,4 +1,9 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.auth.*
+import org.openclub.api.database.*
+import org.openclub.api.members.*
+import org.openclub.api.*
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -22,10 +27,10 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
-class VerifiedPersonIdentitiesTest {
+class VerifiedAccountsTest {
     private val issuer = "https://identity.example/realms/openclub"
 
-    private fun resolver(db: DSLContext) = VerifiedPersonIdentities(
+    private fun resolver(db: DSLContext) = VerifiedAccounts(
         db,
         OidcSettings(
             URI(issuer),
@@ -59,29 +64,29 @@ class VerifiedPersonIdentitiesTest {
         try {
             db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, ?, ?)",
                 club, "Synthetic club", "club-" + club)
-            db.execute("INSERT INTO persons (id, display_name) VALUES (?, ?)",
+            db.execute("INSERT INTO accounts (id, display_name) VALUES (?, ?)",
                 existing, "Unlinked OpenClub account")
-            db.execute("INSERT INTO memberships (id, club_id, person_id, role) VALUES (?, ?, ?, ?)",
+            db.execute("INSERT INTO members (id, club_id, account_id, role) VALUES (?, ?, ?, ?)",
                 membership, club, existing, "ADMIN")
 
             resolved = resolver(db).resolveOrCreate(identity)
             assertNotEquals(existing, resolved)
             assertEquals(resolved, resolver(db).resolveOrCreate(identity))
             assertEquals(1L, db.fetchValue(
-                "SELECT COUNT(*) FROM person_identities WHERE issuer = ? AND subject = ?",
+                "SELECT COUNT(*) FROM account_identities WHERE issuer = ? AND subject = ?",
                 identity.issuer, identity.subject,
             ))
             assertEquals(0L, db.fetchValue(
-                "SELECT COUNT(*) FROM memberships WHERE person_id = ?", resolved,
+                "SELECT COUNT(*) FROM members WHERE account_id = ?", resolved,
             ))
             assertEquals("ADMIN", db.fetchValue(
-                "SELECT role FROM memberships WHERE person_id = ? AND club_id = ?",
+                "SELECT role FROM members WHERE account_id = ? AND club_id = ?",
                 existing, club,
             ))
         } finally {
-            db.execute("DELETE FROM memberships WHERE id = ?", membership)
-            if (resolved != null) db.execute("DELETE FROM persons WHERE id = ?", resolved)
-            db.execute("DELETE FROM persons WHERE id = ?", existing)
+            db.execute("DELETE FROM members WHERE id = ?", membership)
+            if (resolved != null) db.execute("DELETE FROM accounts WHERE id = ?", resolved)
+            db.execute("DELETE FROM accounts WHERE id = ?", existing)
             db.execute("DELETE FROM clubs WHERE id = ?", club)
         }
     }
@@ -109,7 +114,7 @@ class VerifiedPersonIdentitiesTest {
                 }
             }
         } finally {
-            created.forEach { db.execute("DELETE FROM persons WHERE id = ?", it) }
+            created.forEach { db.execute("DELETE FROM accounts WHERE id = ?", it) }
         }
     }
 
@@ -117,7 +122,7 @@ class VerifiedPersonIdentitiesTest {
     fun simultaneousFirstLoginsProduceOnePersonAndOneBinding() = withDatabase { db ->
         val identity = VerifiedOidcIdentity(issuer, "concurrent-" + UUID.randomUUID())
         val before = db.fetchValue(
-            "SELECT COUNT(*) FROM persons WHERE display_name = 'Unlinked OpenClub account'"
+            "SELECT COUNT(*) FROM accounts WHERE display_name = 'Unlinked OpenClub account'"
         ) as Long
         val ready = CountDownLatch(2)
         val start = CountDownLatch(1)
@@ -126,7 +131,7 @@ class VerifiedPersonIdentitiesTest {
         val attemptedBindings = AtomicInteger()
         val deletedLosingCandidates = AtomicInteger()
 
-        // Test-only jOOQ listener: pause AFTER the real PostgreSQL persons INSERT
+        // Test-only jOOQ listener: pause AFTER the real PostgreSQL accounts INSERT
         // succeeds in each uncommitted transaction, BEFORE either identity INSERT.
         // This forces the ON CONFLICT race instead of depending on thread scheduling.
         val listener = object : ExecuteListener {
@@ -169,20 +174,20 @@ class VerifiedPersonIdentitiesTest {
             assertEquals(2, attemptedBindings.get(), "Both transactions must compete for the identity")
             assertEquals(1, deletedLosingCandidates.get(), "The loser must remove its orphan candidate")
             assertEquals(1L, db.fetchValue(
-                "SELECT COUNT(*) FROM person_identities WHERE issuer = ? AND subject = ?",
+                "SELECT COUNT(*) FROM account_identities WHERE issuer = ? AND subject = ?",
                 identity.issuer, identity.subject,
             ))
             assertEquals(before + 1, db.fetchValue(
-                "SELECT COUNT(*) FROM persons WHERE display_name = 'Unlinked OpenClub account'"
+                "SELECT COUNT(*) FROM accounts WHERE display_name = 'Unlinked OpenClub account'"
             ))
         } finally {
             start.countDown()
             pool.shutdownNow()
             val person = db.fetchOne(
-                "SELECT person_id FROM person_identities WHERE issuer = ? AND subject = ?",
+                "SELECT account_id FROM account_identities WHERE issuer = ? AND subject = ?",
                 identity.issuer, identity.subject,
-            )?.get("person_id", UUID::class.java)
-            if (person != null) db.execute("DELETE FROM persons WHERE id = ?", person)
+            )?.get("account_id", UUID::class.java)
+            if (person != null) db.execute("DELETE FROM accounts WHERE id = ?", person)
         }
     }
 }

@@ -1,4 +1,9 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.auth.*
+import org.openclub.api.database.*
+import org.openclub.api.members.*
+import org.openclub.api.*
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
