@@ -54,6 +54,11 @@ class ClubCapabilityAccessTest {
                 assertFalse(access.has(outsider, directory))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, ?)", admin, permissions.name)
                 db.execute("INSERT INTO club_capability_grants VALUES (?, ?)", member, directory.name)
+                // Grant plus ADMIN role is insufficient without a verified OIDC binding.
+                assertFalse(access.has(adminAccount, permissions))
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), adminAccount, UUID.randomUUID().toString())
                 assertTrue(access.has(adminAccount, permissions))
                 assertTrue(access.has(memberAccount, directory))
                 assertFalse(access.has(memberAccount, permissions))
@@ -66,6 +71,8 @@ class ClubCapabilityAccessTest {
                 assertFalse(access.has(adminAccount, permissions))
                 db.execute("UPDATE members SET role = 'ADMIN' WHERE id = ?", admin)
                 assertTrue(access.has(adminAccount, permissions))
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", adminAccount)
+                assertFalse(access.has(adminAccount, permissions))
 
                 assertThrows(DataAccessException::class.java) {
                     db.execute("INSERT INTO club_capability_grants VALUES (?, ?)", member, directory.name)

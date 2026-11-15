@@ -18,7 +18,12 @@ internal class ClubCapabilityAccess(private val database: DSLContext) {
                JOIN members actor ON actor.id = g.member_id
                JOIN clubs club ON TRUE
                WHERE actor.account_id = ? AND g.capability = ?
-                 AND (? <> 'MANAGE_PERMISSIONS' OR actor.role = 'ADMIN')
+                 AND (? <> 'MANAGE_PERMISSIONS' OR (
+                     actor.role = 'ADMIN' AND EXISTS (
+                         SELECT 1 FROM account_identities identity
+                         WHERE identity.account_id = actor.account_id
+                     )
+                 ))
                LIMIT 1""",
             accountId, capability.name, capability.name,
         ) != null
