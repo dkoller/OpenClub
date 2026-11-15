@@ -68,6 +68,10 @@ class TeamScopedGrantsTest {
                 db.execute("""INSERT INTO team_capability_grants
                     (team_id, member_id, capability) VALUES (?, ?, 'MANAGE_TEAMS')""", juniors, coach)
                 assertTrue(access.hasForTeam(coachAccount, juniors, manage))
+                // Scope-specific management does not grant club-wide team authority.
+                assertFalse(access.has(coachAccount, manage))
+                assertFalse(access.has(coachAccount, view))
+                assertFalse(access.hasForTeam(coachAccount, adults, manage))
                 assertTrue(ops.assign(coachAccount, juniors, player))
                 assertFalse(ops.assign(coachAccount, adults, player))
                 assertFalse(ops.unassign(coachAccount, adults, player))
