@@ -6,6 +6,19 @@
 
 This review was written before pilot acceptance and R05 completion. The historical findings below are preserved; **R01/#10 is now closed** and OIDC/Ktor BFF architecture is selected/implemented. The draft contract remains **unapproved**, especially for member data ownership, field requirements and scoped permissions.
 
+## Current single-club contract decisions proposed in this PR (#13)
+
+The [working YAML](openapi-draft.yaml) now makes the first member API slice reviewable **without authorizing implementation**:
+
+- **Runtime reality:** only `GET /api/v1/club` (plus standalone auth routes) exists; member, team, and grant paths remain proposals. Operator-only bootstrap/recovery from PRs #82/#83 are **not HTTP endpoints**.
+- **Minimal default response:** member list/detail returns only local ID and first/last name. No birth date, contact, gender, account ID, or privilege/role data is disclosed in the list. Creation responds with an ID only. Even basic directory visibility remains subject to R03.
+- **Pagination:** name-only case-insensitive search (max 100 characters), limit 1–50 (default 20), stable last-name/first-name/ID ordering, and an opaque cursor tied to permission and filter. Exact signed/encrypted cursor implementation and invalidation on authorization changes need review under #18/#24; a stale or invalid cursor must fail closed, not leak records.
+- **Security:** session-linked membership is necessary but not sufficient for future writes. Proposed `POST /v1/members` additionally requires explicit member-write capability (to be designed in #76), trusted Origin, session-bound CSRF token, valid input, and no email-based account adoption. Interim ADMIN-only permission in PR #84 is **not final delegation acceptance**.
+- **Errors:** 401 without session, 403 for insufficient permission, 404 for a non-existent or non-visible member resource, 400 for validation or cursor errors, 409 for write conflict, and 503 for storage outage. All errors must avoid private field echoes and differ only where the caller is authorized to know an ID exists.
+- **Field policy:** every member has name + DOB; both email and phone for adults (age threshold provisionally 18, configurable per club); player gender required only if enabled, with no binary-only assumption. R03 must approve policy, privacy and field-level access.
+
+**Unresolved approval gates:** R03 lawful basis, minors' visibility/guardian relationships, exact permission matrix (#76), detailed member update/archive and confidential member-detail contract (#18), role changes/last-admin (#19), teams (#75), and operator review of error/pagination stability. Keep `0.0.0-draft` and do not close #13 or implement these routes until those boundaries are reviewed. YAML validation is only syntax/schema validation, **not** owner/privacy/security acceptance.
+
 ## Historical multi-club draft review (superseded)
 
 - Uses a server-enforced session security scheme rather than treating club IDs or roles as authentication.
