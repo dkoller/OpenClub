@@ -34,7 +34,7 @@ The application currently implements **`GET /api/v1/club`** with a verified sess
 
 ## Invariants, tradeoffs and unfinished work
 
-- **Single club:** The unique singleton constraint prohibits a second club row. An operator-only transactional CLI can initialize the one club and first administrator (#16); secure lost-admin recovery and full acceptance remain open. No unauthenticated setup endpoint exists.
+- **Single club:** The unique singleton constraint prohibits a second club row. An operator-only transactional CLI initializes the one club and first administrator (#16). A separate restricted operator command can rebind the existing sole administrator to a verified, unlinked OIDC account and revoke old sessions. Independent recovery approval/drill, privacy, and release acceptance remain open. No unauthenticated setup endpoint exists.
 - **Local privacy:** No OpenClub cross-installation member/data service exists; operators must configure separate databases, credentials, backups and OIDC clients for each installation. Sensitive member fields still require R03 privacy decisions and server field-level permission checks.
 - **Authentication:** Preserve verified OIDC issuer/subject, session expiry, CSRF/Origin checks and concurrency invariants. A login account can remain unlinked; a member can remain accountless. Account/member linking still needs R11.
 - **Authorization:** The initial role lookup is not a complete club/team capability guard. R06 and #76 must implement least-privilege grants and last-authorized-admin safeguards.
