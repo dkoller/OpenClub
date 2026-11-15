@@ -97,7 +97,7 @@ class FirstClubBootstrapTest {
                 assertThrows(IllegalArgumentException::class.java) {
                     FirstClubBootstrap(db).create(input.copy(slug = "../invalid"))
                 }
-                assertThrows(DataAccessException::class.java) {
+                assertThrows(IllegalArgumentException::class.java) {
                     FirstClubBootstrap(db).create(input.copy(email = " "))
                 }
                 assertEquals(0, db.fetchValue("SELECT COUNT(*) FROM clubs", Int::class.java))
