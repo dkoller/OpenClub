@@ -154,7 +154,12 @@ paths:
     get:
       tags: [Teams]
       operationId: listLocalTeams
-      summary: Proposed local team list (not implemented)
+      summary: Proposed local team list (NOT IMPLEMENTED)
+      description: >
+        Internal PostgreSQL teams and assignments exist, but no team routes
+        are registered. Future team reads require explicit VIEW_TEAMS or
+        MANAGE_TEAMS permission from a verified local session. Member counts
+        must not reveal unapproved personal data.
       responses:
         '200':
           description: Teams in this installation's club; authorized callers only
@@ -267,10 +272,12 @@ components:
         isPlayer: { type: boolean, default: false }
     Team:
       type: object
-      required: [id, name]
+      additionalProperties: false
+      required: [id, name, memberCount]
       properties:
         id: { type: string, format: uuid }
-        name: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        memberCount: { type: integer, minimum: 0 }
     Grant:
       type: object
       required: [memberId, capability, scope]
