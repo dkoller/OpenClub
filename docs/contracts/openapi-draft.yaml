@@ -3,12 +3,13 @@ info:
   title: OpenClub single-club management API — working draft
   version: 0.0.0-draft
   description: >
-    NOT APPROVED FOR IMPLEMENTATION. The runtime currently implements only
-    authenticated GET /v1/club (when OIDC is configured) plus the separately
-    documented /v1/auth routes. Member, team, grant and first-admin APIs below
-    are proposals pending R03 privacy, R04 contract acceptance and R06/R07
-    authorization. Initial setup is an offline operator-only CLI, NOT an HTTP API. Exactly one club exists per installation; no clubId tenant
-    selector, cross-club data directory, or club switcher is supported.
+    NOT APPROVED FOR IMPLEMENTATION. Only authenticated GET /v1/club and the
+    separately documented /v1/auth routes are implemented. Every member, team
+    and grant operation in this file is a proposal, pending R03 privacy, R04
+    review, and R06/#76 authorization acceptance. Bootstrap and emergency admin
+    recovery are offline operator-only commands, never HTTP APIs. Exactly one
+    club exists per installation; no clubId tenant selector or switcher exists.
+    Never treat the browser session alone as permission to read personal data.
 servers:
   - url: /api
 security:
@@ -44,33 +45,56 @@ paths:
     get:
       tags: [Members]
       operationId: listLocalMembers
-      summary: Proposed authorized member directory
+      summary: Proposed privacy-minimized member search (NOT IMPLEMENTED)
       description: >
-        NOT IMPLEMENTED. Field-level visibility and pagination need R03/R04
-        approval. Default responses must not expose full birth dates, gender or
-        contact data to unauthorized accounts.
+        Linked club members need explicit read permission; a valid login alone
+        grants nothing. Returns names and local IDs only; never DOB, gender,
+        contact data, account IDs or grants. R03 must approve even this directory
+        visibility before implementation. Opaque cursor represents a stable
+        (lastName, firstName, id) ordering and is bound to the same filter and
+        caller's permission; stale/invalid cursors return 400.
+      parameters:
+        - name: q
+          in: query
+          description: Optional trimmed case-insensitive name search; no email or DOB search.
+          schema: { type: string, minLength: 1, maxLength: 100 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - name: cursor
+          in: query
+          description: Opaque server-issued page cursor; never encode PII in cleartext.
+          schema: { type: string, minLength: 1, maxLength: 512 }
       responses:
         '200':
-          description: Local member list
+          description: Bounded page containing privacy-minimized members only
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Member'
+                $ref: '#/components/schemas/MemberPage'
+        '400':
+          $ref: '#/components/responses/Invalid'
         '401':
           $ref: '#/components/responses/Unauthenticated'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
     post:
       tags: [Members]
       operationId: addLocalMember
-      summary: Proposed admin creation of an accountless member
+      summary: Proposed authorized accountless member creation (NOT IMPLEMENTED)
       description: >
-        NOT IMPLEMENTED. Require local member-edit grant, Origin and CSRF
-        checks, date of birth for everyone, both email and phone for adults,
-        and gender only for players if configured by the installation's club.
-        Adulthood threshold and field visibility require review.
+        Requires an explicitly authorized club-level member-write capability,
+        exact configured Origin, session-bound X-CSRF-Token and JSON Content-Type.
+        A verified login or legacy ADMIN label alone does not approve future
+        configurable delegation. All members require DOB; adults require both
+        email and phone; gender is required only for players when the club
+        enables the policy. Adult age threshold is installation-local and
+        provisionally defaults to 18; R03 must approve threshold and access.
+        Never match an existing login by email or grant roles in this operation.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
       requestBody:
         required: true
         content:
@@ -79,17 +103,53 @@ paths:
               $ref: '#/components/schemas/NewMember'
       responses:
         '201':
-          description: Created local member
+          description: Created local member reference; private fields not echoed
+          headers:
+            Location:
+              description: Canonical relative member resource path
+              schema: { type: string }
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Member'
+                $ref: '#/components/schemas/MemberReference'
         '400':
           $ref: '#/components/responses/Invalid'
         '401':
           $ref: '#/components/responses/Unauthenticated'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/members/{memberId}:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Members]
+      operationId: readLocalMember
+      summary: Proposed permission-filtered member detail (NOT IMPLEMENTED)
+      description: >
+        R03 and #76 must define who may see DOB, contacts and player gender.
+        This initial proposed shape returns only a directory-safe summary.
+        Conceal non-existent or non-visible member IDs with the same 404.
+      responses:
+        '200':
+          description: Minimal member summary
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MemberSummary' }
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /v1/teams:
     get:
       tags: [Teams]
@@ -97,13 +157,17 @@ paths:
       summary: Proposed local team list (not implemented)
       responses:
         '200':
-          description: Teams in this installation's club
+          description: Teams in this installation's club; authorized callers only
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Team'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /v1/permission-grants:
     get:
       tags: [Permissions]
@@ -111,14 +175,27 @@ paths:
       summary: Proposed authorized club/team capability grants (not implemented)
       responses:
         '200':
-          description: Scoped grants
+          description: Scoped grants; only authorized permission managers
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Grant'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 components:
+  parameters:
+    CsrfToken:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      description: >
+        Secret returned by authenticated GET /v1/auth/me; must belong to the
+        same unexpired session cookie. Also require exact configured Origin.
+      schema: { type: string, minLength: 43, maxLength: 43 }
   securitySchemes:
     browserSession:
       type: apiKey
@@ -134,6 +211,34 @@ components:
       required: [id]
       properties:
         id: { type: string, format: uuid }
+    MemberReference:
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }
+    MemberSummary:
+      type: object
+      additionalProperties: false
+      required: [id, firstName, lastName]
+      properties:
+        id: { type: string, format: uuid }
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
+    MemberPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/MemberSummary' }
+        nextCursor:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: Absent on the last page.
     NewMember:
       type: object
       additionalProperties: false
@@ -141,20 +246,26 @@ components:
       properties:
         firstName: { type: string, minLength: 1, maxLength: 200 }
         lastName: { type: string, minLength: 1, maxLength: 200 }
-        dateOfBirth: { type: string, format: date }
-        email: { type: string, format: email, maxLength: 320 }
-        phone: { type: string, maxLength: 40 }
-        gender: { type: string }
+        dateOfBirth:
+          type: string
+          format: date
+          description: Required for all members; no future dates. Private, never directory-visible.
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          description: Required for adults under the locally configured threshold.
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 40
+          description: Required alongside email for adults.
+        gender:
+          type: string
+          minLength: 1
+          description: Optional unless the club requires gender for players; not binary-only.
         isPlayer: { type: boolean, default: false }
-    Member:
-      allOf:
-        - $ref: '#/components/schemas/NewMember'
-        - type: object
-          required: [id, role]
-          properties:
-            id: { type: string, format: uuid }
-            role: { type: string, enum: [ADMIN, MEMBER] }
-    Team:
+     Team:
       type: object
       required: [id, name]
       properties:
@@ -176,7 +287,7 @@ components:
         message: { type: string }
   responses:
     Invalid:
-      description: Input rejected
+      description: Invalid input, query, cursor or member field; no private data reflected
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -186,7 +297,17 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     Forbidden:
-      description: No local club membership or insufficient grants
+      description: Authenticated, but caller lacks operation-level permission
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Unknown or non-visible member ID; indistinguishable results
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: Write conflicts with an existing record or policy state
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
