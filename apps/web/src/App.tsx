@@ -31,7 +31,7 @@ export function App() {
   }, [language])
 
   async function logout() {
-    if (access?.state !== 'ready') return
+    if (access?.state !== 'ready' && access?.state !== 'not-member') return
     setError(false)
     if (await signOut(access.csrfToken)) setAccess({ state: 'signed-out' })
     else setError(true)
@@ -53,7 +53,7 @@ export function App() {
       <p>{words.intro}</p>
       <p role="status">{message}</p>
       {access?.state === 'signed-out' && <a href="/api/v1/auth/login">{words.login}</a>}
-      {access?.state === 'ready' && <button type="button" onClick={() => { void logout() }}>{words.logout}</button>}
+      {(access?.state === 'ready' || access?.state === 'not-member') && <button type="button" onClick={() => { void logout() }}>{words.logout}</button>}
       {error && <p role="alert">{words.error}</p>}
     </main>
   )
