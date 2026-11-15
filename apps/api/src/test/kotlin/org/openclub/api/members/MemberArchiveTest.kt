@@ -88,6 +88,22 @@ class MemberArchiveTest {
                 assertThrows(DataAccessException::class.java) {
                     db.execute("UPDATE members SET role = 'ADMIN' WHERE id = ?", archived)
                 }
+                val reactivation = MemberReactivation(db)
+                assertFalse(reactivation.reactivate(outsider, archived))
+                assertTrue(reactivation.reactivate(account, archived))
+                assertFalse(reactivation.reactivate(account, archived))
+                assertNull(db.fetchValue("SELECT archived_at FROM members WHERE id = ?", archived))
+                assertEquals(listOf(archived),
+                    MemberDirectory(db).search(account, "Target").members.map { it.id })
+                assertEquals(0, db.fetchValue(
+                    "SELECT COUNT(*) FROM club_capability_grants WHERE member_id = ?", archived)
+                    ?.toString()?.toInt())
+                assertEquals(0, db.fetchValue(
+                    "SELECT COUNT(*) FROM team_capability_grants WHERE member_id = ?", archived)
+                    ?.toString()?.toInt())
+                assertEquals(0, db.fetchValue(
+                    "SELECT COUNT(*) FROM member_team_assignments WHERE member_id = ?", archived)
+                    ?.toString()?.toInt())
             } finally {
                 db.execute("DELETE FROM teams WHERE id = ?", team)
                 db.execute("DELETE FROM members WHERE id IN (?, ?, ?, ?)",

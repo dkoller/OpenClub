@@ -92,6 +92,15 @@ archived targets. Team assignment locks its target member row to serialize with
 archival and avoid a post-archive assignment race. Synthetic PostgreSQL tests
 verify the visibility, revocation, non-reactivation, and database constraints.
 
+The internal `MemberReactivation.reactivate(verifiedSessionAccountId, memberId)`
+operation may return an archived, unlinked ordinary MEMBER to active status
+only with a current `EDIT_MEMBERS` grant. It never recreates removed club/team
+grants, team assignments or account links; those require new separately
+authorized operations. The member-field validation trigger still applies on
+reactivation, so an archived minor who has become an adult may be rejected
+until a separately reviewed policy-compliant correction is made. There is no
+HTTP endpoint or automatic unarchive action.
+
 **Not a deletion or release approval:** Archived personal details remain in the
 installation database and backups. There is no HTTP endpoint, browser UI,
 restore action, retention duration, or erasure mechanism. R03 privacy review,
