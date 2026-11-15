@@ -50,12 +50,18 @@ internal class FirstClubBootstrap(private val database: DSLContext) {
                 "INSERT INTO clubs (id, name, slug) VALUES (?, ?, ?)",
                 clubId, input.clubName.trim(), input.slug,
             )
+            val adminMemberId = UUID.randomUUID()
             db.execute(
                 """INSERT INTO members
                    (id, account_id, first_name, last_name, date_of_birth, email, phone, role)
                    VALUES (?, ?, ?, ?, ?, ?, ?, 'ADMIN')""",
-                UUID.randomUUID(), input.accountId, input.firstName.trim(), input.lastName.trim(),
+                adminMemberId, input.accountId, input.firstName.trim(), input.lastName.trim(),
                 input.birthDate, input.email.trim(), input.phone.trim(),
+            )
+            // First permission manager is created only by the guarded operator bootstrap.
+            db.execute(
+                "INSERT INTO club_capability_grants (member_id, capability) VALUES (?, 'MANAGE_PERMISSIONS')",
+                adminMemberId,
             )
             clubId
         }
