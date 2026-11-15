@@ -84,7 +84,8 @@ class MemberSchemaTest {
                     "first_name" to 200, "last_name" to 200, "gender" to 200,
                     "email" to 320, "phone" to 40,
                 )) {
-                    val padded = "x" + " ".repeat(maxLength)
+                    val prefix = if (column == "email") "abc" else "x"
+                    val padded = prefix + " ".repeat(maxLength + 1 - prefix.length)
                     assertThrows(org.jooq.exception.DataAccessException::class.java) {
                         db.execute("UPDATE members SET $column = ? WHERE id = ?", padded, member)
                     }
