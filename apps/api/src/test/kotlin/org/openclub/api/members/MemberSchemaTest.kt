@@ -60,6 +60,23 @@ class MemberSchemaTest {
                 assertEquals(childBirthday, db.fetchOne(
                     "SELECT date_of_birth FROM members WHERE id = ?", member
                 )?.get("date_of_birth", LocalDate::class.java))
+                // Raw database writes cannot bypass the application gender length/blank rules.
+                for (invalid in listOf(" ", "x".repeat(201))) {
+                    assertThrows(org.jooq.exception.DataAccessException::class.java) {
+                        db.execute("UPDATE members SET gender = ? WHERE id = ?", invalid, member)
+                    }
+                    assertThrows(org.jooq.exception.DataAccessException::class.java) {
+                        db.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth, gender)
+                            VALUES (?, 'Synthetic', 'Minor', ?, ?)""",
+                            UUID.randomUUID(), childBirthday, invalid)
+                    }
+                }
+                assertNull(db.fetchOne("SELECT gender FROM members WHERE id = ?", member)
+                    ?.get("gender", String::class.java))
+                db.execute("UPDATE members SET gender = ? WHERE id = ?", "x".repeat(200), member)
+                assertEquals("x".repeat(200), db.fetchOne(
+                    "SELECT gender FROM members WHERE id = ?", member
+                )?.get("gender", String::class.java))
                 assertEquals(1L, db.fetchValue(
                     "SELECT COUNT(*) FROM members WHERE id = ? AND account_id IS NULL", member
                 ))
