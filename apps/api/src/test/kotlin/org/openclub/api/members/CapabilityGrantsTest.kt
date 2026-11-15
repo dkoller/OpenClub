@@ -44,6 +44,11 @@ class CapabilityGrantsTest {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
                     club, "grants-" + club)
                 db.execute("INSERT INTO accounts (id) VALUES (?), (?)", account, outsider)
+                for (linkedAccount in listOf(account, outsider)) {
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), linkedAccount, UUID.randomUUID().toString())
+                }
                 db.execute("""INSERT INTO members
                     (id, account_id, first_name, last_name, date_of_birth, email, phone, role)
                     VALUES (?, ?, 'First', 'Admin', DATE '1990-01-01',
@@ -134,6 +139,9 @@ class CapabilityGrantsTest {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
                     club, "race-grants-" + club)
                 db.execute("INSERT INTO accounts (id) VALUES (?)", actorAccount)
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), actorAccount, UUID.randomUUID().toString())
                 for ((id, isAdmin) in listOf(actor to true, target to false)) {
                     db.execute("""INSERT INTO members
                         (id, account_id, first_name, last_name, date_of_birth,
@@ -200,6 +208,11 @@ class CapabilityGrantsTest {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
                     club, "mutual-" + club)
                 db.execute("INSERT INTO accounts (id) VALUES (?), (?)", a, b)
+                for (linkedAccount in listOf(a, b)) {
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), linkedAccount, UUID.randomUUID().toString())
+                }
                 for ((member, account) in listOf(memberA to a, memberB to b)) {
                     db.execute("""INSERT INTO members
                         (id, account_id, first_name, last_name, date_of_birth, email, phone, role)
