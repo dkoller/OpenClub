@@ -6,7 +6,7 @@ OpenClub uses a PR-size gate on every pull request (maximum **999** added + dele
 
 | Changed paths | API tests + jOOQ | Web tests/build | Compose smoke |
 | --- | --- | --- | --- |
-| `docs/**`, `README.md`, agent instructions, PR template | Skip | Skip | Skip |
+| `docs/**`, `README.md`, `.gitignore`, agent instructions, PR template | Skip | Skip | Skip |
 | `docs/contracts/**` (OpenAPI only) | Skip; OpenAPI validator runs | Skip | Skip |
 | `apps/api/**` | Run | Skip | Skip |
 | `apps/web/**` | Skip | Run | Skip |
@@ -15,6 +15,8 @@ OpenClub uses a PR-size gate on every pull request (maximum **999** added + dele
 | Unknown/new paths | Run | Run | Run |
 
 The OpenAPI contract validation job runs on **every PR regardless of changed files**, including contract-only changes. The current backend and web have no generated DTO/client from these discussion drafts; contract-only PRs do not need to rebuild them. When generated clients or executable schema tests are introduced, update this routing and the affected CI checks in the same PR.\n\nOn pushes to `main`, **all** application jobs run. Workflow changes targeting the build workflow run both language checks. A pull request changing both API and web runs both. **Jobs remain defined and report skipped success** when they do not apply; the lightweight `changes` job checks the actual PR file list. Ensure repository branch protection treats skipped jobs as acceptable while requiring the PR-size gate and change-detection jobs.
+
+A root `.gitignore`-only PR does not change application source or Docker build-context exclusions (`.dockerignore` is handled separately), so it should not consume API/web/Compose runner minutes. A PR that also changes source/config still runs the corresponding checks. Pushes to `main` retain the full suite.
 
 The path classifier is duplicated in the build and smoke workflows to keep each workflow independently checkable; update **both** when adding new source directories. Classify unfamiliar paths conservatively (run all checks). This is an intentional first optimization, not an excuse to weaken full-stack checks on `main`.
 
