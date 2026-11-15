@@ -26,6 +26,8 @@ jobs:
           python-version: '3.12'
       - name: Install OpenAPI validator
         run: python -m pip install openapi-spec-validator==0.7.2
+      - name: Validate synthetic backup/restore rehearsal shell syntax
+        run: bash -n dev/verify-synthetic-restore.sh
       - name: Validate OpenAPI YAML contracts
         shell: bash
         run: |

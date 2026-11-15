@@ -10,6 +10,28 @@ these commands against an installation with data you need to retain without a
 separately approved backup and recovery plan. A database dump can contain all
 member and session data, including secrets; never commit, upload, or email it.
 
+## Repeatable disposable smoke rehearsal
+
+From the repository root, on a machine with Docker Compose and no conflicting
+ports 5432/5173, run:
+
+```sh
+bash dev/verify-synthetic-restore.sh --synthetic-only
+```
+
+The script builds a **fresh temporary Compose project**, inserts fixed synthetic
+club/member/team/assignment fixtures, creates a private custom-format PostgreSQL
+backup outside the checkout, restores it into a **different fresh project** and
+verifies relationships and Flyway migration history. Both temporary project
+volumes and the private dump are removed on exit (including failure); the script
+must **never** be run against a project containing records worth keeping.
+It does not access any existing Compose project by name. This is a disposable
+development smoke check, not encrypted/off-site backup or production approval.
+
+The CI build only syntax-checks the script. Run the Docker rehearsal explicitly
+to obtain actual restore evidence; do not report a successful restore from CI
+syntax validation alone.
+
 ## 1. Capture a private backup from a disposable source
 
 Start an isolated synthetic source project and confirm its identity. Populate it
