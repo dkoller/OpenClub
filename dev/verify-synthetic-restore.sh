@@ -38,6 +38,11 @@ INSERT INTO clubs (id, name, slug) VALUES
 INSERT INTO members (id, first_name, last_name, date_of_birth, email, phone)
 VALUES ('22222222-2222-4222-8222-222222222222', 'Synthetic', 'Member',
         DATE '1990-01-01', 'synthetic@example.invalid', '+41000000000');
+-- Verify recoverability of inactive historical records without restoring access.
+INSERT INTO members (id, first_name, last_name, date_of_birth, email, phone, archived_at)
+VALUES ('44444444-4444-4444-8444-444444444444', 'Archived', 'Synthetic',
+        DATE '1990-01-01', 'archived@example.invalid', '+41000000001',
+        TIMESTAMPTZ '2026-01-01 00:00:00+00');
 INSERT INTO teams (id, name) VALUES
   ('33333333-3333-4333-8333-333333333333', 'Synthetic Team');
 INSERT INTO member_team_assignments (team_id, member_id) VALUES
@@ -91,7 +96,18 @@ SELECT CASE WHEN
   AND (SELECT name FROM clubs) = 'Synthetic Recovery Club'
   AND (SELECT COUNT(*) FROM members WHERE first_name = 'Synthetic'
        AND email = 'synthetic@example.invalid') = 1
+  AND (SELECT COUNT(*) FROM members WHERE archived_at IS NULL) = 1
+  AND (SELECT COUNT(*) FROM members
+       WHERE id = '44444444-4444-4444-8444-444444444444'::uuid
+         AND archived_at = TIMESTAMPTZ '2026-01-01 00:00:00+00'
+         AND account_id IS NULL AND role = 'MEMBER') = 1
   AND (SELECT COUNT(*) FROM member_team_assignments) = 1
+  AND NOT EXISTS (SELECT 1 FROM member_team_assignments
+       WHERE member_id = '44444444-4444-4444-8444-444444444444'::uuid)
+  AND NOT EXISTS (SELECT 1 FROM club_capability_grants
+       WHERE member_id = '44444444-4444-4444-8444-444444444444'::uuid)
+  AND NOT EXISTS (SELECT 1 FROM team_capability_grants
+       WHERE member_id = '44444444-4444-4444-8444-444444444444'::uuid)
   AND (SELECT COUNT(*) FROM club_capability_grants) = 1
   AND (SELECT COUNT(*) FROM team_capability_grants) = 1
   AND (SELECT COUNT(*) FROM flyway_schema_history WHERE success) =
