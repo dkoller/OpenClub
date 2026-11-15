@@ -1,0 +1,27 @@
+name: Synthetic backup/restore drill
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/synthetic-restore.yml'
+      - 'dev/verify-synthetic-restore.sh'
+      - 'apps/api/src/main/resources/db/migration/**'
+      - 'compose.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate rehearsal shell syntax
+        run: bash -n dev/verify-synthetic-restore.sh
+      - name: Run isolated synthetic backup and restore
+        run: bash dev/verify-synthetic-restore.sh --synthetic-only
