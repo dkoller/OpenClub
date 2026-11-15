@@ -132,4 +132,4 @@ The first release must support German, English, French and Italian. Its initial 
 - [x] Pilot worksheet PR #72 merged (user-confirmed 2026-11-15).
 - [x] Member-field policy follow-up PR #73 merged; R01/#10 closed as a requirements-discovery milestone. Runtime and privacy gates remain open.
 
-**Testing:** Documentation-only change. No code or integration tests are claimed. Keep #10 open until evidence and human sign-off are documented.
+**Testing:** The R01 documentation PRs #72 and #73 are merged and issue #10 is closed as a requirements milestone. No code/integration tests or R19 demonstration are claimed. Privacy, schema and release-acceptance gates remain open.

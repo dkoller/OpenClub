@@ -29,7 +29,7 @@ A volunteer signs in, creates or selects an authorized club, adds a person with 
 - [ ] What data must be exported, corrected, deleted or retained?
 - [ ] Who will review the prototype and provide acceptance feedback?
 
-## Decision log (not answered yet)
+## Original decision log (historical; superseded where answered in R01)
 
 | Decision | Current state | Why it blocks downstream work |
 | --- | --- | --- |

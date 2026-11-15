@@ -76,7 +76,7 @@ Dependency references indicate when implementation **must not outpace prerequisi
 | R16 | **P1** | [#25 — Playwright end-to-end journey](https://github.com/dkoller/OpenClub/issues/25) | Tests the user story after the API and screens are functional. | R12–R15 |
 | R17 | **P1** | [#26 — Export/deletion/audit basics](https://github.com/dkoller/OpenClub/issues/26) | Makes initial member-data handling responsible and reviewable. | R03, R09, R10, R15 |
 | R18 | **P1** | [#27 — Deployment cost/backups/restore](https://github.com/dkoller/OpenClub/issues/27) | Needed before real club data or long-running hosting. | R02, R03, R17 |
-| R19 | **P1** | [#28 — Safe demo and pilot validation](https://github.com/dkoller/OpenClub/issues/28) | Measures actual utility after features, tests and operations are in place. | R01, R14–R18 |
+| R19 | **P1** | [#28 — Safe demo and pilot validation](https://github.com/dkoller/OpenClub/issues/28) | Measures actual utility after features, tests and operations are in place. | R01, R14–R18, #74–#76 |
 
 ### F. **AI development experiment.** Run a focused two-agent implementation/review trial after a usable vertical slice exists, so the comparison has meaningful metrics.
 
@@ -89,7 +89,7 @@ Dependency references indicate when implementation **must not outpace prerequisi
 | Order | Priority | Issue / expected outcome | Why here | Dependencies |
 | --- | --- | --- | --- | --- |
 | R21 | **P2** | [#30 — Evaluate orchestration automation](https://github.com/dkoller/OpenClub/issues/30) | Avoid new coordination infrastructure without evidence. | R20 |
-| R22 | **P2** | [#31 — Triage post-MVP backlog](https://github.com/dkoller/OpenClub/issues/31) | Keep speculative features outside initial delivery until pilot evidence. | R19 |
+| R22 | **P2** | [#31 — Triage post-MVP backlog](https://github.com/dkoller/OpenClub/issues/31) | Evaluate additional features beyond already accepted team assignments and permissions after pilot evidence. | R19 |
 
 ## MVP acceptance gate
 
@@ -100,7 +100,7 @@ The first pilot release is **not done** merely because the database tables or sc
 - Each **R** item is a tracked GitHub issue with acceptance criteria and dependencies. Update its checklist/close it only after merged PR evidence; open a follow-up issue for newly identified work.
 - **Completed C items are not duplicated as open issues:** their merged PRs are the historical record.
 - The older [first-milestone document](concepts/ai/first-milestone.md) is retained for historical context; **this file is the current numbered plan**.
-- Scope exclusions until pilot evidence: payments, accounting, events, competitions, integrations, chat, pushes, federation sync, nonprofit generalization and a custom multi-agent framework.
+- Scope exclusions until pilot evidence: payments, accounting, events, competitions, integrations, chat, pushes, federation sync, and a custom multi-agent framework. Team assignments and configurable permission grants are **first-release requirements**, tracked separately in #75/#76; broader coaching/training functionality and general nonprofit workflows remain later decisions.
 - No tentative target dates or paid infrastructure commitments are implied by these priorities.
 
 ### R05 authentication closeout (2026-11-15; merged)
