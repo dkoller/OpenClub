@@ -2,16 +2,18 @@
 
 **Status:** Review findings, **not API acceptance**. See [draft contract](openapi-draft.yaml), [R04 #13](https://github.com/dkoller/OpenClub/issues/13) and [finding #37](https://github.com/dkoller/OpenClub/issues/37).
 
+**Current review scope:** `openapi-draft.yaml` is the single-club working draft after PR #79; the historical findings below refer to the retired multi-club proposal, not current endpoints. Only authenticated `GET /api/v1/club` is implemented. R04 remains unapproved.
+
 This review was written before pilot acceptance and R05 completion. The historical findings below are preserved; **R01/#10 is now closed** and OIDC/Ktor BFF architecture is selected/implemented. The draft contract remains **unapproved**, especially for member data ownership, field requirements and scoped permissions.
 
-## What the current draft gets right
+## Historical multi-club draft review (superseded)
 
 - Uses a server-enforced session security scheme rather than treating club IDs or roles as authentication.
 - Models club-specific membership URLs and explicit `ADMIN` / `MEMBER` roles.
 - Defines basic input schemas, bounded page size, and recognizable 401/403/404/409 outcomes.
 - Separates person and membership references, matching [ADR-0002](../decisions/0002-identity-and-membership-model.md).
 
-## Findings to resolve before acceptance
+## Historical findings to resolve in the single-club contract
 
 | Priority | Finding | Proposed resolution / prerequisite |
 | --- | --- | --- |
@@ -63,4 +65,4 @@ The current [OpenAPI discussion draft](openapi-draft.yaml) still shows historica
 
 ## Single-club contract pivot (2026-11-15)
 
-Owner selected one club per installation after R01 closure. R04 must **replace** legacy `/v1/clubs/{clubId}` tenant-selection and list/create-many-clubs assumptions with installation-local member, team, grant and club-settings operations. A controlled one-time setup is separate from normal member APIs. Existing historical contract draft remains explicitly **not implementation-ready**. Internal legacy `club_id` schema columns may persist through migration, but cannot imply runtime multi-club support. See proposed [ADR-0005](../decisions/0005-single-club-installation.md), #74, R06 and R07.
+Owner selected one club per installation after R01 closure. R04 must **replace** legacy `/v1/clubs/{clubId}` tenant-selection and list/create-many-clubs assumptions with installation-local member, team, grant and club-settings operations. A controlled one-time setup is separate from normal member APIs. Existing historical contract draft remains explicitly **not implementation-ready**. The fresh V1 single-club schema has no member `club_id` tenant selector; no legacy Flyway migration path is provided because the project was never live. See accepted [ADR-0005](../decisions/0005-single-club-installation.md), #74, R06 and R07.
