@@ -61,11 +61,24 @@ migration_count="$(docker compose -p "$source_project" exec -T postgres \
 docker compose -p "$source_project" exec -T postgres \
   pg_dump -U openclub -d openclub --format=custom --no-owner > "$dump"
 test -s "$dump"
+# Reject a truncated/non-PG custom archive before moving to restore.
+docker compose -p "$source_project" exec -T postgres \
+  pg_restore --list < "$dump" > /dev/null
 
 # The stock development Compose binds PostgreSQL to port 5432.
 # Stop the source without removing its volume before starting the destination.
 docker compose -p "$source_project" stop
 docker compose -p "$restore_project" up -d --wait --wait-timeout 90 postgres
+# Never restore into a database that already contains application tables.
+# The temporary target project is expected to start completely empty.
+table_count="$(docker compose -p "$restore_project" exec -T postgres \
+  psql -qAt -v ON_ERROR_STOP=1 -U openclub -d openclub \
+  -c "SELECT COUNT(*) FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")"
+if [[ "$table_count" != 0 ]]; then
+  echo "Restore destination is not empty; refusing to overwrite data" >&2
+  exit 1
+fi
 docker compose -p "$restore_project" exec -T postgres \
   pg_restore --exit-on-error --no-owner --no-privileges \
   -U openclub -d openclub < "$dump"
