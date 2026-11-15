@@ -97,4 +97,73 @@ class AdminRecoveryTest {
             }
         }
     }
+    @Test
+    fun competingRecoveriesCannotBothReplaceTheSameAdministrator() {
+        val url = System.getenv("DB_URL")
+        assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL")
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = url
+            username = requireNotNull(System.getenv("DB_USER"))
+            password = requireNotNull(System.getenv("DB_PASSWORD"))
+            maximumPoolSize = 3
+        }).use { source ->
+            Flyway.configure().dataSource(source).load().migrate()
+            val db = DSL.using(source, SQLDialect.POSTGRES)
+            val club = UUID.randomUUID()
+            val admin = UUID.randomUUID()
+            val old = UUID.randomUUID()
+            val replacements = listOf(UUID.randomUUID(), UUID.randomUUID())
+            try {
+                db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
+                    club, "synthetic-" + club)
+                for (account in listOf(old) + replacements) {
+                    db.execute("INSERT INTO accounts (id) VALUES (?)", account)
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), account, "subject-" + account)
+                }
+                db.execute("""INSERT INTO members
+                    (id, account_id, first_name, last_name, date_of_birth, email, phone, role)
+                    VALUES (?, ?, 'Sample', 'Admin', DATE '1990-01-01',
+                    'admin@example.invalid', '+41000000000', 'ADMIN')""", admin, old)
+                val ready = java.util.concurrent.CountDownLatch(2)
+                val start = java.util.concurrent.CountDownLatch(1)
+                val executor = java.util.concurrent.Executors.newFixedThreadPool(2)
+                try {
+                    val outcomes = replacements.map { replacement ->
+                        executor.submit<Boolean> {
+                            ready.countDown()
+                            start.await()
+                            try {
+                                AdminRecovery(DSL.using(source, SQLDialect.POSTGRES)).rebind(
+                                    AdminRecovery.Input(club, admin, old, replacement)
+                                )
+                                true
+                            } catch (_: IllegalStateException) {
+                                false
+                            }
+                        }
+                    }
+                    org.junit.jupiter.api.Assertions.assertTrue(
+                        ready.await(10, java.util.concurrent.TimeUnit.SECONDS)
+                    )
+                    start.countDown()
+                    assertEquals(1, outcomes.count { it.get(15, java.util.concurrent.TimeUnit.SECONDS) })
+                    val selected = db.fetchOne("SELECT account_id FROM members WHERE id = ?", admin)
+                        ?.get("account_id", UUID::class.java)
+                    org.junit.jupiter.api.Assertions.assertTrue(selected in replacements)
+                } finally {
+                    start.countDown()
+                    executor.shutdownNow()
+                }
+            } finally {
+                db.execute("DELETE FROM members WHERE id = ?", admin)
+                for (account in listOf(old) + replacements) {
+                    db.execute("DELETE FROM accounts WHERE id = ?", account)
+                }
+                db.execute("DELETE FROM clubs WHERE id = ?", club)
+            }
+        }
+    }
+
 }
