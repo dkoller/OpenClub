@@ -20,7 +20,7 @@ describe('single-club session', () => {
     const request = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: 'account', csrfToken: 'secret' }) })
       .mockResolvedValueOnce({ status: 403 })
-    expect(await loadClubAccess(request)).toEqual({ state: 'not-member' })
+    expect(await loadClubAccess(request)).toEqual({ state: 'not-member', csrfToken: 'secret' })
     expect(request.mock.calls[1][0]).toBe('/api/v1/club')
   })
 
