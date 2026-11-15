@@ -102,7 +102,11 @@ still exists. The internal archive service takes the permission-mutation lock,
 then holds the editor's current `EDIT_MEMBERS` grant and the target row locked,
 removes dependent rows and archives in **one transaction**. A denied or failed
 attempt does not commit partial privilege removal. Synthetic PostgreSQL tests
-cover direct-SQL bypass attempts, unauthorized archiving and cleanup.
+cover direct-SQL bypass attempts, unauthorized archiving and cleanup. A
+controlled two-connection race test additionally holds an archive row lock,
+observes the opposing grant insert waiting in PostgreSQL `pg_stat_activity`,
+then commits archival and verifies the insert fails without leaving a dormant
+grant. This checks actual lock contention, not just concurrent thread startup.
 
 These constraints guard data integrity; database operators still need strict
 privilege separation and audit review. They do not approve a public archive
