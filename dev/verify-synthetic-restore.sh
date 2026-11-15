@@ -90,4 +90,13 @@ if [[ "$result" != "RESTORE_OK" ]]; then
   echo "Restore fixture/integrity verification failed: $result" >&2
   exit 1
 fi
-echo "Synthetic backup, restore and relational-data verification succeeded."
+# A recovered database is only useful if OpenClub can boot against it.
+# This starts the real API using the restored Flyway history, not a mock check.
+docker compose -p "$restore_project" up -d --build --wait --wait-timeout 180 api
+api_health="$(docker compose -p "$restore_project" exec -T api \
+  wget -q -O - http://127.0.0.1:8080/health)"
+if [[ "$api_health" != '{"status":"ok"}' ]]; then
+  echo "API did not start successfully against the restored database" >&2
+  exit 1
+fi
+echo "Synthetic backup, restore, data integrity and API startup verified."
