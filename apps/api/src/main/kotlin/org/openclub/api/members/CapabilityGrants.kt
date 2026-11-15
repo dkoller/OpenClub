@@ -43,15 +43,22 @@ internal class CapabilityGrants(private val database: DSLContext) {
                 """SELECT actor.id FROM members actor
                    JOIN club_capability_grants g ON g.member_id = actor.id
                    WHERE actor.account_id = ? AND actor.role = 'ADMIN'
-                     AND g.capability = 'MANAGE_PERMISSIONS'""",
+                     AND g.capability = 'MANAGE_PERMISSIONS'
+                     AND EXISTS (SELECT 1 FROM account_identities ai
+                                 WHERE ai.account_id = actor.account_id)""",
                 actorAccountId,
             )?.get("id", UUID::class.java) ?: return@transactionResult Change.DENIED
             if (actor == memberId) return@transactionResult Change.DENIED
 
-            val recipient = db.fetchOne("SELECT role FROM members WHERE id = ?", memberId)
+            val recipient = db.fetchOne(
+                """SELECT m.role, EXISTS (
+                       SELECT 1 FROM account_identities ai WHERE ai.account_id = m.account_id
+                   ) AS verified FROM members m WHERE m.id = ?""", memberId,
+            )
                 ?: return@transactionResult Change.DENIED
             if (granting && capability == ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS &&
-                recipient.get("role", String::class.java) != "ADMIN"
+                (recipient.get("role", String::class.java) != "ADMIN" ||
+                    recipient.get("verified", Boolean::class.java) != true)
             ) return@transactionResult Change.DENIED
             if (scope == Scope.TEAM &&
                 db.fetchOne("SELECT 1 FROM teams WHERE id = ?", teamId) == null
@@ -59,12 +66,15 @@ internal class CapabilityGrants(private val database: DSLContext) {
 
             if (!granting && scope == Scope.CLUB &&
                 capability == ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS &&
-                recipient.get("role", String::class.java) == "ADMIN"
+                recipient.get("role", String::class.java) == "ADMIN" &&
+                recipient.get("verified", Boolean::class.java) == true
             ) {
                 val managers = db.fetchValue(
                     """SELECT COUNT(*) FROM members m
                        JOIN club_capability_grants g ON g.member_id = m.id
-                       WHERE m.role = 'ADMIN' AND g.capability = 'MANAGE_PERMISSIONS'""",
+                       WHERE m.role = 'ADMIN' AND g.capability = 'MANAGE_PERMISSIONS'
+                         AND EXISTS (SELECT 1 FROM account_identities ai
+                                     WHERE ai.account_id = m.account_id)""",
                 )?.toString()?.toLongOrNull() ?: error("Cannot count permission managers")
                 if (managers <= 1) return@transactionResult Change.DENIED
             }
