@@ -1,4 +1,8 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.database.*
+import org.openclub.api.members.*
+import org.openclub.api.*
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -29,16 +33,16 @@ class AuthSessionsTest {
         }).use { source ->
             Flyway.configure().dataSource(source).load().migrate()
             val db = DSL.using(source, SQLDialect.POSTGRES)
-            val personId = UUID.randomUUID()
+            val accountId = UUID.randomUUID()
             db.execute(
-                "INSERT INTO persons (id, display_name) VALUES (?, ?)",
-                personId, "Synthetic session test person",
+                "INSERT INTO accounts (id, display_name) VALUES (?, ?)",
+                accountId, "Synthetic session test person",
             )
             try {
-                test(AuthSessions(db), db, personId)
+                test(AuthSessions(db), db, accountId)
             } finally {
                 // FK ON DELETE CASCADE cleans up ONLY this test person's sessions.
-                db.execute("DELETE FROM persons WHERE id = ?", personId)
+                db.execute("DELETE FROM accounts WHERE id = ?", accountId)
             }
         }
     }
@@ -49,8 +53,8 @@ class AuthSessionsTest {
         assertEquals(43, issued.handle.length)
         assertEquals(43, issued.csrfToken.length)
         assertNotEquals(issued.handle, issued.csrfToken)
-        assertEquals(1L, db.fetchValue("SELECT COUNT(*) FROM auth_sessions WHERE person_id = ?", person))
-        val storedHash = db.fetchValue("SELECT session_hash FROM auth_sessions WHERE person_id = ?", person).toString()
+        assertEquals(1L, db.fetchValue("SELECT COUNT(*) FROM auth_sessions WHERE account_id = ?", person))
+        val storedHash = db.fetchValue("SELECT session_hash FROM auth_sessions WHERE account_id = ?", person).toString()
         assertTrue(Regex("[0-9a-f]{64}").matches(storedHash))
         assertFalse(storedHash.contains(issued.handle))
 
@@ -62,21 +66,21 @@ class AuthSessionsTest {
             """UPDATE auth_sessions
                SET last_used_at = CURRENT_TIMESTAMP - INTERVAL '20 minutes',
                    idle_expires_at = CURRENT_TIMESTAMP + INTERVAL '45 seconds'
-               WHERE person_id = ?""",
+               WHERE account_id = ?""",
             person,
         )
         val before = requireNotNull(db.fetchOne(
-            "SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE person_id = ?", person,
+            "SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE account_id = ?", person,
         ))
         assertEquals(true, db.fetchValue(
-            "SELECT idle_expires_at < CURRENT_TIMESTAMP + INTERVAL '1 minute' FROM auth_sessions WHERE person_id = ?",
+            "SELECT idle_expires_at < CURRENT_TIMESTAMP + INTERVAL '1 minute' FROM auth_sessions WHERE account_id = ?",
             person,
         ))
         assertNull(sessions.findForMutation(issued.handle, null))
         assertNull(sessions.findForMutation(issued.handle, "incorrect"))
         assertNull(sessions.findForMutation(issued.handle, "x".repeat(43)))
         val afterRejected = requireNotNull(db.fetchOne(
-            "SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE person_id = ?", person,
+            "SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE account_id = ?", person,
         ))
         assertEquals(before.get("last_used_at"), afterRejected.get("last_used_at"))
         assertEquals(before.get("idle_expires_at"), afterRejected.get("idle_expires_at"))
@@ -85,13 +89,13 @@ class AuthSessionsTest {
             sessions.findForMutation(issued.handle, issued.csrfToken),
         )
         assertNotEquals(before.get("last_used_at"), db.fetchValue(
-            "SELECT last_used_at FROM auth_sessions WHERE person_id = ?", person,
+            "SELECT last_used_at FROM auth_sessions WHERE account_id = ?", person,
         ))
         assertEquals(true, db.fetchValue(
             """SELECT idle_expires_at BETWEEN
                    CURRENT_TIMESTAMP + INTERVAL '29 minutes' AND
                    CURRENT_TIMESTAMP + INTERVAL '31 minutes'
-               FROM auth_sessions WHERE person_id = ?""",
+               FROM auth_sessions WHERE account_id = ?""",
             person,
         ))
     }
@@ -99,7 +103,7 @@ class AuthSessionsTest {
     @Test
     fun rotatesAtomicallyAndPreservesAbsoluteExpiry() = withStore { sessions, db, person ->
         val initial = sessions.create(person)
-        val hardExpiry = db.fetchValue("SELECT absolute_expires_at FROM auth_sessions WHERE person_id = ?", person)
+        val hardExpiry = db.fetchValue("SELECT absolute_expires_at FROM auth_sessions WHERE account_id = ?", person)
         val replacement = requireNotNull(sessions.rotate(initial.handle))
         assertNotEquals(initial.handle, replacement.handle)
         assertNotEquals(initial.csrfToken, replacement.csrfToken)
@@ -107,8 +111,8 @@ class AuthSessionsTest {
         assertNull(sessions.rotate(initial.handle))
         assertNull(sessions.findForMutation(replacement.handle, initial.csrfToken))
         assertEquals(ActiveSession(person, replacement.csrfToken), sessions.find(replacement.handle))
-        assertEquals(hardExpiry, db.fetchValue("SELECT absolute_expires_at FROM auth_sessions WHERE person_id = ?", person))
-        assertEquals(1L, db.fetchValue("SELECT COUNT(*) FROM auth_sessions WHERE person_id = ?", person))
+        assertEquals(hardExpiry, db.fetchValue("SELECT absolute_expires_at FROM auth_sessions WHERE account_id = ?", person))
+        assertEquals(1L, db.fetchValue("SELECT COUNT(*) FROM auth_sessions WHERE account_id = ?", person))
     }
 
 
@@ -116,7 +120,7 @@ class AuthSessionsTest {
     fun validAccessSlidesIdleDeadlineButCannotPassAbsoluteExpiry() = withStore { sessions, db, person ->
         val issued = sessions.create(person)
         db.execute(
-            "UPDATE auth_sessions SET idle_expires_at = CURRENT_TIMESTAMP + INTERVAL '45 seconds' WHERE person_id = ?",
+            "UPDATE auth_sessions SET idle_expires_at = CURRENT_TIMESTAMP + INTERVAL '45 seconds' WHERE account_id = ?",
             person,
         )
         assertNotNull(sessions.find(issued.handle))
@@ -124,7 +128,7 @@ class AuthSessionsTest {
             """SELECT idle_expires_at BETWEEN
                    CURRENT_TIMESTAMP + INTERVAL '29 minutes' AND
                    CURRENT_TIMESTAMP + INTERVAL '31 minutes'
-               FROM auth_sessions WHERE person_id = ?""",
+               FROM auth_sessions WHERE account_id = ?""",
             person,
         ))
 
@@ -134,32 +138,32 @@ class AuthSessionsTest {
             """UPDATE auth_sessions
                SET absolute_expires_at = CURRENT_TIMESTAMP + INTERVAL '5 minutes',
                    idle_expires_at = CURRENT_TIMESTAMP + INTERVAL '45 seconds'
-               WHERE person_id = ?""",
+               WHERE account_id = ?""",
             person,
         )
         assertNotNull(sessions.find(issued.handle))
         assertEquals(true, db.fetchValue(
-            "SELECT idle_expires_at = absolute_expires_at FROM auth_sessions WHERE person_id = ?",
+            "SELECT idle_expires_at = absolute_expires_at FROM auth_sessions WHERE account_id = ?",
             person,
         ))
 
         // Rotation must apply the identical hard clamp while changing both secrets.
         db.execute(
-            "UPDATE auth_sessions SET idle_expires_at = CURRENT_TIMESTAMP + INTERVAL '45 seconds' WHERE person_id = ?",
+            "UPDATE auth_sessions SET idle_expires_at = CURRENT_TIMESTAMP + INTERVAL '45 seconds' WHERE account_id = ?",
             person,
         )
         val hardExpiry = db.fetchValue(
-            "SELECT absolute_expires_at FROM auth_sessions WHERE person_id = ?", person,
+            "SELECT absolute_expires_at FROM auth_sessions WHERE account_id = ?", person,
         )
         val rotated = requireNotNull(sessions.rotate(issued.handle))
         assertNotEquals(issued.handle, rotated.handle)
         assertNotEquals(issued.csrfToken, rotated.csrfToken)
         assertNull(sessions.find(issued.handle))
         assertEquals(hardExpiry, db.fetchValue(
-            "SELECT absolute_expires_at FROM auth_sessions WHERE person_id = ?", person,
+            "SELECT absolute_expires_at FROM auth_sessions WHERE account_id = ?", person,
         ))
         assertEquals(true, db.fetchValue(
-            "SELECT idle_expires_at = absolute_expires_at FROM auth_sessions WHERE person_id = ?",
+            "SELECT idle_expires_at = absolute_expires_at FROM auth_sessions WHERE account_id = ?",
             person,
         ))
     }
@@ -169,7 +173,7 @@ class AuthSessionsTest {
     fun enforcesIdleAndHardExpiryAndPrunesWithoutRevival() = withStore { sessions, db, person ->
         val idle = sessions.create(person)
         db.execute(
-            "UPDATE auth_sessions SET idle_expires_at = CURRENT_TIMESTAMP - INTERVAL '1 second' WHERE person_id = ?",
+            "UPDATE auth_sessions SET idle_expires_at = CURRENT_TIMESTAMP - INTERVAL '1 second' WHERE account_id = ?",
             person,
         )
         assertNull(sessions.find(idle.handle))
@@ -184,7 +188,7 @@ class AuthSessionsTest {
                    last_used_at = CURRENT_TIMESTAMP - INTERVAL '13 hours',
                    idle_expires_at = CURRENT_TIMESTAMP - INTERVAL '1 second',
                    absolute_expires_at = CURRENT_TIMESTAMP - INTERVAL '1 second'
-               WHERE person_id = ?""",
+               WHERE account_id = ?""",
             person,
         )
         assertNull(sessions.find(absolute.handle))
@@ -200,19 +204,19 @@ class AuthSessionsTest {
         assertFalse(sessions.revoke(one.handle))
         assertNull(sessions.find(one.handle))
         assertNotNull(sessions.find(two.handle))
-        assertEquals(1, sessions.revokeAllForPerson(person))
+        assertEquals(1, sessions.revokeAllForAccount(person))
         assertNull(sessions.find(two.handle))
-        assertEquals(0, sessions.revokeAllForPerson(person))
+        assertEquals(0, sessions.revokeAllForAccount(person))
         val third = sessions.create(person)
-        db.execute("DELETE FROM persons WHERE id = ?", person)
+        db.execute("DELETE FROM accounts WHERE id = ?", person)
         assertNull(sessions.find(third.handle))
-        assertEquals(0L, db.fetchValue("SELECT COUNT(*) FROM auth_sessions WHERE person_id = ?", person))
+        assertEquals(0L, db.fetchValue("SELECT COUNT(*) FROM auth_sessions WHERE account_id = ?", person))
     }
 
     @Test
     fun failedReplacementInsertRollsBackOldSessionRevocation() = withStore { sessions, db, person ->
         val original = sessions.create(person)
-        // A non-existent person violates auth_sessions.person_id's foreign key.
+        // A non-existent person violates auth_sessions.account_id's foreign key.
         // The delete runs first; that deletion MUST roll back with the insert.
         val unknownPerson = UUID.randomUUID()
         assertThrows(Exception::class.java) {
@@ -220,30 +224,30 @@ class AuthSessionsTest {
         }
         assertEquals(ActiveSession(person, original.csrfToken), sessions.find(original.handle))
         assertEquals(1L, db.fetchValue(
-            "SELECT COUNT(*) FROM auth_sessions WHERE person_id = ?", person,
+            "SELECT COUNT(*) FROM auth_sessions WHERE account_id = ?", person,
         ))
         val replacement = sessions.replace(original.handle, person)
         assertNull(sessions.find(original.handle))
         assertEquals(ActiveSession(person, replacement.csrfToken), sessions.find(replacement.handle))
         assertEquals(1L, db.fetchValue(
-            "SELECT COUNT(*) FROM auth_sessions WHERE person_id = ?", person,
+            "SELECT COUNT(*) FROM auth_sessions WHERE account_id = ?", person,
         ))
     }
 
     @Test
     fun logoutValidatesSessionAndCsrfBeforeDeleting() = withStore { sessions, db, person ->
         val issued = sessions.create(person)
-        val before = db.fetchOne("SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE person_id = ?", person)
+        val before = db.fetchOne("SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE account_id = ?", person)
         assertEquals(LogoutResult.UNAUTHENTICATED, sessions.logout(null, issued.csrfToken))
         assertEquals(LogoutResult.UNAUTHENTICATED, sessions.logout("x".repeat(43), issued.csrfToken))
         assertEquals(LogoutResult.FORBIDDEN, sessions.logout(issued.handle, null))
         assertEquals(LogoutResult.FORBIDDEN, sessions.logout(issued.handle, "x".repeat(43)))
-        assertEquals(before, db.fetchOne("SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE person_id = ?", person))
+        assertEquals(before, db.fetchOne("SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE account_id = ?", person))
         assertEquals(LogoutResult.REVOKED, sessions.logout(issued.handle, issued.csrfToken))
         assertNull(sessions.find(issued.handle))
         assertEquals(LogoutResult.UNAUTHENTICATED, sessions.logout(issued.handle, issued.csrfToken))
         val expired = sessions.create(person)
-        db.execute("UPDATE auth_sessions SET idle_expires_at = CURRENT_TIMESTAMP - INTERVAL '1 second' WHERE person_id = ?", person)
+        db.execute("UPDATE auth_sessions SET idle_expires_at = CURRENT_TIMESTAMP - INTERVAL '1 second' WHERE account_id = ?", person)
         assertEquals(LogoutResult.UNAUTHENTICATED, sessions.logout(expired.handle, expired.csrfToken))
     }
 

@@ -1,4 +1,8 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.database.*
+import org.openclub.api.members.*
+import org.openclub.api.*
 
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText

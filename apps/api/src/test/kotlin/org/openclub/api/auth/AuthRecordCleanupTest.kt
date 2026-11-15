@@ -1,4 +1,8 @@
-package org.openclub.api
+package org.openclub.api.auth
+
+import org.openclub.api.database.*
+import org.openclub.api.members.*
+import org.openclub.api.*
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -38,7 +42,7 @@ class AuthRecordCleanupTest {
             val prefix = UUID.randomUUID().toString().replace("-", "")
             val hashes = (1..3).map { i -> (prefix + i.toString().padStart(32, '0')) }
             val person = UUID.randomUUID()
-            db.execute("INSERT INTO persons (id, display_name) VALUES (?, ?)", person, "Cleanup test person")
+            db.execute("INSERT INTO accounts (id, display_name) VALUES (?, ?)", person, "Cleanup test person")
             try {
                 for (i in 0..2) {
                     db.execute(
@@ -49,7 +53,7 @@ class AuthRecordCleanupTest {
                     )
                     db.execute(
                         """INSERT INTO auth_sessions
-                            (session_hash, person_id, csrf_token, idle_expires_at, absolute_expires_at)
+                            (session_hash, account_id, csrf_token, idle_expires_at, absolute_expires_at)
                             VALUES (?, ?, ?, CURRENT_TIMESTAMP + (? * INTERVAL '1 minute'),
                                 CURRENT_TIMESTAMP + INTERVAL '12 hours')""",
                         hashes[i], person, "c".repeat(43), if (i == 2) 5 else -5,
@@ -66,7 +70,7 @@ class AuthRecordCleanupTest {
                 ))
             } finally {
                 db.execute("DELETE FROM oidc_login_transactions WHERE state_hash IN (?, ?, ?)", *hashes.toTypedArray())
-                db.execute("DELETE FROM persons WHERE id = ?", person)
+                db.execute("DELETE FROM accounts WHERE id = ?", person)
             }
         }
     }
