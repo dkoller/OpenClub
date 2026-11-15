@@ -1,0 +1,178 @@
+package org.openclub.api.members
+
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
+import org.flywaydb.core.Flyway
+import org.jooq.SQLDialect
+import org.jooq.impl.DSL
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.Test
+import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+
+class CapabilityGrantsTest {
+    @Test
+    fun permissionManagerCanGrantAndRevokeWithoutSelfEscalationOrLastManagerRemoval() {
+        val url = System.getenv("DB_URL")
+        assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL")
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = url
+            username = requireNotNull(System.getenv("DB_USER"))
+            password = requireNotNull(System.getenv("DB_PASSWORD"))
+            maximumPoolSize = 4
+        }).use { source ->
+            Flyway.configure().dataSource(source).load().migrate()
+            val db = DSL.using(source, SQLDialect.POSTGRES)
+            val club = UUID.randomUUID()
+            val account = UUID.randomUUID()
+            val outsider = UUID.randomUUID()
+            val manager = UUID.randomUUID()
+            val secondAdmin = UUID.randomUUID()
+            val member = UUID.randomUUID()
+            val juniors = UUID.randomUUID()
+            val adults = UUID.randomUUID()
+            val grants = CapabilityGrants(db)
+            val clubScope = CapabilityGrants.Scope.CLUB
+            val teamScope = CapabilityGrants.Scope.TEAM
+            val managePermissions = ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS
+            val manageTeams = ClubCapabilityAccess.Capability.MANAGE_TEAMS
+            val directory = ClubCapabilityAccess.Capability.VIEW_MEMBER_DIRECTORY
+            try {
+                db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
+                    club, "grants-" + club)
+                db.execute("INSERT INTO accounts (id) VALUES (?), (?)", account, outsider)
+                db.execute("""INSERT INTO members
+                    (id, account_id, first_name, last_name, date_of_birth, email, phone, role)
+                    VALUES (?, ?, 'First', 'Admin', DATE '1990-01-01',
+                            'first@example.invalid', '+41000000000', 'ADMIN')""",
+                    manager, account)
+                db.execute("""INSERT INTO members
+                    (id, first_name, last_name, date_of_birth, email, phone, role)
+                    VALUES (?, 'Second', 'Admin', DATE '1990-01-01',
+                            'second@example.invalid', '+41000000000', 'ADMIN')""", secondAdmin)
+                db.execute("""INSERT INTO members
+                    (id, first_name, last_name, date_of_birth, email, phone)
+                    VALUES (?, 'Regular', 'Member', DATE '1990-01-01',
+                            'member@example.invalid', '+41000000000')""", member)
+                db.execute("INSERT INTO teams (id, name) VALUES (?, 'Juniors'), (?, 'Adults')",
+                    juniors, adults)
+                assertEquals(CapabilityGrants.Change.DENIED,
+                    grants.grant(account, member, directory, clubScope))
+                db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_PERMISSIONS')",
+                    manager)
+                assertEquals(CapabilityGrants.Change.DENIED,
+                    grants.grant(outsider, member, directory, clubScope))
+                assertEquals(CapabilityGrants.Change.DENIED,
+                    grants.grant(account, manager, manageTeams, clubScope))
+                assertEquals(CapabilityGrants.Change.DENIED,
+                    grants.grant(account, member, managePermissions, clubScope))
+                assertEquals(CapabilityGrants.Change.DENIED,
+                    grants.revoke(account, manager, managePermissions, clubScope))
+                assertEquals(CapabilityGrants.Change.GRANTED,
+                    grants.grant(account, member, directory, clubScope))
+                assertEquals(CapabilityGrants.Change.UNCHANGED,
+                    grants.grant(account, member, directory, clubScope))
+                assertTrue(ClubCapabilityAccess(db).hasForTeam(account, juniors, manageTeams).not())
+                assertEquals(CapabilityGrants.Change.GRANTED,
+                    grants.grant(account, member, manageTeams, teamScope, juniors))
+                assertEquals(CapabilityGrants.Change.DENIED,
+                    grants.grant(account, member, manageTeams, teamScope, UUID.randomUUID()))
+                assertEquals(CapabilityGrants.Change.GRANTED,
+                    grants.grant(account, secondAdmin, managePermissions, clubScope))
+                assertEquals(CapabilityGrants.Change.REVOKED,
+                    grants.revoke(account, secondAdmin, managePermissions, clubScope))
+                assertEquals(CapabilityGrants.Change.DENIED,
+                    grants.revoke(account, manager, managePermissions, clubScope))
+                assertEquals(CapabilityGrants.Change.REVOKED,
+                    grants.revoke(account, member, manageTeams, teamScope, juniors))
+                assertEquals(CapabilityGrants.Change.REVOKED,
+                    grants.revoke(account, member, directory, clubScope))
+                assertEquals(CapabilityGrants.Change.UNCHANGED,
+                    grants.revoke(account, member, directory, clubScope))
+                assertThrows(IllegalArgumentException::class.java) {
+                    grants.grant(account, member, directory, teamScope, juniors)
+                }
+                assertThrows(IllegalArgumentException::class.java) {
+                    grants.grant(account, member, manageTeams, clubScope, juniors)
+                }
+                db.execute("UPDATE members SET role = 'MEMBER' WHERE id = ?", manager)
+                assertEquals(CapabilityGrants.Change.DENIED,
+                    grants.grant(account, member, directory, clubScope))
+            } finally {
+                db.execute("DELETE FROM teams WHERE id IN (?, ?)", juniors, adults)
+                db.execute("DELETE FROM members WHERE id IN (?, ?, ?)", manager, secondAdmin, member)
+                db.execute("DELETE FROM accounts WHERE id IN (?, ?)", account, outsider)
+                db.execute("DELETE FROM clubs WHERE id = ?", club)
+            }
+        }
+    }
+
+    @Test
+    fun concurrentGrantRequestsCreateOneRowAndDoNotDeadlock() {
+        val url = System.getenv("DB_URL")
+        assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL")
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = url
+            username = requireNotNull(System.getenv("DB_USER"))
+            password = requireNotNull(System.getenv("DB_PASSWORD"))
+            maximumPoolSize = 4
+        }).use { source ->
+            Flyway.configure().dataSource(source).load().migrate()
+            val db = DSL.using(source, SQLDialect.POSTGRES)
+            val club = UUID.randomUUID()
+            val actorAccount = UUID.randomUUID()
+            val actor = UUID.randomUUID()
+            val target = UUID.randomUUID()
+            try {
+                db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
+                    club, "race-grants-" + club)
+                db.execute("INSERT INTO accounts (id) VALUES (?)", actorAccount)
+                for ((id, isAdmin) in listOf(actor to true, target to false)) {
+                    db.execute("""INSERT INTO members
+                        (id, account_id, first_name, last_name, date_of_birth,
+                        email, phone, role) VALUES
+                        (?, ?, 'Synthetic', 'Member', DATE '1990-01-01',
+                        'synthetic@example.invalid', '+41000000000', ?)""",
+                        id, if (isAdmin) actorAccount else null,
+                        if (isAdmin) "ADMIN" else "MEMBER")
+                }
+                db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_PERMISSIONS')",
+                    actor)
+                val ready = CountDownLatch(2)
+                val start = CountDownLatch(1)
+                val pool = Executors.newFixedThreadPool(2)
+                try {
+                    val tasks = (1..2).map {
+                        pool.submit<CapabilityGrants.Change> {
+                            ready.countDown()
+                            start.await()
+                            CapabilityGrants(DSL.using(source, SQLDialect.POSTGRES)).grant(
+                                actorAccount, target,
+                                ClubCapabilityAccess.Capability.VIEW_MEMBER_DIRECTORY,
+                                CapabilityGrants.Scope.CLUB)
+                        }
+                    }
+                    assertTrue(ready.await(10, TimeUnit.SECONDS))
+                    start.countDown()
+                    assertEquals(setOf(
+                        CapabilityGrants.Change.GRANTED, CapabilityGrants.Change.UNCHANGED),
+                        tasks.map { it.get(15, TimeUnit.SECONDS) }.toSet())
+                    assertEquals(1, db.fetchValue(
+                        """SELECT COUNT(*) FROM club_capability_grants
+                           WHERE member_id = ? AND capability = 'VIEW_MEMBER_DIRECTORY'""",
+                        target)?.toString()?.toInt())
+                } finally {
+                    start.countDown()
+                    pool.shutdownNow()
+                }
+            } finally {
+                db.execute("DELETE FROM members WHERE id IN (?, ?)", actor, target)
+                db.execute("DELETE FROM accounts WHERE id = ?", actorAccount)
+                db.execute("DELETE FROM clubs WHERE id = ?", club)
+            }
+        }
+    }
+}
