@@ -15,7 +15,9 @@ export async function loadClubAccess(request: typeof fetch = fetch): Promise<Clu
     const club = await request('/api/v1/club', { credentials: 'same-origin' })
     if (club.status === 401) return { state: 'signed-out' }
     if (club.status === 403) return { state: 'not-member', csrfToken: details.csrfToken }
-    if (!club.ok) return { state: 'unavailable' }
+    if (club.status !== 200) return { state: 'unavailable' }
+    const clubDetails: unknown = await club.json()
+    if (!isClub(clubDetails)) return { state: 'unavailable' }
     return { state: 'ready', csrfToken: details.csrfToken }
   } catch {
     return { state: 'unavailable' }
@@ -26,6 +28,12 @@ function isSession(value: unknown): value is { accountId: string; csrfToken: str
   return value !== null && typeof value === 'object'
     && 'accountId' in value && typeof value.accountId === 'string'
     && 'csrfToken' in value && typeof value.csrfToken === 'string'
+}
+
+function isClub(value: unknown): value is { id: string } {
+  return value !== null && typeof value === 'object'
+    && 'id' in value && typeof value.id === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.id)
 }
 
 export async function signOut(csrfToken: string, request: typeof fetch = fetch): Promise<boolean> {
