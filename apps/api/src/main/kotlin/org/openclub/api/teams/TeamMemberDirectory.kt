@@ -27,8 +27,8 @@ internal class TeamMemberDirectory(private val database: DSLContext) {
                WHERE a.team_id = ? AND target.archived_at IS NULL
                  AND EXISTS (
                    SELECT 1 FROM members actor
-                   JOIN club_capability_grants directory ON directory.member_id = actor.id
-                     AND directory.capability = 'VIEW_MEMBER_DIRECTORY'
+                   JOIN club_capability_grants dir_grant ON dir_grant.member_id = actor.id
+                     AND dir_grant.capability = 'VIEW_MEMBER_DIRECTORY'
                    WHERE actor.account_id = ? AND actor.archived_at IS NULL
                      AND (
                        EXISTS (SELECT 1 FROM club_capability_grants g
