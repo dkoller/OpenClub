@@ -1,7 +1,14 @@
 package org.openclub.api.members
 
+import java.time.LocalDate
+
 /** Shared validation for member creation and details editing; database rules remain authoritative. */
 internal object MemberFieldValidation {
+    fun birthDate(value: LocalDate): LocalDate = value.also {
+        require(it.isAfter(LocalDate.of(1850, 1, 1))) { "Invalid birth date" }
+        require(!it.isAfter(LocalDate.now())) { "Birth date cannot be in the future" }
+    }
+
     fun name(value: String): String = value.trim().also {
         require(it.length in 1..200) { "Invalid member name" }
     }
