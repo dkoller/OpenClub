@@ -66,7 +66,7 @@ class VerifiedAccountsTest {
                 club, "Synthetic club", "club-" + club)
             db.execute("INSERT INTO accounts (id, display_name) VALUES (?, ?)",
                 existing, "Unlinked OpenClub account")
-            db.execute("INSERT INTO members (id, club_id, account_id, role) VALUES (?, ?, ?, ?)",
+            db.execute("INSERT INTO members (id, club_id, account_id, first_name, last_name, date_of_birth, role) VALUES (?, ?, ?, 'Sample', 'Admin', DATE '1990-01-01', ?)",
                 membership, club, existing, "ADMIN")
 
             resolved = resolver(db).resolveOrCreate(identity)
@@ -119,7 +119,7 @@ class VerifiedAccountsTest {
     }
 
     @Test
-    fun simultaneousFirstLoginsProduceOnePersonAndOneBinding() = withDatabase { db ->
+    fun simultaneousFirstLoginsProduceOneAccountAndOneBinding() = withDatabase { db ->
         val identity = VerifiedOidcIdentity(issuer, "concurrent-" + UUID.randomUUID())
         val before = db.fetchValue(
             "SELECT COUNT(*) FROM accounts WHERE display_name = 'Unlinked OpenClub account'"
@@ -136,20 +136,20 @@ class VerifiedAccountsTest {
         // This forces the ON CONFLICT race instead of depending on thread scheduling.
         val listener = object : ExecuteListener {
             override fun executeStart(ctx: ExecuteContext) {
-                if (ctx.sql()?.trimStart()?.uppercase()?.startsWith("INSERT INTO PERSON_IDENTITIES ") == true) {
+                if (ctx.sql()?.trimStart()?.uppercase()?.startsWith("INSERT INTO ACCOUNT_IDENTITIES ") == true) {
                     attemptedBindings.incrementAndGet()
                 }
             }
 
             override fun executeEnd(ctx: ExecuteContext) {
                 val sql = ctx.sql()?.trimStart()?.uppercase().orEmpty()
-                if (sql.startsWith("INSERT INTO PERSONS ")) {
+                if (sql.startsWith("INSERT INTO ACCOUNTS ")) {
                     insertedCandidates.incrementAndGet()
                     bothCandidatesInserted.countDown()
                     check(bothCandidatesInserted.await(10, TimeUnit.SECONDS)) {
                         "Both concurrent transactions must insert candidates before identity binding"
                     }
-                } else if (sql.startsWith("DELETE FROM PERSONS ")) {
+                } else if (sql.startsWith("DELETE FROM ACCOUNTS ")) {
                     deletedLosingCandidates.incrementAndGet()
                 }
             }
