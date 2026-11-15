@@ -61,6 +61,7 @@ class MemberAccessTest {
                 assertEquals(club, access.authorizedClubId(admin, MemberAccess.Permission.VIEW_CLUB))
                 database.execute("UPDATE members SET account_id = NULL WHERE account_id = ?", regular)
                 assertNull(access.authorizedClubId(regular, MemberAccess.Permission.VIEW_CLUB))
+                database.execute("UPDATE members SET account_id = ? WHERE account_id IS NULL", regular)
             } finally {
                 database.execute("DELETE FROM members WHERE account_id IN (?, ?)", admin, regular)
                 database.execute("DELETE FROM accounts WHERE id IN (?, ?, ?)", admin, regular, outsider)
