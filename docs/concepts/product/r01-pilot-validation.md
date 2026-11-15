@@ -1,6 +1,6 @@
 # R01 — Pilot workflow validation
 
-**Status:** Pilot administrator approved the synthetic requirements acceptance target on 2026-11-15; documentation review and R01 closeout still pending.
+**Status:** Pilot administrator approved the synthetic requirements acceptance target on 2026-11-15. Worksheet PR #72 merged; follow-up birth-date requirement PR #73 and R01 closeout remain pending.
 **Related:** [R01/#10](https://github.com/dkoller/OpenClub/issues/10), [ADR-0004](../../decisions/0004-member-policy.md), [R03/#12](https://github.com/dkoller/OpenClub/issues/12), [R04/#13](https://github.com/dkoller/OpenClub/issues/13)
 
 ## Purpose and evidence rules
@@ -124,9 +124,10 @@ The first release must support German, English, French and Italian. Its initial 
 - [x] Real pilot stakeholder or explicitly identified representative participated (owner-reported club administration involvement, 2026-11-15; no identifying details published).
 - [x] Primary administrative pain point documented as fragmentation across Excel, WordPress, XPS, helfereinsatz.ch and others; detailed Excel workflow/inventory intentionally deferred.
 - [x] Administrator accepted accountless entry in the synthetic scenario; invitations remain later by prior owner decision.
-- [ ] First/last name required, email/phone optional; date of birth required for players and optional for others; its permissible uses/visibility still need R03 review. Four release languages accepted. Excel column inventory deferred.
+- [x] Pilot administrator confirmed first/last name required, email/phone optional and date of birth required for players but optional for others; four release languages accepted. Privacy controls and player-status enforcement remain R03/implementation work; Excel inventory deferred.
 - [x] Pilot administrator explicitly approved the three-workflow synthetic requirements scenario on 2026-11-15.
 - [x] Privacy concerns linked to R03 and new team/scoped-permission contract and authorization work flagged for R04/R06/R10; detailed follow-up implementation issues still to be scoped.
-- [ ] PR #72 human review/merge and R01 closeout decision recorded under issue #10.
+- [x] Pilot worksheet PR #72 merged (user-confirmed 2026-11-15).
+- [ ] Date-of-birth follow-up PR #73 reviewed and merged; R01 closeout decision recorded under issue #10.
 
 **Testing:** Documentation-only change. No code or integration tests are claimed. Keep #10 open until evidence and human sign-off are documented.
