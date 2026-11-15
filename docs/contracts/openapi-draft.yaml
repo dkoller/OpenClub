@@ -150,6 +150,49 @@ paths:
           $ref: '#/components/responses/NotFound'
         '503':
           $ref: '#/components/responses/Unavailable'
+  /v1/members/{memberId}/role:
+    put:
+      tags: [Members]
+      operationId: changeLocalMemberRole
+      summary: Proposed permission-admin role change (NOT IMPLEMENTED)
+      description: >
+        The internal MemberRoles service serializes changes with grant mutation,
+        denies self-change, and preserves a final ADMIN and eligible
+        permission-manager. There is NO HTTP endpoint. When approved, require
+        a verified session, exact Origin, session-bound CSRF, explicitly
+        authorized permission administrator, and audited outcomes. No
+        client-supplied actor account ID or automatic privilege grant.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [role]
+              properties:
+                role: { type: string, enum: [ADMIN, MEMBER] }
+      responses:
+        '204':
+          description: Role updated or already at desired value
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /v1/teams:
     get:
       tags: [Teams]
