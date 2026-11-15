@@ -67,7 +67,9 @@ internal class CapabilityGrants(private val database: DSLContext) {
             if (!granting && scope == Scope.CLUB &&
                 capability == ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS &&
                 recipient.get("role", String::class.java) == "ADMIN" &&
-                recipient.get("verified", Boolean::class.java) == true
+                recipient.get("verified", Boolean::class.java) == true &&
+                db.fetchOne("""SELECT 1 FROM club_capability_grants
+                    WHERE member_id = ? AND capability = 'MANAGE_PERMISSIONS'""", memberId) != null
             ) {
                 val managers = db.fetchValue(
                     """SELECT COUNT(*) FROM members m
