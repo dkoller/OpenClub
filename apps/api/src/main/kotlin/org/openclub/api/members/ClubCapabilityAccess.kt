@@ -6,10 +6,11 @@ import java.util.UUID
 /**
  * Installation-local, live database permission check. Use only an account ID
  * from a verified session; never trust a caller-supplied actor or capability.
- * Team-scoped authorizations require the future team schema (#75).
+ * Team assignment mutation requires an explicit MANAGE_TEAMS grant; per-team
+ * delegation and narrower team-scoped grants remain tracked under #76.
  */
 internal class ClubCapabilityAccess(private val database: DSLContext) {
-    enum class Capability { VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS }
+    enum class Capability { VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS }
 
     fun has(accountId: UUID, capability: Capability): Boolean =
         database.fetchOne(
