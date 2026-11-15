@@ -1,6 +1,6 @@
 # ADR-0002: Identity and club membership boundaries
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0005](0005-single-club-installation.md) on 2026-11-15; retained as historical record
 - **Date:** 2026-11-14
 - **Scope:** MVP domain persistence and authorization design
 
@@ -39,4 +39,4 @@ The original accepted schema in this ADR is historical evidence of the implement
 The existing global `person` and `memberships (club_id, person_id)` design must be reviewed before implementing member CRUD, including the definition of club-owned records, DTO boundaries, identity linkage and safe migrations. Do **not** assume adding fields to the global `person` table satisfies this requirement. Document any new architecture in an explicit follow-up ADR; do not rewrite the history of schema V2. Track the dedicated reconciliation under [#74](https://github.com/dkoller/OpenClub/issues/74), and coordinate with [R04/#13](https://github.com/dkoller/OpenClub/issues/13) and [R06/#15](https://github.com/dkoller/OpenClub/issues/15), with privacy review under [R03/#12](https://github.com/dkoller/OpenClub/issues/12). No live club-member records until isolation is implemented and tested.
 
 
-**Proposed architectural replacement (not yet merged):** [ADR-0005 — single-club installations](0005-single-club-installation.md) removes multi-club application tenancy and the need for a global person domain. It preserves the working verified OIDC login anchor during staged migration; the target is local members with separately verified account links. No schema changes have been made. Review under [#74](https://github.com/dkoller/OpenClub/issues/74).
+**Implemented pre-production replacement (merged PR #79):** [ADR-0005 — single-club installations](0005-single-club-installation.md) removes multi-club application tenancy and the need for a global person domain. It preserves the working verified OIDC login anchor during staged migration; the target is local members with separately verified account links. The never-live global-person schema was replaced by fresh `V1__single_club.sql`; old volumes require an explicit disposable-development reset, not an in-place migration. Review remaining follow-ups under [#74](https://github.com/dkoller/OpenClub/issues/74).
