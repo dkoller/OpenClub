@@ -97,6 +97,17 @@ class TeamScopedGrantsTest {
                 assertFalse(ops.unassign(coachAccount, juniors, player))
                 assertTrue(ops.list(coachAccount).isEmpty())
 
+                // Club-wide read authority must not imply any team mutation authority.
+                db.execute("INSERT INTO club_capability_grants VALUES (?, 'VIEW_TEAMS')", coach)
+                assertTrue(access.hasForTeam(coachAccount, juniors, view))
+                assertTrue(access.hasForTeam(coachAccount, adults, view))
+                assertFalse(access.hasForTeam(coachAccount, juniors, manage))
+                assertEquals(2, ops.list(coachAccount).size)
+                assertFalse(ops.assign(coachAccount, juniors, player))
+                db.execute("""DELETE FROM club_capability_grants
+                    WHERE member_id = ? AND capability = 'VIEW_TEAMS'""", coach)
+                assertTrue(ops.list(coachAccount).isEmpty())
+
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_TEAMS')", coach)
                 assertEquals(2, ops.list(coachAccount).size)
                 assertTrue(ops.unassign(coachAccount, juniors, player))
