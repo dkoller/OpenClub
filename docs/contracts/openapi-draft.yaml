@@ -7,7 +7,7 @@ info:
     authenticated GET /v1/club (when OIDC is configured) plus the separately
     documented /v1/auth routes. Member, team, grant and first-admin APIs below
     are proposals pending R03 privacy, R04 contract acceptance and R06/R07
-    authorization. Exactly one club exists per installation; no clubId tenant
+    authorization. Initial setup is an offline operator-only CLI, NOT an HTTP API. Exactly one club exists per installation; no clubId tenant
     selector, cross-club data directory, or club switcher is supported.
 servers:
   - url: /api
