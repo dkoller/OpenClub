@@ -36,6 +36,11 @@ class MemberRolesTest {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
                     club, "roles-" + club)
                 db.execute("INSERT INTO accounts (id) VALUES (?), (?)", account, outsider)
+                for (linkedAccount in listOf(account, outsider)) {
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), linkedAccount, UUID.randomUUID().toString())
+                }
                 for ((id, role, linked) in listOf(
                     Triple(admin, "ADMIN", true),
                     Triple(second, "ADMIN", false),
@@ -107,6 +112,11 @@ class MemberRolesTest {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
                     club, "race-roles-" + club)
                 db.execute("INSERT INTO accounts (id) VALUES (?), (?)", a, b)
+                for (linkedAccount in listOf(a, b)) {
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), linkedAccount, UUID.randomUUID().toString())
+                }
                 for ((id, account) in listOf(memberA to a, memberB to b)) {
                     db.execute("""INSERT INTO members
                         (id, account_id, first_name, last_name, date_of_birth, email, phone, role)
