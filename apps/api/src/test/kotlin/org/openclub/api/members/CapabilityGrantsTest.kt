@@ -175,4 +175,68 @@ class CapabilityGrantsTest {
             }
         }
     }
+    @Test
+    fun competingManagersCannotRevokeEachOtherAndLeaveNobodyAuthorized() {
+        val url = System.getenv("DB_URL")
+        assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL")
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = url
+            username = requireNotNull(System.getenv("DB_USER"))
+            password = requireNotNull(System.getenv("DB_PASSWORD"))
+            maximumPoolSize = 4
+        }).use { source ->
+            Flyway.configure().dataSource(source).load().migrate()
+            val db = DSL.using(source, SQLDialect.POSTGRES)
+            val club = UUID.randomUUID()
+            val a = UUID.randomUUID()
+            val b = UUID.randomUUID()
+            val memberA = UUID.randomUUID()
+            val memberB = UUID.randomUUID()
+            try {
+                db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
+                    club, "mutual-" + club)
+                db.execute("INSERT INTO accounts (id) VALUES (?), (?)", a, b)
+                for ((member, account) in listOf(memberA to a, memberB to b)) {
+                    db.execute("""INSERT INTO members
+                        (id, account_id, first_name, last_name, date_of_birth, email, phone, role)
+                        VALUES (?, ?, 'Synthetic', 'Admin', DATE '1990-01-01',
+                                'synthetic@example.invalid', '+41000000000', 'ADMIN')""",
+                        member, account)
+                    db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_PERMISSIONS')",
+                        member)
+                }
+                val ready = CountDownLatch(2)
+                val start = CountDownLatch(1)
+                val pool = Executors.newFixedThreadPool(2)
+                try {
+                    val attempted = listOf(a to memberB, b to memberA).map { (actor, target) ->
+                        pool.submit<CapabilityGrants.Change> {
+                            ready.countDown()
+                            start.await()
+                            CapabilityGrants(DSL.using(source, SQLDialect.POSTGRES)).revoke(
+                                actor, target, ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS,
+                                CapabilityGrants.Scope.CLUB)
+                        }
+                    }
+                    assertTrue(ready.await(10, TimeUnit.SECONDS))
+                    start.countDown()
+                    assertEquals(
+                        setOf(CapabilityGrants.Change.REVOKED, CapabilityGrants.Change.DENIED),
+                        attempted.map { it.get(15, TimeUnit.SECONDS) }.toSet(),
+                    )
+                    assertEquals(1, db.fetchValue(
+                        """SELECT COUNT(*) FROM club_capability_grants
+                           WHERE capability = 'MANAGE_PERMISSIONS'""")?.toString()?.toInt())
+                } finally {
+                    start.countDown()
+                    pool.shutdownNow()
+                }
+            } finally {
+                db.execute("DELETE FROM members WHERE id IN (?, ?)", memberA, memberB)
+                db.execute("DELETE FROM accounts WHERE id IN (?, ?)", a, b)
+                db.execute("DELETE FROM clubs WHERE id = ?", club)
+            }
+        }
+    }
+
 }
