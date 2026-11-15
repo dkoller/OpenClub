@@ -61,9 +61,9 @@ A person may hold multiple functions; role labels must not imply unrestricted ac
 
 | Question | Response / evidence | Status |
 | --- | --- | --- |
-| Pilot organization or representative identified (use non-identifying reference only) | _Not recorded_ | Pending |
-| Stakeholder role and relevant experience | _Not recorded_ | Pending |
-| Interview/review date and format | _Not held_ | Pending |
+| Pilot organization or representative identified (use non-identifying reference only) | _Real floorball club confirmed by owner; club identity not recorded publicly_ | Owner-confirmed |
+| Stakeholder role and relevant experience | _Owner reports direct involvement in club administration and can validate workflow_ | Owner-confirmed |
+| Interview/review date and format | _2026-11-15: interactive owner/administrator discovery in chat; proposed acceptance script not yet formally reviewed or signed off_ | In progress |
 | Current workflow (spreadsheet, chat, other) and top administrative pain point | _Owner reports fragmented Excel, WordPress, XPS, helfereinsatz.ch and other systems; independent pilot verification pending_ | Partially captured |
 | When and by whom member records are first entered | _Not confirmed_ | Pending |
 | Can members exist without accounts? | _Owner preference: yes; pilot unconfirmed_ | Pending |
@@ -111,14 +111,14 @@ The first release must support German, English, French and Italian. Its initial 
 - **Validated pilot scenario:** Pending. Owner selected Excel membership/administration first and specified member management, team assignments and configurable permissions as the first usable release; stakeholder review of the synthetic script remains pending.
 - **Preferred pilot language(s):** German, English, French and Italian required for the first release (owner, 2026-11-15). Default language and switching behavior remain proposed, not accepted.
 - **Changes to owner baseline:** Pending.
-- **Stakeholder acceptance (date, role, non-identifying reference):** Pending.
+- **Stakeholder acceptance (date, role, non-identifying reference):** Pending. On 2026-11-15 the owner stated direct involvement in club administration and ability to validate the workflow; this does not constitute sign-off.
 - **R03 hand-off:** Review contact visibility, minors and data lifecycle before real records.
 - **R04/R06/R10 hand-off:** Reconcile the expanded team and scoped-grant requirements with the contract and authorization model; create appropriately scoped feature issues instead of treating existing membership endpoints as sufficient.
 - **R19 hand-off:** Run the full synthetic demo only after its implementation and release prerequisites.
 
 ## R01 completion checklist
 
-- [ ] Real pilot stakeholder or explicitly identified representative participated.
+- [x] Real pilot stakeholder or explicitly identified representative participated (owner-reported club administration involvement, 2026-11-15; no identifying details published).
 - [ ] Primary administrative pain point and current workflow documented.
 - [ ] Accountless member entry and invitation timing verified.
 - [ ] Necessary fields and pilot languages verified.
