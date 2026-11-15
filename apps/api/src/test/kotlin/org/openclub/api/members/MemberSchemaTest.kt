@@ -25,6 +25,8 @@ class MemberSchemaTest {
             val db = DSL.using(source, SQLDialect.POSTGRES)
             val club = UUID.randomUUID()
             val member = UUID.randomUUID()
+            val boundaryMinor = UUID.randomUUID()
+            val boundaryAdult = UUID.randomUUID()
             try {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, ?, ?)", club, "Pilot", "pilot-" + club)
                 assertThrows(org.jooq.exception.DataAccessException::class.java) {
@@ -80,8 +82,39 @@ class MemberSchemaTest {
                 assertEquals(1L, db.fetchValue(
                     "SELECT COUNT(*) FROM members WHERE id = ? AND account_id IS NULL", member
                 ))
+
+                // An installation-specific adult threshold applies on both INSERT and UPDATE.
+                db.execute("UPDATE clubs SET adult_age_years = 16 WHERE id = ?", club)
+                val today = requireNotNull(db.fetchOne("SELECT CURRENT_DATE AS today")
+                    ?.get("today", LocalDate::class.java))
+                val adultBirthDate = today.minusYears(16)
+                val minorBirthDate = adultBirthDate.plusDays(1)
+                db.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth)
+                    VALUES (?, 'Minor', 'Boundary', ?)""", boundaryMinor, minorBirthDate)
+                for ((email, phone) in listOf(
+                    null to null, "adult@example.invalid" to null, null to "+41000000000"
+                )) {
+                    assertThrows(org.jooq.exception.DataAccessException::class.java) {
+                        db.execute("""INSERT INTO members
+                            (id, first_name, last_name, date_of_birth, email, phone)
+                            VALUES (?, 'Adult', 'Boundary', ?, ?, ?)""",
+                            UUID.randomUUID(), adultBirthDate, email, phone)
+                    }
+                }
+                assertThrows(org.jooq.exception.DataAccessException::class.java) {
+                    db.execute("UPDATE members SET date_of_birth = ? WHERE id = ?",
+                        adultBirthDate, boundaryMinor)
+                }
+                assertEquals(minorBirthDate, db.fetchOne(
+                    "SELECT date_of_birth FROM members WHERE id = ?", boundaryMinor
+                )?.get("date_of_birth", LocalDate::class.java))
+                db.execute("""INSERT INTO members
+                    (id, first_name, last_name, date_of_birth, email, phone)
+                    VALUES (?, 'Adult', 'Boundary', ?, 'adult@example.invalid', '+41000000000')""",
+                    boundaryAdult, adultBirthDate)
             } finally {
-                db.execute("DELETE FROM members WHERE id = ?", member)
+                db.execute("DELETE FROM members WHERE id IN (?, ?, ?)",
+                    member, boundaryMinor, boundaryAdult)
                 db.execute("DELETE FROM clubs WHERE id = ?", club)
             }
         }
