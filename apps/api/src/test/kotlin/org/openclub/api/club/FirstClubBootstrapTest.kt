@@ -39,7 +39,7 @@ class FirstClubBootstrapTest {
                 db.execute("INSERT INTO accounts (id) VALUES (?), (?)", account, other)
                 val bootstrap = FirstClubBootstrap(db)
                 assertThrows(IllegalStateException::class.java) { bootstrap.create(input) }
-                assertEquals(0, db.fetchValue("SELECT COUNT(*) FROM clubs", Int::class.java))
+                assertEquals(0, db.fetchCount(DSL.table("clubs")))
                 db.execute(
                     "INSERT INTO account_identities (id, account_id, issuer, subject) VALUES (?, ?, ?, ?)",
                     identity, account, "https://issuer.example.invalid", "subject-" + account,
@@ -48,10 +48,10 @@ class FirstClubBootstrapTest {
                     bootstrap.create(input.copy(accountId = other))
                 }
                 created = bootstrap.create(input)
-                assertEquals(1, db.fetchValue("SELECT COUNT(*) FROM clubs", Int::class.java))
-                assertEquals(1, db.fetchValue(
+                assertEquals(1, db.fetchCount(DSL.table("clubs")))
+                assertEquals(1L, db.fetchValue(
                     "SELECT COUNT(*) FROM members WHERE account_id = ? AND role = 'ADMIN'",
-                    Int::class.java, account,
+                    account,
                 ))
                 assertThrows(IllegalStateException::class.java) { bootstrap.create(input) }
                 assertThrows(DataAccessException::class.java) {
@@ -60,7 +60,7 @@ class FirstClubBootstrapTest {
                         UUID.randomUUID(), "second-" + UUID.randomUUID(),
                     )
                 }
-                assertEquals(1, db.fetchValue("SELECT COUNT(*) FROM members", Int::class.java))
+                assertEquals(1, db.fetchCount(DSL.table("members")))
                 assertTrue(created != null)
             } finally {
                 db.execute("DELETE FROM members WHERE account_id = ?", account)
@@ -100,7 +100,7 @@ class FirstClubBootstrapTest {
                 assertThrows(IllegalArgumentException::class.java) {
                     FirstClubBootstrap(db).create(input.copy(email = " "))
                 }
-                assertEquals(0, db.fetchValue("SELECT COUNT(*) FROM clubs", Int::class.java))
+                assertEquals(0, db.fetchCount(DSL.table("clubs")))
             } finally {
                 db.execute("DELETE FROM accounts WHERE id = ?", account)
             }
