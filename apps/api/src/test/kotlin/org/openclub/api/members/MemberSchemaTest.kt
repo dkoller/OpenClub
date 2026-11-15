@@ -29,6 +29,16 @@ class MemberSchemaTest {
             val boundaryAdult = UUID.randomUUID()
             try {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, ?, ?)", club, "Pilot", "pilot-" + club)
+                // Direct SQL must not bypass the club bootstrap's raw 200-char limit.
+                assertThrows(org.jooq.exception.DataAccessException::class.java) {
+                    db.execute("UPDATE clubs SET name = ? WHERE id = ?",
+                        "P" + " ".repeat(200), club)
+                }
+                assertEquals("Pilot", db.fetchValue(
+                    "SELECT name FROM clubs WHERE id = ?", club))
+                assertEquals(1, db.execute("UPDATE clubs SET name = ? WHERE id = ?",
+                    "P".repeat(200), club))
+                db.execute("UPDATE clubs SET name = 'Pilot' WHERE id = ?", club)
                 assertThrows(org.jooq.exception.DataAccessException::class.java) {
                     db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, ?, ?)",
                         UUID.randomUUID(), "Other", "other-" + UUID.randomUUID())
