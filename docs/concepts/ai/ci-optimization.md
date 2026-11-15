@@ -18,6 +18,10 @@ The OpenAPI contract validation job runs on **every PR regardless of changed fil
 
 The path classifier is duplicated in the build and smoke workflows to keep each workflow independently checkable; update **both** when adding new source directories. Classify unfamiliar paths conservatively (run all checks). This is an intentional first optimization, not an excuse to weaken full-stack checks on `main`.
 
+## Browser authentication workflow scope
+
+The expensive `Keycloak browser authentication` workflow runs for application API changes, browser fixtures, Keycloak fixtures and changes to its workflow. API unit/integration **test-only** changes under `apps/api/src/test/**`, and API contributor instructions in `apps/api/AGENTS.md`, do not rerun Chromium or Keycloak: the API build/test workflow still runs PostgreSQL tests. A mixed PR that also changes runtime API code still triggers the browser check. The workflow remains manually dispatchable. This saves unnecessary free-tier Actions minutes without excluding production authentication, club authorization, migration, build or configuration changes. Treat changes to test-runner dependencies and auth browser fixtures conservatively: the API root and `dev/auth-e2e/**` still trigger it. If branch protection requires a check that GitHub leaves pending when path-skipped, adjust the branch-rule configuration or use a continuously reported classifier; do not bypass protection.
+
 ## Cancellation and caching
 
 For each workflow, `concurrency` cancels older, superseded runs for the **same** PR or branch, but not other parallel PRs. For the web build, pnpm dependency caching uses `apps/web/pnpm-lock.yaml`. The API uses Gradle's existing action cache and invokes `test generateJooq` together to avoid repeated Gradle initialization.

@@ -2,10 +2,22 @@ name: Keycloak browser authentication
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['apps/api/**', 'dev/auth-e2e/**', 'dev/keycloak/**', '.github/workflows/auth-e2e.yml']
+    paths:
+      - 'apps/api/**'
+      - '!apps/api/src/test/**'
+      - '!apps/api/AGENTS.md'
+      - 'dev/auth-e2e/**'
+      - 'dev/keycloak/**'
+      - '.github/workflows/auth-e2e.yml'
   push:
     branches: [main]
-    paths: ['apps/api/**', 'dev/auth-e2e/**', 'dev/keycloak/**', '.github/workflows/auth-e2e.yml']
+    paths:
+      - 'apps/api/**'
+      - '!apps/api/src/test/**'
+      - '!apps/api/AGENTS.md'
+      - 'dev/auth-e2e/**'
+      - 'dev/keycloak/**'
+      - '.github/workflows/auth-e2e.yml'
 permissions:
   contents: read
 concurrency:
