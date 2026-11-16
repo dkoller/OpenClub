@@ -7,10 +7,10 @@ type Grant = { capability: string; scope: 'CLUB' | 'TEAM'; teamId?: string }
 type Capability = 'VIEW_MEMBER_DIRECTORY' | 'EDIT_MEMBERS' | 'VIEW_TEAMS' | 'MANAGE_TEAMS' | 'MANAGE_PERMISSIONS'
 const capabilities: Capability[] = ['VIEW_MEMBER_DIRECTORY', 'EDIT_MEMBERS', 'VIEW_TEAMS', 'MANAGE_TEAMS', 'MANAGE_PERMISSIONS']
 const words = {
-  de: { title: 'Berechtigungen verwalten', search: 'Mitglied suchen', find: 'Suchen', member: 'Mitglied', scope: 'Bereich', club: 'Verein', team: 'Team', capability: 'Berechtigung', grant: 'Erteilen', revoke: 'Entziehen', existing: 'Aktive Berechtigungen', empty: 'Keine Berechtigungen.', error: 'Berechtigungen nicht verfügbar.', select: 'Bitte Mitglied auswählen.' },
-  en: { title: 'Manage permissions', search: 'Find member', find: 'Search', member: 'Member', scope: 'Scope', club: 'Club', team: 'Team', capability: 'Capability', grant: 'Grant', revoke: 'Revoke', existing: 'Current grants', empty: 'No grants.', error: 'Permissions unavailable.', select: 'Select a member.' },
-  fr: { title: 'Gérer les autorisations', search: 'Chercher un membre', find: 'Chercher', member: 'Membre', scope: 'Portée', club: 'Club', team: 'Équipe', capability: 'Autorisation', grant: 'Accorder', revoke: 'Révoquer', existing: 'Autorisations actuelles', empty: 'Aucune autorisation.', error: 'Autorisations indisponibles.', select: 'Choisir un membre.' },
-  it: { title: 'Gestisci permessi', search: 'Cerca membro', find: 'Cerca', member: 'Membro', scope: 'Ambito', club: 'Club', team: 'Squadra', capability: 'Permesso', grant: 'Concedi', revoke: 'Revoca', existing: 'Permessi attivi', empty: 'Nessun permesso.', error: 'Permessi non disponibili.', select: 'Seleziona un membro.' },
+  de: { title: 'Berechtigungen verwalten', search: 'Mitglied suchen', find: 'Suchen', member: 'Mitglied', scope: 'Bereich', club: 'Verein', team: 'Team', capability: 'Berechtigung', grant: 'Erteilen', revoke: 'Entziehen', existing: 'Aktive Berechtigungen', empty: 'Keine Berechtigungen.', error: 'Berechtigungen nicht verfügbar.', retry: 'Erneut versuchen', select: 'Bitte Mitglied auswählen.' },
+  en: { title: 'Manage permissions', search: 'Find member', find: 'Search', member: 'Member', scope: 'Scope', club: 'Club', team: 'Team', capability: 'Capability', grant: 'Grant', revoke: 'Revoke', existing: 'Current grants', empty: 'No grants.', error: 'Permissions unavailable.', retry: 'Try again', select: 'Select a member.' },
+  fr: { title: 'Gérer les autorisations', search: 'Chercher un membre', find: 'Chercher', member: 'Membre', scope: 'Portée', club: 'Club', team: 'Équipe', capability: 'Autorisation', grant: 'Accorder', revoke: 'Révoquer', existing: 'Autorisations actuelles', empty: 'Aucune autorisation.', error: 'Autorisations indisponibles.', retry: 'Réessayer', select: 'Choisir un membre.' },
+  it: { title: 'Gestisci permessi', search: 'Cerca membro', find: 'Cerca', member: 'Membro', scope: 'Ambito', club: 'Club', team: 'Squadra', capability: 'Permesso', grant: 'Concedi', revoke: 'Revoca', existing: 'Permessi attivi', empty: 'Nessun permesso.', error: 'Permessi non disponibili.', retry: 'Riprova', select: 'Seleziona un membro.' },
 } satisfies Record<Language, Record<string, string>>
 
 export function GrantAdmin({ language, csrfToken }: { language: Language; csrfToken: string }) {
@@ -27,6 +27,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
   const [capability, setCapability] = useState<Capability>('VIEW_TEAMS')
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
   const memberLookupRequest = useRef<AbortController | null>(null)
   useEffect(() => () => memberLookupRequest.current?.abort(), [])
 
@@ -40,6 +41,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
         if (response.status === 403) { setDenied(true); return }
         if (!response.ok) throw new Error('Grant access unavailable')
         setAllowed(true)
+        setError(false)
         const result = await fetch('/api/v1/teams', { credentials: 'same-origin', cache: 'no-store' })
         if (result.ok) {
           const page: { items: Team[] } = await result.json()
@@ -50,7 +52,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
       }
     })()
     return () => { active = false }
-  }, [])
+  }, [retryCount])
 
   async function loadGrants(targetId: string, signal?: AbortSignal) {
     try {
@@ -116,7 +118,10 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
   }
 
   if (denied) return null
-  if (!allowed) return error ? <p role="alert">{t.error}</p> : null
+  if (!allowed) return error ? <section aria-label={t.title}>
+    <p role="alert">{t.error}</p>
+    <button type="button" onClick={() => { setError(false); setRetryCount(value => value + 1) }}>{t.retry}</button>
+  </section> : null
   const choices = scope === 'TEAM' ? capabilities.filter(value =>
     value === 'VIEW_TEAMS' || value === 'MANAGE_TEAMS') : capabilities
   return (
