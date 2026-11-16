@@ -112,7 +112,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
         <button type="submit">{t.find}</button>
       </form>
       {failure && <p role="alert">{failure} <button type="button" onClick={() => { void load(query) }}>{t.retry}</button></p>}
-      {items === null ? <p>{t.loading}</p> : items.length === 0 ? <p>{t.empty}</p> : (
+      {items === null ? (failure ? null : <p>{t.loading}</p>) : items.length === 0 ? <p>{t.empty}</p> : (
         <ul>
           {items.map(member => (
             <li key={member.id}>
