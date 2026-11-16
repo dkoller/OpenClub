@@ -65,6 +65,7 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
         credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
       })
       if (controller.signal.aborted) return
+      if (response.status === 403) { setDenied(true); return }
       if (!response.ok) throw new Error('Member search unavailable')
       const page: Page = await response.json()
       if (controller.signal.aborted) return
