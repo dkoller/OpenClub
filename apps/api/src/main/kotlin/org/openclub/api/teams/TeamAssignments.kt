@@ -5,7 +5,8 @@ import java.util.UUID
 
 /**
  * Internal team operations. actorAccountId must come from a verified session.
- * HTTP routes call this service with a session-derived actor. Team grants allow
+ * HTTP routes call this service with a session-derived actor; every query also
+ * requires the actor's current verified account identity in the same SQL operation. Team grants allow
  * scoped assignment mutations and visibility; create/rename/delete require a club grant.
  */
 internal class TeamAssignments(private val database: DSLContext) {
@@ -21,6 +22,8 @@ internal class TeamAssignments(private val database: DSLContext) {
                    JOIN club_capability_grants grants ON grants.member_id = actor.id
                    JOIN clubs club ON TRUE
                    WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND EXISTS (SELECT 1 FROM account_identities identity
+                                 WHERE identity.account_id = actor.account_id)
                      AND grants.capability = 'MANAGE_TEAMS'
                )""",
             id, normalized, actorAccountId,
@@ -35,6 +38,8 @@ internal class TeamAssignments(private val database: DSLContext) {
                    JOIN club_capability_grants grants ON grants.member_id = actor.id
                    JOIN clubs club ON TRUE
                    WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND EXISTS (SELECT 1 FROM account_identities identity
+                                 WHERE identity.account_id = actor.account_id)
                      AND grants.capability = 'MANAGE_TEAMS'
                )""",
             validName(name), teamId, actorAccountId,
@@ -47,6 +52,8 @@ internal class TeamAssignments(private val database: DSLContext) {
                    JOIN club_capability_grants grants ON grants.member_id = actor.id
                    JOIN clubs club ON TRUE
                    WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND EXISTS (SELECT 1 FROM account_identities identity
+                                 WHERE identity.account_id = actor.account_id)
                      AND grants.capability = 'MANAGE_TEAMS'
                )""",
             teamId, actorAccountId,
@@ -59,7 +66,9 @@ internal class TeamAssignments(private val database: DSLContext) {
                JOIN members member ON member.id = ? AND member.archived_at IS NULL
                WHERE team.id = ? AND EXISTS (
                    SELECT 1 FROM members actor
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL AND (
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND EXISTS (SELECT 1 FROM account_identities identity
+                                 WHERE identity.account_id = actor.account_id) AND (
                        EXISTS (SELECT 1 FROM club_capability_grants g
                                WHERE g.member_id = actor.id AND g.capability = 'MANAGE_TEAMS')
                        OR EXISTS (SELECT 1 FROM team_capability_grants g
@@ -75,7 +84,9 @@ internal class TeamAssignments(private val database: DSLContext) {
             """DELETE FROM member_team_assignments
                WHERE team_id = ? AND member_id = ? AND EXISTS (
                    SELECT 1 FROM members actor
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL AND (
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND EXISTS (SELECT 1 FROM account_identities identity
+                                 WHERE identity.account_id = actor.account_id) AND (
                        EXISTS (SELECT 1 FROM club_capability_grants g
                                WHERE g.member_id = actor.id AND g.capability = 'MANAGE_TEAMS')
                        OR EXISTS (SELECT 1 FROM team_capability_grants g
@@ -93,7 +104,9 @@ internal class TeamAssignments(private val database: DSLContext) {
                LEFT JOIN member_team_assignments assignment ON assignment.team_id = team.id
                WHERE EXISTS (
                    SELECT 1 FROM members actor
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL AND (
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND EXISTS (SELECT 1 FROM account_identities identity
+                                 WHERE identity.account_id = actor.account_id) AND (
                        EXISTS (SELECT 1 FROM club_capability_grants g
                                WHERE g.member_id = actor.id
                                  AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS'))
