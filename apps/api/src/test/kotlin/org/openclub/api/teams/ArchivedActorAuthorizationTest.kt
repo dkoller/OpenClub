@@ -57,12 +57,14 @@ class ArchivedActorAuthorizationTest {
                 assertTrue(access.hasForTeam(account, team, manage))
                 assertEquals(1, ops.list(account).size)
                 assertTrue(ops.assign(account, team, recipient))
-                // Database archival trigger also requires removing access and assignments.
+                // Database constraints also forbid archived ADMINs and linked accounts;
+                // the archival trigger independently rejects retained grants.
                 assertThrows(DataAccessException::class.java) {
                     db.execute("UPDATE members SET archived_at = NOW() WHERE id = ?", actor)
                 }
                 db.execute("DELETE FROM club_capability_grants WHERE member_id = ?", actor)
-                db.execute("UPDATE members SET archived_at = NOW() WHERE id = ?", actor)
+                db.execute("""UPDATE members SET account_id = NULL, role = 'MEMBER',
+                              archived_at = NOW() WHERE id = ?""", actor)
                 assertFalse(access.has(account, manage))
                 assertFalse(access.has(account, permissions))
                 assertFalse(access.hasForTeam(account, team, manage))
