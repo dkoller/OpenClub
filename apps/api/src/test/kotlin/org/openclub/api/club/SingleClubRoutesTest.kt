@@ -80,6 +80,16 @@ class SingleClubRoutesTest {
                             member, account)
                     }
                 }
+                assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/club") {
+                    header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                }.status)
+                runBlocking {
+                    database.onDatabaseThread {
+                        it.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                            VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                            UUID.randomUUID(), account, "club-http-" + account)
+                    }
+                }
                 val allowed = client.get("/api/v1/club") {
                     header(HttpHeaders.Cookie, "openclub_dev_session=valid")
                 }
@@ -119,6 +129,18 @@ class SingleClubRoutesTest {
                 assertEquals(HttpStatusCode.OK, relinked.status)
                 assertEquals("no-store", relinked.headers[HttpHeaders.CacheControl])
                 assertEquals("""{"id":"$club","name":"Synthetic club","slug":"club-$club","genderRequiredForPlayers":false}""", relinked.bodyAsText())
+                runBlocking {
+                    database.onDatabaseThread {
+                        it.execute("DELETE FROM account_identities WHERE account_id = ?", account)
+                    }
+                }
+                val identityRevoked = client.get("/api/v1/club") {
+                    header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                }
+                assertEquals(HttpStatusCode.Forbidden, identityRevoked.status)
+                assertEquals("no-store", identityRevoked.headers[HttpHeaders.CacheControl])
+                assertEquals("""{"code":"forbidden","message":"Club membership required"}""",
+                    identityRevoked.bodyAsText())
                 runBlocking {
                     database.onDatabaseThread {
                         it.execute("DELETE FROM members WHERE id = ?", member)
