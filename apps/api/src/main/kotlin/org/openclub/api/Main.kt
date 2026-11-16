@@ -3,6 +3,7 @@ package org.openclub.api
 import org.openclub.api.auth.*
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.club.installSingleClubRoutes
+import org.openclub.api.members.PublicMemberNames
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -67,6 +68,24 @@ internal fun Application.module(
     database: DatabaseRuntime? = null,
 ) {
     routing {
+        // Anonymous names are deliberately separate from authenticated member administration.
+        get("/api/v1/public/members") {
+            call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+            try {
+                val names = database?.onDatabaseThread { PublicMemberNames(it).listJson() }
+                if (names == null) {
+                    call.respondText("""{"code":"unavailable","message":"Directory unavailable"}""",
+                        ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
+                } else {
+                    call.respondText(names, ContentType.Application.Json)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                call.respondText("""{"code":"unavailable","message":"Directory unavailable"}""",
+                    ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
+            }
+        }
         // Liveness only; this endpoint does not imply database readiness.
         get("/health") {
             call.respondText("""{"status":"ok"}""", ContentType.Application.Json)
