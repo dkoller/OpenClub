@@ -156,6 +156,17 @@ test('verified login gains club access only after restricted operator bootstrap'
   await searchForm.getByLabel('Search names').fill('');
   await searchForm.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(searchForm.getByRole('listitem').filter({ hasText: 'Nina Private' })).toBeVisible();
+  // A failed search must show a retry action, not permanent loading text.
+  await page.route('**/api/v1/members?**', route => route.abort(), { times: 1 });
+  await searchForm.getByLabel('Search names').fill('Missing');
+  await searchForm.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(searchForm.getByRole('alert')).toContainText('Member management unavailable.');
+  await expect(searchForm.getByText('Loading members…')).toHaveCount(0);
+  await searchForm.getByRole('button', { name: 'Try again' }).click();
+  await expect(searchForm.getByText('No members found.')).toBeVisible();
+  await searchForm.getByLabel('Search names').fill('');
+  await searchForm.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(searchForm.getByRole('listitem').filter({ hasText: 'Nina Private' })).toBeVisible();
 
   await created.getByRole('button', { name: 'Edit' }).click();
   // The row text is replaced by editable inputs, so locate the active form.
