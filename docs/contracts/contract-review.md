@@ -129,3 +129,7 @@ OpenAPI remains `0.0.0-draft` until the full scoped contract is independently re
 ## Synthetic team/grant contract reconciliation (2026-11-16, PR #212)
 
 The working OpenAPI draft now matches the registered M1 paths `/v1/teams`, `/v1/teams/{teamId}`, `/v1/teams/{teamId}/members`, `/v1/teams/{teamId}/members/{memberId}`, and `/v1/grants`, including the `{"items":[...]}` team/grant envelopes, exact-team roster cursor, name-confirmed deletion, and strict CSRF/Origin grant mutation. The obsolete proposed `/v1/permission-grants` path and claims that team/grant HTTP is absent were corrected. This is an implementation-to-draft inventory, **not** final R04 approval, a backward-compatibility promise, or permission to handle real member data. Private-field read/update, retention, audit and M2 production policies require their own decisions.
+
+## Synthetic M1 permission-member search freshness
+
+The permissions editor cancels superseded member-name searches and associated grant lookups. An outdated response cannot overwrite a newer selected member or its visible grants; stale options clear as soon as a new query is submitted, and canceled requests do not display misleading errors. The disposable Keycloak/Chromium journey delays a fictional old search and verifies the latest member is selectable before normal grant/revoke. Server-side grant authorization and M2 privacy gates are unchanged.

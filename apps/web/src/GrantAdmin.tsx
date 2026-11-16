@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 
 type Member = { id: string; firstName: string; lastName: string }
@@ -27,6 +27,8 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
   const [capability, setCapability] = useState<Capability>('VIEW_TEAMS')
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
+  const memberLookupRequest = useRef<AbortController | null>(null)
+  useEffect(() => () => memberLookupRequest.current?.abort(), [])
 
   useEffect(() => {
     let active = true
@@ -50,35 +52,46 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
     return () => { active = false }
   }, [])
 
-  async function loadGrants(targetId: string) {
+  async function loadGrants(targetId: string, signal?: AbortSignal) {
     try {
       const response = await fetch('/api/v1/grants?memberId=' + encodeURIComponent(targetId),
-        { credentials: 'same-origin', cache: 'no-store' })
+        { credentials: 'same-origin', cache: 'no-store', signal })
+      if (signal?.aborted) return
       if (!response.ok) throw new Error('Read denied')
       const result: { items: Grant[] } = await response.json()
+      if (signal?.aborted) return
       if (!Array.isArray(result.items)) throw new Error('Invalid grants')
       setGrants(result.items)
       setError(false)
     } catch {
-      setError(true)
+      if (!signal?.aborted) setError(true)
     }
   }
 
   async function findMember(event: FormEvent) {
     event.preventDefault()
+    memberLookupRequest.current?.abort()
+    const controller = new AbortController()
+    memberLookupRequest.current = controller
+    setError(false)
+    setMembers([])
+    setMemberId('')
+    setGrants([])
     try {
       const response = await fetch('/api/v1/members?' + new URLSearchParams({ q: search, limit: '20' }),
-        { credentials: 'same-origin', cache: 'no-store' })
+        { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
+      if (controller.signal.aborted) return
       if (!response.ok) throw new Error('Search denied')
       const result: { items: Member[] } = await response.json()
+      if (controller.signal.aborted) return
       if (!Array.isArray(result.items)) throw new Error('Invalid members')
       setMembers(result.items)
       setMemberId(result.items[0]?.id ?? '')
-      if (result.items[0]) await loadGrants(result.items[0].id)
-      else setGrants([])
-      setError(false)
+      if (result.items[0]) await loadGrants(result.items[0].id, controller.signal)
     } catch {
-      setError(true)
+      if (!controller.signal.aborted) setError(true)
+    } finally {
+      if (memberLookupRequest.current === controller) memberLookupRequest.current = null
     }
   }
 
