@@ -213,3 +213,7 @@ The real disposable Keycloak/Chromium sign-in journey now calls the private club
 ## In-flight member search cancellation (synthetic M1)
 
 The authorized member administration now aborts the previous directory request when a new search, pagination read or mutation refresh starts, and also aborts outstanding requests when the component unmounts. A superseded response cannot replace newer member names or display a stale error. Real Keycloak/Chromium acceptance holds a synthetic older search while submitting a new one and verifies network cancellation and the latest results; all existing server-side identity, grant and privacy checks remain authoritative.
+
+## Public member list refresh after changes (synthetic M1)
+
+On member create/edit/archive, the anonymous public-name component now clears its previous display while reloading from the server with cache bypass, instead of temporarily displaying stale minor names. The existing abortable request and strict display-name-only response validation remain intact. Real Keycloak/Chromium acceptance verifies the archived minor is absent from the browser's public list as well as the anonymous HTTP response. This is a synthetic usability/privacy safeguard, not permission to publish real member information.
