@@ -277,8 +277,27 @@ test('verified login gains club access only after restricted operator bootstrap'
 
 
   const roleAdmin = page.getByRole('region', { name: 'Manage club roles' });
+  // A previous role/member lookup cannot replace the latest selected member.
+  let notifySlowRole;
+  const slowRoleStarted = new Promise(resolve => { notifySlowRole = resolve; });
+  await page.route('**/api/v1/members?**', async route => {
+    if (new URL(route.request().url()).searchParams.get('q') !== 'Slow') {
+      await route.continue();
+      return;
+    }
+    notifySlowRole();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await route.continue().catch(() => {});
+  });
+  const canceledRoleSearch = page.waitForEvent('requestfailed',
+    request => new URL(request.url()).searchParams.get('q') === 'Slow');
+  await roleAdmin.getByLabel('Find member').fill('Slow');
+  await roleAdmin.getByRole('button', { name: 'Search' }).click();
+  await slowRoleStarted;
   await roleAdmin.getByLabel('Find member').fill('Mara');
   await roleAdmin.getByRole('button', { name: 'Search' }).click();
+  await canceledRoleSearch;
+  await page.unroute('**/api/v1/members?**');
   await expect(roleAdmin.getByRole('combobox', { name: 'Member' })
     .getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
   await roleAdmin.getByRole('combobox', { name: 'Role' }).selectOption('ADMIN');
