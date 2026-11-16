@@ -130,8 +130,8 @@ jobs:
           ' /tmp/openclub-rauthy-discovery.json
           # Rauthy creates the client only at first boot of an empty fixture DB.
           # Never echo a generated client secret or place it in CI artifacts.
-          client_secret="$("${overlay[@]}" exec -T rauthy rauthy bootstrap get \
-            --kind client --id openclub-rauthy-ci --field secret --format raw)"
+          client_secret="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+            -c /app/config-local-test.toml --kind client --id openclub-rauthy-ci --field secret --format raw)"
           [[ "${#client_secret}" -ge 32 ]] || { echo "No confidential Rauthy client secret bootstrapped" >&2; exit 1; }
           echo "Synthetic confidential Rauthy client bootstrapped with generated secret."
           # Never persist the private signing keys or accept an empty JWKS.
