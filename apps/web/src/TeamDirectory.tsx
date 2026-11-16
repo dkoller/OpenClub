@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Language } from './language'
+import { TeamMembers } from './TeamMembers'
 
 type Team = { id: string; name: string; memberCount: number }
 const words = {
@@ -79,7 +80,10 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
         setError(false); setTeams(null); setRevision(value => value + 1)
       }}>{t.retry}</button></> : teams === null ? <p role="status">{t.loading}</p>
         : teams.length === 0 ? <p>{t.empty}</p>
-          : <ul>{teams.map(team => <li key={team.id}>{team.name} — {team.memberCount} {t.count}</li>)}</ul>}
+          : <ul>{teams.map(team => <li key={team.id}>{team.name} — {team.memberCount} {t.count}
+            <TeamMembers teamId={team.id} language={language} csrfToken={csrfToken}
+              onChanged={() => setRevision(value => value + 1)} />
+          </li>)}</ul>}
       {!createDenied && <form onSubmit={event => { void createTeam(event) }}>
         <label>{t.name}<input value={name} maxLength={200} required onChange={event => setName(event.target.value)} /></label>
         <button type="submit" disabled={creating}>{t.create}</button>

@@ -12,3 +12,13 @@ The team read endpoint is a narrowly scoped implementation step toward [#75](htt
 **Additional synthetic M1 workflow:** A verified first administrator receives explicit club-level `VIEW_TEAMS` and `MANAGE_TEAMS` grants at operator bootstrap. `POST /api/v1/teams` accepts strict bounded JSON `{"name":"Juniors"}` with exact configured Origin and session CSRF token. Only a club-wide `MANAGE_TEAMS` grant permits creation; team-scoped grants do not. The route returns `201` with the new ID and Location; missing/invalid fields return `400`, duplicates `409`, unauthenticated `401`, denied `403`, and unexpected failures `503`. The four-language browser view includes team creation and reloads the directory after a successful request.
 
 **Still open:** team rename and deletion; membership assignments; grant/revoke routes; permission-management browser UI; approved full R04 contract; M1 browser acceptance and deployment; separate M2 privacy sign-off. This slice uses only synthetic test records and does not authorize real data.
+
+
+## M1 private team roster and assignments
+
+- `GET /api/v1/teams/{teamId}/members` requires **both** live `VIEW_MEMBER_DIRECTORY` club grant and exact team `VIEW_TEAMS` / `MANAGE_TEAMS` authorization. The response has only `id`, `firstName`, `lastName` and an optional opaque team/account-scoped `nextCursor`; limit 1–50, default 20. It carries `Cache-Control: no-store`. Unauthorized roster reads are denied without disclosing names.
+- `POST /api/v1/teams/{teamId}/members/{memberId}` assigns a member and `DELETE` removes an assignment. Both require verified sessions, exact Origin, session-bound CSRF and `MANAGE_TEAMS` at club or exact-team scope. The implementation reuses the internal database-guarded assignment service, which rejects archived members.
+- A successful assignment/removal returns `204`; denial `403`, missing session `401`, malformed IDs/cursors `400`, duplicates `409`, absent assignments `404`. A team manager without private directory access can operate only on IDs already known to them; no private name roster is exposed.
+- The localized browser workflow searches the authorized member directory, offers assignment/removal, and refreshes team counts. It hides private roster controls when dual visibility is denied.
+
+This is not approval of public member IDs, broader confidential fields, permission-delegation endpoints, or real-data operation.
