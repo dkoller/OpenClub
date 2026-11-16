@@ -34,7 +34,7 @@ internal fun Application.installTeamHttpRoutes(
                 val teams = database.onDatabaseThread { db ->
                     // The service filters individual team visibility; no blanket club-wide grant
                     // is required for readers with a grant on only one team.
-                    val allowed = db.fetchValue(
+                    val allowed = db.fetchOne(
                         """SELECT EXISTS (
                             SELECT 1 FROM members m WHERE m.account_id = ?
                               AND m.archived_at IS NULL AND (
@@ -45,8 +45,8 @@ internal fun Application.installTeamHttpRoutes(
                                            WHERE g.member_id = m.id
                                            AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS'))
                               )
-                        )""", actor.accountId, Boolean::class.java,
-                    ) == true
+                        )""", actor.accountId,
+                    )?.get(0, Boolean::class.java) == true
                     if (allowed) TeamAssignments(db).list(actor.accountId) else null
                 }
                 if (teams == null) {
