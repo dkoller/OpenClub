@@ -150,6 +150,47 @@ paths:
           $ref: '#/components/responses/NotFound'
         '503':
           $ref: '#/components/responses/Unavailable'
+    put:
+      tags: [Members]
+      operationId: replaceLocalMemberDetails
+      summary: Proposed authorized member details replacement (NOT IMPLEMENTED)
+      description: >
+        The existing internal MemberDetailsUpdate replaces editable fields for
+        a currently active member under an explicit live EDIT_MEMBERS grant.
+        It cannot modify account links, ADMIN/MEMBER roles, grants or teams.
+        Proposed HTTP write must derive the actor from the verified session
+        and require exact configured Origin, session-bound CSRF and JSON input.
+        Supply all editable fields on every call; omitted optional contacts
+        and gender clear those values, so a browser edit form MUST NOT guess
+        unseen private fields. R03 must first approve a restricted, authorized
+        detail-read contract and adult/minor contact disclosure to editors,
+        including policy transitions. Never round-trip a directory-only DTO
+        into this write or silently reset hidden private fields. Do not enable
+        this route until the privacy/contract, audit and security review gates
+        are explicitly accepted.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewMember'
+      responses:
+        '204':
+          description: Active member updated; never echo private fields
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /v1/members/{memberId}/archive:
     post:
       tags: [Members]
