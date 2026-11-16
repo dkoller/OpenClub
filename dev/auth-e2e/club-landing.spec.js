@@ -639,6 +639,17 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(teams).toHaveCount(0);
   await page.unroute('**/api/v1/teams');
 
+  // A lost session on role-member search hides all privileged role controls.
+  await page.reload();
+  const rolesAfterReload = page.getByRole('region', { name: 'Manage club roles' });
+  await page.route('**/api/v1/members?**', route =>
+    new URL(route.request().url()).searchParams.get('q') === 'Mara'
+      ? route.fulfill({ status: 401, body: 'Unauthorized' }) : route.continue());
+  await rolesAfterReload.getByLabel('Find member').fill('Mara');
+  await rolesAfterReload.getByRole('button', { name: 'Search' }).click();
+  await expect(rolesAfterReload).toHaveCount(0);
+  await page.unroute('**/api/v1/members?**');
+
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
   await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
