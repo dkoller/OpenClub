@@ -130,6 +130,30 @@ test('verified login gains club access only after restricted operator bootstrap'
   expect(visibleMinorNames).toContainEqual({ displayName: 'Nina P.' });
   expect(JSON.stringify(visibleMinorNames)).not.toContain('Nina Private');
 
+  // A slower prior query must be aborted rather than overwriting the latest search.
+  let signalSlowRequest;
+  const slowRequestStarted = new Promise(resolve => { signalSlowRequest = resolve; });
+  await page.route('**/api/v1/members?**', async route => {
+    if (new URL(route.request().url()).searchParams.get('q') !== 'Slow') {
+      await route.continue();
+      return;
+    }
+    signalSlowRequest();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await route.continue().catch(() => {}); // Superseded request was aborted.
+  });
+  const canceledSlow = page.waitForEvent('requestfailed',
+    request => new URL(request.url()).searchParams.get('q') === 'Slow');
+  const searchForm = page.getByRole('region', { name: 'Manage members' });
+  await searchForm.getByLabel('Search names').fill('Slow');
+  await searchForm.getByRole('button', { name: 'Search', exact: true }).click();
+  await slowRequestStarted;
+  await searchForm.getByLabel('Search names').fill('Nina');
+  await searchForm.getByRole('button', { name: 'Search', exact: true }).click();
+  await canceledSlow;
+  await expect(searchForm.getByRole('listitem').filter({ hasText: 'Nina Private' })).toBeVisible();
+  await page.unroute('**/api/v1/members?**');
+
   await created.getByRole('button', { name: 'Edit' }).click();
   // The row text is replaced by editable inputs, so locate the active form.
   const editForm = page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) });
