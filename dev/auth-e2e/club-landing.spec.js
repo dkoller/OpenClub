@@ -385,6 +385,42 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(permissionAdmin.getByRole('listitem').filter({ hasText: 'VIEW_TEAMS' })).toBeVisible();
   await permissionAdmin.getByRole('button', { name: 'Revoke' }).click();
   await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
+  // Switching grant targets must cancel the previous member's pending grant read.
+  await permissionAdmin.getByLabel('Find member').fill('a');
+  await permissionAdmin.getByRole('button', { name: 'Search' }).click();
+  const membersPicker = permissionAdmin.getByRole('combobox', { name: 'Member' });
+  const adminOption = membersPicker.getByRole('option', { name: 'Synthetic Administrator' });
+  await expect(adminOption).toHaveCount(1);
+  const maraOption = membersPicker.getByRole('option', { name: 'Mara Demo' });
+  await expect(maraOption).toHaveCount(1);
+  const maraId = await maraOption.getAttribute('value');
+  if (!maraId) throw new Error('Missing synthetic member ID');
+  const adminId = await adminOption.getAttribute('value');
+  if (!adminId) throw new Error('Missing synthetic admin member ID');
+  await membersPicker.selectOption({ label: 'Mara Demo' });
+  await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
+  let notifyOldGrant;
+  const oldGrantStarted = new Promise(resolve => { notifyOldGrant = resolve; });
+  await page.route('**/api/v1/grants?**', async route => {
+    if (route.request().method() !== 'GET' ||
+        new URL(route.request().url()).searchParams.get('memberId') !== adminId) {
+      await route.continue();
+      return;
+    }
+    notifyOldGrant();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await route.continue().catch(() => {});
+  });
+  const canceledOldGrant = page.waitForEvent('requestfailed',
+    request => new URL(request.url()).searchParams.get('memberId') === adminId);
+  await membersPicker.selectOption({ label: 'Synthetic Administrator' });
+  await oldGrantStarted;
+  await membersPicker.selectOption({ label: 'Mara Demo' });
+  await canceledOldGrant;
+  await expect(membersPicker).toHaveValue(maraId);
+  await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
+  await expect(permissionAdmin.getByRole('alert')).toHaveCount(0);
+  await page.unroute('**/api/v1/grants?**');
 
   await teams.getByRole('button', { name: 'Remove' }).click();
   await expect(teams.getByText('No assignments.')).toBeVisible();

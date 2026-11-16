@@ -125,12 +125,16 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
       {error && <p role="alert">{t.error}</p>}
       <form onSubmit={event => { void findMember(event) }}>
         <label>{t.search}<input value={search} maxLength={100} onChange={event => setSearch(event.target.value)} /></label>
-        <button type="submit">{t.find}</button>
+        <button type="submit" disabled={busy}>{t.find}</button>
       </form>
       {members.length > 0 && <label>{t.member}
-        <select value={memberId} onChange={event => {
+        <select value={memberId} disabled={busy} onChange={event => {
+          memberLookupRequest.current?.abort()
+          const controller = new AbortController()
+          memberLookupRequest.current = controller
           setMemberId(event.target.value)
-          void loadGrants(event.target.value)
+          setGrants([])
+          void loadGrants(event.target.value, controller.signal)
         }}>
           {members.map(member => <option key={member.id} value={member.id}>
             {member.firstName} {member.lastName}
