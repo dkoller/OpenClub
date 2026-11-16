@@ -8,8 +8,9 @@ info:
     member contract (#13) and anonymous name-display policy (#12), but the
     corresponding public/admin endpoints are NOT IMPLEMENTED and this draft
     awaits independent contract/security validation before release. Full
-    confidential member, team and grant access still needs separate approval. Bootstrap and emergency admin
-    recovery are offline operator-only commands, never HTTP APIs. Exactly one
+    confidential member, team and grant access still needs separate approval.
+    Bootstrap and emergency admin recovery are offline operator-only commands,
+    never HTTP APIs. Exactly one
     club exists per installation; no clubId tenant selector or switcher exists.
     Never treat the browser session alone as permission to read personal data.
 servers:
@@ -66,7 +67,6 @@ paths:
             application/json:
               schema:
                 type: array
-                maxItems: 50
                 items:
                   $ref: '#/components/schemas/PublicMemberName'
         '503':
@@ -81,9 +81,10 @@ paths:
         from the anonymous /v1/public/members display-name list. Linked club
         members need explicit VIEW_MEMBER_DIRECTORY permission; login alone
         grants nothing. Never expose its full minor surnames or UUIDs through
-        the public route. No DOB, gender, contacts, account IDs or grants. Opaque cursor represents a stable
-        (lastName, firstName, id) ordering and is bound to the same filter and
-        caller's permission; stale/invalid cursors return 400.
+        the public route. No DOB, gender, contacts, account IDs or grants.
+        Opaque cursor represents a stable (lastName, firstName, id) ordering
+        and is bound to the filter and caller's permission; stale or invalid
+        cursors return 400.
       parameters:
         - name: q
           in: query
