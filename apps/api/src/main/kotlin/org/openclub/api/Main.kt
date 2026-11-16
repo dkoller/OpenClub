@@ -4,6 +4,7 @@ import org.openclub.api.auth.*
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.club.installSingleClubRoutes
 import org.openclub.api.members.PublicMemberNames
+import org.openclub.api.members.installMemberHttpRoutes
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -113,5 +114,8 @@ internal fun Application.module(
     }
     if (login != null) installBrowserLogin(login, requireNotNull(cookiePolicy), authAdmission)
     if (sessions != null) installSessionRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin))
-    if (sessions != null && database != null) installSingleClubRoutes(sessions, requireNotNull(cookiePolicy), database)
+    if (sessions != null && database != null) {
+        installSingleClubRoutes(sessions, requireNotNull(cookiePolicy), database)
+        installMemberHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
+    }
 }

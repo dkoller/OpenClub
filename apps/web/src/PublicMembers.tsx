@@ -10,7 +10,7 @@ const words = {
   it: { heading: 'Membri', loading: 'Caricamento dei membri…', empty: 'Nessun membro per ora.', error: 'Membri temporaneamente non disponibili.', retry: 'Riprova' },
 } satisfies Record<Language, Record<string, string>>
 
-export function PublicMembers({ language }: { language: Language }) {
+export function PublicMembers({ language, revision = 0 }: { language: Language; revision?: number }) {
   const [names, setNames] = useState<PublicName[] | null>(null)
   const [error, setError] = useState(false)
   const [attempt, setAttempt] = useState(0)
@@ -31,7 +31,7 @@ export function PublicMembers({ language }: { language: Language }) {
       .then(value => { if (!controller.signal.aborted) setNames(value) })
       .catch(() => { if (!controller.signal.aborted) setError(true) })
     return () => controller.abort()
-  }, [attempt])
+  }, [attempt, revision])
 
   return (
     <section aria-labelledby="public-members-heading">

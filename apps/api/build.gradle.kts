@@ -25,6 +25,7 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.8")
     implementation("com.zaxxer:HikariCP:6.3.3")
     implementation("com.nimbusds:oauth2-oidc-sdk:11.39")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
     jooqGenerator("org.jooq:jooq-codegen:$jooqVersion")
     jooqGenerator("org.postgresql:postgresql:42.7.8")

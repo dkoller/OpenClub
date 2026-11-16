@@ -59,10 +59,11 @@ internal class FirstClubBootstrap(private val database: DSLContext) {
                 adminMemberId, input.accountId, input.firstName.trim(), input.lastName.trim(),
                 input.birthDate, input.email.trim(), input.phone.trim(),
             )
-            // First permission manager is created only by the guarded operator bootstrap.
+            // Explicit initial grants, only for the verified first administrator.
             db.execute(
-                "INSERT INTO club_capability_grants (member_id, capability) VALUES (?, 'MANAGE_PERMISSIONS')",
-                adminMemberId,
+                """INSERT INTO club_capability_grants (member_id, capability)
+                   VALUES (?, 'MANAGE_PERMISSIONS'), (?, 'VIEW_MEMBER_DIRECTORY'), (?, 'EDIT_MEMBERS')""",
+                adminMemberId, adminMemberId, adminMemberId,
             )
             clubId
         }

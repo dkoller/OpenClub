@@ -84,11 +84,34 @@ test('verified login gains club access only after restricted operator bootstrap'
     'Signed in and authorized for this club.',
   );
   // The public directory renders the synthetic adult name, even after logout.
-  await expect(page.getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
   const publicNames = await context.request.get('/api/v1/public/members');
   expect(publicNames.status()).toBe(200);
   expect(await publicNames.json()).toEqual([{ displayName: 'Synthetic Administrator' }]);
+
+  // Complete the real authorized browser journey with fictional member data.
+  await expect(page.getByRole('heading', { name: 'Manage members' })).toBeVisible();
+  await page.getByLabel('First name').fill('Nina');
+  await page.getByLabel('Last name').fill('Private');
+  await page.getByLabel('Date of birth').fill('2013-01-01');
+  await page.getByRole('button', { name: 'Add member' }).click();
+  const created = page.getByRole('listitem').filter({ hasText: 'Nina Private' });
+  await expect(created).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: 'Nina P.' })).toBeVisible();
+
+  await created.getByRole('button', { name: 'Edit' }).click();
+  // The row text is replaced by editable inputs, so locate the active form.
+  const editForm = page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) });
+  await editForm.getByLabel('Last name').fill('Renamed');
+  await editForm.getByRole('button', { name: 'Save' }).click();
+  const renamed = page.getByRole('listitem').filter({ hasText: 'Nina Renamed' });
+  await expect(renamed).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toBeVisible();
+  await renamed.getByRole('button', { name: 'Archive' }).click();
+  await expect(renamed).toHaveCount(0);
+  await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toHaveCount(0);
+
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
-  await expect(page.getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
 });

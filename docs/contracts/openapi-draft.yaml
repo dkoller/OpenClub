@@ -3,12 +3,14 @@ info:
   title: OpenClub single-club management API — working draft
   version: 0.0.0-draft
   description: >
-    WORKING DRAFT for unimplemented member administration, teams and grants.
+    WORKING DRAFT for unfinished private-field, role, team and grant operations.
     Anonymous GET /v1/public/members, authenticated GET /v1/club and the
     separately documented /v1/auth routes are implemented. The owner approved
     the minimum M1 technical member contract (#13) and public name policy (#12).
-    Private member management operations still require implementation and
-    independent security review. Full
+    Member name listing, accountless create, minimal detail, name-only PATCH
+    and archive now have authenticated, capability-checked HTTP implementations.
+    Private full-details replacement, reactivation, role, team and grant
+    operations remain draft; independent security and real-data review remain. Full
     confidential member, team and grant access still needs separate approval.
     Bootstrap and emergency admin recovery are offline operator-only commands,
     never HTTP APIs. Exactly one
@@ -77,7 +79,7 @@ paths:
     get:
       tags: [Members]
       operationId: listLocalMembers
-      summary: Proposed privacy-minimized member search (NOT IMPLEMENTED)
+      summary: Authorized member search (IMPLEMENTED)
       description: >
         This authenticated, full-name/UUID administration directory is distinct
         from the anonymous /v1/public/members display-name list. Linked club
@@ -98,7 +100,7 @@ paths:
         - name: cursor
           in: query
           description: Opaque server-issued page cursor; never encode PII in cleartext.
-          schema: { type: string, minLength: 1, maxLength: 512 }
+          schema: { type: string, minLength: 1, maxLength: 2048 }
       responses:
         '200':
           description: Bounded page containing privacy-minimized members only
@@ -117,7 +119,7 @@ paths:
     post:
       tags: [Members]
       operationId: addLocalMember
-      summary: Proposed authorized accountless member creation (NOT IMPLEMENTED)
+      summary: Accountless member creation (IMPLEMENTED)
       description: >
         Requires an explicitly authorized club-level member-write capability,
         exact configured Origin, session-bound X-CSRF-Token and JSON Content-Type.
@@ -165,7 +167,7 @@ paths:
     get:
       tags: [Members]
       operationId: readLocalMember
-      summary: Proposed permission-filtered member detail (NOT IMPLEMENTED)
+      summary: Authorized minimal member detail (IMPLEMENTED)
       description: >
         This member-ID detail is for authenticated, explicitly authorized
         administration only, not the public name list. R03/#76 must separately
@@ -189,16 +191,16 @@ paths:
     patch:
       tags: [Members]
       operationId: changeLocalMemberNames
-      summary: Proposed name-only update that preserves private fields (NOT IMPLEMENTED)
+      summary: Name-only update preserving private fields (IMPLEMENTED)
       description: >
         The internal MemberDetailsUpdate.updateNames changes first and last
         name only for an active member under an explicit EDIT_MEMBERS grant.
         It never reads or modifies DOB, contacts, gender, roles, accounts or
         capability grants. Unlike full replacement, it does not depend on
         an editor being authorized to read private contact/birth fields.
-        A future HTTP route must validate a verified session, exact Origin,
-        session-bound CSRF, visible target and R03-approved name disclosure
-        including minors. This is a proposal, not HTTP implementation approval.
+        HTTP implementation requires a verified session, exact Origin,
+        session-bound CSRF and explicit EDIT_MEMBERS capability. Hidden/private
+        member fields are never read or modified by this operation.
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
       requestBody:
@@ -267,7 +269,7 @@ paths:
     post:
       tags: [Members]
       operationId: archiveLocalMember
-      summary: Proposed archive of an unlinked ordinary member (NOT IMPLEMENTED)
+      summary: Archive an unlinked ordinary member (IMPLEMENTED)
       description: >
         Internal-only MemberArchive currently requires a verified session actor
         holding a live club-wide EDIT_MEMBERS grant, an unlinked MEMBER target,
@@ -527,7 +529,7 @@ components:
         nextCursor:
           type: string
           minLength: 1
-          maxLength: 512
+          maxLength: 2048
           description: Absent on the last page.
     MemberNames:
       type: object

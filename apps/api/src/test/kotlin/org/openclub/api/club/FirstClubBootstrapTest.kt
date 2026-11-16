@@ -61,7 +61,11 @@ class FirstClubBootstrapTest {
                     )
                 }
                 assertEquals(1, db.fetchCount(DSL.table("members")))
-                assertEquals(1, db.fetchCount(DSL.table("club_capability_grants")))
+                assertEquals(3, db.fetchCount(DSL.table("club_capability_grants")))
+                assertEquals(1L, db.fetchValue("""SELECT COUNT(*) FROM club_capability_grants
+                    WHERE capability = 'VIEW_MEMBER_DIRECTORY'"""))
+                assertEquals(1L, db.fetchValue("""SELECT COUNT(*) FROM club_capability_grants
+                    WHERE capability = 'EDIT_MEMBERS'"""))
                 assertEquals(1L, db.fetchValue(
                     """SELECT COUNT(*) FROM club_capability_grants g
                        JOIN members m ON m.id = g.member_id
