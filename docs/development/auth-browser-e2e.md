@@ -14,6 +14,16 @@ logout it resubmits the revoked cookie to prove database revocation, rather than
 merely observing that the browser dropped its cookie. Contract:
 [auth API](../contracts/auth-api-proposal.yaml).
 
+The disposable bootstrap journey also revokes the verified administrator's
+`EDIT_MEMBERS` PostgreSQL grant while the actual Keycloak session stays signed
+in: directory reads still succeed, an attempted browser edit receives HTTP 403,
+and the private edit controls fail closed. The test restores the grant in a
+`finally` block and confirms a reload recovers access. Fixture SQL is restricted
+to `OPENCLUB_E2E_DISPOSABLE=true` and executed only against the ephemeral
+Compose PostgreSQL instance, never through a production HTTP endpoint.
+This provides real-session revocation evidence beyond mocked 403 responses
+without approving use of real personal data.
+
 The API runs on localhost:8080, while the real Vite frontend serves
 localhost:5173 and forwards /api requests (including the callback) to the API.
 Keycloak runs on localhost:8180. No auth endpoint or browser UI is mocked.
