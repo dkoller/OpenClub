@@ -121,7 +121,16 @@ jobs:
             fi
             sleep 2
           done
-          [[ "$ready" == true ]] || { echo "Rauthy local discovery unavailable" >&2; exit 1; }
+          if [[ "$ready" != true ]]; then
+            # A synthetic-only startup failure: expose matching error diagnostics,
+            # never full logs (the Rauthy first-boot log can contain credentials).
+            "${overlay[@]}" logs --no-color rauthy 2>&1 |
+              grep -Ei 'ERROR|panic|validation failed|invalid role|role.*not found' |
+              sed -E 's/(password|secret|token)[=:][^ ]+/\\1=[REDACTED]/Ig' |
+              tail -n 12 >&2 || true
+            echo "Rauthy local discovery unavailable" >&2
+            exit 1
+          fi
           jq -e '
             .issuer == "https://localhost:8443/auth/v1/" and
             (.authorization_endpoint | startswith("https://localhost:8443/")) and
