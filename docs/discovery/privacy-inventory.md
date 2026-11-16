@@ -25,7 +25,7 @@ The owner decided that **active members' names are publicly viewable without log
 
 ## Remaining least-disclosure decisions — required before real-data pilot
 
-The proposed public **display-name-only** read is separate from authenticated member administration and remains unimplemented until the reviewed R04 contract and security checks are in place. Other member-list/detail responses containing identifiers or private fields remain restricted pending authorization and field-level review. The internal query introduced in merged [PR #86](https://github.com/dkoller/OpenClub/pull/86) selects full name and local UUID and **must not be reused unfiltered as a public response**.
+The public **display-name-only** read is now implemented under `/api/v1/public/members` with server-side age masking, archived-member exclusion and a four-language browser view; synthetic PostgreSQL/HTTP tests verify output minimization. It is separate from authenticated member administration and is **not** real-data publication approval. Other member-list/detail responses containing identifiers or private fields remain restricted pending authorization and field-level review. The internal query introduced in merged [PR #86](https://github.com/dkoller/OpenClub/pull/86) selects full name and local UUID and **must not be reused unfiltered as a public response**.
 
 | Data / action | Suggested initial boundary for review | Decision status |
 | --- | --- | --- |

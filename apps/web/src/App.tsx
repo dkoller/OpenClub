@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { loadClubAccess, signOut, type ClubAccess } from './auth'
 import { readPreferredLanguage, type Language } from './language'
+import { PublicMembers } from './PublicMembers'
 
 const translations = {
   de: { heading: 'Willkommen bei OpenClub', intro: 'Eine Installation für einen Verein.', loading: 'Anmeldung wird geprüft…', signedOut: 'Bitte anmelden.', notMember: 'Für dieses Konto besteht noch keine Vereinsmitgliedschaft.', ready: 'Angemeldet und für diesen Verein berechtigt.', unavailable: 'Dienst momentan nicht verfügbar.', retry: 'Erneut versuchen', login: 'Anmelden', logout: 'Abmelden', loggingOut: 'Abmeldung läuft…', error: 'Abmelden fehlgeschlagen.', language: 'Sprache' },
@@ -60,6 +61,7 @@ export function App() {
       </select>
       <h1>{words.heading}</h1>
       <p>{words.intro}</p>
+      <PublicMembers language={language} />
       <p role="status">{message}</p>
       {access?.state === 'signed-out' && <a href="/api/v1/auth/login">{words.login}</a>}
       {access?.state === 'unavailable' && <button type="button" onClick={() => { void retryAccess() }}>{words.retry}</button>}
