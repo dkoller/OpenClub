@@ -75,7 +75,7 @@ paths:
         '204':
           description: Club name changed
         '400':
-          $ref: '#/components/responses/InvalidInput'
+          $ref: '#/components/responses/Invalid'
         '401':
           $ref: '#/components/responses/Unauthenticated'
         '403':
