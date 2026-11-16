@@ -127,3 +127,5 @@ restore action, retention duration, or erasure mechanism. R03 privacy review,
 R04 API contract, audit behavior, authorized unlink, and operator retention
 policy remain prerequisites for real club data. Do not call an archived record
 anonymized or permanently deleted.
+
+**Internal member input normalization (2026-11-16):** Shared member field validation rejects embedded control characters in names, emails, phone and gender before writing through the internal creation/update services; leading/trailing whitespace is still trimmed. This does not establish email deliverability, private-field visibility or approval for HTTP member APIs.
