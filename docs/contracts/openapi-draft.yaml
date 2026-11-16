@@ -32,12 +32,12 @@ paths:
       operationId: readMyClub
       summary: Read the single installation club after authorized login
       description: >
-        Implemented session-linked response: local club UUID, name and slug
-        for an active linked member only. Authentication alone is insufficient;
+        Implemented session-linked response: local club UUID, name, slug and
+        genderRequiredForPlayers boolean for an active linked member only. Authentication alone is insufficient;
         this read never authorizes club settings writes or private member data.
       responses:
         '200':
-          description: Current installation's ID, name and slug
+          description: Current installation's ID, name, slug and player-gender requirement
           content:
             application/json:
               schema:
@@ -745,11 +745,173 @@ components:
     ClubReference:
       type: object
       additionalProperties: false
-      required: [id, name, slug]
+      required: [id, name, slug, genderRequiredForPlayers]
       properties:
         id: { type: string, format: uuid }
         name: { type: string, minLength: 1, maxLength: 200 }
-        slug: { type: string, minLength: 3, maxLength: 60, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' }
+        slug: { type: string, minLength: 3, maxLength: 60, pattern: '^[a-z0-9]+(-[a-z0-9]+)*
+    MemberReference:
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }
+    PublicMemberName:
+      type: object
+      additionalProperties: false
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 402
+          examples: [Peter Smith, Peter S.]
+          description: Only the server-formatted public name; minors get first name and last-name initial.
+    MemberSummary:
+      type: object
+      additionalProperties: false
+      required: [id, firstName, lastName]
+      properties:
+        id: { type: string, format: uuid }
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
+    MemberPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/MemberSummary' }
+        nextCursor:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: Absent on the last page.
+    MemberNames:
+      type: object
+      additionalProperties: false
+      required: [firstName, lastName]
+      properties:
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
+    NewMember:
+      type: object
+      additionalProperties: false
+      required: [firstName, lastName, dateOfBirth]
+      properties:
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
+        dateOfBirth:
+          type: string
+          format: date
+          description: Required for all members; no future dates. Private, never directory-visible.
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          description: Required for adults under the locally configured threshold.
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 40
+          description: Required alongside email for adults.
+        gender:
+          type: string
+          minLength: 1
+          description: Optional unless the club requires gender for players; not binary-only.
+        isPlayer: { type: boolean, default: false }
+    Team:
+      type: object
+      additionalProperties: false
+      required: [id, name, memberCount]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        memberCount: { type: integer, minimum: 0 }
+    TeamPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Team' }
+    TeamName:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+    GrantView:
+      type: object
+      additionalProperties: false
+      required: [capability, scope]
+      properties:
+        capability:
+          type: string
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS]
+        scope: { type: string, enum: [CLUB, TEAM] }
+        teamId: { type: string, format: uuid }
+    GrantPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/GrantView' }
+    GrantMutation:
+      type: object
+      additionalProperties: false
+      required: [memberId, capability, scope]
+      properties:
+        memberId: { type: string, format: uuid }
+        capability:
+          type: string
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS]
+        scope: { type: string, enum: [CLUB, TEAM] }
+        teamId: { type: string, format: uuid }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+  responses:
+    Invalid:
+      description: Invalid input, query, cursor or member field; no private data reflected
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthenticated:
+      description: Session missing or expired
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authenticated, but caller lacks operation-level permission
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Unknown or non-visible member ID; indistinguishable results
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: Write conflicts with an existing record or policy state
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unavailable:
+      description: Database or authorization service unavailable
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+ }
+        genderRequiredForPlayers: { type: boolean }
     MemberReference:
       type: object
       additionalProperties: false
