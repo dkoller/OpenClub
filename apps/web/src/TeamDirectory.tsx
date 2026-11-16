@@ -3,10 +3,10 @@ import type { Language } from './language'
 
 type Team = { id: string; name: string; memberCount: number }
 const words = {
-  de: { title: 'Teams', loading: 'Teams werden geladen…', error: 'Teams nicht verfügbar.', retry: 'Erneut versuchen', empty: 'Keine Teams vorhanden.', count: 'Mitglieder' },
-  en: { title: 'Teams', loading: 'Loading teams…', error: 'Teams unavailable.', retry: 'Try again', empty: 'No teams yet.', count: 'Members' },
-  fr: { title: 'Équipes', loading: 'Chargement des équipes…', error: 'Équipes indisponibles.', retry: 'Réessayer', empty: 'Aucune équipe.', count: 'Membres' },
-  it: { title: 'Squadre', loading: 'Caricamento squadre…', error: 'Squadre non disponibili.', retry: 'Riprova', empty: 'Nessuna squadra.', count: 'Membri' },
+  de: { title: 'Teams', loading: 'Teams werden geladen…', error: 'Teams nicht verfügbar.', retry: 'Erneut versuchen', empty: 'Keine Teams vorhanden.', count: 'Mitglieder', name: 'Teamname', create: 'Team hinzufügen', createError: 'Team konnte nicht erstellt werden.' },
+  en: { title: 'Teams', loading: 'Loading teams…', error: 'Teams unavailable.', retry: 'Try again', empty: 'No teams yet.', count: 'Members', name: 'Team name', create: 'Add team', createError: 'Could not create team.' },
+  fr: { title: 'Équipes', loading: 'Chargement des équipes…', error: 'Équipes indisponibles.', retry: 'Réessayer', empty: 'Aucune équipe.', count: 'Membres', name: 'Nom de l’équipe', create: 'Ajouter une équipe', createError: 'Impossible de créer l’équipe.' },
+  it: { title: 'Squadre', loading: 'Caricamento squadre…', error: 'Squadre non disponibili.', retry: 'Riprova', empty: 'Nessuna squadra.', count: 'Membri', name: 'Nome squadra', create: 'Aggiungi squadra', createError: 'Impossibile creare la squadra.' },
 } satisfies Record<Language, Record<string, string>>
 
 export function TeamDirectory({ language, csrfToken }: { language: Language; csrfToken: string }) {
