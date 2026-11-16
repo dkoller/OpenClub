@@ -2,6 +2,7 @@ package org.openclub.api.teams
 
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.delete
 import io.ktor.client.request.patch
 import io.ktor.client.request.setBody
 import kotlinx.serialization.json.jsonPrimitive
@@ -179,6 +180,44 @@ class TeamHttpRoutesTest {
                 assertEquals("Renamed Team", runBlocking {
                     database.onDatabaseThread { db ->
                         db.fetchOne("SELECT name FROM teams WHERE id = ?", visible)?.get(0, String::class.java)
+                    }
+                })
+                // Deletion removes the team and its assignments, never a member.
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("INSERT INTO member_team_assignments VALUES (?, ?)", created, outsider)
+                    }
+                }
+                suspend fun deleteTeam(handle: String, teamId: UUID, expectedName: String,
+                    requestOrigin: String = "http://localhost:5173", sendCsrf: Boolean = true) =
+                    client.delete("/api/v1/teams/$teamId") {
+                        header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=$handle")
+                        header(HttpHeaders.Origin, requestOrigin)
+                        if (sendCsrf) header("X-CSRF-Token", "x".repeat(43))
+                        header(HttpHeaders.ContentType, "application/json")
+                        setBody("""{"name":"$expectedName"}""")
+                    }
+                assertEquals(HttpStatusCode.Unauthorized, client.delete("/api/v1/teams/$created").status)
+                assertEquals(HttpStatusCode.Forbidden, deleteTeam("outsider", created!!, "New Team").status)
+                assertEquals(HttpStatusCode.Forbidden,
+                    deleteTeam("viewer", created!!, "New Team", sendCsrf = false).status)
+                assertEquals(HttpStatusCode.Forbidden,
+                    deleteTeam("viewer", created!!, "New Team",
+                        requestOrigin = "https://attacker.example.invalid").status)
+                assertEquals(HttpStatusCode.BadRequest, deleteTeam("viewer", created!!, "Old Team").status)
+                assertEquals(HttpStatusCode.NotFound,
+                    deleteTeam("viewer", UUID.randomUUID(), "Missing").status)
+                assertEquals(HttpStatusCode.NoContent, deleteTeam("viewer", created!!, "New Team").status)
+                assertEquals(0, runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.fetchValue("SELECT COUNT(*) FROM member_team_assignments WHERE member_id = ?", outsider)
+                            ?.toString()?.toInt()
+                    }
+                })
+                assertEquals(1, runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.fetchValue("SELECT COUNT(*) FROM members WHERE id = ?", outsider)
+                            ?.toString()?.toInt()
                     }
                 })
                 runBlocking {

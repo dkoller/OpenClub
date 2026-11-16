@@ -11,7 +11,7 @@ The team read endpoint is a narrowly scoped implementation step toward [#75](htt
 
 **Additional synthetic M1 workflow:** A verified first administrator receives explicit club-level `VIEW_TEAMS` and `MANAGE_TEAMS` grants at operator bootstrap. `POST /api/v1/teams` accepts strict bounded JSON `{"name":"Juniors"}` with exact configured Origin and session CSRF token. Only a club-wide `MANAGE_TEAMS` grant permits creation; team-scoped grants do not. The route returns `201` with the new ID and Location; missing/invalid fields return `400`, duplicates `409`, unauthenticated `401`, denied `403`, and unexpected failures `503`. The four-language browser view includes team creation and reloads the directory after a successful request.
 
-**Still open:** team rename and deletion; membership assignments; grant/revoke routes; permission-management browser UI; approved full R04 contract; M1 browser acceptance and deployment; separate M2 privacy sign-off. This slice uses only synthetic test records and does not authorize real data.
+**Still open:** full R04 contract approval, exhaustive four-language/denial browser cases, M1 TLS deployment and separate M2 privacy sign-off. Team create/rename/roster/assign and scoped grant workflows are now implemented, but this does not authorize real member data. This slice uses only synthetic test records and does not authorize real data.
 
 
 ## M1 private team roster and assignments
@@ -26,3 +26,7 @@ This is not approval of public member IDs, broader confidential fields, permissi
 ## Team rename (synthetic M1)
 
 `PATCH /api/v1/teams/{teamId}` accepts the same strict name-only JSON object as team creation (maximum 4 KiB). A verified session, exact configured Origin, matching CSRF token and an **active club-wide** `MANAGE_TEAMS` grant are required; a team-scoped grant cannot rename a team. A successful rename returns `204`; unauthenticated `401`, unauthorized `403`, malformed input `400`, nonexistent team `404`, duplicate team name `409`, and unavailable service `503`. The localized browser provides a rename form. Existing member assignments remain attached to the unchanged team UUID. This is a synthetic workflow only; full private/production contracts remain subject to independent approval.
+
+## Synthetic-only team deletion
+
+A verified user with a live **club-wide** `MANAGE_TEAMS` grant can delete an existing team using `DELETE /api/v1/teams/{teamId}`. The request must carry exact Origin and session CSRF, and a strict bounded `{"name":"Exact Team Name"}` confirmation. The server locks the team row and compares the name before invoking the existing SQL-authorized deletion service. A mismatched name or malformed body returns `400`; missing auth `401`; insufficient grant `403`; absent team `404`; unexpected failure `503`; success `204`. Team-scoped grants **never** authorize deletion. This irreversibly removes the team and its assignments/team-specific grants through database foreign-key cascades, **not** the member records. DE/EN/FR/IT browser controls require typing the exact name and clearly warn about assignment removal. Backup, audit and retention obligations for real data remain M2 blockers.
