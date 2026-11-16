@@ -176,6 +176,7 @@ jobs:
           set -euo pipefail
           curl --fail --retry 12 --retry-delay 3 --retry-connrefused http://localhost:5173/
           test "$(curl --fail --silent http://localhost:5173/api/health)" = '{"status":"ok"}'
+          test "$(curl --fail --silent http://localhost:5173/api/ready)" = '{"status":"ready"}'
       - name: Verify Keycloak from the browser and API-container issuer URL
         env:
           KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
@@ -219,6 +220,29 @@ jobs:
             jq -e '.keys | type == "array" and length > 0'
           "${overlay[@]}" exec -T api wget -q -O - http://127.0.0.1:8080/health |
             grep -F '"status":"ok"'
+      - name: Verify failed database readiness does not masquerade as liveness
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Last normal check: stop the disposable database after OIDC validation.
+          docker compose stop postgres
+          unavailable=false
+          for attempt in {1..15}; do
+            status="$(curl --silent --output /tmp/openclub-readiness.json \
+              --write-out '%{http_code}' --max-time 3 \
+              http://localhost:5173/api/ready || true)"
+            if [[ "$status" == 503 ]] &&
+              [[ "$(cat /tmp/openclub-readiness.json)" == '{"status":"unavailable"}' ]]; then
+              unavailable=true
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$unavailable" != true ]]; then
+            echo "API readiness did not report a database outage" >&2
+            exit 1
+          fi
+          test "$(curl --fail --silent http://localhost:5173/api/health)" = '{"status":"ok"}'
       - name: Show stack and Keycloak logs on failure
         if: failure()
         env:
