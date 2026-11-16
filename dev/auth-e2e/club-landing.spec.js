@@ -138,6 +138,12 @@ test('verified login gains club access only after restricted operator bootstrap'
   const renamed = page.getByRole('listitem').filter({ hasText: 'Nina Renamed' });
   await expect(renamed).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toBeVisible();
+  const renamedPublicNames = await context.request.get('/api/v1/public/members');
+  expect(renamedPublicNames.status()).toBe(200);
+  const renamedDisplays = await renamedPublicNames.json();
+  expect(renamedDisplays).toContainEqual({ displayName: 'Nina R.' });
+  expect(renamedDisplays).not.toContainEqual({ displayName: 'Nina P.' });
+  expect(JSON.stringify(renamedDisplays)).not.toContain('Nina Renamed');
   await renamed.getByRole('button', { name: 'Archive' }).click();
   await expect(renamed.getByRole('group', {
     name: 'Archive this member? Nina Renamed',
