@@ -133,3 +133,7 @@ The working OpenAPI draft now matches the registered M1 paths `/v1/teams`, `/v1/
 ## Synthetic M1 permission-member search freshness
 
 The permissions editor cancels superseded member-name searches and associated grant lookups. An outdated response cannot overwrite a newer selected member or its visible grants; stale options clear as soon as a new query is submitted, and canceled requests do not display misleading errors. The disposable Keycloak/Chromium journey delays a fictional old search and verifies the latest member is selectable before normal grant/revoke. Server-side grant authorization and M2 privacy gates are unchanged.
+
+## Synthetic permission member-switch read isolation
+
+Switching the selected member in the permissions editor clears the previously shown grants immediately and aborts an older in-flight grant read, so stale grant rows cannot appear under another member's name. Search/selection are disabled while a grant mutation is busy. Disposable Keycloak/Chromium acceptance exercises two fictional members and verifies a deliberately delayed old grant response is canceled. PostgreSQL remains the authority for all grants; this UI defense does not replace security review or M2 approval.
