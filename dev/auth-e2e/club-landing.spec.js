@@ -111,6 +111,41 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(renamed).toHaveCount(0);
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toHaveCount(0);
 
+  // One Keycloak-backed browser journey now also verifies team and grant workflows.
+  await page.getByLabel('First name').fill('Mara');
+  await page.getByLabel('Last name').fill('Demo');
+  await page.getByLabel('Date of birth').fill('2015-01-01');
+  await page.getByRole('button', { name: 'Add member' }).click();
+  const memberAdmin = page.getByRole('region', { name: 'Manage members' });
+  await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toBeVisible();
+
+  const teams = page.getByRole('region', { name: 'Teams', exact: true });
+  await teams.getByLabel('Team name').fill('Juniors');
+  await teams.getByRole('button', { name: 'Add team' }).click();
+  await expect(teams.getByRole('listitem').filter({ hasText: 'Juniors' })).toBeVisible();
+  await teams.getByLabel('Find member').fill('Mara');
+  await teams.getByRole('button', { name: 'Search' }).click();
+  await expect(teams.getByRole('option', { name: 'Mara Demo' })).toBeVisible();
+  await teams.getByRole('button', { name: 'Assign' }).click();
+  await expect(teams.getByRole('button', { name: 'Remove' })).toBeVisible();
+  await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
+
+  const permissionAdmin = page.getByRole('region', { name: 'Manage permissions' });
+  await permissionAdmin.getByLabel('Find member').fill('Mara');
+  await permissionAdmin.getByRole('button', { name: 'Search' }).click();
+  await expect(permissionAdmin.getByRole('option', { name: 'Mara Demo' })).toBeVisible();
+  await permissionAdmin.getByLabel('Capability').selectOption('VIEW_TEAMS');
+  await permissionAdmin.getByRole('button', { name: 'Grant' }).click();
+  await expect(permissionAdmin.getByRole('listitem').filter({ hasText: 'VIEW_TEAMS' })).toBeVisible();
+  await permissionAdmin.getByRole('button', { name: 'Revoke' }).click();
+  await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
+
+  await teams.getByRole('button', { name: 'Remove' }).click();
+  await expect(teams.getByText('No assignments.')).toBeVisible();
+  await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
+    .getByRole('button', { name: 'Archive' }).click();
+  await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(0);
+
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
   await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
