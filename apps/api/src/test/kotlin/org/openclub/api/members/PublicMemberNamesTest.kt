@@ -37,8 +37,8 @@ class PublicMemberNamesTest {
                         adult, today.minusYears(25),
                     )
                     db.execute(
-                        """INSERT INTO members (id, first_name, last_name, date_of_birth)
-                           VALUES (?, 'Nina', 'SensitiveSurname', ?)""",
+                        """INSERT INTO members (id, first_name, last_name, date_of_birth, email, phone)
+                           VALUES (?, 'Nina', 'SensitiveSurname', ?, 'minor@example.invalid', '+41000000000')""",
                         minor, today.minusYears(17),
                     )
                     db.execute(
@@ -54,7 +54,7 @@ class PublicMemberNamesTest {
                 val public = client.get("/api/v1/public/members")
                 assertEquals(HttpStatusCode.OK, public.status)
                 assertEquals("no-store", public.headers[HttpHeaders.CacheControl])
-                assertEquals("""[{"displayName":"Peter Smith"},{"displayName":"Nina S."}]""",
+                assertEquals("""[{"displayName":"Nina S."},{"displayName":"Peter Smith"}]""",
                     public.bodyAsText())
                 val body = public.bodyAsText()
                 for (secret in listOf("SensitiveSurname", "example.invalid", adult.toString(),
@@ -75,8 +75,6 @@ class PublicMemberNamesTest {
                         it.execute("UPDATE clubs SET adult_age_years = 18 WHERE id = ?", club)
                         it.execute("UPDATE members SET date_of_birth = ? WHERE id = ?",
                             today.minusYears(18), minor)
-                        it.execute("UPDATE members SET email = ?, phone = ? WHERE id = ?",
-                            "minor-now-adult@example.invalid", "+41000000000", minor)
                     }
                 }
                 assertTrue(client.get("/api/v1/public/members").bodyAsText()
