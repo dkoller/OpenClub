@@ -300,6 +300,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.unroute('**/api/v1/members?**');
   await expect(roleAdmin.getByRole('combobox', { name: 'Member' })
     .getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
+  await expect(roleAdmin.getByRole('combobox', { name: 'Role' })).toHaveValue('MEMBER');
   await roleAdmin.getByRole('combobox', { name: 'Role' }).selectOption('ADMIN');
   await roleAdmin.getByRole('button', { name: 'Save role' }).click();
   await expect(roleAdmin.getByRole('combobox', { name: 'Role' })).toHaveValue('ADMIN');
