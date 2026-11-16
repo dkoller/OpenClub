@@ -65,7 +65,16 @@ jobs:
             fi
             sleep 2
           done
-          [[ "$ready" == true ]] || { echo 'Disposable Rauthy not ready' >&2; exit 1; }
+          if [[ "$ready" != true ]]; then
+            # First-boot logs may contain generated administrator credentials.
+            # Show only matched error lines, never the full provider log.
+            docker compose -f compose.yaml -f compose.rauthy.eval.yaml logs --no-color rauthy 2>&1 |
+              grep -Ei 'ERROR|panic|invalid.*config|parse.*error|validation failed' |
+              sed -E 's/(password|secret|token)[=:][^ ]+/[REDACTED]/Ig' |
+              tail -n 12 >&2 || true
+            echo 'Disposable Rauthy not ready' >&2
+            exit 1
+          fi
       - name: Trust only the disposable Rauthy HTTPS certificate for the JVM
         shell: bash
         run: |
