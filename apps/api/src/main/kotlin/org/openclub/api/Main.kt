@@ -118,6 +118,6 @@ internal fun Application.module(
     if (sessions != null && database != null) {
         installSingleClubRoutes(sessions, requireNotNull(cookiePolicy), database)
         installMemberHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
-        installTeamHttpRoutes(sessions, requireNotNull(cookiePolicy), database)
+        installTeamHttpRoutes(sessions, requireNotNull(cookiePolicy), database, requireNotNull(publicOrigin))
     }
 }
