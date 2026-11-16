@@ -126,7 +126,7 @@ jobs:
             # never full logs (the Rauthy first-boot log can contain credentials).
             "${overlay[@]}" logs --no-color rauthy 2>&1 |
               grep -Ei 'ERROR|panic|validation failed|invalid role|role.*not found' |
-              sed -E 's/(password|secret|token)[=:][^ ]+/\\1=[REDACTED]/Ig' |
+              sed -E 's/(password|secret|token)[=:][^ ]+/[REDACTED]/Ig' |
               tail -n 12 >&2 || true
             echo "Rauthy local discovery unavailable" >&2
             exit 1
