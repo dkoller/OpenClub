@@ -53,6 +53,11 @@ class MemberDirectoryTest {
                 assertTrue(directory.search(linked).members.isEmpty())
                 db.execute("""INSERT INTO club_capability_grants (member_id, capability)
                     VALUES (?, 'VIEW_MEMBER_DIRECTORY')""", fixtures.first().first)
+                assertTrue(directory.search(linked).members.isEmpty(),
+                    "A stored grant without verified OIDC identity must not reveal names")
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), linked, "directory-" + linked)
                 val first = directory.search(linked, limit = 2)
                 assertEquals(listOf("Amy", "Ben"), first.members.map { it.firstName })
                 assertNotNull(first.next)
@@ -106,7 +111,11 @@ class MemberDirectoryTest {
                     expected[1],
                     directory.search(linked, limit = 1, after = authorizedPage.next).members.single().id,
                 )
-                // Unlinking the actor revokes access on the very next query.
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", linked)
+                assertTrue(directory.search(linked).members.isEmpty(),
+                    "Identity revocation must invalidate an already issued page cursor")
+                assertNull(directory.search(linked, limit = 1, after = authorizedPage.next).next)
+                // Unlinking the actor independently revokes access.
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", fixtures.first().first)
                 assertTrue(directory.search(linked).members.isEmpty())
             } finally {
