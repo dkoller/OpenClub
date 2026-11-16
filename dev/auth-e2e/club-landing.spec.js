@@ -526,6 +526,13 @@ test('verified login gains club access only after restricted operator bootstrap'
   await settings.getByRole('button', { name: 'Save policy' }).click();
   await expect(settings.getByRole('alert')).toHaveCount(0);
 
+  // Revoked member-directory access must hide names and controls in an existing roster.
+  const youthTeam = teams.getByRole('listitem').filter({ hasText: 'Youth Team' }).first();
+  await page.route('**/api/v1/members?**', route => route.fulfill({ status: 403, body: 'Forbidden' }), { times: 1 });
+  await youthTeam.getByLabel('Find member').fill('Mara');
+  await youthTeam.getByRole('button', { name: 'Search' }).click();
+  await expect(youthTeam.getByLabel('Find member')).toHaveCount(0);
+
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
     .getByRole('button', { name: 'Archive' }).click();
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
