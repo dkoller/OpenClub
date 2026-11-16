@@ -17,6 +17,8 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
   const t = strings[language]
   const [items, setItems] = useState<Member[] | null>(null)
   const [cursor, setCursor] = useState<string | undefined>()
+  const [failedPage, setFailedPage] = useState<{ q: string; cursor?: string } | null>(null)
+  const [loadingPage, setLoadingPage] = useState(false)
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
   const [denied, setDenied] = useState(false)
@@ -37,6 +39,8 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
     activeLoad.current?.abort()
     const controller = new AbortController()
     activeLoad.current = controller
+    setLoadingPage(true)
+    setFailedPage(null)
     try {
       const args = new URLSearchParams({ q, limit: '20' })
       if (next) args.set('cursor', next)
@@ -51,11 +55,18 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
       if (!Array.isArray(page.items)) throw new Error('Invalid directory')
       setItems(previous => next ? [...(previous ?? []), ...page.items] : page.items)
       setCursor(page.nextCursor)
+      setFailedPage(null)
       setFailure(null)
     } catch {
-      if (!controller.signal.aborted) setFailure('unavailable')
+      if (!controller.signal.aborted) {
+        setFailedPage({ q, cursor: next })
+        setFailure('unavailable')
+      }
     } finally {
-      if (activeLoad.current === controller) activeLoad.current = null
+      if (activeLoad.current === controller) {
+        activeLoad.current = null
+        setLoadingPage(false)
+      }
     }
   }, [])
 
@@ -111,7 +122,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
         <input id="member-search" value={search} maxLength={100} onChange={e => setSearch(e.target.value)} />
         <button type="submit">{t.find}</button>
       </form>
-      {failure && <p role="alert">{t[failure]} <button type="button" onClick={() => { void load(query) }}>{t.retry}</button></p>}
+      {failure && <p role="alert">{t[failure]} <button type="button" onClick={() => { void load(failedPage?.q ?? query, failedPage?.cursor) }} disabled={loadingPage}>{t.retry}</button></p>}
       {items === null ? (failure ? null : <p>{t.loading}</p>) : items.length === 0 ? <p>{t.empty}</p> : (
         <ul>
           {items.map(member => (
@@ -151,7 +162,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
           ))}
         </ul>
       )}
-      {cursor && <button type="button" disabled={busy} onClick={() => { void load(query, cursor) }}>{t.more}</button>}
+      {cursor && <button type="button" disabled={busy || loadingPage || !!failure} onClick={() => { void load(query, cursor) }}>{t.more}</button>}
       <form onSubmit={event => {
         event.preventDefault()
         void mutation('/api/v1/members', 'POST', {
