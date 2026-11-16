@@ -32,6 +32,11 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     // a new passkey. The virtual authenticator handles the WebAuthn ceremony.
     await page.getByText('MFA', { exact: true }).first().click();
     await page.getByRole('button', { name: /add|register|new passkey/i }).first().click();
+    // Only synthetic UI control labels are logged for test diagnostics;
+    // never inspect or emit credentials, input values, or WebAuthn keys.
+    console.log('Rauthy MFA buttons:', await page.getByRole('button').allTextContents());
+    console.log('Rauthy MFA fields:', await page.locator('input').evaluateAll(
+      nodes => nodes.map(n => ({ type: n.type, placeholder: n.placeholder }))));
     await expect.poll(async () => (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length)
       .toBeGreaterThan(0);
 
