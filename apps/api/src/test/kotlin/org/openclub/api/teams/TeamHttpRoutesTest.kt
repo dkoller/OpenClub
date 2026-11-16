@@ -145,7 +145,7 @@ class TeamHttpRoutesTest {
                     header(HttpHeaders.ContentType, "application/json")
                     setBody("""{"name":"new team"}""")
                 }.status)
-                fun rename(handle: String, teamId: UUID, newName: String, sendCsrf: Boolean = true,
+                suspend fun rename(handle: String, teamId: UUID, newName: String, sendCsrf: Boolean = true,
                     requestOrigin: String = "http://localhost:5173") =
                     client.patch("/api/v1/teams/$teamId") {
                         header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=$handle")
