@@ -9,8 +9,8 @@ info:
     the minimum M1 technical member contract (#13) and public name policy (#12).
     Member name listing, accountless create, minimal detail, name-only PATCH
     and archive now have authenticated, capability-checked HTTP implementations.
-    Private full-details replacement, reactivation, role, team and grant
-    operations remain draft; independent security and real-data review remain. Full
+    Private full-details replacement and reactivation remain draft;
+    role, team and grant operations have narrow synthetic HTTP boundaries; independent security and real-data review remain. Full
     confidential member, team and grant access still needs separate approval.
     Bootstrap and emergency admin recovery are offline operator-only commands,
     never HTTP APIs. Exactly one
@@ -369,22 +369,48 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
   /v1/members/{memberId}/role:
-    put:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Members]
+      operationId: readLocalMemberRole
+      summary: Read a local active member role (synthetic M1)
+      description: >
+        Requires an active, verified ADMIN session with a current club
+        MANAGE_PERMISSIONS grant; role lookup never exposes contact fields.
+      responses:
+        '200':
+          description: Current role of active member
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [role]
+                properties:
+                  role: { type: string, enum: [ADMIN, MEMBER] }
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    patch:
       tags: [Members]
       operationId: changeLocalMemberRole
-      summary: Proposed permission-admin role change (NOT IMPLEMENTED)
+      summary: Change a local member role (synthetic M1)
       description: >
-        The internal MemberRoles service serializes changes with grant mutation,
-        denies self-change, and preserves a final ADMIN and eligible
-        permission-manager. There is NO HTTP endpoint. When approved, require
-        a verified session, exact Origin, session-bound CSRF, explicitly
-        authorized permission administrator, and audited outcomes. No
-        client-supplied actor account ID or automatic privilege grant.
+        Verifies session, exact Origin and CSRF, then uses serialized
+        MemberRoles checks with a live eligible ADMIN/MANAGE_PERMISSIONS
+        grant and linked identity. Refuses self-mutation, archived targets and
+        last-administrator lockout. Role changes never auto-grant permissions.
+        Missing or non-visible targets are denied without disclosing roles.
       parameters:
-        - name: memberId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
         - $ref: '#/components/parameters/CsrfToken'
       requestBody:
         required: true
@@ -405,10 +431,6 @@ paths:
           $ref: '#/components/responses/Unauthenticated'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
         '503':
           $ref: '#/components/responses/Unavailable'
   /v1/teams:

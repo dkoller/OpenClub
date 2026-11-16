@@ -133,6 +133,19 @@ test('verified login gains club access only after restricted operator bootstrap'
   const memberAdmin = page.getByRole('region', { name: 'Manage members' });
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toBeVisible();
 
+  const roleAdmin = page.getByRole('region', { name: 'Manage club roles' });
+  await roleAdmin.getByLabel('Find member').fill('Mara');
+  await roleAdmin.getByRole('button', { name: 'Search' }).click();
+  await expect(roleAdmin.getByRole('combobox', { name: 'Member' })
+    .getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
+  await roleAdmin.getByRole('combobox', { name: 'Role' }).selectOption('ADMIN');
+  await roleAdmin.getByRole('button', { name: 'Save role' }).click();
+  await expect(roleAdmin.getByRole('combobox', { name: 'Role' })).toHaveValue('ADMIN');
+  await roleAdmin.getByRole('combobox', { name: 'Role' }).selectOption('MEMBER');
+  await roleAdmin.getByRole('button', { name: 'Save role' }).click();
+  await expect(roleAdmin.getByRole('combobox', { name: 'Role' })).toHaveValue('MEMBER');
+
+
   const teams = page.getByRole('region', { name: 'Teams', exact: true });
   await teams.getByLabel('Team name').fill('Juniors');
   await teams.getByRole('button', { name: 'Add team' }).click();
