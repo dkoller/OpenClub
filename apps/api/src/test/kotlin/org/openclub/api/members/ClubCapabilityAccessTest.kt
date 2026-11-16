@@ -60,6 +60,11 @@ class ClubCapabilityAccessTest {
                     VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
                     UUID.randomUUID(), adminAccount, UUID.randomUUID().toString())
                 assertTrue(access.has(adminAccount, permissions))
+                assertFalse(access.has(memberAccount, directory),
+                    "A directory grant without verified identity is insufficient")
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), memberAccount, "directory-" + memberAccount)
                 assertTrue(access.has(memberAccount, directory))
                 assertFalse(access.has(memberAccount, permissions))
                 assertFalse(access.has(outsider, permissions))
@@ -73,6 +78,8 @@ class ClubCapabilityAccessTest {
                 assertTrue(access.has(adminAccount, permissions))
                 db.execute("DELETE FROM account_identities WHERE account_id = ?", adminAccount)
                 assertFalse(access.has(adminAccount, permissions))
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", memberAccount)
+                assertFalse(access.has(memberAccount, directory))
 
                 assertThrows(DataAccessException::class.java) {
                     db.execute("INSERT INTO club_capability_grants VALUES (?, ?)", member, directory.name)
@@ -87,6 +94,10 @@ class ClubCapabilityAccessTest {
                 assertFalse(access.has(adminAccount, permissions))
                 // A member's club-wide grants must not survive deletion.
                 db.execute("INSERT INTO club_capability_grants VALUES (?, ?)", member, directory.name)
+                assertFalse(access.has(memberAccount, directory))
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), memberAccount, "restored-" + memberAccount)
                 assertTrue(access.has(memberAccount, directory))
                 db.execute("DELETE FROM members WHERE id = ?", member)
                 assertEquals(0L, db.fetchValue(
