@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 
 type Member = { id: string; firstName: string; lastName: string }
@@ -31,25 +31,38 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
   const [phone, setPhone] = useState('')
   const [isPlayer, setIsPlayer] = useState(false)
   const [gender, setGender] = useState('')
+  const activeLoad = useRef<AbortController | null>(null)
 
   const load = useCallback(async (q: string, next?: string) => {
+    activeLoad.current?.abort()
+    const controller = new AbortController()
+    activeLoad.current = controller
     try {
       const args = new URLSearchParams({ q, limit: '20' })
       if (next) args.set('cursor', next)
-      const response = await fetch('/api/v1/members?' + args, { credentials: 'same-origin', cache: 'no-store' })
+      const response = await fetch('/api/v1/members?' + args, {
+        credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
+      })
+      if (controller.signal.aborted) return
       if (response.status === 403) { setDenied(true); return }
       if (!response.ok) throw new Error('Search failed')
       const page: Page = await response.json()
+      if (controller.signal.aborted) return
       if (!Array.isArray(page.items)) throw new Error('Invalid directory')
       setItems(previous => next ? [...(previous ?? []), ...page.items] : page.items)
       setCursor(page.nextCursor)
       setFailure('')
     } catch {
-      setFailure(t.unavailable)
+      if (!controller.signal.aborted) setFailure(t.unavailable)
+    } finally {
+      if (activeLoad.current === controller) activeLoad.current = null
     }
   }, [t.unavailable])
 
-  useEffect(() => { void load('') }, []) // Refresh after each write, search or language change below.
+  useEffect(() => {
+    void load('')
+    return () => activeLoad.current?.abort()
+  }, []) // Refresh after each write, search or language change below.
 
   async function mutation(path: string, method: string, body?: object) {
     setBusy(true)

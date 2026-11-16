@@ -209,3 +209,7 @@ The real disposable Keycloak/Chromium member journey additionally checks the ano
 ## Unlinked identity API denial in browser acceptance (synthetic M1)
 
 The real disposable Keycloak/Chromium sign-in journey now calls the private club, member-directory and team-list HTTP endpoints while authenticated as a verified but **unlinked** OIDC account. Each must return a no-store 403 rather than exposing club data. This verifies that login alone does not grant membership across actual browser cookies and proxied API routes; it neither changes the access policy nor substitutes for independent M2 security and privacy review.
+
+## In-flight member search cancellation (synthetic M1)
+
+The authorized member administration now aborts the previous directory request when a new search, pagination read or mutation refresh starts, and also aborts outstanding requests when the component unmounts. A superseded response cannot replace newer member names or display a stale error. Real Keycloak/Chromium acceptance holds a synthetic older search while submitting a new one and verifies network cancellation and the latest results; all existing server-side identity, grant and privacy checks remain authoritative.
