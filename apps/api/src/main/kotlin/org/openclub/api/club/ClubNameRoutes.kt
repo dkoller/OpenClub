@@ -68,9 +68,9 @@ internal fun Application.installClubNameRoutes(
                         """UPDATE clubs SET name = ?
                            WHERE EXISTS (
                                SELECT 1 FROM members actor
-                               JOIN club_capability_grants grant ON grant.member_id = actor.id
+                               JOIN club_capability_grants g ON g.member_id = actor.id
                                WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                                 AND actor.role = 'ADMIN' AND grant.capability = 'MANAGE_PERMISSIONS'
+                                 AND actor.role = 'ADMIN' AND g.capability = 'MANAGE_PERMISSIONS'
                                  AND EXISTS (SELECT 1 FROM account_identities identity
                                              WHERE identity.account_id = actor.account_id)
                            )""",
