@@ -17,13 +17,20 @@ OpenClub deploys **one club per independent installation and PostgreSQL database
 
 Member birth date is **mandatory for all**; email **and** phone are mandatory for adults under a club-configured threshold (currently default 18); player gender is mandatory only when explicitly enabled by club policy. These are **accepted product requirements**, not a conclusion about data-protection necessity or lawful basis. The database validates writes; birthdays or policy changes require further lifecycle handling.
 
-## Proposed least-disclosure baseline — requires club/privacy approval
+## Owner-approved synthetic M1 public-name rule (2026-11-16)
 
-Until the data controller explicitly approves a field/role matrix, the application must **not expose member-list or member-detail HTTP APIs**. The internal query introduced in merged [PR #86](https://github.com/dkoller/OpenClub/pull/86) selects only name and local UUID and is not registered as an HTTP route. Authentication and interim ADMIN/MEMBER role alone do not justify broad visibility.
+The owner decided that **active members' names are publicly viewable without login**. Adults' names display in full (example: `Peter Smith`); minors' names display **first name plus the initial of the surname and a period** (`Peter S.`). Minor status is evaluated on the server from the stored date of birth and the installation's configured adult-age threshold at the time of each response; a birthday or threshold change must immediately change the public display. Never send the full minor surname to an anonymous client, including hidden JSON properties, HTML, search responses or logs. Public responses must expose only a preformatted `displayName`, not separate first/last names, date of birth, exact age, contact information, member/account UUIDs, gender or grants. Exclude archived/inactive members.
+
+**M1 scope:** This is a technical/product disclosure decision for fictitious synthetic fixtures only, **not legal clearance to publish real adults' names or identifiable minors' information**. A first name and surname initial can still identify a child. The operator/controller must separately approve actual publication, notices, purpose, retention, minors' safeguards and applicable law before M2 real-data use. The authenticated administration API remains distinct: full legal names and private fields require independently reviewed permissions and must never be inferred from this public endpoint. To avoid bypassing masking, public search/filtering/cursors must not reveal full minor surnames through matches, ordering, tokens or record identifiers. Test both unauthenticated full-adult and masked-minor output and denied private-field access.
+
+## Remaining least-disclosure decisions — required before real-data pilot
+
+The proposed public **display-name-only** read is separate from authenticated member administration and remains unimplemented until the reviewed R04 contract and security checks are in place. Other member-list/detail responses containing identifiers or private fields remain restricted pending authorization and field-level review. The internal query introduced in merged [PR #86](https://github.com/dkoller/OpenClub/pull/86) selects full name and local UUID and **must not be reused unfiltered as a public response**.
 
 | Data / action | Suggested initial boundary for review | Decision status |
 | --- | --- | --- |
-| Name and local member ID | Authorized members with explicit directory-read grant; visibility of children still assessed | **Open** |
+| Public display name of active adults/minors | **Owner-approved for synthetic M1:** adults `Peter Smith`, minors `Peter S.`; anonymous, preformatted display only, no member UUID; full real-data publication needs controller approval | **M1 technical decision recorded; M2 approval open** |
+| Full member names and local member ID | Authenticated authorized administration only; no full minor surname in a public API | **Private-field access review open** |
 | Full DOB, including minors | Restricted administration for a documented age/eligibility purpose; avoid birthday disclosure | **Open** |
 | Email and phone, adults | Explicitly approved contact-related capability; never assume all club members can view | **Open** |
 | Email and phone, minors | Deny general directory access by default; resolve verified guardian/coach/administration needs | **Open** |
@@ -55,7 +62,7 @@ The accountable club representative and, where needed, qualified privacy counsel
 ## Implementation guardrails and remaining work
 
 - Keep all sample identities fictitious; prohibit real member data in git, CI, screenshots, logs and demo fixtures.
-- Require explicit reviewed R04 OpenAPI contract and #76 permission model before exposing any member HTTP response. Restrict list DTOs to minimum approved fields; 401 unauthenticated, 403 insufficient permission, and nondisclosing 404 for non-visible individual members.
+- Require reviewed R04 OpenAPI contract before public **display-name-only** reads; never expose unmasked member directory data through public routes. Private/admin member endpoints still require #76 explicit permissions, verified session, Origin/CSRF for writes, and nondisclosing 401/403/404 behavior. Public display endpoint may return 200 to anonymous callers, but must never return IDs or private fields.
 - Do not auto-merge an OIDC account with a member using matching email/name. Invitation-based linking requires independent verification (#20).
 - Record role/grant changes and exports in minimal audit events; do not print DOB, contact data, gender or tokens in application logs.
 - Test archive, export, erasure, backup restoration and policy transitions on synthetic data before real use (#26/#27).
