@@ -261,3 +261,7 @@ The permissions editor now fails closed on HTTP 403 from member search, grant-de
 ## Team candidate search denial hides roster controls (synthetic M1)
 
 An HTTP 403 during team-assignment candidate member search now hides that team's member roster and name-bearing assignment controls, matching the existing roster-read and mutation authorization-denial behavior. A disposable Keycloak/Chromium test injects an explicit denied search after a permitted team workflow. This frontend guard does not replace server-side directory/team grant enforcement or legal/privacy approvals.
+
+## Team roster request freshness (synthetic M1)
+
+The team roster cancels superseded paginated/reload GET requests and pending requests on unmount. A delayed old response or denial cannot overwrite a newer roster after a member assignment changes. A disposable Keycloak/Chromium acceptance test delays the post-removal roster read, reassigns the synthetic member and verifies the stale fetch is canceled while the current roster remains visible. Server-side permissions remain authoritative; this is not a real-data release approval.
