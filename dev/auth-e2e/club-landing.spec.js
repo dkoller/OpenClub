@@ -148,6 +148,21 @@ test('verified login gains club access only after restricted operator bootstrap'
   await renameForm.getByRole('textbox', { name: 'Team name' }).fill('Youth Team');
   await renameForm.getByRole('button', { name: 'Save' }).click();
   await expect(teams.getByText('Youth Team — 0 Members')).toBeVisible();
+  // The whole authenticated workflow remains reachable with localized
+  // member, team and delegation controls, not just a translated landing page.
+  for (const locale of [
+    { code: 'de', member: 'Mitglieder verwalten', team: 'Teams', grant: 'Berechtigungen verwalten' },
+    { code: 'fr', member: 'Gérer les membres', team: 'Équipes', grant: 'Gérer les autorisations' },
+    { code: 'it', member: 'Gestisci membri', team: 'Squadre', grant: 'Gestisci permessi' },
+    { code: 'en', member: 'Manage members', team: 'Teams', grant: 'Manage permissions' },
+  ]) {
+    await page.locator('#language').selectOption(locale.code);
+    await expect(page.getByRole('heading', { name: locale.member })).toBeVisible();
+    await expect(page.getByRole('region', { name: locale.team, exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: locale.grant, exact: true })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', locale.code);
+  }
+
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
     .getByRole('button', { name: 'Archive' }).click();
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(0);
