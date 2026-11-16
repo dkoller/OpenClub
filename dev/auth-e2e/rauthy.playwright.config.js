@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: '.',
-  testMatch: ['rauthy-login.spec.js'],
+  testMatch: ['rauthy-login.spec.js', 'rauthy-passkey.spec.js'],
   workers: 1,
   retries: 0,
   timeout: 90000,

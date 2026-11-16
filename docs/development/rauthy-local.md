@@ -74,10 +74,11 @@ It has a generated secret, authorization-code flow, S256 PKCE and RS256 tokens.
 Synthetic test account credentials are generated on the disposable provider
 and used only in CI.
 
-The browser test is intended to verify a **real** Rauthy password login,
+The existing browser test verifies a **real** Rauthy password login,
 a valid app-side authenticated session, denied access to private club/member/
-team data until an explicit operator bootstrap, and logout. The provider's
-**MFA and passkey browser flows remain separate pending #279 acceptance**.
+team data until an explicit operator bootstrap, and logout. **Passkey**
+acceptance is tested separately below; password + additional MFA and recovery
+remain open under #279.
 The existing Keycloak dev overlay and all Keycloak browser checks remain
 supported, are neither removed nor replaced, and must continue passing.
 
@@ -102,8 +103,30 @@ The provider certificate must be trusted by the JVM and browser using an
 explicit, test-scoped CA/trust store. Do **not** disable certificate or hostname
 validation, globally modify Java trust, accept self-signed certificates in
 production, or reuse Rauthy's unsafe `LOCAL_TEST` configuration externally.
-This change enables secure runtime configuration only; no actual Rauthy login
-or passkey browser acceptance is claimed.
+The original HTTPS-loopback configuration change alone did not prove an
+authenticated session; later sections below describe independent browser
+acceptance work.
+
+## Synthetic Rauthy passkey browser acceptance
+
+The optional Rauthy evaluation overlay uses `WEBAUTHN_PASSKEY_REG_TYPE=resident_key`
+**only for disposable virtual-authenticator testing**. This restricts the local
+fixture to discoverable credentials so Chromium can test username-less passkey
+login and prove the WebAuthn assertion actually signed. **Do not copy this
+setting into a production identity provider without reviewing supported
+authenticators and security-key storage limits.** Users of ordinary nonresident
+keys can instead use Rauthy's E-Mail-first WebAuthn flow.
+
+The additional `dev/auth-e2e/rauthy-passkey.spec.js` exercises password-based
+account login, password reauthentication to obtain permission to modify MFA,
+named passkey registration through Chromium's virtual FIDO2 authenticator,
+independent Rauthy logout and clearing of SSO cookies, then passkey-only
+sign-in through OpenClub. The test must observe a signed assertion and the
+normal application session with **no club grants**. No virtual credential,
+private key, raw WebAuthn response, account session or browser trace is
+stored in artifacts. The **existing Keycloak test and Rauthy password
+test must both remain green**. This acceptance does not cover TOTP/email
+OTP recovery, independent backup restore or live-data deployment.
 
 ## OpenClub OIDC compatibility checklist
 
