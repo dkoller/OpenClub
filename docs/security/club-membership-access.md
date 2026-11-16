@@ -273,3 +273,7 @@ Member search and mutation HTTP 401 responses now close the private member edito
 ## Expired sessions across private club administration (synthetic M1)
 
 Club settings, role management, team rosters and permission management now treat HTTP 401 as lost private access, just like HTTP 403. Team directory HTTP 401 on a create/rename/delete also hides team names, while an HTTP 403 for a write can retain legitimately read-only team visibility. Real disposable Keycloak/Chromium acceptance injects a rejected team creation after an authorized workflow and checks that existing private teams disappear. Server-side session and grant validation remains authoritative; this does not authorize real member data.
+
+## Expired-session browser denial matrix (synthetic M1)
+
+The disposable Keycloak/Chromium workflow injects HTTP 401 during the initial permission-capability check and role-member search, confirming both privileged editors disappear without exposing retry controls or previously selected names. This complements HTTP 401 denial tests for member searches and team mutations. These targeted injected responses verify frontend fail-closed presentation, not an independent production-role security audit or live-data permission.
