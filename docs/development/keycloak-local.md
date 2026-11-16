@@ -1,6 +1,6 @@
 # Local Keycloak development identity provider
 
-**Scope:** Optional local OIDC test provider for [R05/#14](https://github.com/dkoller/OpenClub/issues/14), not an authentication implementation or production configuration. R05 implemented and tested Ktor OIDC login and sessions. The first-release web UI now has an installation-local sign-in landing; no real member data is enabled. This setup is intentionally separate from the normal `docker compose up` path.
+**Scope:** Optional local OIDC test provider for the **implemented** [R05/#14](https://github.com/dkoller/OpenClub/issues/14) Ktor browser login, server-side sessions, logout and authorized single-club React workflows. This document describes a **development-only identity provider**, not a production OIDC deployment. No real member data is enabled. Authentication is opt-in, and this setup stays separate from the normal `docker compose up` path.
 
 ## Start a fresh local instance
 
@@ -46,7 +46,7 @@ docker compose -f compose.yaml -f compose.auth.dev.yaml exec -T api \
 
 The `oidc-backchannel` service shares the API network namespace (`network_mode: service:api`) and serves a **loopback-only** `127.0.0.1:8180` proxy to `keycloak:8080`. This does **not** publish the proxy to the host or other containers. Keycloak continues to advertise `http://localhost:8180/realms/openclub-dev`; signed ID-token `iss` and discovery must match that exact string. The CI Compose smoke test fetches discovery and JWKS through this API-internal path, compares host/container issuer and checks API health.
 
-This is **development-only**: loopback HTTP, Keycloak's `start-dev` mode and the optional proxy must not ship as production defaults. Do not modify `OidcSettings` to accept arbitrary HTTP issuer hosts. Docker startup alone does not imply a login works: a separately configured OIDC client, callback, sessions and a verified member link are still required. If the API container is replaced/recreated, restart the sharing proxy too: `docker compose -f compose.yaml -f compose.auth.dev.yaml up -d --force-recreate oidc-backchannel`.
+This is **development-only**: loopback HTTP, Keycloak's `start-dev` mode and the optional proxy must not ship as production defaults. A completed login returns an authenticated account, not automatic club access. For authorized member/team/grant workflows, the operator must separately execute [verified first-club bootstrap](../deployment/single-club.md#operator-only-first-club-bootstrap-pre-production) after the intended synthetic identity signs in. Do not modify `OidcSettings` to accept arbitrary HTTP issuer hosts. Docker startup alone does not imply a login works: a separately configured OIDC client, callback, sessions and a verified member link are still required. If the API container is replaced/recreated, restart the sharing proxy too: `docker compose -f compose.yaml -f compose.auth.dev.yaml up -d --force-recreate oidc-backchannel`.
 
 ## Restart, reset and verify
 

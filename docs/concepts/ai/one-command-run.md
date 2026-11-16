@@ -34,16 +34,16 @@ On Windows, a WSL 2 filesystem generally improves file-watch performance. Gradle
 
 ## Optional identity provider for local auth development
 
-Keycloak is **not** part of the default startup. For local OIDC development, see [Keycloak setup](../../development/keycloak-local.md) and start the separate `compose.auth.dev.yaml` overlay. No login flow is implemented yet.
+Keycloak is **not** part of the default startup. The backend's OIDC browser login, server-side sessions, logout, and guarded club/member/team/grant administration **are implemented** for synthetic-data development; they remain disabled in the default Compose command because no OIDC client, credentials, or verified club identity is preconfigured. To enable local sign-in, use [Keycloak setup](../../development/keycloak-local.md), create a confidential OIDC client and synthetic user, provide the documented auth environment variables, start the `compose.auth.dev.yaml` overlay (including its API loopback backchannel), and use the restricted [first-club operator bootstrap](../../deployment/single-club.md#operator-only-first-club-bootstrap-pre-production). Sign-in alone does **not** grant club membership or ADMIN capability. The [real Keycloak browser CI](../../../.github/workflows/auth-e2e.yml) proves the synthetic authorization journey; stock `docker compose up` does not.
 
 ## Safety and limitations
 
 - Default password `openclub_dev` is **local development only**. Set `POSTGRES_PASSWORD` to override it before creating a volume; changing it later does not update an existing database user password.
 - Ports 5173 and 5432 bind to localhost. The API is internal to the Compose network.
-- API startup runs Flyway migrations; `/health` reports liveness rather than full application readiness.
+- API startup runs Flyway migrations; `/health` reports liveness, while `/api/ready` through the web proxy checks PostgreSQL availability. Neither validates OIDC availability or production security.
 - Initial image builds download dependencies and may take several minutes.
 - This is not a production deployment configuration; production requires secrets, TLS, backups and hardening.
 
-## Optional backend authentication settings (not yet a working login)
+## Optional backend authentication settings (implemented, opt-in)
 
-Normal one-command startup is unchanged: auth defaults to disabled, so there are no default OIDC secrets. For future development login, see [runtime configuration and cookie policy](../../security/auth-runtime.md) and [local Keycloak](../../development/keycloak-local.md). Never commit client secrets; opt-in requires explicit loopback development configuration and a PostgreSQL database. The auth routes remain disabled pending integration and security tests.
+Normal one-command startup is unchanged: auth defaults to disabled and has no OIDC client credentials. The implemented backend accepts explicit `OPENCLUB_AUTH_MODE=development` only with the complete local loopback issuer, client ID, at-least-32-character secret, callback URL, public origin and PostgreSQL settings described in [runtime configuration](../../security/auth-runtime.md). The browser callback is `/api/v1/auth/callback`; use only an exact, approved redirect URI. No public registration or self-claim of club admin rights is provided. Never commit client secrets, fixture passwords, or real member records. Production mode requires HTTPS origin and issuer and additional unfulfilled M1/M2 operational gates.
