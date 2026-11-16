@@ -595,12 +595,19 @@ test('verified login gains club access only after restricted operator bootstrap'
 
 
   // Exercise real database authorization during an existing Keycloak login.
+  const fixtureSql = (sql) => {
+    if (process.env.OPENCLUB_E2E_DISPOSABLE !== 'true') {
+      throw new Error('This fixture requires disposable synthetic data');
+    }
+    execFileSync('docker', [
+      'compose', '-f', 'compose.yaml', '-f', 'compose.auth.dev.yaml',
+      'exec', '-T', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1',
+      '-U', 'openclub', '-d', 'openclub', '-c', sql,
+    ], { cwd: fileURLToPath(new URL('../../', import.meta.url)), stdio: 'pipe' });
+  };
   const fixtureGrant = (verb, capability = 'EDIT_MEMBERS') => {
     if (!['EDIT_MEMBERS', 'VIEW_MEMBER_DIRECTORY'].includes(capability)) {
       throw new Error('Unrecognized synthetic fixture capability');
-    }
-    if (process.env.OPENCLUB_E2E_DISPOSABLE !== 'true') {
-      throw new Error('This fixture requires disposable synthetic data');
     }
     const command = verb === 'remove'
       ? "DELETE FROM club_capability_grants WHERE member_id = " +
@@ -609,11 +616,7 @@ test('verified login gains club access only after restricted operator bootstrap'
       : "INSERT INTO club_capability_grants (member_id, capability) " +
           "SELECT id, '" + capability + "' FROM members WHERE account_id = '" + accountId + "' " +
           "ON CONFLICT DO NOTHING";
-    execFileSync('docker', [
-      'compose', '-f', 'compose.yaml', '-f', 'compose.auth.dev.yaml',
-      'exec', '-T', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1',
-      '-U', 'openclub', '-d', 'openclub', '-c', command,
-    ], { cwd: fileURLToPath(new URL('../../', import.meta.url)), stdio: 'pipe' });
+    fixtureSql(command);
   };
   fixtureGrant('remove');
   try {
@@ -665,6 +668,35 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.reload();
   await expect(page.getByRole('region', { name: 'Manage members' })
     .getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
+
+  // A failed subsequent page must preserve the already loaded member names,
+  // retry the same opaque cursor and append only the missing results.
+  fixtureSql(`INSERT INTO members (id, first_name, last_name, date_of_birth)
+    SELECT gen_random_uuid(), 'PagingFixture', 'Synthetic' || lpad(n::text, 3, '0'),
+           DATE '2015-01-01'
+    FROM generate_series(1, 25) n`);
+  try {
+    const pagedMembers = page.getByRole('region', { name: 'Manage members' });
+    await pagedMembers.getByLabel('Search names').fill('PagingFixture');
+    await pagedMembers.getByRole('button', { name: 'Search' }).click();
+    await expect(pagedMembers.getByRole('listitem')).toHaveCount(20);
+    await page.route('**/api/v1/members?**', route => route.abort(), { times: 1 });
+    await pagedMembers.getByRole('button', { name: 'More members' }).click();
+    await expect(pagedMembers.getByRole('alert'))
+      .toContainText('Member management unavailable.');
+    await expect(pagedMembers.getByRole('listitem')).toHaveCount(20);
+    await expect(pagedMembers.getByRole('button', { name: 'More members' })).toBeDisabled();
+    await pagedMembers.getByRole('button', { name: 'Try again' }).click();
+    await expect(pagedMembers.getByRole('listitem')).toHaveCount(25);
+    await expect(pagedMembers.getByRole('button', { name: 'More members' })).toHaveCount(0);
+    await pagedMembers.getByLabel('Search names').fill('NoSuchPagingFixture');
+    await pagedMembers.getByRole('button', { name: 'Search' }).click();
+    await expect(pagedMembers.getByRole('listitem')).toHaveCount(0);
+  } finally {
+    fixtureSql("DELETE FROM members WHERE first_name = 'PagingFixture' " +
+      "AND last_name LIKE 'Synthetic%' AND account_id IS NULL");
+  }
+  await page.reload();
 
   // A genuine capability denial must not be turned into a retryable grant editor.
   await page.route('**/api/v1/grants?**', async route => {
