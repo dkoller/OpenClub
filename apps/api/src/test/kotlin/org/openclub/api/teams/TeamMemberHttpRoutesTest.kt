@@ -84,7 +84,7 @@ class TeamMemberHttpRoutesTest {
                     database.onDatabaseThread { db ->
                         db.execute("INSERT INTO club_capability_grants VALUES (?, 'VIEW_MEMBER_DIRECTORY')",
                             manager)
-                        db.execute("""INSERT INTO team_capability_grants VALUES (?, ?, 'MANAGE_TEAMS')""",
+                        db.execute("""INSERT INTO team_capability_grants (member_id, team_id, capability) VALUES (?, ?, 'MANAGE_TEAMS')""",
                             manager, team)
                     }
                 }
