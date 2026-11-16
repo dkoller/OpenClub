@@ -6,8 +6,8 @@ import org.openclub.api.database.AdvisoryLocks
 import java.util.UUID
 
 /**
- * Internal-only role changes. Do not expose over HTTP before the member API
- * contract, privacy review, and trusted session/CSRF boundary are approved.
+ * Serialized role changes shared by the verified, CSRF-protected synthetic-M1
+ * HTTP route and internal callers. Production privacy/contract approval is separate.
  */
 internal class MemberRoles(private val database: DSLContext) {
     enum class Role { ADMIN, MEMBER }
