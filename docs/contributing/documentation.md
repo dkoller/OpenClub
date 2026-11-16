@@ -28,6 +28,6 @@
 ## Current sources of truth
 
 - [Roadmap and live issues](../roadmap.md): priorities and actual task status, not the historical [first-milestone sketch](../concepts/ai/first-milestone.md).
-- [ADR-0001](../decisions/0001-stack-selection.md) and [ADR-0002](../decisions/0002-identity-and-membership-model.md): accepted stack and member identity boundaries.
+- [ADR-0001](../decisions/0001-stack-selection.md) and [ADR-0005](../decisions/0005-single-club-installation.md): accepted stack and **current one-club-per-installation** member/account boundaries. [ADR-0002](../decisions/0002-identity-and-membership-model.md) is **superseded**, retained only as historical context; do not implement its multi-club/global-person assumptions.
 - [CI workflow](../../.github/workflows/build.yml): currently PostgreSQL service-based tests, **not** Testcontainers.
 - [Application manifests](../../apps/web/package.json) and lockfile: actual installed versions (including Vitest), rather than stale version references in prose.
