@@ -494,7 +494,7 @@ components:
       properties:
         id: { type: string, format: uuid }
         name: { type: string, minLength: 1, maxLength: 200 }
-        slug: { type: string, minLength: 3, maxLength: 60, pattern: '^[a-z0-9]+(-[a-z0-9]+)*
+        slug: { type: string, minLength: 3, maxLength: 60, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' }
     MemberReference:
       type: object
       additionalProperties: false
