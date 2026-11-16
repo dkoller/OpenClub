@@ -54,7 +54,7 @@ internal class AuthSessions(
             sessions.create(accountId)
         }
 
-    /** Refresh idle expiry only for valid, unexpired sessions. */
+    /** Refresh idle expiry only for valid sessions with a current verified identity. */
     fun find(handle: String?): ActiveSession? = touch(handle, null)
 
     /** Lock the session so rotation/re-login cannot race CSRF validation and deletion. */
@@ -99,6 +99,8 @@ internal class AuthSessions(
             WHERE session_hash = ?
               AND idle_expires_at > CURRENT_TIMESTAMP
               AND absolute_expires_at > CURRENT_TIMESTAMP
+              AND EXISTS (SELECT 1 FROM account_identities identity
+                          WHERE identity.account_id = auth_sessions.account_id)
               $csrfCondition
             RETURNING account_id, csrf_token"""
         val row = if (csrfToken != null) {
@@ -123,7 +125,9 @@ internal class AuthSessions(
                    idle_expires_at = LEAST(absolute_expires_at, CURRENT_TIMESTAMP + INTERVAL '30 minutes')
                WHERE session_hash = ?
                  AND idle_expires_at > CURRENT_TIMESTAMP
-                 AND absolute_expires_at > CURRENT_TIMESTAMP""",
+                 AND absolute_expires_at > CURRENT_TIMESTAMP
+                 AND EXISTS (SELECT 1 FROM account_identities identity
+                             WHERE identity.account_id = auth_sessions.account_id)""",
             digest(replacement.handle), replacement.csrfToken, digest(handle!!),
         )
         return replacement.takeIf { changed == 1 }
