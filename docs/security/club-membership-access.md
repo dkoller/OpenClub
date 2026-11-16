@@ -201,3 +201,7 @@ The private `GET /api/v1/club` lookup now requires an active linked local member
 ## Adult contact guidance in the member form (PR #235, synthetic M1)
 
 The member-create form now explains in DE/EN/FR/IT that both email and telephone are mandatory for **adults** and optional for **minors**. The same hint is associated with both inputs through `aria-describedby`, and a real Keycloak browser test checks the translated message. Because the installation's adult threshold is not exposed by the minimal club API, the UI does not guess age eligibility or mark both fields globally required; PostgreSQL remains the final authority for birthdate-dependent contact validation. The guidance uses no new personal fields or real member data and does not substitute for R03/M2 policy/consent sign-off.
+
+## Anonymous minor-name browser regression (synthetic M1)
+
+The real disposable Keycloak/Chromium member journey additionally checks the anonymous public endpoint after creating a fictional minor: it returns an abbreviated surname (`Nina P.`), never the private full name (`Nina Private`). This complements the authorized administrator's full-name member row and the already tested anonymous browser display; it does not authorize publishing real minors' data or change the R03/M2 privacy gate.
