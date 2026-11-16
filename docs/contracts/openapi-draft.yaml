@@ -150,6 +150,42 @@ paths:
           $ref: '#/components/responses/NotFound'
         '503':
           $ref: '#/components/responses/Unavailable'
+    patch:
+      tags: [Members]
+      operationId: changeLocalMemberNames
+      summary: Proposed name-only update that preserves private fields (NOT IMPLEMENTED)
+      description: >
+        The internal MemberDetailsUpdate.updateNames changes first and last
+        name only for an active member under an explicit EDIT_MEMBERS grant.
+        It never reads or modifies DOB, contacts, gender, roles, accounts or
+        capability grants. Unlike full replacement, it does not depend on
+        an editor being authorized to read private contact/birth fields.
+        A future HTTP route must validate a verified session, exact Origin,
+        session-bound CSRF, visible target and R03-approved name disclosure
+        including minors. This is a proposal, not HTTP implementation approval.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberNames'
+      responses:
+        '204':
+          description: Names updated; no private values returned
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
     put:
       tags: [Members]
       operationId: replaceLocalMemberDetails
@@ -446,6 +482,13 @@ components:
           minLength: 1
           maxLength: 512
           description: Absent on the last page.
+    MemberNames:
+      type: object
+      additionalProperties: false
+      required: [firstName, lastName]
+      properties:
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
     NewMember:
       type: object
       additionalProperties: false
