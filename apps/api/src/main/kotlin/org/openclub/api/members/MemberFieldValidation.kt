@@ -14,7 +14,13 @@ internal object MemberFieldValidation {
     }
 
     fun email(value: String?): String? = value?.trim()?.takeIf(String::isNotEmpty).also {
-        require(it == null || (it.length in 3..320 && it.none(Character::isISOControl))) { "Invalid email field" }
+        if (it != null) {
+            val at = it.indexOf('@')
+            require(it.length in 3..320 && at in 1 until it.lastIndex &&
+                it.indexOf('@', at + 1) == -1 &&
+                it.none { char -> char.isWhitespace() || Character.isISOControl(char) }
+            ) { "Invalid email field" }
+        }
     }
 
     fun phone(value: String?): String? = value?.trim()?.takeIf(String::isNotEmpty).also {
