@@ -44,7 +44,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
         credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
       })
       if (controller.signal.aborted) return
-      if (response.status === 403) { setDenied(true); return }
+      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
       if (!response.ok) throw new Error('Search failed')
       const page: Page = await response.json()
       if (controller.signal.aborted) return
@@ -75,7 +75,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
         ...(body ? { body: JSON.stringify(body) } : {}),
       })
       if (!response.ok) {
-        if (response.status === 403) setDenied(true)
+        if ((response.status === 401 || response.status === 403)) setDenied(true)
         throw new Error('Request rejected')
       }
       setEditing(null)
