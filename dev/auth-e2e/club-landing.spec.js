@@ -99,6 +99,31 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(created).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina P.' })).toBeVisible();
 
+  // Run real team creation, scoped roster assignment, removal and rename through
+  // the same browser session. No direct database writes or mocked API responses.
+  const teams = page.getByRole('region', { name: 'Teams', exact: true });
+  await expect(teams.getByRole('heading', { name: 'Teams' })).toBeVisible();
+  await teams.getByRole('textbox', { name: 'Team name' }).fill('Juniors');
+  await teams.getByRole('button', { name: 'Add team' }).click();
+  await expect(teams.getByText('Juniors', { exact: false })).toBeVisible();
+
+  await teams.getByRole('textbox', { name: 'Find member' }).fill('Nina');
+  await teams.getByRole('button', { name: 'Search' }).click();
+  await expect(teams.getByRole('combobox', { name: 'Find member' })).toBeVisible();
+  await expect(teams.getByRole('combobox', { name: 'Find member' }).locator('option')).toContainText(['Nina Private']);
+  await teams.getByRole('button', { name: 'Assign' }).click();
+  await expect(teams.getByRole('button', { name: 'Remove' })).toBeVisible();
+  await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
+  await teams.getByRole('button', { name: 'Remove' }).click();
+  await expect(teams.getByRole('button', { name: 'Remove' })).toHaveCount(0);
+  await expect(teams.getByText('Juniors — 0 Members')).toBeVisible();
+
+  await teams.getByRole('button', { name: 'Rename' }).click();
+  const renameForm = teams.locator('form').filter({ has: teams.getByRole('button', { name: 'Save' }) });
+  await renameForm.getByRole('textbox', { name: 'Team name' }).fill('Youth Team');
+  await renameForm.getByRole('button', { name: 'Save' }).click();
+  await expect(teams.getByText('Youth Team — 0 Members')).toBeVisible();
+
   await created.getByRole('button', { name: 'Edit' }).click();
   // The row text is replaced by editable inputs, so locate the active form.
   const editForm = page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) });
