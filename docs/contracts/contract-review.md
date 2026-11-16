@@ -6,6 +6,8 @@
 
 This review was written before pilot acceptance and R05 completion. The historical findings below are preserved; **R01/#10 is now closed** and OIDC/Ktor BFF architecture is selected/implemented. The draft contract remains **unapproved**, especially for member data ownership, field requirements and scoped permissions.
 
+**Issue-state reconciliation (2026-11-16):** R03/#12 and R04/#13 were reopened: neither privacy/field-level disclosure approval nor an accepted versioned member/team/grant contract is established. This draft is **not** implementation authorization. R07/#16 engineering is complete for restricted operator commands; human-approved recovery operations remain open under #180. Existing routes are authentication/session and ID-only `GET /api/v1/club`; member, team and grant routes remain unregistered.
+
 ## Current single-club contract decisions proposed in this PR (#13)
 
 The [working YAML](openapi-draft.yaml) now makes the first member API slice reviewable **without authorizing implementation**:
