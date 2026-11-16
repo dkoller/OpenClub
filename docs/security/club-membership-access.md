@@ -129,3 +129,5 @@ policy remain prerequisites for real club data. Do not call an archived record
 anonymized or permanently deleted.
 
 **Internal member input normalization (2026-11-16):** Shared member field validation rejects embedded control characters in names, emails, phone and gender before writing through the internal creation/update services; leading/trailing whitespace is still trimmed. This does not establish email deliverability, private-field visibility or approval for HTTP member APIs.
+
+**Internal name-only member update (2026-11-16):** `MemberDetailsUpdate.updateNames` updates just validated first/last names under a live `EDIT_MEMBERS` grant and active actor/target checks. DOB, contacts, player attributes, account links, roles and grants are untouched. This supports a proposed narrow `PATCH /v1/members/{memberId}` without a private-field round trip, but the route remains **unimplemented** pending R03 review of names/minors and R04 contract approval. Full details replacement remains a separate, more sensitive operation.
