@@ -65,6 +65,9 @@ class TeamHttpRoutesTest {
                              'outsider@example.invalid', '+41000000000')""",
                         viewer, viewerAccount, outsider, outsiderAccount,
                     )
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), viewerAccount, "teams-http-" + viewerAccount)
                     db.execute("INSERT INTO teams (id, name) VALUES (?, 'Scoped Team'), (?, 'Hidden Team')",
                         visible, secret)
                     db.execute("""INSERT INTO team_capability_grants (member_id, team_id, capability)
@@ -182,6 +185,25 @@ class TeamHttpRoutesTest {
                         db.fetchOne("SELECT name FROM teams WHERE id = ?", visible)?.get(0, String::class.java)
                     }
                 })
+                // A session with a stale, identity-revoked account must reveal no team names.
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("DELETE FROM account_identities WHERE account_id = ?", viewerAccount)
+                    }
+                }
+                val revokedRead = client.get("/api/v1/teams") {
+                    header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=viewer")
+                }
+                assertEquals(HttpStatusCode.Forbidden, revokedRead.status)
+                assertFalse(revokedRead.bodyAsText().contains("Renamed Team"))
+                assertEquals(HttpStatusCode.Forbidden, rename("viewer", visible, "Revoked").status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                            VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                            UUID.randomUUID(), viewerAccount, "teams-restored-" + viewerAccount)
+                    }
+                }
                 // Deletion removes the team and its assignments, never a member.
                 runBlocking {
                     database.onDatabaseThread { db ->
