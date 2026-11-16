@@ -66,6 +66,9 @@ class MemberHttpRoutesTest {
                            'outsider@example.invalid', '+41000000000', 'MEMBER')""",
                         admin, account, outsider, otherAccount,
                     )
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), account, "member-http-" + account)
                     db.execute(
                         """INSERT INTO club_capability_grants (member_id, capability) VALUES
                            (?, 'VIEW_MEMBER_DIRECTORY'), (?, 'EDIT_MEMBERS')""",
