@@ -20,7 +20,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
   const [denied, setDenied] = useState(false)
-  const [failure, setFailure] = useState('')
+  const [failure, setFailure] = useState<'unavailable' | 'problem' | null>(null)
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState<Member | null>(null)
   const [confirmingArchive, setConfirmingArchive] = useState<string | null>(null)
@@ -51,13 +51,13 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
       if (!Array.isArray(page.items)) throw new Error('Invalid directory')
       setItems(previous => next ? [...(previous ?? []), ...page.items] : page.items)
       setCursor(page.nextCursor)
-      setFailure('')
+      setFailure(null)
     } catch {
-      if (!controller.signal.aborted) setFailure(t.unavailable)
+      if (!controller.signal.aborted) setFailure('unavailable')
     } finally {
       if (activeLoad.current === controller) activeLoad.current = null
     }
-  }, [t.unavailable])
+  }, [])
 
   useEffect(() => {
     void load('')
@@ -66,7 +66,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
 
   async function mutation(path: string, method: string, body?: object) {
     setBusy(true)
-    setFailure('')
+    setFailure(null)
     try {
       const response = await fetch(path, {
         method,
@@ -82,12 +82,12 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
       setConfirmingArchive(null)
       await load(query)
       onChanged()
-      setFailure('')
+      setFailure(null)
       if (method === 'POST' && path === '/api/v1/members') {
         setFirst(''); setLast(''); setDob(''); setEmail(''); setPhone(''); setIsPlayer(false); setGender('')
       }
     } catch {
-      setFailure(t.problem)
+      setFailure('problem')
     } finally {
       setBusy(false)
     }
@@ -111,7 +111,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
         <input id="member-search" value={search} maxLength={100} onChange={e => setSearch(e.target.value)} />
         <button type="submit">{t.find}</button>
       </form>
-      {failure && <p role="alert">{failure} <button type="button" onClick={() => { void load(query) }}>{t.retry}</button></p>}
+      {failure && <p role="alert">{t[failure]} <button type="button" onClick={() => { void load(query) }}>{t.retry}</button></p>}
       {items === null ? (failure ? null : <p>{t.loading}</p>) : items.length === 0 ? <p>{t.empty}</p> : (
         <ul>
           {items.map(member => (
