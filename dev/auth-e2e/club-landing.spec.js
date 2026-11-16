@@ -372,6 +372,29 @@ test('verified login gains club access only after restricted operator bootstrap'
   await teams.getByRole('button', { name: 'Assign' }).click();
   await expect(teams.getByRole('button', { name: 'Remove' })).toBeVisible();
   await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
+  // An obsolete roster response must not replace a fresh roster after a new assignment.
+  let startedOldRoster;
+  const oldRosterStarted = new Promise(resolve => { startedOldRoster = resolve; });
+  let delayRoster = true;
+  await page.route('**/api/v1/teams/*/members?**', async route => {
+    if (delayRoster && route.request().method() === 'GET') {
+      delayRoster = false;
+      startedOldRoster();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await route.continue().catch(() => {});
+    } else {
+      await route.continue();
+    }
+  });
+  const canceledOldRoster = page.waitForEvent('requestfailed',
+    request => request.url().includes('/api/v1/teams/') && request.url().includes('/members?'));
+  await teams.getByRole('button', { name: 'Remove' }).click();
+  await oldRosterStarted;
+  await teams.getByRole('button', { name: 'Assign' }).click();
+  await canceledOldRoster;
+  await expect(teams.getByRole('button', { name: 'Remove' })).toBeVisible();
+  await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
+  await page.unroute('**/api/v1/teams/*/members?**');
 
   const permissionAdmin = page.getByRole('region', { name: 'Manage permissions' });
   // Superseded permission-member lookups must not replace newer selection/grants.

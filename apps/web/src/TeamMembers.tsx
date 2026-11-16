@@ -28,27 +28,42 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
   const [busy, setBusy] = useState(false)
   const [revision, setRevision] = useState(0)
   const candidateRequest = useRef<AbortController | null>(null)
+  const rosterRequest = useRef<AbortController | null>(null)
   const endpoint = '/api/v1/teams/' + encodeURIComponent(teamId) + '/members'
 
   const load = useCallback(async (next?: string) => {
+    rosterRequest.current?.abort()
+    const controller = new AbortController()
+    rosterRequest.current = controller
     try {
       const args = new URLSearchParams({ limit: '20' })
       if (next) args.set('cursor', next)
-      const response = await fetch(endpoint + '?' + args, { credentials: 'same-origin', cache: 'no-store' })
+      const response = await fetch(endpoint + '?' + args, {
+        credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
+      })
+      if (controller.signal.aborted) return
       if (response.status === 403) { setDenied(true); return }
       if (!response.ok) throw new Error('Unavailable')
       const page: Page = await response.json()
+      if (controller.signal.aborted) return
       if (!Array.isArray(page.items)) throw new Error('Invalid roster')
       setMembers(previous => next ? [...(previous ?? []), ...page.items] : page.items)
       setCursor(page.nextCursor)
       setError(false)
     } catch {
-      setError(true)
-      setMembers(previous => previous ?? [])
+      if (!controller.signal.aborted) {
+        setError(true)
+        setMembers(previous => previous ?? [])
+      }
+    } finally {
+      if (rosterRequest.current === controller) rosterRequest.current = null
     }
   }, [endpoint])
 
-  useEffect(() => { void load() }, [load, revision])
+  useEffect(() => {
+    void load()
+    return () => rosterRequest.current?.abort()
+  }, [load, revision])
   useEffect(() => () => candidateRequest.current?.abort(), [])
 
   async function findMember(event: FormEvent) {
