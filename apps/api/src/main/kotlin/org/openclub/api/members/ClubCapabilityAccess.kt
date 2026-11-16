@@ -17,7 +17,7 @@ internal class ClubCapabilityAccess(private val database: DSLContext) {
             """SELECT 1 FROM club_capability_grants g
                JOIN members actor ON actor.id = g.member_id
                JOIN clubs club ON TRUE
-               WHERE actor.account_id = ? AND g.capability = ?
+               WHERE actor.account_id = ? AND actor.archived_at IS NULL AND g.capability = ?
                  AND (? <> 'MANAGE_PERMISSIONS' OR (
                      actor.role = 'ADMIN' AND EXISTS (
                          SELECT 1 FROM account_identities identity
@@ -36,7 +36,7 @@ internal class ClubCapabilityAccess(private val database: DSLContext) {
         return database.fetchOne(
             """SELECT 1 FROM teams team
                JOIN members actor ON actor.account_id = ?
-               WHERE team.id = ? AND (
+               WHERE team.id = ? AND actor.archived_at IS NULL AND (
                    EXISTS (SELECT 1 FROM club_capability_grants g
                            WHERE g.member_id = actor.id AND g.capability IN (?, 'MANAGE_TEAMS'))
                    OR EXISTS (SELECT 1 FROM team_capability_grants g
