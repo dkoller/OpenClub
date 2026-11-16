@@ -100,8 +100,10 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina P.' })).toBeVisible();
 
   await created.getByRole('button', { name: 'Edit' }).click();
-  await created.getByLabel('Last name').fill('Renamed');
-  await created.getByRole('button', { name: 'Save' }).click();
+  // The row text is replaced by editable inputs, so locate the active form.
+  const editForm = page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) });
+  await editForm.getByLabel('Last name').fill('Renamed');
+  await editForm.getByRole('button', { name: 'Save' }).click();
   const renamed = page.getByRole('listitem').filter({ hasText: 'Nina Renamed' });
   await expect(renamed).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toBeVisible();
