@@ -22,7 +22,7 @@ internal class MemberRoles(private val database: DSLContext) {
             val actor = db.fetchOne(
                 """SELECT m.id FROM members m
                    JOIN club_capability_grants g ON g.member_id = m.id
-                   WHERE m.account_id = ? AND m.role = 'ADMIN'
+                   WHERE m.account_id = ? AND m.role = 'ADMIN' AND m.archived_at IS NULL
                      AND g.capability = 'MANAGE_PERMISSIONS'
                      AND EXISTS (SELECT 1 FROM account_identities ai
                                  WHERE ai.account_id = m.account_id)""",
@@ -37,19 +37,21 @@ internal class MemberRoles(private val database: DSLContext) {
 
             if (existing == Role.ADMIN.name) {
                 val admins = db.fetchValue(
-                    "SELECT COUNT(*) FROM members WHERE role = 'ADMIN'",
+                    "SELECT COUNT(*) FROM members WHERE role = 'ADMIN' AND archived_at IS NULL",
                 )?.toString()?.toLongOrNull() ?: error("Cannot count administrators")
                 val managers = db.fetchValue(
                     """SELECT COUNT(*) FROM members m
                        JOIN club_capability_grants g ON g.member_id = m.id
-                       WHERE m.role = 'ADMIN' AND g.capability = 'MANAGE_PERMISSIONS'
+                       WHERE m.role = 'ADMIN' AND m.archived_at IS NULL
+                         AND g.capability = 'MANAGE_PERMISSIONS'
                          AND EXISTS (SELECT 1 FROM account_identities ai
                                      WHERE ai.account_id = m.account_id)""",
                 )?.toString()?.toLongOrNull() ?: error("Cannot count permission managers")
                 val targetManagesPermissions = db.fetchOne(
                     """SELECT 1 FROM club_capability_grants g
                        JOIN members m ON m.id = g.member_id
-                       WHERE g.member_id = ? AND g.capability = 'MANAGE_PERMISSIONS'
+                       WHERE g.member_id = ? AND m.archived_at IS NULL
+                         AND g.capability = 'MANAGE_PERMISSIONS'
                          AND EXISTS (SELECT 1 FROM account_identities ai
                                      WHERE ai.account_id = m.account_id)""",
                     targetMemberId,
@@ -59,7 +61,7 @@ internal class MemberRoles(private val database: DSLContext) {
                 }
             }
             if (db.execute(
-                "UPDATE members SET role = ? WHERE id = ?",
+                "UPDATE members SET role = ? WHERE id = ? AND archived_at IS NULL",
                 role.name, targetMemberId,
             ) != 1) return@transactionResult Change.DENIED
             // No dormant permission-manager grant may reactivate on later promotion.
