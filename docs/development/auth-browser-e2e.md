@@ -27,6 +27,14 @@ Compose PostgreSQL instance, never through a production HTTP endpoint.
 This provides real-session revocation evidence beyond mocked 403 responses
 without approving use of real personal data.
 
+The member-management browser journey also seeds 25 fictional members into the
+disposable PostgreSQL fixture, loads the first 20 through the real authorized
+search API, and simulates a network failure only for the next page. The UI
+retains the first page, disables duplicate paging while failing/loading,
+retries the **same opaque cursor**, and appends the remaining five exactly
+once. A subsequent new search replaces the results; all temporary fixtures
+are cleaned up. No new member fields or HTTP routes are exposed.
+
 The API runs on localhost:8080, while the real Vite frontend serves
 localhost:5173 and forwards /api requests (including the callback) to the API.
 Keycloak runs on localhost:8180. No auth endpoint or browser UI is mocked.
