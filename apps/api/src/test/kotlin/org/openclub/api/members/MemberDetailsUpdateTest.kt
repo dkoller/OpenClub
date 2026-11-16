@@ -53,6 +53,23 @@ class MemberDetailsUpdateTest {
                 assertFalse(service.update(outsider, target, update))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'EDIT_MEMBERS')", editor)
                 assertTrue(service.update(account, target, update))
+                // Name-only edits work without reading or replacing protected fields.
+                assertFalse(service.updateNames(outsider, target, "Denied", "Outsider"))
+                assertTrue(service.updateNames(account, target, "Label", "Only"))
+                assertEquals("Label", db.fetchValue("SELECT first_name FROM members WHERE id = ?", target))
+                assertEquals("changed@example.invalid",
+                    db.fetchValue("SELECT email FROM members WHERE id = ?", target))
+                assertEquals("+41000000001",
+                    db.fetchValue("SELECT phone FROM members WHERE id = ?", target))
+                assertEquals(LocalDate.of(1991, 5, 1),
+                    db.fetchOne("SELECT date_of_birth FROM members WHERE id = ?", target)
+                        ?.get("date_of_birth", LocalDate::class.java))
+                assertEquals(true, db.fetchValue("SELECT is_player FROM members WHERE id = ?", target))
+                assertThrows(IllegalArgumentException::class.java) {
+                    service.updateNames(account, target, "\n", "Ignored")
+                }
+                assertTrue(service.updateNames(account, target, "Changed", "Surname"))
+
                 val row = db.fetchOne(
                     """SELECT account_id, first_name, last_name, role, email, phone, gender,
                               is_player, date_of_birth FROM members WHERE id = ?""", target)
@@ -115,11 +132,13 @@ class MemberDetailsUpdateTest {
                 db.execute("DELETE FROM club_capability_grants WHERE member_id = ? AND capability = 'EDIT_MEMBERS'",
                     editor)
                 assertFalse(service.update(account, target, update.copy(firstName = "DeniedAfterRevoke")))
+                assertFalse(service.updateNames(account, target, "DeniedAfterRevoke", "NoGrant"))
                 assertEquals("Changed", db.fetchValue(
                     "SELECT first_name FROM members WHERE id = ?", target))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'EDIT_MEMBERS')", editor)
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", editor)
                 assertFalse(service.update(account, target, update))
+                assertFalse(service.updateNames(account, target, "DeniedUnlinked", "NoAccount"))
             } finally {
                 db.execute("DELETE FROM members WHERE id IN (?, ?, ?)", editor, target, youth)
                 db.execute("DELETE FROM accounts WHERE id IN (?, ?)", account, outsider)
