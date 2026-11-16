@@ -62,6 +62,11 @@ class MemberArchiveTest {
                     team, archived)
 
                 val archive = MemberArchive(db)
+                assertFalse(archive.archive(account, archived),
+                    "An edit grant without a verified identity cannot archive")
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), account, "archive-" + account)
                 assertFalse(archive.archive(outsider, archived))
                 assertFalse(archive.archive(account, linkedMember))
                 assertFalse(archive.archive(account, admin))
@@ -70,6 +75,12 @@ class MemberArchiveTest {
                 assertThrows(DataAccessException::class.java) {
                     db.execute("UPDATE members SET archived_at = CURRENT_TIMESTAMP WHERE id = ?", archived)
                 }
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", account)
+                assertFalse(archive.archive(account, archived),
+                    "Revocation must deny archive even when the grant remains")
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), account, "restored-archive-" + account)
                 assertTrue(archive.archive(account, archived))
                 assertFalse(archive.archive(account, archived))
                 assertNotNull(db.fetchValue("SELECT archived_at FROM members WHERE id = ?", archived))
@@ -106,6 +117,12 @@ class MemberArchiveTest {
                 }
                 val reactivation = MemberReactivation(db)
                 assertFalse(reactivation.reactivate(outsider, archived))
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", account)
+                assertFalse(reactivation.reactivate(account, archived),
+                    "Internal reactivation also requires a current identity")
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), account, "reactivate-" + account)
                 assertTrue(reactivation.reactivate(account, archived))
                 assertFalse(reactivation.reactivate(account, archived))
                 assertNull(db.fetchValue("SELECT archived_at FROM members WHERE id = ?", archived))

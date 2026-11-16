@@ -7,7 +7,7 @@ import java.util.UUID
 
 /**
  * Internal-only reversible data-retention boundary: hide an unlinked MEMBER
- * from active workflows, without deleting personal data. No HTTP route.
+ * from active workflows, without deleting personal data. A guarded HTTP route exists.
  * Operator/legal retention approval remains necessary before real use.
  */
 internal class MemberArchive(private val database: DSLContext) {
@@ -23,6 +23,8 @@ internal class MemberArchive(private val database: DSLContext) {
                    JOIN club_capability_grants g ON g.member_id = actor.id
                    WHERE actor.account_id = ? AND actor.archived_at IS NULL
                      AND g.capability = 'EDIT_MEMBERS'
+                     AND EXISTS (SELECT 1 FROM account_identities identity
+                                 WHERE identity.account_id = actor.account_id)
                    FOR SHARE OF actor, g""",
                 actorAccountId,
             ) != null

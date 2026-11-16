@@ -40,6 +40,7 @@ class MemberHttpRoutesTest {
         val admin = UUID.randomUUID()
         val outsider = UUID.randomUUID()
         var created: UUID? = null
+        val revocationTarget = UUID.randomUUID()
         var createdPlayer: UUID? = null
         val sessions = object : BrowserSessionOperations {
             override suspend fun read(handle: String?): ActiveSession? = when (handle) {
@@ -223,6 +224,9 @@ class MemberHttpRoutesTest {
                 }.status)
                 runBlocking {
                     database.onDatabaseThread { db ->
+                        db.execute("""INSERT INTO members (id, first_name, last_name,
+                            date_of_birth) VALUES (?, 'Revocation', 'Target', DATE '2014-01-01')""",
+                            revocationTarget)
                         db.execute("DELETE FROM account_identities WHERE account_id = ?", account)
                     }
                 }
@@ -235,6 +239,18 @@ class MemberHttpRoutesTest {
                         "dateOfBirth":"2013-01-01"}""")
                 }
                 assertEquals(HttpStatusCode.Forbidden, identityRevokedCreate.status)
+                val identityRevokedArchive = client.post("/api/v1/members/$revocationTarget/archive") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                    header(HttpHeaders.Origin, origin)
+                    header("X-CSRF-Token", csrf)
+                }
+                assertEquals(HttpStatusCode.Conflict, identityRevokedArchive.status)
+                assertNull(runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.fetchValue("SELECT archived_at FROM members WHERE id = ?", revocationTarget)
+                    }
+                })
+
                 val identityRevokedEdit = client.patch("/api/v1/members/$admin") {
                     header(HttpHeaders.Cookie, auth("valid"))
                     header(HttpHeaders.Origin, origin)
@@ -253,6 +269,7 @@ class MemberHttpRoutesTest {
             runBlocking {
                 database.onDatabaseThread { db ->
                     created?.let { db.execute("DELETE FROM members WHERE id = ?", it) }
+                    db.execute("DELETE FROM members WHERE id = ?", revocationTarget)
                     createdPlayer?.let { db.execute("DELETE FROM members WHERE id = ?", it) }
                     db.execute("DELETE FROM members WHERE id IN (?, ?)", admin, outsider)
                     db.execute("DELETE FROM accounts WHERE id IN (?, ?)", account, otherAccount)
