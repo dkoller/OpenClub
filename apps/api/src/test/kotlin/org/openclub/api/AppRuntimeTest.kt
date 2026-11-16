@@ -99,6 +99,43 @@ class AppRuntimeTest {
     }
 
     @Test
+    fun loopbackHttpsDevelopmentUsesSecureCookiesWithoutWeakeningKeycloakOrProduction() {
+        val httpsLocal = local + mapOf(
+            "OPENCLUB_OIDC_ISSUER" to "https://localhost:8443/auth/v1/",
+            "OPENCLUB_OIDC_AUTHORIZATION_ENDPOINT" to "https://localhost:8443/auth/v1/oidc/authorize",
+            "OPENCLUB_PUBLIC_ORIGIN" to "https://localhost:5173",
+            "OPENCLUB_OIDC_REDIRECT_URI" to "https://localhost:5173/api/v1/auth/callback",
+        )
+        val runtime = requireNotNull(OidcRuntimeConfig.fromEnvironment(httpsLocal))
+        assertEquals("https://localhost:5173", runtime.browserOrigin)
+        for (cookie in listOf(runtime.cookies.session("a".repeat(43)),
+            runtime.cookies.loginBinding("b".repeat(43)),
+            runtime.cookies.clearSession(), runtime.cookies.clearLogin())) {
+            assertTrue(cookie.secure)
+            assertTrue(cookie.httpOnly)
+            assertNull(cookie.domain)
+            assertEquals("Lax", cookie.extensions["SameSite"])
+            assertTrue(cookie.name.startsWith("__Host-"))
+        }
+        // Existing HTTP-only Keycloak development remains valid and unchanged.
+        assertFalse(requireNotNull(OidcRuntimeConfig.fromEnvironment(local))
+            .cookies.session("a".repeat(43)).secure)
+        for (env in listOf(
+            httpsLocal + ("OPENCLUB_PUBLIC_ORIGIN" to "http://localhost:5173") +
+                ("OPENCLUB_OIDC_REDIRECT_URI" to "http://localhost:5173/api/v1/auth/callback"),
+            httpsLocal + ("OPENCLUB_OIDC_ISSUER" to "http://localhost:8443/auth/v1/"),
+            httpsLocal + ("OPENCLUB_OIDC_ISSUER" to "https://id.internal/auth/v1/"),
+            httpsLocal + ("OPENCLUB_PUBLIC_ORIGIN" to "https://club.example") +
+                ("OPENCLUB_OIDC_REDIRECT_URI" to "https://club.example/api/v1/auth/callback"),
+            prod + ("OPENCLUB_OIDC_ISSUER" to "http://localhost:8180/realms/openclub"),
+        )) {
+            assertThrows(IllegalArgumentException::class.java) {
+                OidcRuntimeConfig.fromEnvironment(env)
+            }
+        }
+    }
+
+    @Test
     fun browserOriginNormalizesUppercaseHostsAndDefaultPorts() {
         val uppercase = requireNotNull(OidcRuntimeConfig.fromEnvironment(prod + mapOf(
             "OPENCLUB_PUBLIC_ORIGIN" to "https://APP.EXAMPLE",
