@@ -1,6 +1,5 @@
 package org.openclub.api.members
 
-import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
 import java.util.Base64
