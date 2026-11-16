@@ -84,7 +84,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     'Signed in and authorized for this club.',
   );
   // The public directory renders the synthetic adult name, even after logout.
-  await expect(page.getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Members' }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
   const publicNames = await context.request.get('/api/v1/public/members');
   expect(publicNames.status()).toBe(200);
   expect(await publicNames.json()).toEqual([{ displayName: 'Synthetic Administrator' }]);
@@ -111,5 +111,5 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
-  await expect(page.getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Members' }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
 });
