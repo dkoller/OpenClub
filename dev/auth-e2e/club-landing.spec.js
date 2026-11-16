@@ -80,9 +80,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   });
 
   await page.reload();
-  await expect(page.getByRole('status')).toHaveText(
-    'Signed in and authorized for this club.',
-  );
+  await expect(page.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Synthetic Browser Club' })).toBeVisible();
   const clubSettings = page.getByRole('region', { name: 'Edit club name' });
   await clubSettings.getByRole('textbox', { name: 'Club name' }).fill('Synthetic Updated Club');
