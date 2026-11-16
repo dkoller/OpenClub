@@ -51,12 +51,15 @@ fi
 status="$(curl_https -D "$work/ready.headers" -o "$work/ready.json" -w '%{http_code}' "$origin/api/ready")"
 [[ "$status" == 200 ]] && jq -e '.status == "ready"' "$work/ready.json" >/dev/null ||
   { echo "API/database readiness failed" >&2; exit 1; }
+check_header "Cache-Control" "no-store" "$work/ready.headers"
+check_header "X-Content-Type-Options" "nosniff" "$work/ready.headers"
 
 # No cookie is sent: authenticated club data must be denied.
 status="$(curl_https -D "$work/club.headers" -o /dev/null -w '%{http_code}' "$origin/api/v1/club")"
 [[ "$status" == 401 ]] || { echo "Anonymous club metadata was not denied with 401" >&2; exit 1; }
 check_header "Cache-Control" "no-store" "$work/club.headers"
 check_header "X-Frame-Options" "DENY" "$work/club.headers"
+check_header "Content-Security-Policy" "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self'" "$work/club.headers"
 
 status="$(curl_https -D "$work/oidc.headers" -o "$work/oidc.json" -w '%{http_code}' "$issuer/.well-known/openid-configuration")"
 [[ "$status" == 200 ]] || { echo "OIDC discovery did not return 200" >&2; exit 1; }
