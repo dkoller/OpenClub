@@ -153,6 +153,9 @@ test('verified login gains club access only after restricted operator bootstrap'
   await canceledSlow;
   await expect(searchForm.getByRole('listitem').filter({ hasText: 'Nina Private' })).toBeVisible();
   await page.unroute('**/api/v1/members?**');
+  await searchForm.getByLabel('Search names').fill('');
+  await searchForm.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(searchForm.getByRole('listitem').filter({ hasText: 'Nina Private' })).toBeVisible();
 
   await created.getByRole('button', { name: 'Edit' }).click();
   // The row text is replaced by editable inputs, so locate the active form.
