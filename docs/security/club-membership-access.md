@@ -221,3 +221,7 @@ On member create/edit/archive, the anonymous public-name component now clears it
 ## Member search failure and retry (synthetic M1)
 
 If a private member search fails, the four-language browser shows its existing localized error and retry action without simultaneously claiming the directory is still loading forever. The real Keycloak/Chromium acceptance deliberately fails one search request, checks the visible error state, retries successfully and restores the full list. No private error details are exposed; the server-side authorization and access rules remain unchanged.
+
+## Team candidate search freshness (synthetic M1)
+
+The team-assignment member picker now clears outdated options and cancels any previous candidate search when a new query starts or the team component unmounts. Aborted requests cannot replace the current selection or report a misleading error. The disposable Keycloak/Chromium journey delays a fictional old search, requests a new member and checks cancellation before performing the normal authorized team assignment. Server-side team and member-directory grants are unchanged.
