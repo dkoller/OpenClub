@@ -59,6 +59,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
       const response = await fetch('/api/v1/grants?memberId=' + encodeURIComponent(targetId),
         { credentials: 'same-origin', cache: 'no-store', signal })
       if (signal?.aborted) return
+      if (response.status === 403) { setDenied(true); return }
       if (!response.ok) throw new Error('Read denied')
       const result: { items: Grant[] } = await response.json()
       if (signal?.aborted) return
@@ -83,6 +84,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
       const response = await fetch('/api/v1/members?' + new URLSearchParams({ q: search, limit: '20' }),
         { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
       if (controller.signal.aborted) return
+      if (response.status === 403) { setDenied(true); return }
       if (!response.ok) throw new Error('Search denied')
       const result: { items: Member[] } = await response.json()
       if (controller.signal.aborted) return
@@ -108,6 +110,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ memberId, ...grant }),
       })
+      if (response.status === 403) { setDenied(true); return }
       if (!response.ok) throw new Error('Grant change denied')
       await loadGrants(memberId)
     } catch {
