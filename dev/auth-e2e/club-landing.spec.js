@@ -112,6 +112,11 @@ test('verified login gains club access only after restricted operator bootstrap'
   const created = page.getByRole('listitem').filter({ hasText: 'Nina Private' });
   await expect(created).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina P.' })).toBeVisible();
+  // Anonymous API consumers must see only the abbreviated minor name.
+  const minorPublicNames = await context.request.get('/api/v1/public/members');
+  expect(minorPublicNames.status()).toBe(200);
+  expect(await minorPublicNames.json()).toContainEqual({ displayName: 'Nina P.' });
+  expect(JSON.stringify(await (await context.request.get('/api/v1/public/members')).json())).not.toContain('Nina Private');
 
   await created.getByRole('button', { name: 'Edit' }).click();
   // The row text is replaced by editable inputs, so locate the active form.
