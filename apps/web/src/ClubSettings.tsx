@@ -38,7 +38,7 @@ export function ClubSettings({ language, name, csrfToken, onChanged,
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ name: updated }),
       })
-      if (response.status === 403) { setDenied(true); return }
+      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
       if (!response.ok) throw new Error('Update rejected')
       onChanged(updated)
     } catch {
@@ -59,7 +59,7 @@ export function ClubSettings({ language, name, csrfToken, onChanged,
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ genderRequiredForPlayers: requiresGender }),
       })
-      if (response.status === 403) { setDenied(true); return }
+      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
       if (response.status === 409) { setPolicyError('conflict'); return }
       if (!response.ok) throw new Error('Policy rejected')
       onPolicyChanged(requiresGender)
