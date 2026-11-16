@@ -148,6 +148,32 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(completeAdult).toHaveCount(0);
 
 
+  // Canceling a member-specific archive must work after switching languages.
+  await memberAdminForAdult.getByLabel('First name').fill('Locale');
+  await memberAdminForAdult.getByLabel('Last name').fill('Synthetic');
+  await memberAdminForAdult.getByLabel('Date of birth').fill('2015-01-01');
+  await memberAdminForAdult.getByRole('button', { name: 'Add member' }).click();
+  for (const locale of [
+    ['de', 'Mitglieder verwalten', 'Archivieren', 'Mitglied wirklich archivieren?', 'Abbrechen'],
+    ['fr', 'Gérer les membres', 'Archiver', 'Archiver ce membre ?', 'Annuler'],
+    ['it', 'Gestisci membri', 'Archivia', 'Archiviare questo membro?', 'Annulla'],
+    ['en', 'Manage members', 'Archive', 'Archive this member?', 'Cancel'],
+  ]) {
+    await page.locator('#language').selectOption(locale[0]);
+    const row = page.getByRole('region', { name: locale[1] })
+      .getByRole('listitem').filter({ hasText: 'Locale Synthetic' });
+    await expect(row).toBeVisible();
+    await row.getByRole('button', { name: locale[2], exact: true }).click();
+    await expect(row.getByText(locale[3])).toBeVisible();
+    await row.getByRole('button', { name: locale[4] }).click();
+    await expect(row).toBeVisible();
+  }
+  const localeRow = page.getByRole('region', { name: 'Manage members' })
+    .getByRole('listitem').filter({ hasText: 'Locale Synthetic' });
+  await localeRow.getByRole('button', { name: 'Archive', exact: true }).click();
+  await localeRow.getByRole('button', { name: 'Confirm archive' }).click();
+  await expect(localeRow).toHaveCount(0);
+
   // One Keycloak-backed browser journey now also verifies team and grant workflows.
   await page.getByLabel('First name').fill('Mara');
   await page.getByLabel('Last name').fill('Demo');
