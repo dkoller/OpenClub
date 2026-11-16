@@ -57,6 +57,9 @@ class TeamMemberHttpRoutesTest {
                            date_of_birth, email, phone) VALUES
                            (?, 'Target', 'Synthetic', DATE '2000-01-01',
                             'target@example.invalid', '+41000000000')""", target)
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), account, "team-roster-" + account)
                     db.execute("INSERT INTO teams (id, name) VALUES (?, 'Visible'), (?, 'Hidden')",
                         team, otherTeam)
                     db.execute("""INSERT INTO team_capability_grants (member_id, team_id, capability)
@@ -135,6 +138,26 @@ class TeamMemberHttpRoutesTest {
                     header(HttpHeaders.Origin, origin)
                     header("X-CSRF-Token", csrf)
                 }.status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("DELETE FROM account_identities WHERE account_id = ?", account)
+                    }
+                }
+                assertEquals(HttpStatusCode.Forbidden, client.get(roster(team)) {
+                    header(HttpHeaders.Cookie, auth())
+                }.status)
+                assertEquals(HttpStatusCode.Forbidden, client.post(assignment(team)) {
+                    header(HttpHeaders.Cookie, auth())
+                    header(HttpHeaders.Origin, origin)
+                    header("X-CSRF-Token", csrf)
+                }.status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                            VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                            UUID.randomUUID(), account, "team-roster-restored-" + account)
+                    }
+                }
                 runBlocking {
                     database.onDatabaseThread { db ->
                         db.execute("""DELETE FROM team_capability_grants
