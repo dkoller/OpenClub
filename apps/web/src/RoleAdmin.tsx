@@ -32,7 +32,7 @@ export function RoleAdmin({ language, csrfToken }: { language: Language; csrfTok
       const response = await fetch('/api/v1/members/' + encodeURIComponent(id) + '/role',
         { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
       if (controller.signal.aborted) return
-      if (response.status === 403) { setDenied(true); return }
+      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
       if (!response.ok) throw new Error('Role unavailable')
       const value: unknown = await response.json()
       if (controller.signal.aborted) return
@@ -56,7 +56,7 @@ export function RoleAdmin({ language, csrfToken }: { language: Language; csrfTok
       const response = await fetch('/api/v1/members?' + new URLSearchParams({ q: query, limit: '20' }),
         { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
       if (controller.signal.aborted) return
-      if (response.status === 403) { setDenied(true); return }
+      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
       if (!response.ok) throw new Error('Search unavailable')
       const value: { items?: Member[] } = await response.json()
       if (controller.signal.aborted) return
@@ -78,7 +78,7 @@ export function RoleAdmin({ language, csrfToken }: { language: Language; csrfTok
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ role: chosen }),
       })
-      if (response.status === 403) { setDenied(true); return }
+      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
       if (!response.ok) throw new Error('Role update rejected')
       currentLookup.current?.abort()
       const controller = new AbortController()
