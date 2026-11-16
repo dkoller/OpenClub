@@ -74,10 +74,11 @@ It has a generated secret, authorization-code flow, S256 PKCE and RS256 tokens.
 Synthetic test account credentials are generated on the disposable provider
 and used only in CI.
 
-The browser test is intended to verify a **real** Rauthy password login,
+The existing browser test verifies a **real** Rauthy password login,
 a valid app-side authenticated session, denied access to private club/member/
-team data until an explicit operator bootstrap, and logout. The provider's
-**MFA and passkey browser flows remain separate pending #279 acceptance**.
+team data until an explicit operator bootstrap, and logout. **Passkey**
+acceptance is tested separately below; password + additional MFA and recovery
+remain open under #279.
 The existing Keycloak dev overlay and all Keycloak browser checks remain
 supported, are neither removed nor replaced, and must continue passing.
 
@@ -102,8 +103,9 @@ The provider certificate must be trusted by the JVM and browser using an
 explicit, test-scoped CA/trust store. Do **not** disable certificate or hostname
 validation, globally modify Java trust, accept self-signed certificates in
 production, or reuse Rauthy's unsafe `LOCAL_TEST` configuration externally.
-This change enables secure runtime configuration only; no actual Rauthy login
-or passkey browser acceptance is claimed.
+The original HTTPS-loopback configuration change alone did not prove an
+authenticated session; later sections below describe independent browser
+acceptance work.
 
 ## Synthetic Rauthy passkey browser acceptance
 
