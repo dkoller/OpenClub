@@ -233,3 +233,7 @@ If a first team-roster request fails, the UI displays its localized error rather
 ## Team roster retry (synthetic M1)
 
 After a failed team-roster read, a localized retry control in DE/FR/IT/EN reloads the current team without changing assignment grants. The synthetic Keycloak/Chromium journey verifies recovery from an injected first-read failure before selecting and assigning a fictional member.
+
+## Role editor member search and detail freshness (synthetic M1)
+
+The role editor aborts superseded member searches and role-detail lookups, clears outdated selection while searching, and discards canceled responses without exposing raw errors. This prevents stale role reads from setting the role dropdown for a different selected member. The disposable Keycloak/Chromium flow verifies cancellation of a fictional old member query before selecting and safely updating the intended member role. Backend authorization, administrator safeguards and M2 privacy approvals remain unchanged.
