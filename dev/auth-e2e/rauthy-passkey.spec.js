@@ -41,16 +41,10 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     // subsequent actions inside that dialog rather than clicking behind it.
     const dialog = page.locator('dialog[open]');
     await expect(dialog).toBeVisible();
-    // The dialog contains no secrets except hidden password input values,
-    // which must never be included in diagnostics.
-    console.log('Rauthy passkey dialog text:', (await dialog.innerText()).slice(0, 1000));
-    console.log('Rauthy passkey dialog buttons:', await dialog.getByRole('button').evaluateAll(
-      nodes => nodes.map(n => ({ label: n.getAttribute('aria-label'), title: n.title, type: n.type, text: n.textContent?.trim().slice(0, 80) }))));
-    console.log('Rauthy passkey dialog fields:', await dialog.locator('input').evaluateAll(
-      nodes => nodes.map(n => ({ type: n.type, placeholder: n.placeholder }))));
-    const nameField = dialog.locator('input[type="text"]');
-    if (await nameField.count() === 1) await nameField.fill('Synthetic virtual passkey');
     await expect(dialog).not.toBeVisible({ timeout: 10000 });
+    // Rauthy first verifies the MFA change password; a second explicit
+    // Register action starts the WebAuthn ceremony after that modal closes.
+    await page.getByRole('button', { name: 'Register New Passkey' }).click();
     await expect.poll(async () => (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length)
       .toBeGreaterThan(0);
 
