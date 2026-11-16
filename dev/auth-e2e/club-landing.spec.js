@@ -125,6 +125,23 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(renamed).toHaveCount(0);
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toHaveCount(0);
 
+  // Adult contacts are enforced by the server, not merely by browser hints.
+  const memberAdminForAdult = page.getByRole('region', { name: 'Manage members' });
+  await memberAdminForAdult.getByLabel('First name').fill('Adult');
+  await memberAdminForAdult.getByLabel('Last name').fill('Synthetic');
+  await memberAdminForAdult.getByLabel('Date of birth').fill('1990-01-01');
+  await memberAdminForAdult.getByRole('button', { name: 'Add member' }).click();
+  await expect(memberAdminForAdult.getByRole('alert')).toContainText('Action failed.');
+  await expect(memberAdminForAdult.getByRole('listitem').filter({ hasText: 'Adult Synthetic' })).toHaveCount(0);
+  await memberAdminForAdult.getByLabel('Email').fill('adult@example.invalid');
+  await memberAdminForAdult.getByLabel('Phone').fill('+41000000000');
+  await memberAdminForAdult.getByRole('button', { name: 'Add member' }).click();
+  const completeAdult = memberAdminForAdult.getByRole('listitem').filter({ hasText: 'Adult Synthetic' });
+  await expect(completeAdult).toBeVisible();
+  await completeAdult.getByRole('button', { name: 'Archive' }).click();
+  await expect(completeAdult).toHaveCount(0);
+
+
   // One Keycloak-backed browser journey now also verifies team and grant workflows.
   await page.getByLabel('First name').fill('Mara');
   await page.getByLabel('Last name').fill('Demo');
@@ -140,6 +157,17 @@ test('verified login gains club access only after restricted operator bootstrap'
   await clubSettings.getByLabel('Require gender for players').check();
   await clubSettings.getByRole('button', { name: 'Save policy' }).click();
   await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).genderRequiredForPlayers).toBe(true);
+
+  // When the club enables this rule, player creation cannot omit gender.
+  await memberAdmin.getByLabel('First name').fill('Player');
+  await memberAdmin.getByLabel('Last name').fill('Missing');
+  await memberAdmin.getByLabel('Date of birth').fill('2014-01-01');
+  await memberAdmin.getByLabel('Player', { exact: true }).check();
+  await expect(memberAdmin.getByLabel('Gender (free text)')).toHaveAttribute('required', '');
+  await memberAdmin.getByRole('button', { name: 'Add member' }).click();
+  await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Player Missing' })).toHaveCount(0);
+  await memberAdmin.getByLabel('Player', { exact: true }).uncheck();
+
 
   const roleAdmin = page.getByRole('region', { name: 'Manage club roles' });
   await roleAdmin.getByLabel('Find member').fill('Mara');
