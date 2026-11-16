@@ -4,6 +4,7 @@ import org.openclub.api.auth.*
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.club.installSingleClubRoutes
 import org.openclub.api.club.installClubNameRoutes
+import org.openclub.api.club.installClubPlayerPolicyRoutes
 import org.openclub.api.members.PublicMemberNames
 import org.openclub.api.members.installMemberHttpRoutes
 import org.openclub.api.members.installGrantHttpRoutes
@@ -122,6 +123,7 @@ internal fun Application.module(
     if (sessions != null && database != null) {
         installSingleClubRoutes(sessions, requireNotNull(cookiePolicy), database)
         installClubNameRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
+        installClubPlayerPolicyRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installMemberHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installTeamHttpRoutes(sessions, requireNotNull(cookiePolicy), database, requireNotNull(publicOrigin))
         installTeamMemberHttpRoutes(sessions, requireNotNull(cookiePolicy), database, requireNotNull(publicOrigin))

@@ -10,6 +10,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.openclub.api.module
@@ -151,6 +152,7 @@ class SingleClubRoutesTest {
         val account = UUID.randomUUID()
         val member = UUID.randomUUID()
         val identity = UUID.randomUUID()
+        val player = UUID.randomUUID()
         val origin = "http://localhost:5173"
         val csrf = "x".repeat(43)
         val sessions = object : BrowserSessionOperations {
@@ -206,6 +208,49 @@ class SingleClubRoutesTest {
                 assertEquals(HttpStatusCode.BadRequest,
                     rename("""{"name":"Denied","role":"ADMIN"}""").status)
                 assertEquals(HttpStatusCode.NoContent, rename("""{"name":"New Club"}""").status)
+
+                suspend fun setPolicy(body: String, withCookie: Boolean = true,
+                    withCsrf: Boolean = true, requestOrigin: String = origin) =
+                    client.patch("/api/v1/club/player-gender-policy") {
+                        if (withCookie) header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                        if (withCsrf) header("X-CSRF-Token", csrf)
+                        header(HttpHeaders.Origin, requestOrigin)
+                        header(HttpHeaders.ContentType, "application/json")
+                        setBody(body)
+                    }
+                assertEquals(HttpStatusCode.Unauthorized,
+                    setPolicy("""{"genderRequiredForPlayers":true}""", withCookie = false).status)
+                assertEquals(HttpStatusCode.Forbidden,
+                    setPolicy("""{"genderRequiredForPlayers":true}""", withCsrf = false).status)
+                assertEquals(HttpStatusCode.Forbidden,
+                    setPolicy("""{"genderRequiredForPlayers":true}""",
+                        requestOrigin = "https://invalid.example.invalid").status)
+                assertEquals(HttpStatusCode.BadRequest,
+                    setPolicy("""{"genderRequiredForPlayers":"true"}""").status)
+                assertEquals(HttpStatusCode.BadRequest,
+                    setPolicy("""{"genderRequiredForPlayers":true,"actorId":"forged"}""").status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("""INSERT INTO members (id, first_name, last_name,
+                            date_of_birth, is_player) VALUES (?, 'Unspecified',
+                            'Synthetic', DATE '2014-01-01', TRUE)""", player)
+                    }
+                }
+                assertEquals(HttpStatusCode.Conflict,
+                    setPolicy("""{"genderRequiredForPlayers":true}""").status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("UPDATE members SET gender = 'Synthetic value' WHERE id = ?", player)
+                    }
+                }
+                assertEquals(HttpStatusCode.NoContent,
+                    setPolicy("""{"genderRequiredForPlayers":true}""").status)
+                assertTrue(client.get("/api/v1/club") {
+                    header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                }.bodyAsText().contains("\"genderRequiredForPlayers\":true"))
+                assertEquals(HttpStatusCode.NoContent,
+                    setPolicy("""{"genderRequiredForPlayers":false}""").status)
+
                 val allowed = client.get("/api/v1/club") {
                     header(HttpHeaders.Cookie, "openclub_dev_session=valid")
                 }
@@ -224,6 +269,8 @@ class SingleClubRoutesTest {
                     }
                 }
                 assertEquals(HttpStatusCode.Forbidden, rename("""{"name":"Denied"}""").status)
+                assertEquals(HttpStatusCode.Forbidden,
+                    setPolicy("""{"genderRequiredForPlayers":true}""").status)
                 org.junit.jupiter.api.Assertions.assertTrue(client.get("/api/v1/club") {
                     header(HttpHeaders.Cookie, "openclub_dev_session=valid")
                 }.bodyAsText().contains("New Club"))
@@ -232,7 +279,7 @@ class SingleClubRoutesTest {
             runBlocking {
                 database.onDatabaseThread { db ->
                     db.execute("DELETE FROM club_capability_grants WHERE member_id = ?", member)
-                    db.execute("DELETE FROM members WHERE id = ?", member)
+                    db.execute("DELETE FROM members WHERE id IN (?, ?)", member, player)
                     db.execute("DELETE FROM accounts WHERE id = ?", account)
                     db.execute("DELETE FROM clubs WHERE id = ?", club)
                 }

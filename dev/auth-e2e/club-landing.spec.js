@@ -84,7 +84,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(page.getByRole('heading', { name: 'Synthetic Browser Club' })).toBeVisible();
   const clubSettings = page.getByRole('region', { name: 'Edit club name' });
   await clubSettings.getByRole('textbox', { name: 'Club name' }).fill('Synthetic Updated Club');
-  await clubSettings.getByRole('button', { name: 'Save' }).click();
+  await clubSettings.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Synthetic Updated Club' })).toBeVisible();
   const updatedClub = await context.request.get('/api/v1/club');
   expect(updatedClub.status()).toBe(200);
@@ -137,6 +137,9 @@ test('verified login gains club access only after restricted operator bootstrap'
   expect(JSON.stringify(await memberNames.json())).not.toContain('Synthetic test value');
   const memberAdmin = page.getByRole('region', { name: 'Manage members' });
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toBeVisible();
+  await clubSettings.getByLabel('Require gender for players').check();
+  await clubSettings.getByRole('button', { name: 'Save policy' }).click();
+  await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).genderRequiredForPlayers).toBe(true);
 
   const roleAdmin = page.getByRole('region', { name: 'Manage club roles' });
   await roleAdmin.getByLabel('Find member').fill('Mara');
