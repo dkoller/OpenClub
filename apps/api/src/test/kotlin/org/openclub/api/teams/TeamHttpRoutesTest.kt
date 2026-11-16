@@ -178,7 +178,7 @@ class TeamHttpRoutesTest {
                 }.bodyAsText().contains("Renamed Team"))
                 assertEquals("Renamed Team", runBlocking {
                     database.onDatabaseThread { db ->
-                        db.fetchValue("SELECT name FROM teams WHERE id = ?", visible, String::class.java)
+                        db.fetchOne("SELECT name FROM teams WHERE id = ?", visible)?.get(0, String::class.java)
                     }
                 })
                 runBlocking {
