@@ -6,9 +6,26 @@ The root `loopcounterN.txt` is a **resume marker** for chat-driven development, 
 - Prefer complete, independently reviewable **user workflow** increments over counting PRs. Review each diff with Ponytail; run applicable tests and **do not merge until all required GitHub checks pass**. Never bypass security, privacy, branch protections or payment restrictions.
 - **Only when the current execution genuinely must end**, write a checkpoint in its **own PR**, including verified handoff details. If no marker exists, create `loopcounter0.txt` containing `0` and a newline; otherwise replace the sole `loopcounterN.txt` with `loopcounter(N+1).txt`, containing the new decimal value and a newline. Never leave two root markers. A completed batch, merge or normal handoff opportunity does **not** justify a checkpoint while more safe work can proceed.
 - **A checkpoint is a resume hint, never a stop condition.** Continue the next development increment after a successful merge while execution can make progress. Never create a checkpoint after each source PR or stop because its PR merged.
+- **Immediately after merging**, verify the resulting `main` SHA and look for existing work, then select and begin the next unblocked issue/increment. A progress report must not be the final action when tools and safe tasks remain. The [stop audit in AGENTS.md](../../../AGENTS.md#nonterminal-progress-and-post-merge-continuation-owner-correction-2026-11-16) is mandatory before ending an execution.
+- A valid stop must have **evidence**: exhaustion of an actual execution/tool limit, unavailable access or required CI, no unblocked safe tasks after checking the issue backlog, or a concrete decision blocker affecting all useful work. "All checks passed", "no PRs are open", "clean repository", a merged milestone, and routine status reporting do **not** qualify. If one issue is blocked, record it and choose a different safe M1 task.
 - If the existing number is **100**, do not advance the counter or create a replacement marker; the cap is on checkpoint numbering, **not on implementation iterations**. Handle malformed or multiple markers as a blocker requiring review.
 - Record merged PRs, outstanding checks and any blockers in the checkpoint PR description. A normal PR may change at most **5,000** added + deleted lines.
+- **Checkpoint PR description — required handoff fields** (use the exact verified values, or `none`/`unknown` with reason):
+  - `Stop condition + evidence:` the specific allowed condition and what was actually observed
+  - `Main SHA:` current verified `main` commit
+  - `Merged this execution:` PR numbers and resulting SHAs
+  - `Open work:` PR/branch name, head SHA, required check states and failures
+  - `Blockers:` issue URLs and exact outstanding decisions, checks or access problems
+  - `Next unblocked increment:` issue URL, proposed scope and immediate first action
+  - `Checkpoint transition:` prior sole marker, new sole marker, or `cap 100`
+- The marker itself remains exactly the decimal counter and a newline. The PR description is the human-readable handoff; **never** put JSON or prose into the numeric marker, and never create a second tracking file.
 - Root `loopcounterN.txt` marker changes are excluded from ordinary build/Compose classification and the normal PR line budget. A counter-only PR skips expensive application checks; a PR that also modifies other paths still undergoes the relevant checks. The special `Loop counter checkpoint` workflow runs for marker changes and waits 20 seconds.
 - A checkpoint never conceals failures or authorizes force-merging. If further work is blocked or the current chat execution ends, report the exact repository/checkpoint state; a following chat can resume from that state without inventing an unattended worker.
 
 No paid infrastructure or continuous background agent is required. The controlled loop only executes **while the assistant is actively working in the conversation**; it cannot continue autonomously between turns.
+
+## External supervision: feasibility, not an installed service
+
+A durable supervisor could detect an ended execution and launch a new one, but **this repository does not currently have such a controller**. It would need an actually supported agent runtime, noninteractive authentication, safe secret handling, a durable work queue, budget/usage limits and explicit approval for the compute environment. GitHub Actions alone cannot restart a ChatGPT conversation, and a user's existing ChatGPT subscription is not equivalent to a free unattended agent API. Do **not** add a cron/scheduled GitHub Action that repeatedly invokes a paid model or weakens PR/CI/privacy gates. With no owner-provided always-on hardware or approved spending, the immediate solution is evidence-based handoff and manual conversation resumption. Reassess a supervisor only when a genuinely no-extra-cost, supported runtime and authorization model are available and approved.
+
+The control is deliberately simple: one authoritative `AGENTS.md`, this guide, the existing numeric marker and its existing 20-second CI check. Repeated interruptions are handled through resume-and-audit rather than an unverified promise of continuous operation.
