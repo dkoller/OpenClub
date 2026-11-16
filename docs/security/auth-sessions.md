@@ -14,3 +14,7 @@ PostgreSQL integration tests (with `DB_URL`, `DB_USER`, `DB_PASSWORD`, as in CI)
 
 
 **Architecture update (2026-11-15):** sessions now link to local `accounts.id`; they contain no member profile data or club switching. See [ADR-0005](../decisions/0005-single-club-installation.md). Real member data remains subject to privacy/release gates.
+
+## Revoked OIDC identity invalidates active session reads (PR #229, synthetic M1)
+
+The PostgreSQL session read, CSRF-bound mutation lookup and rotation now check for a **current verified account-identity association in the same SQL statement** that refreshes idle expiry or rotates the session. Removing the identity makes already-issued session cookies unusable for `/api/v1/auth/me` and subsequent authenticated operations, even if `auth_sessions` still contains the hashed handle. Rejected calls do not extend the idle deadline or rotate the handle. The explicit CSRF-checked logout path remains available to clear the stale handle. Synthetic PostgreSQL tests verify these properties. This complements rather than replaces capability checks, and does not automatically delete historical session rows or establish M2 production revocation procedures.
