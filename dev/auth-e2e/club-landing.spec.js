@@ -515,6 +515,19 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(grantRecovery.getByRole('button', { name: 'Search' })).toBeEnabled();
   await expect(grantRecovery.getByRole('alert')).toHaveCount(0);
 
+  // A genuine capability denial must not be turned into a retryable grant editor.
+  await page.route('**/api/v1/grants?**', async route => {
+    if (route.request().method() === 'GET' &&
+        new URL(route.request().url()).searchParams.get('memberId') === '00000000-0000-0000-0000-000000000000') {
+      await route.fulfill({ status: 403, body: 'Forbidden' });
+    } else {
+      await route.continue();
+    }
+  });
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
+  await page.unroute('**/api/v1/grants?**');
+
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
   await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
