@@ -6,10 +6,12 @@ services:
     image: ghcr.io/sebadob/rauthy:0.36.1
     environment:
       LOCAL_TEST: "true"
+      BOOTSTRAP_DIR: /app/bootstrap
     ports:
       - "127.0.0.1:8443:8443"
     volumes:
       - rauthy_eval_data:/app/data
+      - ./dev/rauthy/bootstrap:/app/bootstrap:ro
     restart: "no"
 
 volumes:
