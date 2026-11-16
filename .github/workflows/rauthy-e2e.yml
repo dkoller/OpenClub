@@ -103,6 +103,12 @@ jobs:
             if curl -fsS --max-time 2 http://localhost:8080/health -o /dev/null; then exit 0; fi
             sleep 2
           done
+          # Do not dump complete logs: a callback or authentication error
+          # can contain tokens. Only show generic startup error categories.
+          grep -Ei 'Exception|Error|Caused by|PKIX|SSLHandshake|OIDC|issuer|certificate' \
+            "$RUNNER_TEMP/rauthy-api.log" |
+            sed -E 's/(password|secret|token)[=:][^ ]+/[REDACTED]/Ig' |
+            tail -n 15 >&2 || true
           echo 'Rauthy-configured Ktor app did not start' >&2
           exit 1
       - name: Start local HTTPS frontend reverse proxy
