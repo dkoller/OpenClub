@@ -174,6 +174,21 @@ class MemberHttpRoutesTest {
                 }
                 assertEquals(HttpStatusCode.Forbidden, privateAttempt.status)
 
+                // The documented optional empty filter is a valid unfiltered read.
+                val emptyFilter = client.get("/api/v1/members?q=") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                }
+                assertEquals(HttpStatusCode.OK, emptyFilter.status)
+                // Invalid UUIDs fail input validation; valid-but-unknown IDs stay 404.
+                val malformedDetail = client.get("/api/v1/members/not-a-uuid") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                }
+                assertEquals(HttpStatusCode.BadRequest, malformedDetail.status)
+                val missingDetail = client.get("/api/v1/members/${UUID.randomUUID()}") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                }
+                assertEquals(HttpStatusCode.NotFound, missingDetail.status)
+
                 val edit = client.patch("/api/v1/members/$id") {
                     header(HttpHeaders.Cookie, auth("valid"))
                     header(HttpHeaders.Origin, origin)
