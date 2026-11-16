@@ -3,12 +3,9 @@
 # Existing compose.auth.dev.yaml Keycloak integration stays supported unchanged.
 services:
   rauthy:
-    image: ghcr.io/sebadob/rauthy:0.36.1
+    image: ghcr.io/sebadob/rauthy:0.37.2
     environment:
       LOCAL_TEST: "true"
-      # Rauthy 0.36.1 advertises non-BCP47 'zhhans' by default; use only
-      # valid locale tags rather than relaxing Kotlin OIDC metadata validation.
-      FILTER_LANG_COMMON: "en de fr"
       BOOTSTRAP_DIR: /app/bootstrap
     ports:
       - "127.0.0.1:8443:8443"
