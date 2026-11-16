@@ -43,7 +43,7 @@ export function PublicMembers({ language }: { language: Language }) {
           </button>
         </p>
       ) : names === null ? (
-        <p role="status">{text.loading}</p>
+        <p aria-live="polite">{text.loading}</p>
       ) : names.length === 0 ? (
         <p>{text.empty}</p>
       ) : (
