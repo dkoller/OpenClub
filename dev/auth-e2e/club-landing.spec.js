@@ -122,6 +122,9 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(renamed).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toBeVisible();
   await renamed.getByRole('button', { name: 'Archive' }).click();
+  await expect(renamed.getByRole('group', {
+    name: 'Archive this member? Nina Renamed',
+  })).toBeVisible();
   await expect(renamed.getByText('Archive this member?')).toBeVisible();
   await renamed.getByRole('button', { name: 'Cancel' }).click();
   await expect(renamed).toBeVisible();
@@ -164,6 +167,9 @@ test('verified login gains club access only after restricted operator bootstrap'
       .getByRole('listitem').filter({ hasText: 'Locale Synthetic' });
     await expect(row).toBeVisible();
     await row.getByRole('button', { name: locale[2], exact: true }).click();
+    await expect(row.getByRole('group', {
+      name: locale[3] + ' Locale Synthetic',
+    })).toBeVisible();
     await expect(row.getByText(locale[3])).toBeVisible();
     await row.getByRole('button', { name: locale[4] }).click();
     await expect(row).toBeVisible();
