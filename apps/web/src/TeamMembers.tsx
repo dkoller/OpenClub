@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 
 type Member = { id: string; firstName: string; lastName: string }
@@ -27,6 +27,7 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
   const [denied, setDenied] = useState(false)
   const [busy, setBusy] = useState(false)
   const [revision, setRevision] = useState(0)
+  const candidateRequest = useRef<AbortController | null>(null)
   const endpoint = '/api/v1/teams/' + encodeURIComponent(teamId) + '/members'
 
   const load = useCallback(async (next?: string) => {
@@ -47,22 +48,32 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
   }, [endpoint])
 
   useEffect(() => { void load() }, [load, revision])
+  useEffect(() => () => candidateRequest.current?.abort(), [])
 
   async function findMember(event: FormEvent) {
     event.preventDefault()
+    candidateRequest.current?.abort()
+    const controller = new AbortController()
+    candidateRequest.current = controller
     setError(false)
+    setCandidates([])
+    setSelected('')
     try {
       const args = new URLSearchParams({ q: search, limit: '20' })
       const response = await fetch('/api/v1/members?' + args, {
-        credentials: 'same-origin', cache: 'no-store',
+        credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
       })
+      if (controller.signal.aborted) return
       if (!response.ok) throw new Error('Member search unavailable')
       const page: Page = await response.json()
+      if (controller.signal.aborted) return
       if (!Array.isArray(page.items)) throw new Error('Invalid search')
       setCandidates(page.items)
       setSelected(page.items[0]?.id ?? '')
     } catch {
-      setError(true)
+      if (!controller.signal.aborted) setError(true)
+    } finally {
+      if (candidateRequest.current === controller) candidateRequest.current = null
     }
   }
 

@@ -293,9 +293,28 @@ test('verified login gains club access only after restricted operator bootstrap'
   await teams.getByLabel('Team name').fill('Juniors');
   await teams.getByRole('button', { name: 'Add team' }).click();
   await expect(teams.getByRole('listitem').filter({ hasText: 'Juniors' })).toBeVisible();
+  // A superseded team-candidate search must not replace newer choices.
+  let notifySlowCandidate;
+  const slowCandidateStarted = new Promise(resolve => { notifySlowCandidate = resolve; });
+  await page.route('**/api/v1/members?**', async route => {
+    if (new URL(route.request().url()).searchParams.get('q') !== 'Slow') {
+      await route.continue();
+      return;
+    }
+    notifySlowCandidate();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await route.continue().catch(() => {});
+  });
+  const canceledCandidate = page.waitForEvent('requestfailed',
+    request => new URL(request.url()).searchParams.get('q') === 'Slow');
+  await teams.getByLabel('Find member').fill('Slow');
+  await teams.getByRole('button', { name: 'Search' }).click();
+  await slowCandidateStarted;
   await teams.getByLabel('Find member').fill('Mara');
   await teams.getByRole('button', { name: 'Search' }).click();
+  await canceledCandidate;
   await expect(teams.getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
+  await page.unroute('**/api/v1/members?**');
   await teams.getByRole('button', { name: 'Assign' }).click();
   await expect(teams.getByRole('button', { name: 'Remove' })).toBeVisible();
   await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
