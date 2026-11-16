@@ -257,3 +257,7 @@ If a role-change request returns HTTP 403, the browser hides the privileged role
 ## Grant operation denial hides permission editor (synthetic M1)
 
 The permissions editor now fails closed on HTTP 403 from member search, grant-detail reads or grant mutations, hiding its privileged UI instead of leaving stale member/grant controls visible. The disposable Keycloak/Chromium workflow injects a denied grant write after authorized grant/revoke operations and verifies the editor disappears. Database grants, role checks and M2 release requirements remain unchanged.
+
+## Team candidate search denial hides roster controls (synthetic M1)
+
+An HTTP 403 during team-assignment candidate member search now hides that team's member roster and name-bearing assignment controls, matching the existing roster-read and mutation authorization-denial behavior. A disposable Keycloak/Chromium test injects an explicit denied search after a permitted team workflow. This frontend guard does not replace server-side directory/team grant enforcement or legal/privacy approvals.
