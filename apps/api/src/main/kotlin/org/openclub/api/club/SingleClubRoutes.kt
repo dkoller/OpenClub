@@ -34,10 +34,11 @@ internal fun Application.installSingleClubRoutes(
                 val club = database.onDatabaseThread { db ->
                     val id = MemberAccess(db).authorizedClubId(session.accountId)
                     id?.let {
-                        db.fetchOne("SELECT name, slug FROM clubs WHERE id = ?", it)?.let { row ->
-                            Triple(it,
+                        db.fetchOne("SELECT name, slug, gender_required_for_players FROM clubs WHERE id = ?", it)?.let { row ->
+                            ClubProfile(it,
                                 requireNotNull(row.get("name", String::class.java)),
-                                requireNotNull(row.get("slug", String::class.java)))
+                                requireNotNull(row.get("slug", String::class.java)),
+                                requireNotNull(row.get("gender_required_for_players", Boolean::class.java)))
                         }
                     }
                 }
@@ -46,9 +47,10 @@ internal fun Application.installSingleClubRoutes(
                         ContentType.Application.Json, HttpStatusCode.Forbidden)
                 } else {
                     call.respondText(buildJsonObject {
-                        put("id", club.first.toString())
-                        put("name", club.second)
-                        put("slug", club.third)
+                        put("id", club.id.toString())
+                        put("name", club.name)
+                        put("slug", club.slug)
+                        put("genderRequiredForPlayers", club.genderRequiredForPlayers)
                     }.toString(), ContentType.Application.Json)
                 }
             } catch (cancelled: CancellationException) {
@@ -60,3 +62,10 @@ internal fun Application.installSingleClubRoutes(
         }
     }
 }
+
+private data class ClubProfile(
+    val id: java.util.UUID,
+    val name: String,
+    val slug: String,
+    val genderRequiredForPlayers: Boolean,
+)
