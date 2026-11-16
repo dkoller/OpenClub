@@ -25,6 +25,9 @@ class MemberFieldValidationTest {
         assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.name(" ") }
         assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.name("x".repeat(201)) }
         assertEquals("x".repeat(200), MemberFieldValidation.name("x".repeat(200)))
+        assertEquals("Anne-Marie", MemberFieldValidation.name("Anne-Marie"))
+        assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.name("Alice\\nAdmin".replace("\\n", "\n")) }
+        assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.name("Invalid\u0000Name") }
     }
 
     @Test
@@ -42,5 +45,8 @@ class MemberFieldValidationTest {
         assertEquals("x".repeat(320), MemberFieldValidation.email("x".repeat(320)))
         assertEquals("x".repeat(40), MemberFieldValidation.phone("x".repeat(40)))
         assertEquals("x".repeat(200), MemberFieldValidation.gender("x".repeat(200)))
+        assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.email("a@b\\r\\nBcc: x".replace("\\r", "\r").replace("\\n", "\n")) }
+        assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.phone("+41\\n555".replace("\\n", "\n")) }
+        assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.gender("value\\tother".replace("\\t", "\t")) }
     }
 }
