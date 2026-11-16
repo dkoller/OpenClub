@@ -466,6 +466,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.unroute('**/api/v1/grants?**');
   await grantRecovery.getByRole('button', { name: 'Try again' }).click();
   await expect(grantRecovery.getByRole('heading', { name: 'Manage permissions' })).toBeVisible();
+  await expect(grantRecovery.getByRole('button', { name: 'Search' })).toBeEnabled();
   await expect(grantRecovery.getByRole('alert')).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Sign out' }).click();
