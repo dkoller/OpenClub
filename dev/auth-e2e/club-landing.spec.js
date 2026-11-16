@@ -756,7 +756,9 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.unroute('**/api/v1/members?**');
 
   await page.getByRole('button', { name: 'Sign out' }).click();
-  await expect(page.getByRole('status')).toHaveText('Please sign in.');
+  // Other accessible status elements (such as transient team loading) may
+  // coexist with the session status while the UI settles after logout.
+  await expect(page.getByText('Please sign in.', { exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
 
   // Logout revokes the real session. Private member/team/grant reads now deny
