@@ -212,6 +212,47 @@ class MemberHttpRoutesTest {
                 }
                 assertEquals(HttpStatusCode.Conflict, protectedArchive.status)
 
+                // A live session must not retain a revoked write capability. Revocation
+                // must leave the independent directory read grant usable, and
+                // restoring the write grant must allow that same session to write again.
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("""DELETE FROM club_capability_grants
+                            WHERE member_id = ? AND capability = 'EDIT_MEMBERS'""", admin)
+                    }
+                }
+                assertEquals(HttpStatusCode.OK, client.get("/api/v1/members?q=Synthetic") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                }.status)
+                val deniedWithLiveSession = client.patch("/api/v1/members/$admin") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                    header(HttpHeaders.Origin, origin)
+                    header("X-CSRF-Token", csrf)
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"firstName":"ShouldNotChange","lastName":"Admin"}""")
+                }
+                assertEquals(HttpStatusCode.Forbidden, deniedWithLiveSession.status)
+                assertEquals("Synthetic", runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.fetchOne("SELECT first_name FROM members WHERE id = ?", admin)
+                            ?.get(0, String::class.java)
+                    }
+                })
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("""INSERT INTO club_capability_grants (member_id, capability)
+                            VALUES (?, 'EDIT_MEMBERS')""", admin)
+                    }
+                }
+                val restoredWithSameSession = client.patch("/api/v1/members/$admin") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                    header(HttpHeaders.Origin, origin)
+                    header("X-CSRF-Token", csrf)
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"firstName":"Synthetic","lastName":"Admin"}""")
+                }
+                assertEquals(HttpStatusCode.NoContent, restoredWithSameSession.status)
+
                 // Revoking the directory grant immediately denies subsequent requests.
                 runBlocking {
                     database.onDatabaseThread { db ->
