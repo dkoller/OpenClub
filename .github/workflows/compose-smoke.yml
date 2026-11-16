@@ -82,6 +82,23 @@ jobs:
           set -euo pipefail
           docker compose -f compose.yaml -f compose.auth.dev.yaml config --quiet
           python3 -m json.tool dev/keycloak/openclub-realm.json > /dev/null
+      - name: Validate opt-in synthetic HTTPS overlay and TLS ingress without provisioning
+        shell: bash
+        run: |
+          set -euo pipefail
+          export POSTGRES_PASSWORD=ci-synthetic-only-unique-password
+          export OPENCLUB_DEMO_HOST=demo.example.invalid
+          export OPENCLUB_OIDC_ISSUER=https://issuer.example.invalid/realms/openclub
+          export OPENCLUB_OIDC_AUTHORIZATION_ENDPOINT=https://issuer.example.invalid/realms/openclub/protocol/openid-connect/auth
+          export OPENCLUB_OIDC_CLIENT_ID=synthetic-test-client
+          export OPENCLUB_OIDC_CLIENT_SECRET=synthetic-only-not-a-real-client-secret-12345
+          docker compose -f compose.yaml -f compose.https.demo.yaml config --quiet
+          docker compose -f compose.yaml -f compose.https.demo.yaml config --format json |
+            jq -e '((.services.web.ports // []) | length) == 0 and
+                   ((.services.postgres.ports // []) | length) == 0 and
+                   (.services["demo-https"].ports | length) == 2 and
+                   .services.api.environment.OPENCLUB_AUTH_MODE == "production"'
+          docker run --rm -e OPENCLUB_DEMO_HOST="$OPENCLUB_DEMO_HOST"             -v "$PWD/dev/deployment/Caddyfile:/etc/caddy/Caddyfile:ro"             caddy:2.11.9-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Start Keycloak while images build
         env:
           KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
