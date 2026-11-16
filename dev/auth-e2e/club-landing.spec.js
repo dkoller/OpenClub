@@ -438,6 +438,13 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
   await expect(permissionAdmin.getByRole('alert')).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
+  // A revoked grant-management permission must hide the editor after a denied write.
+  await page.route('**/api/v1/grants', route =>
+    route.request().method() === 'POST'
+      ? route.fulfill({ status: 403, body: 'Forbidden' }) : route.continue());
+  await permissionAdmin.getByRole('button', { name: 'Grant' }).click();
+  await expect(permissionAdmin).toHaveCount(0);
+  await page.unroute('**/api/v1/grants');
 
   await teams.getByRole('button', { name: 'Remove' }).click();
   await expect(teams.getByText('No assignments.')).toBeVisible();
