@@ -182,6 +182,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   await renamed.getByRole('button', { name: 'Confirm archive' }).click();
   await expect(renamed).toHaveCount(0);
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Members', exact: true })
+    .getByRole('listitem').filter({ hasText: 'Nina R.' })).toHaveCount(0);
   // Archived minors must disappear from the anonymous API, not only the UI.
   const archivedPublicNames = await context.request.get('/api/v1/public/members');
   expect(archivedPublicNames.status()).toBe(200);
