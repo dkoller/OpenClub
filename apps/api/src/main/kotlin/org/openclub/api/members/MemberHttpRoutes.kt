@@ -87,7 +87,8 @@ internal fun Application.installMemberHttpRoutes(
                     val input = MemberCreation.Input(
                         firstName = fields.string("firstName"),
                         lastName = fields.string("lastName"),
-                        dateOfBirth = LocalDate.parse(fields.string("dateOfBirth")),
+                        dateOfBirth = runCatching { LocalDate.parse(fields.string("dateOfBirth")) }
+                            .getOrElse { throw IllegalArgumentException("Invalid date") },
                         email = fields.optionalString("email"),
                         phone = fields.optionalString("phone"),
                         gender = fields.optionalString("gender"),
@@ -248,11 +249,17 @@ private suspend fun ApplicationCall.readObject(required: Set<String>, optional: 
     return fields
 }
 
-private fun JsonObject.string(key: String): String = this[key]?.jsonPrimitive?.content
-    ?: throw IllegalArgumentException("Missing field")
+private fun JsonObject.string(key: String): String {
+    val value = this[key] as? JsonPrimitive ?: throw IllegalArgumentException("Missing field")
+    require(value.isString)
+    return value.content
+}
 
 private fun JsonObject.optionalString(key: String): String? = this[key]?.let {
-    if (it is JsonNull) null else it.jsonPrimitive.content
+    if (it is JsonNull) null else {
+        require(it is JsonPrimitive && it.isString)
+        it.content
+    }
 }
 
 private suspend fun ApplicationCall.error(status: HttpStatusCode, code: String) {
