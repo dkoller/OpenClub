@@ -39,6 +39,18 @@ At the start of **every** iteration, inspect current `main`, applicable CI, open
 4. Before each merge, confirm applicable CI and review passed; afterward re-read `main` and open issues and immediately choose the next increment. Neither a merged PR nor a checkpoint is a pause signal.
 5. Work on M2-only approvals, post-MVP features, or tooling only when they unblock M1, can safely proceed in parallel without displacing critical-path work, or no useful unblocked M1 work remains. Record why the chosen increment outranks other options in the PR.
 
+### Stop, recovery, CI failures and handoff
+
+These rules apply to humans and coding agents running the controlled loop; they do not create a background worker or grant new permissions.
+
+**Actual stop conditions:** Continue while tools and execution capacity permit and useful, safe, unblocked work exists. Stop only when the execution/tool limit is reached; necessary repository access or required checks cannot be obtained; every useful task is blocked on unavailable decisions/approval; or there is no useful work remaining. If one task is blocked, record the exact reason in its issue and choose another independent M1 task. Never stop merely because a PR merged, CI is slow, a counter reached a value below 100, or an arbitrary PR quota was met.
+
+**Resume/recover before starting work:** Read current `main`, open PRs/branches, active CI runs, existing blockers, and the highest committed `loopcounterN.txt` (if any). Inspect outstanding work for the chosen issue before opening another branch; finish/rebase an existing valid PR or document and safely close an obsolete one rather than duplicating changes. A checkpoint is a resume hint, **not** a claim that earlier PRs were merged or work is complete. Do not overwrite another contributor's uncommitted or active work.
+
+**When CI fails:** Inspect the failing job/logs and classify the cause. Fix and rerun deterministic source/test failures; retry a demonstrably transient runner/service failure only after inspecting evidence, with bounded attempts; for unavailable runners, exhausted minutes or permission failures, document the exact blocker and continue with other safe work. Never weaken, bypass, dismiss or assume success for required checks. Merge only when the current PR head has all applicable required checks successful, review is complete, and security/privacy gates remain satisfied.
+
+**At an actual execution boundary:** Report the latest verified `main` commit, merged PRs, any open branch/PR with head SHA and CI state, checks actually run, outstanding blockers with issue links, and the highest-value next unblocked task. Create or increment the checkpoint only if execution must stop, never beyond 100, and preserve its dedicated check. Do not promise automatic/background continuation after the active execution ends.
+
 ## Working method
 
 1. Read `README.md`, the relevant concept documents and accepted ADRs.
