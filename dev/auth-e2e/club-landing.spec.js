@@ -492,6 +492,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(settings.getByRole('alert')).toHaveCount(0);
 
   // A transient policy failure must also follow the active language and recover.
+  await settings.getByLabel('Require gender for players').uncheck();
   await page.route('**/api/v1/club/player-gender-policy', route =>
     route.request().method() === 'PATCH'
       ? route.fulfill({ status: 503, body: 'Unavailable' }) : route.continue());
