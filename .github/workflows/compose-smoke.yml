@@ -120,9 +120,8 @@ jobs:
             sleep 2
           done
           [[ "$ready" == true ]] || { echo "Rauthy local discovery unavailable" >&2; exit 1; }
-          jq '{issuer, authorization_endpoint, token_endpoint, jwks_uri, id_token_signing_alg_values_supported}' /tmp/openclub-rauthy-discovery.json
           jq -e '
-            .issuer == "https://localhost:8443" and
+            .issuer == "https://localhost:8443/auth/v1/" and
             (.authorization_endpoint | startswith("https://localhost:8443/")) and
             (.token_endpoint | startswith("https://localhost:8443/")) and
             (.jwks_uri | startswith("https://localhost:8443/")) and
