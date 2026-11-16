@@ -50,15 +50,25 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
       .toBeGreaterThan(0);
 
     await page.getByRole('button', { name: 'Logout', exact: true }).click();
+    // Force a fresh Rauthy authentication ceremony, not transparent
+    // SSO reuse of the earlier password-authenticated provider session.
+    await context.clearCookies();
     await page.goto('https://localhost:5443/');
     await page.getByRole('link', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/^https:\/\/localhost:8443\/auth\/v1\//);
 
     await page.locator('input[type="email"]').fill('openclub-rauthy-ci@example.invalid');
     await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
-    // A registered passkey should be offered instead of requiring a password.
-    await page.getByRole('button', { name: /passkey|security key/i }).click();
+    // Rauthy may auto-start WebAuthn after E-Mail entry, or show a
+    // dedicated passkey choice. Never fall back to the password field.
+    const passkeyChoice = page.getByRole('button', { name: /passkey|security key/i });
+    if (await passkeyChoice.isVisible().catch(() => false)) {
+      await passkeyChoice.click();
+    }
     await expect(page).toHaveURL('https://localhost:5443/');
+    const signedCredentials = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials;
+    expect(signedCredentials.some(c => c.signCount > 0),
+      'The new virtual credential must sign an actual Rauthy login assertion').toBe(true);
     await expect(page.getByRole('status')).toHaveText('This account is not yet a club member.');
     expect((await context.request.get('/api/v1/club')).status()).toBe(403);
   } finally {
