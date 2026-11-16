@@ -73,7 +73,7 @@ for protected_path in \
   /api/v1/members \
   /api/v1/members/00000000-0000-0000-0000-000000000000 \
   /api/v1/teams \
-  /api/v1/grants?memberId=00000000-0000-0000-0000-000000000000; do
+  '/api/v1/grants?memberId=00000000-0000-0000-0000-000000000000'; do
   status="$(curl_https -D "$work/denied.headers" -o /dev/null -w '%{http_code}' "$origin$protected_path")"
   if [[ "$status" != 401 ]]; then
     echo "Anonymous protected API boundary did not deny with 401: ${protected_path%%\?*}" >&2
