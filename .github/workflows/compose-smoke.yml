@@ -183,8 +183,14 @@ jobs:
         run: |
           set -euo pipefail
           for path in / /api/health /api/v1/club; do
-            headers="$(curl --silent --show-error --dump-header - --output /dev/null               "http://localhost:5173${path}")"
-            for expected in               'x-content-type-options: nosniff'               'x-frame-options: DENY'               'referrer-policy: no-referrer'               'permissions-policy: camera=(), microphone=(), geolocation=()'; do
+            headers="$(curl --silent --show-error --dump-header - --output /dev/null "http://localhost:5173${path}")"
+            expected_headers=(
+              'x-content-type-options: nosniff'
+              'x-frame-options: DENY'
+              'referrer-policy: no-referrer'
+              'permissions-policy: camera=(), microphone=(), geolocation=()'
+            )
+            for expected in "${expected_headers[@]}"; do
               if ! printf '%s\n' "$headers" | tr -d '\r' |
                 grep -Fxi -- "$expected" >/dev/null; then
                 echo "::error::Missing $expected on $path" >&2
