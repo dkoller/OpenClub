@@ -76,11 +76,14 @@ Keep separate project names/volumes per club. Do not point two installations at 
 
 The bundled nginx proxy now sets `X-Content-Type-Options: nosniff`,
 `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and
-`Permissions-Policy: camera=(), microphone=(), geolocation=()` on the browser shell,
-proxied API responses and HTTP error responses. The Compose smoke test checks those
-headers via the same HTTP port that users access. These are browser defense-in-depth,
-**not** authorization checks, a content security policy, HTTPS transport, secure cookie
-configuration, or real-data readiness. The current default Compose port remains
+`Permissions-Policy: camera=(), microphone=(), geolocation=()`, and a
+same-origin `Content-Security-Policy` that denies framing, object embedding, external
+scripts/styles/API connections and base-tag injection. The policy allows same-origin
+compiled assets and API requests, with data: images; OIDC sign-in uses top-level
+navigation to the independently hosted identity provider rather than cross-origin
+fetches. The Compose smoke test checks headers on the static shell, proxied API and
+error responses. These are browser defense-in-depth, **not** authorization checks,
+HTTPS transport, secure cookie configuration, or real-data readiness. The current default Compose port remains
 loopback-only HTTP and Keycloak is still a development identity provider. A real
 TLS/OIDC ingress, external deployment and browser/security acceptance are still
 required before M1 can be marked deployed.
