@@ -234,6 +234,8 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
     .getByRole('button', { name: 'Archive' }).click();
+  await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
+    .getByRole('button', { name: 'Confirm archive' }).click();
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Sign out' }).click();
