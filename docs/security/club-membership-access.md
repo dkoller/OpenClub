@@ -253,3 +253,7 @@ Member directory failure messages now store a semantic error state and render in
 ## Role mutation denial closes privileged editor (synthetic M1)
 
 If a role-change request returns HTTP 403, the browser hides the privileged role editor rather than retaining stale authorized controls with only a generic error. Disposable Keycloak/Chromium acceptance injects the denial after a successful synthetic promotion/demotion and verifies no role editor remains. PostgreSQL/server role and last-manager checks are unchanged; this is a fail-closed presentation guard, not production security acceptance.
+
+## Grant operation denial hides permission editor (synthetic M1)
+
+The permissions editor now fails closed on HTTP 403 from member search, grant-detail reads or grant mutations, hiding its privileged UI instead of leaving stale member/grant controls visible. The disposable Keycloak/Chromium workflow injects a denied grant write after authorized grant/revoke operations and verifies the editor disappears. Database grants, role checks and M2 release requirements remain unchanged.
