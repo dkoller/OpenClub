@@ -28,7 +28,7 @@ callback uses HTTP solely because the development web server is loopback-only.
 
 In the disposable GitHub Compose test, the Rauthy CLI retrieves the generated
 client secret *inside the running container*, checks its length without
-printing or archiving it, and continues to validate RSA JWKS/discovery.
+printing or archiving it, and continues to validate RSA JWKS/discovery. The disposable CI then restarts only the Rauthy container (keeping its named volume), waits for discovery to recover, and checks that the RSA public signing keys and generated confidential-client secret are unchanged; this is a narrow identity-persistence regression, not an independently recovered backup or actual authenticated login.
 The bootstrap client is created on **first initialization only**; changing its
 JSON later does not update an existing Rauthy volume. A successful bootstrap
 is **not** a proven browser login, MFA/passkey flow or usable OpenClub session.

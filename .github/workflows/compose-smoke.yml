@@ -138,6 +138,31 @@ jobs:
           jwks="$(jq -er '.jwks_uri' /tmp/openclub-rauthy-discovery.json)"
           curl --fail --silent --insecure --max-time 5 "$jwks" |
             jq -e '.keys | any(.kty == "RSA" and .kid != null and .n != null and .e != null and .d == null)'
+          # A provider container restart must NOT rotate its OIDC signing
+          # identity or lose the confidential client in the persistent volume.
+          public_keys_before="$(curl --fail --silent --insecure --max-time 5 "$jwks" |
+            jq -cS '[.keys[] | select(.kty == "RSA") | {kid, n, e}] | sort_by(.kid)')"
+          "${overlay[@]}" stop rauthy
+          "${overlay[@]}" up -d --no-deps rauthy
+          ready=false
+          for attempt in {1..45}; do
+            if curl --fail --silent --insecure --max-time 3 \
+              https://localhost:8443/.well-known/openid-configuration -o /dev/null 2>/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          [[ "$ready" == true ]] || { echo "Rauthy failed to restart with persistent identity" >&2; exit 1; }
+          public_keys_after="$(curl --fail --silent --insecure --max-time 5 "$jwks" |
+            jq -cS '[.keys[] | select(.kty == "RSA") | {kid, n, e}] | sort_by(.kid)')"
+          [[ "$public_keys_before" == "$public_keys_after" ]] ||
+            { echo "Rauthy signing identity changed after restart" >&2; exit 1; }
+          restarted_secret="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+            -c /app/config-local-test.toml --kind client --id openclub-rauthy-ci --field secret --format raw)"
+          [[ "$client_secret" == "$restarted_secret" ]] ||
+            { echo "Confidential Rauthy client secret changed after restart" >&2; exit 1; }
+          echo "Rauthy RSA signing identity and confidential client survived a container restart."
       - name: Start Keycloak while images build
         env:
           KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
