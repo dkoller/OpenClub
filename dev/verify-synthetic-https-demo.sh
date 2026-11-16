@@ -65,6 +65,23 @@ check_header "Cache-Control" "no-store" "$work/club.headers"
 check_header "X-Frame-Options" "DENY" "$work/club.headers"
 check_header "Content-Security-Policy" "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self'" "$work/club.headers"
 
+# Verify every authenticated read boundary rejects a fresh anonymous client.
+# Never read the response bodies: private member records and session details
+# must not enter local probe artifacts, terminal output or CI logs.
+for protected_path in \
+  /api/v1/auth/me \
+  /api/v1/members \
+  /api/v1/members/00000000-0000-0000-0000-000000000000 \
+  /api/v1/teams \
+  /api/v1/grants?memberId=00000000-0000-0000-0000-000000000000; do
+  status="$(curl_https -D "$work/denied.headers" -o /dev/null -w '%{http_code}' "$origin$protected_path")"
+  if [[ "$status" != 401 ]]; then
+    echo "Anonymous protected API boundary did not deny with 401: ${protected_path%%\?*}" >&2
+    exit 1
+  fi
+  check_header "Cache-Control" "no-store" "$work/denied.headers"
+done
+
 status="$(curl_https -D "$work/oidc.headers" -o "$work/oidc.json" -w '%{http_code}' "$issuer/.well-known/openid-configuration")"
 [[ "$status" == 200 ]] || { echo "OIDC discovery did not return 200" >&2; exit 1; }
 jq -e --arg issuer "$issuer" '
@@ -79,5 +96,5 @@ curl_https --fail -o "$work/jwks.json" "$jwks"
 jq -e '.keys | type == "array" and length > 0' "$work/jwks.json" >/dev/null ||
   { echo "OIDC JWKS is invalid" >&2; exit 1; }
 
-echo "HTTPS certificate validation, browser ingress, API readiness, anonymous denial and OIDC discovery/JWKS passed."
+echo "HTTPS certificate validation, browser ingress, API readiness, anonymous protected-route denial and OIDC discovery/JWKS passed."
 echo "Not tested: actual sign-in, admin capabilities, DE/EN/FR/IT browser workflows, persistence, recovery or M2 privacy release."
