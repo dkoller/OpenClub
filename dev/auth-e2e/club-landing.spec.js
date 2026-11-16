@@ -316,6 +316,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await roleAdmin.getByRole('combobox', { name: 'Role' }).selectOption('MEMBER');
   await roleAdmin.getByRole('button', { name: 'Save role' }).click();
   await expect(roleAdmin.getByRole('combobox', { name: 'Role' })).toHaveValue('MEMBER');
+  // Permission loss during a role write hides the privileged editor immediately.
+  await page.route('**/api/v1/members/*/role', route =>
+    route.request().method() === 'PATCH'
+      ? route.fulfill({ status: 403, body: 'Forbidden' }) : route.continue());
+  await roleAdmin.getByRole('combobox', { name: 'Role' }).selectOption('ADMIN');
+  await roleAdmin.getByRole('button', { name: 'Save role' }).click();
+  await expect(roleAdmin).toHaveCount(0);
+  await page.unroute('**/api/v1/members/*/role');
 
 
   const teams = page.getByRole('region', { name: 'Teams', exact: true });

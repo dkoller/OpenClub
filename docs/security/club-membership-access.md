@@ -249,3 +249,7 @@ Disposable Keycloak/Chromium acceptance also injects a transient server failure 
 ## Member directory error localization after language switching (synthetic M1)
 
 Member directory failure messages now store a semantic error state and render in the currently selected DE/FR/IT/EN language, rather than retaining the language used when a request failed. The real disposable Keycloak/Chromium journey fails a synthetic member search, switches all four languages, verifies the localized error and retries successfully. No raw error data, private member field or access-control rule changes.
+
+## Role mutation denial closes privileged editor (synthetic M1)
+
+If a role-change request returns HTTP 403, the browser hides the privileged role editor rather than retaining stale authorized controls with only a generic error. Disposable Keycloak/Chromium acceptance injects the denial after a successful synthetic promotion/demotion and verifies no role editor remains. PostgreSQL/server role and last-manager checks are unchanged; this is a fail-closed presentation guard, not production security acceptance.

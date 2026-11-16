@@ -78,7 +78,7 @@ export function RoleAdmin({ language, csrfToken }: { language: Language; csrfTok
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ role: chosen }),
       })
-      if (response.status === 403) { setError(true); return }
+      if (response.status === 403) { setDenied(true); return }
       if (!response.ok) throw new Error('Role update rejected')
       currentLookup.current?.abort()
       const controller = new AbortController()
