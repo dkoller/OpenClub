@@ -4,6 +4,7 @@ import org.openclub.api.auth.*
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.club.installSingleClubRoutes
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -12,6 +13,8 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -71,6 +74,22 @@ internal fun Application.module(
         // The web proxy keeps /api; Docker health checks use the direct route.
         get("/api/health") {
             call.respondText("""{"status":"ok"}""", ContentType.Application.Json)
+        }
+        // Database readiness, distinct from the process-only liveness probes.
+        get("/api/ready") {
+            call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+            val ready = try {
+                database?.onDatabaseThread { it.fetchValue("SELECT 1") == 1 } == true
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                false
+            }
+            call.respondText(
+                if (ready) """{"status":"ready"}""" else """{"status":"unavailable"}""",
+                ContentType.Application.Json,
+                if (ready) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable,
+            )
         }
     }
     if (login != null) installBrowserLogin(login, requireNotNull(cookiePolicy), authAdmission)
