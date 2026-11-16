@@ -105,6 +105,7 @@ jobs:
           set -euo pipefail
           overlay=(docker compose -f compose.yaml -f compose.rauthy.eval.yaml)
           "${overlay[@]}" config --quiet
+          python3 -m json.tool dev/rauthy/bootstrap/clients.json > /dev/null
           "${overlay[@]}" up -d --no-deps rauthy
           trap '"${overlay[@]}" stop rauthy' EXIT
           ready=false
@@ -127,6 +128,12 @@ jobs:
             (.jwks_uri | startswith("https://localhost:8443/")) and
             (.id_token_signing_alg_values_supported | index("RS256") != null)
           ' /tmp/openclub-rauthy-discovery.json
+          # Rauthy creates the client only at first boot of an empty fixture DB.
+          # Never echo a generated client secret or place it in CI artifacts.
+          client_secret="$("${overlay[@]}" exec -T rauthy rauthy bootstrap get \
+            --kind client --id openclub-rauthy-ci --field secret --format raw)"
+          [[ "${#client_secret}" -ge 32 ]] || { echo "No confidential Rauthy client secret bootstrapped" >&2; exit 1; }
+          echo "Synthetic confidential Rauthy client bootstrapped with generated secret."
           # Never persist the private signing keys or accept an empty JWKS.
           jwks="$(jq -er '.jwks_uri' /tmp/openclub-rauthy-discovery.json)"
           curl --fail --silent --insecure --max-time 5 "$jwks" |
