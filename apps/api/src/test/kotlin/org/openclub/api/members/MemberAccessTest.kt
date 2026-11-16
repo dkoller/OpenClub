@@ -42,6 +42,14 @@ class MemberAccessTest {
                     VALUES (?, ?, 'Example', 'Member', DATE '2015-01-01')""",
                     regularMember, regular)
 
+                // Linked membership is insufficient until the provider identity is verified.
+                assertNull(access.authorizedClubId(admin))
+                assertNull(access.authorizedClubId(regular))
+                for (account in listOf(admin, regular)) {
+                    database.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), account, "club-access-" + account)
+                }
                 assertEquals(club, access.authorizedClubId(admin))
                 assertEquals(club, access.authorizedClubId(regular))
                 assertNull(access.authorizedClubId(outsider))
@@ -55,6 +63,10 @@ class MemberAccessTest {
                 assertNull(access.authorizedClubId(regular))
                 database.execute("UPDATE members SET account_id = ? WHERE id = ?", regular, regularMember)
                 assertEquals(club, access.authorizedClubId(regular))
+                database.execute("DELETE FROM account_identities WHERE account_id = ?", regular)
+                assertNull(access.authorizedClubId(regular),
+                    "Revoking the account identity must hide club metadata without unlinking member")
+                assertEquals(club, access.authorizedClubId(admin))
             } finally {
                 database.execute("DELETE FROM members WHERE account_id IN (?, ?)", admin, regular)
                 database.execute("DELETE FROM accounts WHERE id IN (?, ?, ?)", admin, regular, outsider)
