@@ -161,3 +161,7 @@ A verified active identity-bound ADMIN with an explicit current MANAGE_PERMISSIO
 ## Browser validation acceptance (synthetic M1, PR #215)
 
 The disposable Keycloak/Chromium administrator journey now asserts that an adult member cannot be created without both email and phone even if the browser allows a submit; PostgreSQL/Ktor returns a generic validation error and no partial member. Supplying both enables the same fictional adult to be created and archived. Once the club's player-gender requirement is enabled, the localized member form marks gender required for players and blocks a missing value before submission. These tests are synthetic only and do not decide disclosure, retention, consent or age thresholds for real club records.
+
+## Synthetic accountless creation: identity revocation boundary (PR #216)
+
+The member-create INSERT now checks the current linked, unarchived actor, explicit `EDIT_MEMBERS` club grant **and a current verified OIDC identity association in the same SQL statement**. This closes a gap where a database caller with a stale grant and account binding could bypass the verified-identity condition that already protects privileged role/grant changes. Removing the identity association immediately prevents new member records even if a synthetic session handle remains valid; the Ktor route still applies exact Origin and session CSRF checks. PostgreSQL and route-level denial tests cover missing and revoked identity. No new personal fields or data disclosures, and M2 privacy/production approval remains separate.
