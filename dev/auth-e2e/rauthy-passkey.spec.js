@@ -41,12 +41,16 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     // subsequent actions inside that dialog rather than clicking behind it.
     const dialog = page.locator('dialog[open]');
     await expect(dialog).toBeVisible();
-    console.log('Rauthy passkey dialog buttons:', await dialog.getByRole('button').allTextContents());
+    // The dialog contains no secrets except hidden password input values,
+    // which must never be included in diagnostics.
+    console.log('Rauthy passkey dialog text:', (await dialog.innerText()).slice(0, 1000));
+    console.log('Rauthy passkey dialog buttons:', await dialog.getByRole('button').evaluateAll(
+      nodes => nodes.map(n => ({ label: n.getAttribute('aria-label'), title: n.title, type: n.type, text: n.textContent?.trim().slice(0, 80) }))));
     console.log('Rauthy passkey dialog fields:', await dialog.locator('input').evaluateAll(
       nodes => nodes.map(n => ({ type: n.type, placeholder: n.placeholder }))));
     const nameField = dialog.locator('input[type="text"]');
     if (await nameField.count() === 1) await nameField.fill('Synthetic virtual passkey');
-    await dialog.getByRole('button', { name: /register|create|save|confirm/i }).last().click();
+    await expect(dialog).not.toBeVisible({ timeout: 10000 });
     await expect.poll(async () => (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length)
       .toBeGreaterThan(0);
 
