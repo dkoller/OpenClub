@@ -24,5 +24,31 @@
       "S256"
     ],
     "force_mfa": false
+  },
+  {
+    "id": "openclub-rauthy-https-ci",
+    "name": "OpenClub synthetic HTTPS browser CI",
+    "secret": "generate",
+    "redirect_uris": [
+      "https://localhost:5443/api/v1/auth/callback"
+    ],
+    "enabled": true,
+    "flows_enabled": [
+      "authorization_code"
+    ],
+    "access_token_alg": "RS256",
+    "id_token_alg": "RS256",
+    "auth_code_lifetime": 60,
+    "access_token_lifetime": 600,
+    "scopes": [
+      "openid"
+    ],
+    "default_scopes": [
+      "openid"
+    ],
+    "challenges": [
+      "S256"
+    ],
+    "force_mfa": false
   }
 ]
