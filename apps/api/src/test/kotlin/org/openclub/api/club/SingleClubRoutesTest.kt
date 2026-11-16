@@ -82,9 +82,9 @@ class SingleClubRoutesTest {
                 }
                 assertEquals(HttpStatusCode.OK, allowed.status)
                 assertEquals("no-store", allowed.headers[HttpHeaders.CacheControl])
-                assertEquals("""{"id":"$club"}""", allowed.bodyAsText())
+                assertEquals("""{"id":"$club","name":"Synthetic club","slug":"club-$club"}""", allowed.bodyAsText())
 
-                // Ordinary members can see only the single club ID; unlinking denies access.
+                // Ordinary members can see local club metadata; unlinking denies access.
                 runBlocking {
                     database.onDatabaseThread {
                         it.execute("UPDATE members SET role = 'MEMBER' WHERE id = ?", member)
@@ -94,7 +94,7 @@ class SingleClubRoutesTest {
                     header(HttpHeaders.Cookie, "openclub_dev_session=valid")
                 }
                 assertEquals(HttpStatusCode.OK, ordinary.status)
-                assertEquals("""{"id":"$club"}""", ordinary.bodyAsText())
+                assertEquals("""{"id":"$club","name":"Synthetic club","slug":"club-$club"}""", ordinary.bodyAsText())
                 runBlocking {
                     database.onDatabaseThread {
                         it.execute("UPDATE members SET account_id = NULL WHERE id = ?", member)
@@ -115,7 +115,7 @@ class SingleClubRoutesTest {
                 }
                 assertEquals(HttpStatusCode.OK, relinked.status)
                 assertEquals("no-store", relinked.headers[HttpHeaders.CacheControl])
-                assertEquals("""{"id":"$club"}""", relinked.bodyAsText())
+                assertEquals("""{"id":"$club","name":"Synthetic club","slug":"club-$club"}""", relinked.bodyAsText())
                 runBlocking {
                     database.onDatabaseThread {
                         it.execute("DELETE FROM members WHERE id = ?", member)

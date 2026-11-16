@@ -65,6 +65,7 @@ export function App() {
       </select>
       <h1>{words.heading}</h1>
       <p>{words.intro}</p>
+      {access?.state === 'ready' && <h2>{access.clubName}</h2>}
       <PublicMembers language={language} revision={directoryRevision} />
       {access?.state === 'ready' && <GrantAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <TeamDirectory language={language} csrfToken={access.csrfToken} />}

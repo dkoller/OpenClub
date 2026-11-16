@@ -32,11 +32,12 @@ paths:
       operationId: readMyClub
       summary: Read the single installation club after authorized login
       description: >
-        Implemented minimal response: local club UUID only. Authentication
-        does not imply club membership. No club name or private data is sent.
+        Implemented session-linked response: local club UUID, name and slug
+        for an active linked member only. Authentication alone is insufficient;
+        this read never authorizes club settings writes or private member data.
       responses:
         '200':
-          description: Current installation's club ID
+          description: Current installation's ID, name and slug
           content:
             application/json:
               schema:
@@ -489,9 +490,11 @@ components:
     ClubReference:
       type: object
       additionalProperties: false
-      required: [id]
+      required: [id, name, slug]
       properties:
         id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        slug: { type: string, minLength: 3, maxLength: 60, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' }
     MemberReference:
       type: object
       additionalProperties: false

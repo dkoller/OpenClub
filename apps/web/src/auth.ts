@@ -1,7 +1,7 @@
 export type ClubAccess =
   | { state: 'signed-out' }
   | { state: 'not-member'; csrfToken: string }
-  | { state: 'ready'; csrfToken: string }
+  | { state: 'ready'; csrfToken: string; clubName: string }
   | { state: 'unavailable' }
 
 export async function loadClubAccess(request: typeof fetch = fetch): Promise<ClubAccess> {
@@ -18,7 +18,7 @@ export async function loadClubAccess(request: typeof fetch = fetch): Promise<Clu
     if (club.status !== 200) return { state: 'unavailable' }
     const clubDetails: unknown = await club.json()
     if (!isClub(clubDetails)) return { state: 'unavailable' }
-    return { state: 'ready', csrfToken: details.csrfToken }
+    return { state: 'ready', csrfToken: details.csrfToken, clubName: clubDetails.name }
   } catch {
     return { state: 'unavailable' }
   }
@@ -36,10 +36,14 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
-function isClub(value: unknown): value is { id: string } {
+function isClub(value: unknown): value is { id: string; name: string; slug: string } {
   return value !== null && typeof value === 'object'
     && 'id' in value && typeof value.id === 'string'
     && isUuid(value.id)
+    && 'name' in value && typeof value.name === 'string'
+    && value.name.trim().length > 0 && value.name.length <= 200
+    && 'slug' in value && typeof value.slug === 'string'
+    && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(value.slug)
 }
 
 export async function signOut(csrfToken: string, request: typeof fetch = fetch): Promise<boolean> {
