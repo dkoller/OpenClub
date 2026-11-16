@@ -5,6 +5,7 @@ import { PublicMembers } from './PublicMembers'
 import { MemberAdmin } from './MemberAdmin'
 import { TeamDirectory } from './TeamDirectory'
 import { GrantAdmin } from './GrantAdmin'
+import { ClubSettings } from './ClubSettings'
 
 const translations = {
   de: { heading: 'Willkommen bei OpenClub', intro: 'Eine Installation für einen Verein.', loading: 'Anmeldung wird geprüft…', signedOut: 'Bitte anmelden.', notMember: 'Für dieses Konto besteht noch keine Vereinsmitgliedschaft.', ready: 'Angemeldet und für diesen Verein berechtigt.', unavailable: 'Dienst momentan nicht verfügbar.', retry: 'Erneut versuchen', login: 'Anmelden', logout: 'Abmelden', loggingOut: 'Abmeldung läuft…', error: 'Abmelden fehlgeschlagen.', language: 'Sprache' },
@@ -66,6 +67,9 @@ export function App() {
       <h1>{words.heading}</h1>
       <p>{words.intro}</p>
       {access?.state === 'ready' && <h2>{access.clubName}</h2>}
+      {access?.state === 'ready' && <ClubSettings key={access.csrfToken} language={language}
+        name={access.clubName} csrfToken={access.csrfToken}
+        onChanged={name => setAccess(current => current?.state === 'ready' ? { ...current, clubName: name } : current)} />}
       <PublicMembers language={language} revision={directoryRevision} />
       {access?.state === 'ready' && <GrantAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <TeamDirectory language={language} csrfToken={access.csrfToken} />}

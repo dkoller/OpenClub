@@ -48,6 +48,40 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '503':
           $ref: '#/components/responses/Unavailable'
+    patch:
+      tags: [Club]
+      operationId: updateMyClubName
+      summary: Update only the singleton club name (synthetic M1)
+      description: >
+        A verified, active, identity-bound ADMIN with an explicit current
+        MANAGE_PERMISSIONS club grant may update the name only. Exact Origin and
+        session CSRF token required. No slug, age or gender-policy writes.
+      parameters:
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        '204':
+          description: Club name changed
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /v1/public/members:
     get:
       tags: [Members]

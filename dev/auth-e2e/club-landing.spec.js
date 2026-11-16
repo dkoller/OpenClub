@@ -80,10 +80,16 @@ test('verified login gains club access only after restricted operator bootstrap'
   });
 
   await page.reload();
-  await expect(page.getByRole('status')).toHaveText(
-    'Signed in and authorized for this club.',
-  );
+  await expect(page.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Synthetic Browser Club' })).toBeVisible();
+  const clubSettings = page.getByRole('region', { name: 'Edit club name' });
+  await clubSettings.getByRole('textbox', { name: 'Club name' }).fill('Synthetic Updated Club');
+  await clubSettings.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('heading', { name: 'Synthetic Updated Club' })).toBeVisible();
+  const updatedClub = await context.request.get('/api/v1/club');
+  expect(updatedClub.status()).toBe(200);
+  expect((await updatedClub.json()).name).toBe('Synthetic Updated Club');
+
   // The public directory renders the synthetic adult name, even after logout.
   await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
   const publicNames = await context.request.get('/api/v1/public/members');
