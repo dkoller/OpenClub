@@ -18,7 +18,9 @@ export function PublicMembers({ language, revision = 0 }: { language: Language; 
 
   useEffect(() => {
     const controller = new AbortController()
-    fetch('/api/v1/public/members', { signal: controller.signal, credentials: 'omit' })
+    setNames(null)
+    setError(false)
+    fetch('/api/v1/public/members', { signal: controller.signal, credentials: 'omit', cache: 'no-store' })
       .then(async response => {
         if (!response.ok) throw new Error('Member directory unavailable')
         const value: unknown = await response.json()
