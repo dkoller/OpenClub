@@ -17,6 +17,24 @@ The **only** permitted use of `--insecure` above is against Rauthy's explicitly 
 
 Rauthy publishes its discovery document at the **origin root**, but advertises a path-qualified issuer (in local evaluation, `https://localhost:8443/auth/v1/`). OpenClub's OIDC discovery now tries the issuer-relative URL first and, **only on an HTTP 404**, tries the issuer's root-origin discovery URL. Metadata still must match the configured issuer exactly, and endpoints/RS256/JWKS remain pinned. The discovery endpoint exposes the issuer, endpoints, supported signing algorithms and JWKS. It does not establish that an OpenClub confidential client exists, or that an ID token will use RS256.
 
+## Disposable confidential-client bootstrap
+
+The optional evaluation overlay now mounts `dev/rauthy/bootstrap/clients.json` **read-only**.
+On first start with an empty Rauthy evaluation database it provisions a synthetic
+`openclub-rauthy-ci` client, using an **internally generated secret**, exact
+`http://localhost:5173/api/v1/auth/callback` redirect, authorization-code flow,
+S256 challenge and **RS256** ID tokens. This is a local test client only; the
+callback uses HTTP solely because the development web server is loopback-only.
+
+In the disposable GitHub Compose test, the Rauthy CLI retrieves the generated
+client secret *inside the running container*, checks its length without
+printing or archiving it, and continues to validate RSA JWKS/discovery.
+The bootstrap client is created on **first initialization only**; changing its
+JSON later does not update an existing Rauthy volume. A successful bootstrap
+is **not** a proven browser login, MFA/passkey flow or usable OpenClub session.
+Rauthy's independent provider credentials and database remain isolated from
+Keycloak. Do not copy this synthetic client or configuration to production.
+
 ## OpenClub OIDC compatibility checklist
 
 OpenClub's existing runtime requires one exact verified issuer, a confidential `client_secret_basic` client, HTTPS (unless explicitly isolated loopback development), exact redirect URI, S256 PKCE, same-origin authorization/token/JWKS endpoints, and **RS256** ID tokens. Rauthy normally defaults new clients to EdDSA; configure **RS256** on the specific OpenClub OIDC client, retain PKCE S256, and verify that a signed login token passes the real Kotlin verifier. Never widen validation or match an account by email to make a provider switch work.
