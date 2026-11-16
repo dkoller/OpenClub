@@ -53,6 +53,8 @@ session**. Those remain acceptance criteria in [#279](https://github.com/dkoller
 
 ## Real HTTPS browser acceptance (additional provider, not a replacement)
 
+Rauthy 0.36.1 advertises a non-BCP47 `zhhans` UI locale by default, which the strict Nimbus OIDC parser correctly rejects. The **local evaluation fixture only** filters advertised common locales to `en de fr`; the Kotlin OIDC verifier and metadata validation remain unchanged. A future Rauthy upgrade should recheck the corrected upstream locale handling.
+
 The optional `.github/workflows/rauthy-e2e.yml` starts the **real** Rauthy
 identity provider and a disposable PostgreSQL database on a GitHub runner,
 then starts Kotlin/Ktor in its normal **production HTTPS-only auth mode**
