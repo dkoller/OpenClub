@@ -334,9 +334,28 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
 
   const permissionAdmin = page.getByRole('region', { name: 'Manage permissions' });
+  // Superseded permission-member lookups must not replace newer selection/grants.
+  let notifySlowGrant;
+  const slowGrantStarted = new Promise(resolve => { notifySlowGrant = resolve; });
+  await page.route('**/api/v1/members?**', async route => {
+    if (new URL(route.request().url()).searchParams.get('q') !== 'Slow') {
+      await route.continue();
+      return;
+    }
+    notifySlowGrant();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await route.continue().catch(() => {});
+  });
+  const canceledGrantSearch = page.waitForEvent('requestfailed',
+    request => new URL(request.url()).searchParams.get('q') === 'Slow');
+  await permissionAdmin.getByLabel('Find member').fill('Slow');
+  await permissionAdmin.getByRole('button', { name: 'Search' }).click();
+  await slowGrantStarted;
   await permissionAdmin.getByLabel('Find member').fill('Mara');
   await permissionAdmin.getByRole('button', { name: 'Search' }).click();
+  await canceledGrantSearch;
   await expect(permissionAdmin.getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
+  await page.unroute('**/api/v1/members?**');
   await permissionAdmin.getByLabel('Capability').selectOption('VIEW_TEAMS');
   await permissionAdmin.getByRole('button', { name: 'Grant' }).click();
   await expect(permissionAdmin.getByRole('listitem').filter({ hasText: 'VIEW_TEAMS' })).toBeVisible();
