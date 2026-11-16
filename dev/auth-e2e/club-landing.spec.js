@@ -137,6 +137,9 @@ test('verified login gains club access only after restricted operator bootstrap'
   expect(JSON.stringify(await memberNames.json())).not.toContain('Synthetic test value');
   const memberAdmin = page.getByRole('region', { name: 'Manage members' });
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toBeVisible();
+  await clubSettings.getByLabel('Require gender for players').check();
+  await clubSettings.getByRole('button', { name: 'Save policy' }).click();
+  await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).genderRequiredForPlayers).toBe(true);
 
   const roleAdmin = page.getByRole('region', { name: 'Manage club roles' });
   await roleAdmin.getByLabel('Find member').fill('Mara');
