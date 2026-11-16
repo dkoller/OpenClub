@@ -1,0 +1,151 @@
+name: Rauthy browser authentication
+on:
+  pull_request:
+    paths:
+      - 'apps/api/src/main/**'
+      - 'apps/web/src/**'
+      - 'dev/rauthy/**'
+      - 'dev/auth-e2e/rauthy-*'
+      - 'compose.rauthy.eval.yaml'
+      - '.github/workflows/rauthy-e2e.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/src/main/**'
+      - 'apps/web/src/**'
+      - 'dev/rauthy/**'
+      - 'dev/auth-e2e/rauthy-*'
+      - 'compose.rauthy.eval.yaml'
+      - '.github/workflows/rauthy-e2e.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rauthy-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      COMPOSE_PROJECT_NAME: openclub-rauthy-browser
+      DB_URL: jdbc:postgresql://localhost:5432/openclub
+      DB_USER: openclub
+      DB_PASSWORD: openclub_dev
+      OPENCLUB_AUTH_MODE: production
+      OPENCLUB_PUBLIC_ORIGIN: https://localhost:5443
+      OPENCLUB_OIDC_ISSUER: https://localhost:8443/auth/v1/
+      OPENCLUB_OIDC_AUTHORIZATION_ENDPOINT: https://localhost:8443/auth/v1/oidc/authorize
+      OPENCLUB_OIDC_CLIENT_ID: openclub-rauthy-https-ci
+      OPENCLUB_OIDC_REDIRECT_URI: https://localhost:5443/api/v1/auth/callback
+      PORT: '8080'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.24.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Start disposable PostgreSQL and Rauthy
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f compose.yaml -f compose.rauthy.eval.yaml up -d postgres rauthy
+          ready=false
+          for attempt in {1..60}; do
+            if curl --fail --silent --insecure --max-time 3 \
+              https://localhost:8443/.well-known/openid-configuration -o /dev/null 2>/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          [[ "$ready" == true ]] || { echo 'Disposable Rauthy not ready' >&2; exit 1; }
+      - name: Trust only the disposable Rauthy HTTPS certificate for the JVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The application TLS client is not insecure: import only this
+          # generated loopback certificate into a fresh throwaway truststore.
+          openssl s_client -connect localhost:8443 -servername localhost </dev/null 2>/dev/null |
+            openssl x509 -out "$RUNNER_TEMP/rauthy-local.pem"
+          keytool -importcert -noprompt -alias rauthy-local -file "$RUNNER_TEMP/rauthy-local.pem" \
+            -keystore "$RUNNER_TEMP/rauthy-local.p12" -storepass disposable-local-truststore
+          echo "JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStore=$RUNNER_TEMP/rauthy-local.p12 -Djavax.net.ssl.trustStorePassword=disposable-local-truststore" >> "$GITHUB_ENV"
+      - name: Obtain synthetic confidential client and user credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          overlay=(docker compose -f compose.yaml -f compose.rauthy.eval.yaml)
+          client_secret="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+            -c /app/config-local-test.toml --kind client --id openclub-rauthy-https-ci --field secret --format raw)"
+          user_password="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+            -c /app/config-local-test.toml --kind user --id openclub-rauthy-ci@example.invalid --field password --format raw)"
+          [[ "${#client_secret}" -ge 32 && "${#user_password}" -ge 16 ]] ||
+            { echo 'Missing disposable OIDC credentials' >&2; exit 1; }
+          echo "::add-mask::$client_secret"
+          echo "::add-mask::$user_password"
+          echo "OPENCLUB_OIDC_CLIENT_SECRET=$client_secret" >> "$GITHUB_ENV"
+          echo "OPENCLUB_RAUTHY_E2E_USER_PASSWORD=$user_password" >> "$GITHUB_ENV"
+      - name: Build and start Ktor with real TLS-verified Rauthy OIDC
+        shell: bash
+        working-directory: apps/api
+        run: |
+          set -euo pipefail
+          ./gradlew installDist --no-daemon
+          nohup build/install/openclub-api/bin/openclub-api > "$RUNNER_TEMP/rauthy-api.log" 2>&1 &
+          for attempt in {1..60}; do
+            if curl -fsS --max-time 2 http://localhost:8080/health -o /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo 'Rauthy-configured Ktor app did not start' >&2
+          exit 1
+      - name: Start local HTTPS frontend reverse proxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/rauthy-caddyfile" <<'CADDY'
+          https://localhost:5443 {
+            tls internal
+            reverse_proxy 127.0.0.1:5173
+          }
+          CADDY
+          docker run -d --name openclub-rauthy-local-tls --network host \
+            -v "$RUNNER_TEMP/rauthy-caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.11.9-alpine
+      - name: Start real React web frontend
+        working-directory: apps/web
+        shell: bash
+        env:
+          API_PROXY_TARGET: http://127.0.0.1:8080
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+          nohup pnpm dev --host 127.0.0.1 > "$RUNNER_TEMP/rauthy-web.log" 2>&1 &
+          for attempt in {1..45}; do
+            if curl -kfsS --max-time 3 https://localhost:5443/api/health -o /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo 'Local HTTPS frontend not ready' >&2
+          exit 1
+      - name: Verify full Rauthy login and unauthorised club access in Chromium
+        working-directory: dev/auth-e2e
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          pnpm exec playwright test --config rauthy.playwright.config.js
+      # Never upload browser traces, storage states, API logs, certificates or
+      # Rauthy first-boot logs: they may contain authentication material.
+      - name: Clean up local HTTPS proxy and disposable identity stack
+        if: always()
+        shell: bash
+        run: |
+          docker rm -f openclub-rauthy-local-tls 2>/dev/null || true
+          docker compose -f compose.yaml -f compose.rauthy.eval.yaml down
