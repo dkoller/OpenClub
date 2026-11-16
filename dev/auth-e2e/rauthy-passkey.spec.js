@@ -37,7 +37,16 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     // before allowing registration. This is NOT the OpenClub password login.
     await page.getByPlaceholder('Current Password').fill(password);
     await page.getByRole('button', { name: 'Authenticate', exact: true }).click();
-    await page.getByRole('button', { name: 'Register New Passkey' }).click();
+    // The MFA authorization opens an account security dialog. Keep all
+    // subsequent actions inside that dialog rather than clicking behind it.
+    const dialog = page.locator('dialog[open]');
+    await expect(dialog).toBeVisible();
+    console.log('Rauthy passkey dialog buttons:', await dialog.getByRole('button').allTextContents());
+    console.log('Rauthy passkey dialog fields:', await dialog.locator('input').evaluateAll(
+      nodes => nodes.map(n => ({ type: n.type, placeholder: n.placeholder }))));
+    const nameField = dialog.locator('input[type="text"]');
+    if (await nameField.count() === 1) await nameField.fill('Synthetic virtual passkey');
+    await dialog.getByRole('button', { name: /register|create|save|confirm/i }).last().click();
     await expect.poll(async () => (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length)
       .toBeGreaterThan(0);
 
