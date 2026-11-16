@@ -57,11 +57,10 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     await page.getByRole('link', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/^https:\/\/localhost:8443\/auth\/v1\//);
 
-    await page.locator('input[type="email"]').fill('openclub-rauthy-ci@example.invalid');
-    await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
-    // Rauthy's Passkey button uses aria-label="Login" for accessibility,
-    // so its accessible name is NOT "Passkey". Match its visible text and
-    // wait for the email->password/passkey stage to settle before clicking.
+    // A resident (discoverable) passkey supports login without typing the
+    // E-Mail or entering a password. Other deployments may choose a
+    // nonresident key and use Rauthy's E-Mail-first flow instead.
+    // Its button uses aria-label="Login", so match visible text.
     const passkeyChoice = page.locator('button').filter({ hasText: /passkey/i });
     await expect(passkeyChoice).toBeVisible({ timeout: 10000 });
     await passkeyChoice.click();
