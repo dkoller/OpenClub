@@ -14,6 +14,8 @@ docker compose ps
 curl --fail http://localhost:5173/api/health
 ```
 
+**CI deployment proof (synthetic only):** The Compose smoke workflow now verifies `/api/ready` through nginx with PostgreSQL online, then stops the disposable database after normal OIDC checks and requires readiness 503 while liveness remains 200. This is an outage regression check, **not** evidence of production monitoring, external TLS, high availability, backups, or a real-club release.
+
 **Readiness vs liveness:** `/api/health` and `/health` intentionally return process liveness only. Use `curl --fail http://localhost:5173/api/ready` to verify the API can execute a PostgreSQL query (200 `{"status":"ready"}`; missing/disconnected DB returns 503 `{"status":"unavailable"}`). Readiness has no authenticated member information and uses `Cache-Control: no-store`. It does **not** prove Keycloak/OIDC availability, correct HTTPS configuration, backup recovery, or production readiness; verify those independently for M1/M2.
 
 The basic stack starts without authentication. OIDC is opt-in; without it there are **no member administration endpoints enabled**. To configure a local test OIDC provider, follow [Keycloak development setup](../development/keycloak-local.md). The nginx/Vite proxies preserve `/api` so Ktor routes remain reachable.
