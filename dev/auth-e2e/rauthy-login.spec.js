@@ -17,7 +17,7 @@ test('Rauthy password login creates a verified OpenClub session without club per
   await page.locator('input[type="password"]:visible').fill(password);
   await Promise.all([
     page.waitForURL('https://localhost:5443/'),
-    page.getByRole('button', { name: /login|log in|continue|sign in/i }).click(),
+    page.locator('form').getByRole('button', { name: 'Login', exact: true }).click(),
   ]);
 
   // A real Rauthy-signed ID token created an app session, but did NOT
