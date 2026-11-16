@@ -157,12 +157,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await memberAdminForAdult.getByLabel('Date of birth').fill('2015-01-01');
   await memberAdminForAdult.getByRole('button', { name: 'Add member' }).click();
   for (const locale of [
-    ['de', 'Mitglieder verwalten', 'Archivieren', 'Mitglied wirklich archivieren?', 'Abbrechen'],
-    ['fr', 'Gérer les membres', 'Archiver', 'Archiver ce membre ?', 'Annuler'],
-    ['it', 'Gestisci membri', 'Archivia', 'Archiviare questo membro?', 'Annulla'],
-    ['en', 'Manage members', 'Archive', 'Archive this member?', 'Cancel'],
+    ['de', 'Mitglieder verwalten', 'Archivieren', 'Mitglied wirklich archivieren?', 'Abbrechen', 'Für Erwachsene sind E-Mail und Telefonnummer erforderlich; für Minderjährige sind beide freiwillig.'],
+    ['fr', 'Gérer les membres', 'Archiver', 'Archiver ce membre ?', 'Annuler', 'Pour les adultes, l’e-mail et le téléphone sont obligatoires ; les deux sont facultatifs pour les mineurs.'],
+    ['it', 'Gestisci membri', 'Archivia', 'Archiviare questo membro?', 'Annulla', 'Per gli adulti sono obbligatori sia l’email sia il telefono; per i minorenni sono facoltativi.'],
+    ['en', 'Manage members', 'Archive', 'Archive this member?', 'Cancel', 'Adults must provide both email and phone; both are optional for minors.'],
   ]) {
     await page.locator('#language').selectOption(locale[0]);
+    const form = page.getByRole('region', { name: locale[1] });
+    await expect(form.getByText(locale[5])).toBeVisible();
     const row = page.getByRole('region', { name: locale[1] })
       .getByRole('listitem').filter({ hasText: 'Locale Synthetic' });
     await expect(row).toBeVisible();

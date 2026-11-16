@@ -197,3 +197,7 @@ The inline archive-confirmation prompt and its Cancel/Confirm buttons now sit in
 ## Single-club metadata identity revocation (PR #233, synthetic M1)
 
 The private `GET /api/v1/club` lookup now requires an active linked local member **and a current verified OIDC identity row in the same SQL query**. A test-only still-valid synthetic session cannot retrieve the club's name, slug, ID or player-policy flag after identity revocation. Direct SQL and Ktor tests cover unverified linkage, normal access, revocation and generic no-store 403 denial. This complements the real session revocation boundary from #229–#230 and does not disclose new personal fields or constitute M2 approval.
+
+## Adult contact guidance in the member form (PR #235, synthetic M1)
+
+The member-create form now explains in DE/EN/FR/IT that both email and telephone are mandatory for **adults** and optional for **minors**. The same hint is associated with both inputs through `aria-describedby`, and a real Keycloak browser test checks the translated message. Because the installation's adult threshold is not exposed by the minimal club API, the UI does not guess age eligibility or mark both fields globally required; PostgreSQL remains the final authority for birthdate-dependent contact validation. The guidance uses no new personal fields or real member data and does not substitute for R03/M2 policy/consent sign-off.
