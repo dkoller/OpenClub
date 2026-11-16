@@ -3,7 +3,7 @@ info:
   title: OpenClub single-club management API — working draft
   version: 0.0.0-draft
   description: >
-    WORKING DRAFT for unfinished private-field, role, team and grant operations.
+    WORKING DRAFT: narrow synthetic M1 routes are implemented, but full private-field and real-data contracts remain unapproved.
     Anonymous GET /v1/public/members, authenticated GET /v1/club and the
     separately documented /v1/auth routes are implemented. The owner approved
     the minimum M1 technical member contract (#13) and public name policy (#12).
@@ -830,12 +830,39 @@ components:
         id: { type: string, format: uuid }
         name: { type: string, minLength: 1, maxLength: 200 }
         memberCount: { type: integer, minimum: 0 }
-    Grant:
-      description: >
-        Proposed DTO, not an approved API. Team-scoped grants currently
-        permit only VIEW_TEAMS or MANAGE_TEAMS; the database rejects other
-        team capabilities. A TEAM scope requires a real installation-local
-        teamId. No arbitrary team IDs, ADMIN promotion or account linking.
+    TeamPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Team' }
+    TeamName:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+    GrantView:
+      type: object
+      additionalProperties: false
+      required: [capability, scope]
+      properties:
+        capability:
+          type: string
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS]
+        scope: { type: string, enum: [CLUB, TEAM] }
+        teamId: { type: string, format: uuid }
+    GrantPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/GrantView' }
+    GrantMutation:
       type: object
       additionalProperties: false
       required: [memberId, capability, scope]
