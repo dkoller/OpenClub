@@ -82,6 +82,42 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '503':
           $ref: '#/components/responses/Unavailable'
+  /v1/club/player-gender-policy:
+    patch:
+      tags: [Club]
+      operationId: setPlayerGenderRequirement
+      summary: Configure requirement for player gender in synthetic M1
+      description: >
+        Verified active identity-bound ADMIN with explicit MANAGE_PERMISSIONS,
+        matching Origin and session CSRF. Only a boolean flag is accepted;
+        existing players missing gender block enabling this rule under the
+        database's serialized member/policy constraints. No gender values are
+        returned and this is not production privacy approval.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [genderRequiredForPlayers]
+              properties:
+                genderRequiredForPlayers: { type: boolean }
+      responses:
+        '204':
+          description: Policy updated
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /v1/public/members:
     get:
       tags: [Members]
