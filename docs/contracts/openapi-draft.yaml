@@ -3,7 +3,7 @@ info:
   title: OpenClub single-club management API — working draft
   version: 0.0.0-draft
   description: >
-    WORKING DRAFT for unfinished private-field, role, team and grant operations.
+    WORKING DRAFT: narrow synthetic M1 routes are implemented, but full private-field and real-data contracts remain unapproved.
     Anonymous GET /v1/public/members, authenticated GET /v1/club and the
     separately documented /v1/auth routes are implemented. The owner approved
     the minimum M1 technical member contract (#13) and public name policy (#12).
@@ -437,59 +437,111 @@ paths:
     get:
       tags: [Teams]
       operationId: listLocalTeams
-      summary: Proposed local team list (NOT IMPLEMENTED)
+      summary: Authorized team list (synthetic M1)
       description: >
-        Internal PostgreSQL teams and assignments exist, but no team routes
-        are registered. Future team reads require explicit VIEW_TEAMS or
-        MANAGE_TEAMS permission from a verified local session. Member counts
-        must not reveal unapproved personal data.
+        Verified active member with explicit club or exact-team VIEW_TEAMS or
+        MANAGE_TEAMS grant. Only authorized teams and aggregate member counts
+        are returned. No anonymous roster or member identifiers.
       responses:
         '200':
-          description: Teams in this installation's club; authorized callers only
+          description: Visible teams within the singleton club
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Team'
+              schema: { $ref: '#/components/schemas/TeamPage' }
         '401':
           $ref: '#/components/responses/Unauthenticated'
         '403':
           $ref: '#/components/responses/Forbidden'
-  /v1/teams/{teamId}/members:
-    get:
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    post:
       tags: [Teams]
-      operationId: listVisibleTeamMembers
-      summary: Proposed privacy-minimized exact-team roster (NOT IMPLEMENTED)
+      operationId: createLocalTeam
+      summary: Create a team (synthetic M1)
       description: >
-        A verified session alone gives no directory access. The internal
-        TeamMemberDirectory requires BOTH explicit club-wide
-        VIEW_MEMBER_DIRECTORY and exact-team VIEW_TEAMS/MANAGE_TEAMS
-        (or the equivalent club-wide team capability) on each page.
-        Only active members' local UUIDs and first/last names can be returned.
-        Unknown teams and team IDs outside the caller's scope must not reveal
-        rosters. Public pagination cursors would require authenticated
-        integrity, filter/scope binding and privacy review; internal After
-        tuples are not safe to publish. R03 approval of minors' name visibility
-        is required before exposing any endpoint.
+        Requires verified session, exact Origin, session CSRF and club-wide
+        MANAGE_TEAMS; a team-scoped grant cannot create a club team.
       parameters:
-        - name: teamId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-        - name: limit
-          in: query
-          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
-        - name: cursor
-          in: query
-          schema: { type: string, minLength: 1, maxLength: 512 }
-          description: Future opaque and authenticated cursor, never raw personal fields.
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeamName' }
       responses:
-        '200':
-          description: Authorized privacy-minimized roster page
+        '201':
+          description: Created team reference
+          headers:
+            Location:
+              schema: { type: string }
+              description: Relative team resource location
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/MemberPage' }
+              schema: { $ref: '#/components/schemas/MemberReference' }
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/teams/{teamId}:
+    parameters:
+      - name: teamId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Teams]
+      operationId: renameLocalTeam
+      summary: Rename a team (synthetic M1)
+      description: >
+        Club-wide MANAGE_TEAMS, exact Origin and session CSRF required.
+        Existing assignments remain attached to the same team ID.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeamName' }
+      responses:
+        '204':
+          description: Renamed
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [Teams]
+      operationId: deleteLocalTeam
+      summary: Confirmed restricted team removal (synthetic M1)
+      description: >
+        Club-wide MANAGE_TEAMS and exact Origin/CSRF required. Caller must
+        supply the current exact name. A name mismatch is rejected, and
+        populated/delegated teams are protected by the database service.
+        Do not use deletion for personal data erasure.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeamName' }
+      responses:
+        '204':
+          description: Eligible team removed
         '400':
           $ref: '#/components/responses/Invalid'
         '401':
@@ -500,30 +552,177 @@ paths:
           $ref: '#/components/responses/NotFound'
         '503':
           $ref: '#/components/responses/Unavailable'
-  /v1/permission-grants:
+  /v1/teams/{teamId}/members:
     get:
-      tags: [Permissions]
-      operationId: listLocalGrants
-      summary: Proposed authorized club/team capability grants (NOT IMPLEMENTED)
+      tags: [Teams]
+      operationId: listVisibleTeamMembers
+      summary: Authenticated exact-team private roster (synthetic M1)
       description: >
-        Internal team-specific VIEW_TEAMS and MANAGE_TEAMS grants exist in V4.
-        An internal transactional grant/revoke service exists, but no HTTP grant listing, delegation or revoke endpoint exists. Only
-        explicit permission-authorized ADMINs may eventually delegate, with
-        last-manager, self-escalation and capability-scope checks. Do not expose
-        the grant model before the authorization and privacy review.
+        Requires BOTH explicit club VIEW_MEMBER_DIRECTORY and exact-team
+        VIEW_TEAMS/MANAGE_TEAMS (or club-wide team capability).
+        Only active member UUIDs and first/last names are returned.
+        Opaque encrypted cursors are bound to account and exact team;
+        no DOB, contact, account link or gender is exposed.
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - name: cursor
+          in: query
+          schema: { type: string, minLength: 1, maxLength: 2048 }
+          description: Authenticated per-account, per-team cursor
       responses:
         '200':
-          description: Scoped grants; only authorized permission managers
+          description: Authorized, bounded roster page
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Grant'
+              schema: { $ref: '#/components/schemas/MemberPage' }
+        '400':
+          $ref: '#/components/responses/Invalid'
         '401':
           $ref: '#/components/responses/Unauthenticated'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/teams/{teamId}/members/{memberId}:
+    parameters:
+      - name: teamId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Teams]
+      operationId: assignLocalTeamMember
+      summary: Assign active member to team (synthetic M1)
+      description: >
+        Exact team or club MANAGE_TEAMS, verified session, exact Origin and
+        session CSRF. Duplicate/archived member assignments are rejected.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204':
+          description: Assignment created
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [Teams]
+      operationId: unassignLocalTeamMember
+      summary: Remove team assignment (synthetic M1)
+      description: >
+        Exact team or club MANAGE_TEAMS, verified session, exact Origin and
+        session CSRF; no member record is deleted.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204':
+          description: Assignment removed
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/grants:
+    get:
+      tags: [Permissions]
+      operationId: listLocalGrants
+      summary: Inspect member grants (synthetic M1)
+      description: >
+        A verified, linked ADMIN with explicit current club MANAGE_PERMISSIONS
+        may inspect club and exact-team capabilities for a given member ID.
+        The response contains no names, birth dates or contact details.
+      parameters:
+        - name: memberId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Current scoped capability grants
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GrantPage' }
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    post:
+      tags: [Permissions]
+      operationId: grantLocalCapability
+      summary: Delegate a capability (synthetic M1)
+      description: >
+        Verified ADMIN/MANAGE_PERMISSIONS and session Origin/CSRF required.
+        Serialized mutation prevents self-escalation, undelegable team scope
+        and last-manager lockout. Never accept a caller-supplied actor ID.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GrantMutation' }
+      responses:
+        '204':
+          description: Grant added or already present
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [Permissions]
+      operationId: revokeLocalCapability
+      summary: Revoke a capability (synthetic M1)
+      description: >
+        Same verified ADMIN, CSRF and serialized last-manager safeguards as
+        granting. A revocation is effective on the next protected read.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GrantMutation' }
+      responses:
+        '204':
+          description: Grant removed or already absent
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
 components:
   parameters:
     CsrfToken:
@@ -631,12 +830,39 @@ components:
         id: { type: string, format: uuid }
         name: { type: string, minLength: 1, maxLength: 200 }
         memberCount: { type: integer, minimum: 0 }
-    Grant:
-      description: >
-        Proposed DTO, not an approved API. Team-scoped grants currently
-        permit only VIEW_TEAMS or MANAGE_TEAMS; the database rejects other
-        team capabilities. A TEAM scope requires a real installation-local
-        teamId. No arbitrary team IDs, ADMIN promotion or account linking.
+    TeamPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Team' }
+    TeamName:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+    GrantView:
+      type: object
+      additionalProperties: false
+      required: [capability, scope]
+      properties:
+        capability:
+          type: string
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS]
+        scope: { type: string, enum: [CLUB, TEAM] }
+        teamId: { type: string, format: uuid }
+    GrantPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/GrantView' }
+    GrantMutation:
       type: object
       additionalProperties: false
       required: [memberId, capability, scope]
