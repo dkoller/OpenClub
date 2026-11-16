@@ -5,10 +5,10 @@ type Member = { id: string; firstName: string; lastName: string }
 type Page = { items: Member[]; nextCursor?: string }
 
 const words = {
-  de: { roster: 'Teammitglieder', search: 'Mitglied suchen', find: 'Suchen', add: 'Zuweisen', remove: 'Entfernen', empty: 'Keine Zuweisungen.', more: 'Weitere Mitglieder', error: 'Teamzuweisung fehlgeschlagen.', loading: 'Teammitglieder werden geladen…' },
-  en: { roster: 'Team members', search: 'Find member', find: 'Search', add: 'Assign', remove: 'Remove', empty: 'No assignments.', more: 'More members', error: 'Team assignment failed.', loading: 'Loading team members…' },
-  fr: { roster: 'Membres de l’équipe', search: 'Chercher un membre', find: 'Chercher', add: 'Affecter', remove: 'Retirer', empty: 'Aucune affectation.', more: 'Plus de membres', error: 'Affectation impossible.', loading: 'Chargement des membres…' },
-  it: { roster: 'Membri della squadra', search: 'Cerca membro', find: 'Cerca', add: 'Assegna', remove: 'Rimuovi', empty: 'Nessuna assegnazione.', more: 'Altri membri', error: 'Assegnazione non riuscita.', loading: 'Caricamento membri…' },
+  de: { roster: 'Teammitglieder', search: 'Mitglied suchen', find: 'Suchen', add: 'Zuweisen', remove: 'Entfernen', empty: 'Keine Zuweisungen.', more: 'Weitere Mitglieder', error: 'Teamzuweisung fehlgeschlagen.', retry: 'Erneut versuchen', loading: 'Teammitglieder werden geladen…' },
+  en: { roster: 'Team members', search: 'Find member', find: 'Search', add: 'Assign', remove: 'Remove', empty: 'No assignments.', more: 'More members', error: 'Team assignment failed.', retry: 'Try again', loading: 'Loading team members…' },
+  fr: { roster: 'Membres de l’équipe', search: 'Chercher un membre', find: 'Chercher', add: 'Affecter', remove: 'Retirer', empty: 'Aucune affectation.', more: 'Plus de membres', error: 'Affectation impossible.', retry: 'Réessayer', loading: 'Chargement des membres…' },
+  it: { roster: 'Membri della squadra', search: 'Cerca membro', find: 'Cerca', add: 'Assegna', remove: 'Rimuovi', empty: 'Nessuna assegnazione.', more: 'Altri membri', error: 'Assegnazione non riuscita.', retry: 'Riprova', loading: 'Caricamento membri…' },
 } satisfies Record<Language, Record<string, string>>
 
 export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
@@ -104,7 +104,9 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
   return (
     <div>
       <h3>{t.roster}</h3>
-      {error && <p role="alert">{t.error}</p>}
+      {error && <><p role="alert">{t.error}</p><button type="button" onClick={() => {
+        setError(false); setMembers(null); void load()
+      }}>{t.retry}</button></>}
       {members === null ? <p role="status">{t.loading}</p>
         : members.length === 0 ? <p>{t.empty}</p>
           : <ul>{members.map(member => <li key={member.id}>{member.firstName} {member.lastName}{' '}
