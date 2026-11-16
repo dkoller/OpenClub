@@ -28,6 +28,19 @@ jobs:
         run: python -m pip install openapi-spec-validator==0.7.2
       - name: Validate synthetic backup/restore rehearsal shell syntax
         run: bash -n dev/verify-synthetic-restore.sh
+      - name: Validate synthetic HTTPS/OIDC acceptance probe and refuse HTTP targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n dev/verify-synthetic-https-demo.sh
+          if OPENCLUB_DEMO_ORIGIN=http://localhost:5173              OPENCLUB_OIDC_ISSUER=http://localhost:8180/realms/openclub-dev              bash dev/verify-synthetic-https-demo.sh --synthetic-only; then
+            echo "::error::Demo probe accepted insecure HTTP targets" >&2
+            exit 1
+          fi
+          if OPENCLUB_DEMO_ORIGIN=https://example.com              OPENCLUB_OIDC_ISSUER=https://example.com/realms/openclub              bash dev/verify-synthetic-https-demo.sh; then
+            echo "::error::Demo probe accepted execution without explicit synthetic-only guard" >&2
+            exit 1
+          fi
       - name: Validate OpenAPI YAML contracts
         shell: bash
         run: |
