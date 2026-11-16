@@ -119,7 +119,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
                 <>{member.firstName} {member.lastName}{' '}
                   <button type="button" disabled={busy} onClick={() => setEditing(member)}>{t.edit}</button>
                   {confirmingArchive === member.id ? (
-                    <span>
+                    <span role="group" aria-label={`${t.confirmArchive} ${member.firstName} ${member.lastName}`}>
                       <span>{t.confirmArchive}</span>{' '}
                       <button type="button" disabled={busy} onClick={() => {
                         void mutation('/api/v1/members/' + member.id + '/archive', 'POST')
