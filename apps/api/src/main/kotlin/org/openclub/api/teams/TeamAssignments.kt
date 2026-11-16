@@ -5,8 +5,8 @@ import java.util.UUID
 
 /**
  * Internal team operations. actorAccountId must come from a verified session.
- * No HTTP route exists. Team grants allow scoped assignment mutations and
- * visibility; team creation/rename/deletion remain strictly club-wide.
+ * HTTP routes call this service with a session-derived actor. Team grants allow
+ * scoped assignment mutations and visibility; create/rename/delete require a club grant.
  */
 internal class TeamAssignments(private val database: DSLContext) {
     data class Team(val id: UUID, val name: String, val memberCount: Int)
