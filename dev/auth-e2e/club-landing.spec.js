@@ -356,6 +356,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await canceledGrantSearch;
   await expect(permissionAdmin.getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
   await page.unroute('**/api/v1/members?**');
+  await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
   await permissionAdmin.getByLabel('Capability').selectOption('VIEW_TEAMS');
   await permissionAdmin.getByRole('button', { name: 'Grant' }).click();
   await expect(permissionAdmin.getByRole('listitem').filter({ hasText: 'VIEW_TEAMS' })).toBeVisible();
