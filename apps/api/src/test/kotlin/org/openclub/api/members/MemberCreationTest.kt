@@ -45,6 +45,10 @@ class MemberCreationTest {
                 assertNull(creation.create(actorAccount, adult("Denied")))
                 assertNull(creation.create(outsiderAccount, adult("Denied")))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'EDIT_MEMBERS')", actor)
+                assertNull(creation.create(actorAccount, adult("Unverified")))
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), actorAccount, "member-create-" + actorAccount)
                 val first = requireNotNull(creation.create(actorAccount, adult("Alice")))
                 createdIds += first
                 assertNull(db.fetchValue(
@@ -81,6 +85,11 @@ class MemberCreationTest {
                 db.execute("DELETE FROM club_capability_grants WHERE member_id = ?", actor)
                 assertNull(creation.create(actorAccount, adult("Revoked")))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'EDIT_MEMBERS')", actor)
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", actorAccount)
+                assertNull(creation.create(actorAccount, adult("IdentityRevoked")))
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), actorAccount, "restored-" + actorAccount)
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", actor)
                 assertNull(creation.create(actorAccount, adult("Unlinked")))
                 assertEquals(createdIds.size, db.fetchValue(

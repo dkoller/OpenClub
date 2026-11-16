@@ -66,6 +66,9 @@ class MemberHttpRoutesTest {
                            'outsider@example.invalid', '+41000000000', 'MEMBER')""",
                         admin, account, outsider, otherAccount,
                     )
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), account, "member-http-" + account)
                     db.execute(
                         """INSERT INTO club_capability_grants (member_id, capability) VALUES
                            (?, 'VIEW_MEMBER_DIRECTORY'), (?, 'EDIT_MEMBERS')""",
@@ -218,6 +221,25 @@ class MemberHttpRoutesTest {
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/members") {
                     header(HttpHeaders.Cookie, auth("valid"))
                 }.status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("DELETE FROM account_identities WHERE account_id = ?", account)
+                    }
+                }
+                val identityRevokedCreate = client.post("/api/v1/members") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                    header(HttpHeaders.Origin, origin)
+                    header("X-CSRF-Token", csrf)
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"firstName":"Denied","lastName":"Unverified",
+                        "dateOfBirth":"2013-01-01"}""")
+                }
+                assertEquals(HttpStatusCode.Forbidden, identityRevokedCreate.status)
+                assertEquals(0, runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.fetchValue("SELECT COUNT(*) FROM members WHERE first_name = 'Denied'")?.toString()?.toInt()
+                    }
+                })
             }
         } finally {
             runBlocking {

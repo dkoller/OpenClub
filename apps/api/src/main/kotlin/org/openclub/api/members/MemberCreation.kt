@@ -5,9 +5,8 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Internal-only accountless member creation. The actor account ID must come
- * from a verified session, never the HTTP request. Do not expose this operation
- * until R03 field policies and the R04 write contract are approved.
+ * Accountless member creation from a verified browser-session account.
+ * The PostgreSQL write checks the live grant and identity in one statement.
  */
 internal class MemberCreation(private val database: DSLContext) {
     data class Input(
@@ -36,13 +35,14 @@ internal class MemberCreation(private val database: DSLContext) {
                WHERE EXISTS (
                    SELECT 1 FROM members actor
                    JOIN club_capability_grants g ON g.member_id = actor.id
-                   JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND g.capability = 'EDIT_MEMBERS'
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND g.capability = 'EDIT_MEMBERS'
+                     AND EXISTS (SELECT 1 FROM account_identities identity
+                                 WHERE identity.account_id = actor.account_id)
                )""",
             newId, firstName, lastName, birthDate,
             email, phone, gender, input.isPlayer, actorAccountId,
         )
         return if (created == 1) newId else null
     }
-
 }
