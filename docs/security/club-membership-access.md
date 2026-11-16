@@ -165,3 +165,7 @@ The disposable Keycloak/Chromium administrator journey now asserts that an adult
 ## Synthetic accountless creation: identity revocation boundary (PR #216)
 
 The member-create INSERT now checks the current linked, unarchived actor, explicit `EDIT_MEMBERS` club grant **and a current verified OIDC identity association in the same SQL statement**. This closes a gap where a database caller with a stale grant and account binding could bypass the verified-identity condition that already protects privileged role/grant changes. Removing the identity association immediately prevents new member records even if a synthetic session handle remains valid; the Ktor route still applies exact Origin and session CSRF checks. PostgreSQL and route-level denial tests cover missing and revoked identity. No new personal fields or data disclosures, and M2 privacy/production approval remains separate.
+
+## Member archive confirmation in synthetic browser (PR #217)
+
+The DE/EN/FR/IT member-management form now uses a two-step, member-specific archive confirmation. Opening the confirmation does not call the backend; Cancel leaves the member active and visible, while Confirm archives only the selected member via the existing session/CSRF-guarded route. The Keycloak/Chromium acceptance test exercises both paths. This usability safeguard does **not** replace the server's account-link/role/grant checks, nor does archive equal GDPR erasure; retention and M2 privacy approvals remain open.
