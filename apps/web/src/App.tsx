@@ -4,6 +4,7 @@ import { readPreferredLanguage, type Language } from './language'
 import { PublicMembers } from './PublicMembers'
 import { MemberAdmin } from './MemberAdmin'
 import { TeamDirectory } from './TeamDirectory'
+import { GrantAdmin } from './GrantAdmin'
 
 const translations = {
   de: { heading: 'Willkommen bei OpenClub', intro: 'Eine Installation für einen Verein.', loading: 'Anmeldung wird geprüft…', signedOut: 'Bitte anmelden.', notMember: 'Für dieses Konto besteht noch keine Vereinsmitgliedschaft.', ready: 'Angemeldet und für diesen Verein berechtigt.', unavailable: 'Dienst momentan nicht verfügbar.', retry: 'Erneut versuchen', login: 'Anmelden', logout: 'Abmelden', loggingOut: 'Abmeldung läuft…', error: 'Abmelden fehlgeschlagen.', language: 'Sprache' },
@@ -65,6 +66,7 @@ export function App() {
       <h1>{words.heading}</h1>
       <p>{words.intro}</p>
       <PublicMembers language={language} revision={directoryRevision} />
+      {access?.state === 'ready' && <GrantAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <TeamDirectory language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <MemberAdmin language={language} csrfToken={access.csrfToken} onChanged={() => setDirectoryRevision(value => value + 1)} /> }
       <p role="status">{message}</p>
