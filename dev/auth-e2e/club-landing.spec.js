@@ -162,6 +162,15 @@ test('verified login gains club access only after restricted operator bootstrap'
   await searchForm.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(searchForm.getByRole('alert')).toContainText('Member management unavailable.');
   await expect(searchForm.getByText('Loading members…')).toHaveCount(0);
+  for (const locale of [
+    { code: 'de', heading: 'Mitglieder verwalten', error: 'Mitgliederverwaltung nicht verfügbar.' },
+    { code: 'fr', heading: 'Gérer les membres', error: 'Gestion des membres indisponible.' },
+    { code: 'it', heading: 'Gestisci membri', error: 'Gestione membri non disponibile.' },
+    { code: 'en', heading: 'Manage members', error: 'Member management unavailable.' },
+  ]) {
+    await page.locator('#language').selectOption(locale.code);
+    await expect(page.getByRole('region', { name: locale.heading }).getByRole('alert')).toContainText(locale.error);
+  }
   await searchForm.getByRole('button', { name: 'Try again' }).click();
   await expect(searchForm.getByText('No members found.')).toBeVisible();
   await searchForm.getByLabel('Search names').fill('');

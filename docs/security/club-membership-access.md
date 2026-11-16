@@ -245,3 +245,7 @@ The club player-gender policy editor retains a semantic conflict/failure code ra
 ## Localized transient player-policy failure (synthetic M1)
 
 Disposable Keycloak/Chromium acceptance also injects a transient server failure on the existing policy-save endpoint, switches among all four UI languages and verifies that the generic error follows the selected language. Retrying after recovery clears the error. This does not change policy authorization, server enforcement or M2 approval.
+
+## Member directory error localization after language switching (synthetic M1)
+
+Member directory failure messages now store a semantic error state and render in the currently selected DE/FR/IT/EN language, rather than retaining the language used when a request failed. The real disposable Keycloak/Chromium journey fails a synthetic member search, switches all four languages, verifies the localized error and retries successfully. No raw error data, private member field or access-control rule changes.
