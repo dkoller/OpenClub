@@ -75,7 +75,9 @@ export function App() {
       {access?.state === 'ready' && <GrantAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <RoleAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <TeamDirectory language={language} csrfToken={access.csrfToken} />}
-      {access?.state === 'ready' && <MemberAdmin language={language} csrfToken={access.csrfToken} onChanged={() => setDirectoryRevision(value => value + 1)} /> }
+      {access?.state === 'ready' && <MemberAdmin language={language} csrfToken={access.csrfToken}
+        genderRequiredForPlayers={access.genderRequiredForPlayers}
+        onChanged={() => setDirectoryRevision(value => value + 1)} /> }
       <p role="status">{message}</p>
       {access?.state === 'signed-out' && <a href="/api/v1/auth/login">{words.login}</a>}
       {access?.state === 'unavailable' && <button type="button" onClick={() => { void retryAccess() }}>{words.retry}</button>}

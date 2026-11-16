@@ -32,12 +32,12 @@ paths:
       operationId: readMyClub
       summary: Read the single installation club after authorized login
       description: >
-        Implemented session-linked response: local club UUID, name and slug
-        for an active linked member only. Authentication alone is insufficient;
+        Implemented session-linked response: local club UUID, name, slug and
+        genderRequiredForPlayers boolean for an active linked member only. Authentication alone is insufficient;
         this read never authorizes club settings writes or private member data.
       responses:
         '200':
-          description: Current installation's ID, name and slug
+          description: Current installation's ID, name, slug and player-gender requirement
           content:
             application/json:
               schema:
@@ -745,11 +745,12 @@ components:
     ClubReference:
       type: object
       additionalProperties: false
-      required: [id, name, slug]
+      required: [id, name, slug, genderRequiredForPlayers]
       properties:
         id: { type: string, format: uuid }
         name: { type: string, minLength: 1, maxLength: 200 }
         slug: { type: string, minLength: 3, maxLength: 60, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' }
+        genderRequiredForPlayers: { type: boolean }
     MemberReference:
       type: object
       additionalProperties: false

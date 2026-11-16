@@ -5,13 +5,15 @@ type Member = { id: string; firstName: string; lastName: string }
 type Page = { items: Member[]; nextCursor?: string }
 
 const strings = {
-  de: { heading: 'Mitglieder verwalten', search: 'Name suchen', find: 'Suchen', loading: 'Mitglieder werden geladen…', denied: 'Keine Berechtigung zur Mitgliederverwaltung.', unavailable: 'Mitgliederverwaltung nicht verfügbar.', retry: 'Erneut versuchen', first: 'Vorname', last: 'Nachname', dob: 'Geburtsdatum', email: 'E-Mail', phone: 'Telefon', create: 'Mitglied hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', archive: 'Archivieren', more: 'Weitere Mitglieder', saved: 'Mitglied aktualisiert.', empty: 'Keine Mitglieder gefunden.', problem: 'Aktion fehlgeschlagen.' },
-  en: { heading: 'Manage members', search: 'Search names', find: 'Search', loading: 'Loading members…', denied: 'No permission to manage members.', unavailable: 'Member management unavailable.', retry: 'Try again', first: 'First name', last: 'Last name', dob: 'Date of birth', email: 'Email', phone: 'Phone', create: 'Add member', edit: 'Edit', save: 'Save', cancel: 'Cancel', archive: 'Archive', more: 'More members', saved: 'Member updated.', empty: 'No members found.', problem: 'Action failed.' },
-  fr: { heading: 'Gérer les membres', search: 'Rechercher un nom', find: 'Rechercher', loading: 'Chargement des membres…', denied: 'Accès à la gestion des membres refusé.', unavailable: 'Gestion des membres indisponible.', retry: 'Réessayer', first: 'Prénom', last: 'Nom', dob: 'Date de naissance', email: 'E-mail', phone: 'Téléphone', create: 'Ajouter un membre', edit: 'Modifier', save: 'Enregistrer', cancel: 'Annuler', archive: 'Archiver', more: 'Plus de membres', saved: 'Membre mis à jour.', empty: 'Aucun membre trouvé.', problem: 'Action échouée.' },
-  it: { heading: 'Gestisci membri', search: 'Cerca nomi', find: 'Cerca', loading: 'Caricamento membri…', denied: 'Nessun permesso di gestione membri.', unavailable: 'Gestione membri non disponibile.', retry: 'Riprova', first: 'Nome', last: 'Cognome', dob: 'Data di nascita', email: 'Email', phone: 'Telefono', create: 'Aggiungi membro', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', archive: 'Archivia', more: 'Altri membri', saved: 'Membro aggiornato.', empty: 'Nessun membro trovato.', problem: 'Operazione non riuscita.' },
+  de: { heading: 'Mitglieder verwalten', search: 'Name suchen', find: 'Suchen', loading: 'Mitglieder werden geladen…', denied: 'Keine Berechtigung zur Mitgliederverwaltung.', unavailable: 'Mitgliederverwaltung nicht verfügbar.', retry: 'Erneut versuchen', first: 'Vorname', last: 'Nachname', dob: 'Geburtsdatum', email: 'E-Mail', phone: 'Telefon', create: 'Mitglied hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', archive: 'Archivieren', more: 'Weitere Mitglieder', saved: 'Mitglied aktualisiert.', empty: 'Keine Mitglieder gefunden.', problem: 'Aktion fehlgeschlagen.', player: 'Spieler', gender: 'Geschlecht (Freitext)', policy: 'Für Spieler in diesem Verein erforderlich.' },
+  en: { heading: 'Manage members', search: 'Search names', find: 'Search', loading: 'Loading members…', denied: 'No permission to manage members.', unavailable: 'Member management unavailable.', retry: 'Try again', first: 'First name', last: 'Last name', dob: 'Date of birth', email: 'Email', phone: 'Phone', create: 'Add member', edit: 'Edit', save: 'Save', cancel: 'Cancel', archive: 'Archive', more: 'More members', saved: 'Member updated.', empty: 'No members found.', problem: 'Action failed.', player: 'Player', gender: 'Gender (free text)', policy: 'Required for players in this club.' },
+  fr: { heading: 'Gérer les membres', search: 'Rechercher un nom', find: 'Rechercher', loading: 'Chargement des membres…', denied: 'Accès à la gestion des membres refusé.', unavailable: 'Gestion des membres indisponible.', retry: 'Réessayer', first: 'Prénom', last: 'Nom', dob: 'Date de naissance', email: 'E-mail', phone: 'Téléphone', create: 'Ajouter un membre', edit: 'Modifier', save: 'Enregistrer', cancel: 'Annuler', archive: 'Archiver', more: 'Plus de membres', saved: 'Membre mis à jour.', empty: 'Aucun membre trouvé.', problem: 'Action échouée.', player: 'Joueur', gender: 'Genre (texte libre)', policy: 'Obligatoire pour les joueurs de ce club.' },
+  it: { heading: 'Gestisci membri', search: 'Cerca nomi', find: 'Cerca', loading: 'Caricamento membri…', denied: 'Nessun permesso di gestione membri.', unavailable: 'Gestione membri non disponibile.', retry: 'Riprova', first: 'Nome', last: 'Cognome', dob: 'Data di nascita', email: 'Email', phone: 'Telefono', create: 'Aggiungi membro', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', archive: 'Archivia', more: 'Altri membri', saved: 'Membro aggiornato.', empty: 'Nessun membro trovato.', problem: 'Operazione non riuscita.', player: 'Giocatore', gender: 'Genere (testo libero)', policy: 'Obbligatorio per i giocatori di questo club.' },
 } satisfies Record<Language, Record<string, string>>
 
-export function MemberAdmin({ language, csrfToken, onChanged }: { language: Language; csrfToken: string; onChanged: () => void }) {
+export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForPlayers }: {
+  language: Language; csrfToken: string; onChanged: () => void; genderRequiredForPlayers: boolean
+}) {
   const t = strings[language]
   const [items, setItems] = useState<Member[] | null>(null)
   const [cursor, setCursor] = useState<string | undefined>()
@@ -26,6 +28,8 @@ export function MemberAdmin({ language, csrfToken, onChanged }: { language: Lang
   const [dob, setDob] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [isPlayer, setIsPlayer] = useState(false)
+  const [gender, setGender] = useState('')
 
   const load = useCallback(async (q: string, next?: string) => {
     try {
@@ -65,7 +69,7 @@ export function MemberAdmin({ language, csrfToken, onChanged }: { language: Lang
       onChanged()
       setFailure('')
       if (method === 'POST' && path === '/api/v1/members') {
-        setFirst(''); setLast(''); setDob(''); setEmail(''); setPhone('')
+        setFirst(''); setLast(''); setDob(''); setEmail(''); setPhone(''); setIsPlayer(false); setGender('')
       }
     } catch {
       setFailure(t.problem)
@@ -126,6 +130,7 @@ export function MemberAdmin({ language, csrfToken, onChanged }: { language: Lang
         void mutation('/api/v1/members', 'POST', {
           firstName: first, lastName: last, dateOfBirth: dob,
           ...(email ? { email } : {}), ...(phone ? { phone } : {}),
+          isPlayer, ...(isPlayer && gender.trim() ? { gender: gender.trim() } : {}),
         })
       }}>
         <label>{t.first}<input value={first} required maxLength={200} onChange={e => setFirst(e.target.value)} /></label>
@@ -133,6 +138,13 @@ export function MemberAdmin({ language, csrfToken, onChanged }: { language: Lang
         <label>{t.dob}<input type="date" value={dob} required onChange={e => setDob(e.target.value)} /></label>
         <label>{t.email}<input type="email" value={email} onChange={e => setEmail(e.target.value)} /></label>
         <label>{t.phone}<input type="tel" value={phone} onChange={e => setPhone(e.target.value)} /></label>
+        <label>{t.player}<input type="checkbox" checked={isPlayer}
+          onChange={e => { setIsPlayer(e.target.checked); if (!e.target.checked) setGender('') }} /></label>
+        {isPlayer && <label>{t.gender}
+          <input value={gender} maxLength={200} required={genderRequiredForPlayers}
+            onChange={e => setGender(e.target.value)} />
+          {genderRequiredForPlayers && <span>{t.policy}</span>}
+        </label>}
         <button type="submit" disabled={busy}>{t.create}</button>
       </form>
     </section>

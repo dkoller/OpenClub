@@ -40,6 +40,7 @@ class MemberHttpRoutesTest {
         val admin = UUID.randomUUID()
         val outsider = UUID.randomUUID()
         var created: UUID? = null
+        var createdPlayer: UUID? = null
         val sessions = object : BrowserSessionOperations {
             override suspend fun read(handle: String?): ActiveSession? = when (handle) {
                 "valid" -> ActiveSession(account, csrf)
@@ -105,6 +106,43 @@ class MemberHttpRoutesTest {
                     setBody("""{"firstName":"Nina","lastName":"Example"}""")
                 }
                 assertEquals(HttpStatusCode.BadRequest, invalidBody.status)
+
+                // A club may require player gender, while the same field stays optional
+                // for non-players and is never returned by the name-only directory.
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("UPDATE clubs SET gender_required_for_players = TRUE WHERE id = ?", club)
+                    }
+                }
+                suspend fun addPlayer(body: String) = client.post("/api/v1/members") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                    header(HttpHeaders.Origin, origin)
+                    header("X-CSRF-Token", csrf)
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody(body)
+                }
+                assertEquals(HttpStatusCode.BadRequest, addPlayer(
+                    """{"firstName":"Faye","lastName":"Synthetic","dateOfBirth":"2014-01-01","isPlayer":true}"""
+                ).status)
+                val playerCreated = addPlayer(
+                    """{"firstName":"Faye","lastName":"Synthetic","dateOfBirth":"2014-01-01",
+                       "isPlayer":true,"gender":"Synthetic test value"}"""
+                )
+                assertEquals(HttpStatusCode.Created, playerCreated.status)
+                createdPlayer = UUID.fromString(Json.parseToJsonElement(playerCreated.bodyAsText())
+                    .jsonObject.getValue("id").jsonPrimitive.content)
+                val playerList = client.get("/api/v1/members?q=Faye") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                }
+                assertEquals(HttpStatusCode.OK, playerList.status)
+                assertFalse(playerList.bodyAsText().contains("Synthetic test value"))
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        assertEquals(true, db.fetchOne("SELECT is_player FROM members WHERE id = ?",
+                            createdPlayer)?.get(0, Boolean::class.java))
+                        db.execute("UPDATE clubs SET gender_required_for_players = FALSE WHERE id = ?", club)
+                    }
+                }
 
                 val create = client.post("/api/v1/members") {
                     header(HttpHeaders.Cookie, auth("valid"))
@@ -185,6 +223,7 @@ class MemberHttpRoutesTest {
             runBlocking {
                 database.onDatabaseThread { db ->
                     created?.let { db.execute("DELETE FROM members WHERE id = ?", it) }
+                    createdPlayer?.let { db.execute("DELETE FROM members WHERE id = ?", it) }
                     db.execute("DELETE FROM members WHERE id IN (?, ?)", admin, outsider)
                     db.execute("DELETE FROM accounts WHERE id IN (?, ?)", account, otherAccount)
                     db.execute("DELETE FROM clubs WHERE id = ?", club)

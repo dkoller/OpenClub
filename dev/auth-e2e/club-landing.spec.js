@@ -129,7 +129,12 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.getByLabel('First name').fill('Mara');
   await page.getByLabel('Last name').fill('Demo');
   await page.getByLabel('Date of birth').fill('2015-01-01');
+  await page.getByLabel('Player', { exact: true }).check();
+  await page.getByLabel('Gender (free text)').fill('Synthetic test value');
   await page.getByRole('button', { name: 'Add member' }).click();
+  const memberNames = await context.request.get('/api/v1/members?q=Mara');
+  expect(memberNames.status()).toBe(200);
+  expect(JSON.stringify(await memberNames.json())).not.toContain('Synthetic test value');
   const memberAdmin = page.getByRole('region', { name: 'Manage members' });
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toBeVisible();
 
