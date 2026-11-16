@@ -105,6 +105,27 @@ production, or reuse Rauthy's unsafe `LOCAL_TEST` configuration externally.
 This change enables secure runtime configuration only; no actual Rauthy login
 or passkey browser acceptance is claimed.
 
+## Synthetic Rauthy passkey browser acceptance
+
+The optional Rauthy evaluation overlay uses `WEBAUTHN_PASSKEY_REG_TYPE=resident_key`
+**only for disposable virtual-authenticator testing**. This restricts the local
+fixture to discoverable credentials so Chromium can test username-less passkey
+login and prove the WebAuthn assertion actually signed. **Do not copy this
+setting into a production identity provider without reviewing supported
+authenticators and security-key storage limits.** Users of ordinary nonresident
+keys can instead use Rauthy's E-Mail-first WebAuthn flow.
+
+The additional `dev/auth-e2e/rauthy-passkey.spec.js` exercises password-based
+account login, password reauthentication to obtain permission to modify MFA,
+named passkey registration through Chromium's virtual FIDO2 authenticator,
+independent Rauthy logout and clearing of SSO cookies, then passkey-only
+sign-in through OpenClub. The test must observe a signed assertion and the
+normal application session with **no club grants**. No virtual credential,
+private key, raw WebAuthn response, account session or browser trace is
+stored in artifacts. The **existing Keycloak test and Rauthy password
+test must both remain green**. This acceptance does not cover TOTP/email
+OTP recovery, independent backup restore or live-data deployment.
+
 ## OpenClub OIDC compatibility checklist
 
 OpenClub's existing runtime requires one exact verified issuer, a confidential `client_secret_basic` client, HTTPS (unless explicitly isolated loopback development), exact redirect URI, S256 PKCE, same-origin authorization/token/JWKS endpoints, and **RS256** ID tokens. Rauthy normally defaults new clients to EdDSA; configure **RS256** on the specific OpenClub OIDC client, retain PKCE S256, and verify that a signed login token passes the real Kotlin verifier. Never widen validation or match an account by email to make a provider switch work.
