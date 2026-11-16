@@ -606,6 +606,19 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
 
+  // Authentication expiry on the permission bootstrap must not expose a retryable editor.
+  await page.route('**/api/v1/grants?**', async route => {
+    if (route.request().method() === 'GET' &&
+        new URL(route.request().url()).searchParams.get('memberId') === '00000000-0000-0000-0000-000000000000') {
+      await route.fulfill({ status: 401, body: 'Unauthorized' });
+    } else {
+      await route.continue();
+    }
+  });
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
+  await page.unroute('**/api/v1/grants?**');
+
   // A lost session must hide previously authorized private member names and controls.
   await page.route('**/api/v1/members?**', route =>
     new URL(route.request().url()).searchParams.get('q') === 'Synthetic'
@@ -625,6 +638,17 @@ test('verified login gains club access only after restricted operator bootstrap'
   await teams.getByRole('button', { name: 'Add team' }).click();
   await expect(teams).toHaveCount(0);
   await page.unroute('**/api/v1/teams');
+
+  // A lost session on role-member search hides all privileged role controls.
+  await page.reload();
+  const rolesAfterReload = page.getByRole('region', { name: 'Manage club roles' });
+  await page.route('**/api/v1/members?**', route =>
+    new URL(route.request().url()).searchParams.get('q') === 'Mara'
+      ? route.fulfill({ status: 401, body: 'Unauthorized' }) : route.continue());
+  await rolesAfterReload.getByLabel('Find member').fill('Mara');
+  await rolesAfterReload.getByRole('button', { name: 'Search' }).click();
+  await expect(rolesAfterReload).toHaveCount(0);
+  await page.unroute('**/api/v1/members?**');
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
