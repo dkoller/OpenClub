@@ -59,11 +59,7 @@ internal fun Application.installMemberHttpRoutes(
                     val response = buildJsonObject {
                         put("items", buildJsonArray {
                             page.members.forEach { member ->
-                                add(buildJsonObject {
-                                    put("id", member.id.toString())
-                                    put("firstName", member.firstName)
-                                    put("lastName", member.lastName)
-                                })
+                                add(memberNameResponse(member.id, member.firstName, member.lastName))
                             }
                         })
                         page.next?.let { put("nextCursor", MemberPageCursor.encode(actor.accountId, q.trim(), it)) }
@@ -143,11 +139,10 @@ internal fun Application.installMemberHttpRoutes(
                         }
                         call.error(if (allowed) HttpStatusCode.NotFound else HttpStatusCode.Forbidden,
                             if (allowed) "not_found" else "forbidden")
-                    } else call.respondText(buildJsonObject {
-                        put("id", id.toString())
-                        put("firstName", detail.first)
-                        put("lastName", detail.second)
-                    }.toString(), ContentType.Application.Json)
+                    } else call.respondText(
+                        memberNameResponse(id, detail.first, detail.second).toString(),
+                        ContentType.Application.Json,
+                    )
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: IllegalArgumentException) {
@@ -268,3 +263,11 @@ private suspend fun ApplicationCall.error(status: HttpStatusCode, code: String) 
     respondText(buildJsonObject { put("code", code); put("message", "Request rejected") }.toString(),
         ContentType.Application.Json, status)
 }
+
+/** Shared public shape of authorized member name reads; never add private member fields here. */
+private fun memberNameResponse(id: UUID, firstName: String, lastName: String): JsonObject =
+    buildJsonObject {
+        put("id", id.toString())
+        put("firstName", firstName)
+        put("lastName", lastName)
+    }
