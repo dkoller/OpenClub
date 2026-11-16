@@ -3,6 +3,7 @@ import { loadClubAccess, signOut, type ClubAccess } from './auth'
 import { readPreferredLanguage, type Language } from './language'
 import { PublicMembers } from './PublicMembers'
 import { MemberAdmin } from './MemberAdmin'
+import { TeamDirectory } from './TeamDirectory'
 
 const translations = {
   de: { heading: 'Willkommen bei OpenClub', intro: 'Eine Installation für einen Verein.', loading: 'Anmeldung wird geprüft…', signedOut: 'Bitte anmelden.', notMember: 'Für dieses Konto besteht noch keine Vereinsmitgliedschaft.', ready: 'Angemeldet und für diesen Verein berechtigt.', unavailable: 'Dienst momentan nicht verfügbar.', retry: 'Erneut versuchen', login: 'Anmelden', logout: 'Abmelden', loggingOut: 'Abmeldung läuft…', error: 'Abmelden fehlgeschlagen.', language: 'Sprache' },
@@ -64,6 +65,7 @@ export function App() {
       <h1>{words.heading}</h1>
       <p>{words.intro}</p>
       <PublicMembers language={language} revision={directoryRevision} />
+      {access?.state === 'ready' && <TeamDirectory language={language} />}
       {access?.state === 'ready' && <MemberAdmin language={language} csrfToken={access.csrfToken} onChanged={() => setDirectoryRevision(value => value + 1)} /> }
       <p role="status">{message}</p>
       {access?.state === 'signed-out' && <a href="/api/v1/auth/login">{words.login}</a>}
