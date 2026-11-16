@@ -229,3 +229,7 @@ The team-assignment member picker now clears outdated options and cancels any pr
 ## Initial team roster failure state (synthetic M1)
 
 If a first team-roster request fails, the UI displays its localized error rather than showing an indefinite loading message. Existing loaded roster pages remain visible on later request failure. The real disposable Keycloak/Chromium acceptance injects one failed team-roster response and confirms the loading state clears before continuing the synthetic assignment journey. This does not change team permissions or expose private server errors.
+
+## Team roster retry (synthetic M1)
+
+After a failed team-roster read, a localized retry control in DE/FR/IT/EN reloads the current team without changing assignment grants. The synthetic Keycloak/Chromium journey verifies recovery from an injected first-read failure before selecting and assigning a fictional member.
