@@ -217,3 +217,7 @@ The authorized member administration now aborts the previous directory request w
 ## Public member list refresh after changes (synthetic M1)
 
 On member create/edit/archive, the anonymous public-name component now clears its previous display while reloading from the server with cache bypass, instead of temporarily displaying stale minor names. The existing abortable request and strict display-name-only response validation remain intact. Real Keycloak/Chromium acceptance verifies the archived minor is absent from the browser's public list as well as the anonymous HTTP response. This is a synthetic usability/privacy safeguard, not permission to publish real member information.
+
+## Member search failure and retry (synthetic M1)
+
+If a private member search fails, the four-language browser shows its existing localized error and retry action without simultaneously claiming the directory is still loading forever. The real Keycloak/Chromium acceptance deliberately fails one search request, checks the visible error state, retries successfully and restores the full list. No private error details are exposed; the server-side authorization and access rules remain unchanged.
