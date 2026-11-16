@@ -39,6 +39,14 @@ At the start of **every** iteration, inspect current `main`, applicable CI, open
 4. Before each merge, confirm applicable CI and review passed; afterward re-read `main` and open issues and immediately choose the next increment. Neither a merged PR nor a checkpoint is a pause signal.
 5. Work on M2-only approvals, post-MVP features, or tooling only when they unblock M1, can safely proceed in parallel without displacing critical-path work, or no useful unblocked M1 work remains. Record why the chosen increment outranks other options in the PR.
 
+### Throughput without weaker gates
+
+- **Optimize for finished M1 workflows, not PR count.** Prefer a coherent vertical slice that connects existing database logic, secure HTTP boundary, usable DE/EN/FR/IT UI, and the necessary negative tests when its contract is reviewed. The 5,000-line PR limit is a ceiling, not a reason to split safe, reviewable features into unnecessary micro-PRs.
+- **Classify decisions in their existing issues:** (a) blocks implementation or exposing member data, (b) blocks M1 synthetic deployment, (c) blocks only M2 real-data production, or (d) does not block this increment. Never infer technical, privacy, legal, or operator approval; keep making safe independent progress when a gate is unavailable.
+- **Parallelize only independent, coordinated work** when isolated agents/worktrees are actually available: one owner for the critical-path feature, with separate owners for non-overlapping security/tests or deployment preparation. Agree contracts before parallel frontend/backend changes; avoid competing edits, merge conflicts, and unreviewed integration. Sequential work is the default when parallelism is unavailable.
+- **Measure before changing CI.** Review actual job durations, wait time, and repeated work before adding fast lanes, matrices, or dependencies. Use targeted checks while developing and all applicable required checks before merge. Browser E2E remains required when changes may affect auth, API authorization, or user-visible workflows—even for backend-only changes. Never trade security coverage for apparent speed.
+- **Keep review and documentation proportional.** Do a broad repository/backlog inspection on resume and when architecture, blockers, or evidence materially change. Between successful merges, review the new `main`, changed areas, impacted issues, CI results, and next dependencies instead of repeating an exhaustive audit without reason. Update affected docs in the feature PR; avoid status-only PRs or duplicate progress paragraphs unless correcting a real discrepancy.
+
 ### Stop, recovery, CI failures and handoff
 
 These rules apply to humans and coding agents running the controlled loop; they do not create a background worker or grant new permissions.
