@@ -241,3 +241,7 @@ The role editor aborts superseded member searches and role-detail lookups, clear
 ## Localized player-policy conflict after language changes (synthetic M1)
 
 The club player-gender policy editor retains a semantic conflict/failure code rather than a language-specific error string. A failed save therefore displays the correct current DE/EN/FR/IT message after a language change; it never changes the persisted rule on a 409. Disposable Keycloak/Chromium acceptance injects a synthetic conflict, checks all four translations and verifies a subsequent valid save. The PostgreSQL constraint and existing administrator permissions remain authoritative; M2 privacy approval is unchanged.
+
+## Localized transient player-policy failure (synthetic M1)
+
+Disposable Keycloak/Chromium acceptance also injects a transient server failure on the existing policy-save endpoint, switches among all four UI languages and verifies that the generic error follows the selected language. Retrying after recovery clears the error. This does not change policy authorization, server enforcement or M2 approval.

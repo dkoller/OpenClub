@@ -491,6 +491,25 @@ test('verified login gains club access only after restricted operator bootstrap'
   await settings.getByRole('button', { name: 'Save policy' }).click();
   await expect(settings.getByRole('alert')).toHaveCount(0);
 
+  // A transient policy failure must also follow the active language and recover.
+  await settings.getByLabel('Require gender for players').uncheck();
+  await page.route('**/api/v1/club/player-gender-policy', route =>
+    route.request().method() === 'PATCH'
+      ? route.fulfill({ status: 503, body: 'Unavailable' }) : route.continue());
+  await settings.getByRole('button', { name: 'Save policy' }).click();
+  for (const locale of [
+    { code: 'fr', setting: 'Modifier le nom du club', error: 'Impossible d’enregistrer la règle.' },
+    { code: 'it', setting: 'Modifica nome del club', error: 'Impossibile salvare la regola.' },
+    { code: 'de', setting: 'Vereinsname bearbeiten', error: 'Regel konnte nicht gespeichert werden.' },
+    { code: 'en', setting: 'Edit club name', error: 'Could not save the player policy.' },
+  ]) {
+    await page.locator('#language').selectOption(locale.code);
+    await expect(page.getByRole('region', { name: locale.setting }).getByRole('alert')).toContainText(locale.error);
+  }
+  await page.unroute('**/api/v1/club/player-gender-policy');
+  await settings.getByRole('button', { name: 'Save policy' }).click();
+  await expect(settings.getByRole('alert')).toHaveCount(0);
+
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
     .getByRole('button', { name: 'Archive' }).click();
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
