@@ -42,16 +42,14 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     const dialog = page.locator('dialog[open]');
     await expect(dialog).toBeVisible();
     await expect(dialog).not.toBeVisible({ timeout: 10000 });
-    // Rauthy advances to the enrollment step after MFA reauthentication.
-    // Only display labels are inspected; no input values or keys are logged.
-    console.log('Enrollment UI text:', (await page.locator('main').innerText()).slice(0, 1300));
-    console.log('Enrollment buttons:', await page.getByRole('button').evaluateAll(
-      nodes => nodes.map(n => ({ text: n.textContent?.trim().slice(0, 60), aria: n.getAttribute('aria-label'), type: n.type }))));
-    console.log('Enrollment inputs:', await page.locator('input').evaluateAll(
-      nodes => nodes.map(n => ({ type: n.type, placeholder: n.placeholder }))));
+    // The authenticated MFA token exposes Rauthy's Passkey Name form.
+    // Register via its own submit so the browser runs a real WebAuthn create.
+    await page.getByPlaceholder('Passkey Name').fill('Synthetic virtual passkey');
+    await page.getByRole('button', { name: 'Register', exact: true }).click();
     await expect.poll(async () => (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length)
       .toBeGreaterThan(0);
 
+    await page.getByRole('button', { name: 'Logout', exact: true }).click();
     await page.goto('https://localhost:5443/');
     await page.getByRole('link', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/^https:\/\/localhost:8443\/auth\/v1\//);
