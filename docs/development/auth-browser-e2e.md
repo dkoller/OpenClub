@@ -17,7 +17,10 @@ merely observing that the browser dropped its cookie. Contract:
 The disposable bootstrap journey also revokes the verified administrator's
 `EDIT_MEMBERS` PostgreSQL grant while the actual Keycloak session stays signed
 in: directory reads still succeed, an attempted browser edit receives HTTP 403,
-and the private edit controls fail closed. The test restores the grant in a
+and the private edit controls fail closed. A separate live
+`VIEW_MEMBER_DIRECTORY` revocation denies authorized name searches and hides
+previously rendered private names/controls without affecting the approved
+anonymous display-name endpoint. Each fixture restores its grant in a
 `finally` block and confirms a reload recovers access. Fixture SQL is restricted
 to `OPENCLUB_E2E_DISPOSABLE=true` and executed only against the ephemeral
 Compose PostgreSQL instance, never through a production HTTP endpoint.
