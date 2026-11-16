@@ -43,7 +43,7 @@ internal class CapabilityGrants(private val database: DSLContext) {
             val actor = db.fetchOne(
                 """SELECT actor.id FROM members actor
                    JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND actor.role = 'ADMIN'
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL AND actor.role = 'ADMIN'
                      AND g.capability = 'MANAGE_PERMISSIONS'
                      AND EXISTS (SELECT 1 FROM account_identities ai
                                  WHERE ai.account_id = actor.account_id)""",
@@ -76,7 +76,8 @@ internal class CapabilityGrants(private val database: DSLContext) {
                 val managers = db.fetchValue(
                     """SELECT COUNT(*) FROM members m
                        JOIN club_capability_grants g ON g.member_id = m.id
-                       WHERE m.role = 'ADMIN' AND g.capability = 'MANAGE_PERMISSIONS'
+                       WHERE m.role = 'ADMIN' AND m.archived_at IS NULL
+                         AND g.capability = 'MANAGE_PERMISSIONS'
                          AND EXISTS (SELECT 1 FROM account_identities ai
                                      WHERE ai.account_id = m.account_id)""",
                 )?.toString()?.toLongOrNull() ?: error("Cannot count permission managers")
