@@ -269,3 +269,7 @@ The team roster cancels superseded paginated/reload GET requests and pending req
 ## Expired member session hides private administration (synthetic M1)
 
 Member search and mutation HTTP 401 responses now close the private member editor, the same as HTTP 403, instead of leaving previously fetched names and edit/archive controls visible after session expiry. The disposable Keycloak/Chromium journey simulates a lost session during private member search and verifies that stale private rows and creation controls disappear. Authorization remains server-side; the separate approved anonymous display-name list remains available after logout. This is not production privacy approval.
+
+## Expired sessions across private club administration (synthetic M1)
+
+Club settings, role management, team rosters and permission management now treat HTTP 401 as lost private access, just like HTTP 403. Team directory HTTP 401 on a create/rename/delete also hides team names, while an HTTP 403 for a write can retain legitimately read-only team visibility. Real disposable Keycloak/Chromium acceptance injects a rejected team creation after an authorized workflow and checks that existing private teams disappear. Server-side session and grant validation remains authoritative; this does not authorize real member data.
