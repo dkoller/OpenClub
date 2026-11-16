@@ -16,6 +16,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.jooq.exception.DataAccessException
+import org.jooq.impl.DSL
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CancellationException
@@ -189,20 +190,26 @@ internal fun Application.installTeamHttpRoutes(
                 val teamId = UUID.fromString(call.parameters["teamId"])
                 val expectedName = call.readTeamName()
                 val outcome = database.onDatabaseThread { db ->
-                    val authorized = db.fetchOne(
-                        """SELECT 1 FROM members m
-                           JOIN club_capability_grants g ON g.member_id = m.id
-                           WHERE m.account_id = ? AND m.archived_at IS NULL
-                             AND g.capability = 'MANAGE_TEAMS'""",
-                        actor.accountId,
-                    ) != null
-                    if (!authorized) null else {
-                        val name = db.fetchOne("SELECT name FROM teams WHERE id = ?", teamId)
-                            ?.get(0, String::class.java)
-                        when {
-                            name == null -> false
-                            name != expectedName -> throw IllegalArgumentException("Team name changed")
-                            else -> TeamAssignments(db).remove(actor.accountId, teamId)
+                    db.transactionResult { configuration ->
+                        val tx = DSL.using(configuration)
+                        val authorized = tx.fetchOne(
+                            """SELECT 1 FROM members m
+                               JOIN club_capability_grants g ON g.member_id = m.id
+                               WHERE m.account_id = ? AND m.archived_at IS NULL
+                                 AND g.capability = 'MANAGE_TEAMS'""",
+                            actor.accountId,
+                        ) != null
+                        if (!authorized) null else {
+                            // Hold the target row until deletion so a concurrent rename
+                            // cannot invalidate the human's exact-name confirmation.
+                            val name = tx.fetchOne(
+                                "SELECT name FROM teams WHERE id = ? FOR UPDATE", teamId,
+                            )?.get(0, String::class.java)
+                            when {
+                                name == null -> false
+                                name != expectedName -> throw IllegalArgumentException("Team name changed")
+                                else -> TeamAssignments(tx).remove(actor.accountId, teamId)
+                            }
                         }
                     }
                 }
