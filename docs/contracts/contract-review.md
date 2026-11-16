@@ -137,3 +137,7 @@ The permissions editor cancels superseded member-name searches and associated gr
 ## Synthetic permission member-switch read isolation
 
 Switching the selected member in the permissions editor clears the previously shown grants immediately and aborts an older in-flight grant read, so stale grant rows cannot appear under another member's name. Search/selection are disabled while a grant mutation is busy. Disposable Keycloak/Chromium acceptance exercises two fictional members and verifies a deliberately delayed old grant response is canceled. PostgreSQL remains the authority for all grants; this UI defense does not replace security review or M2 approval.
+
+## Transient permission-editor startup recovery (synthetic M1)
+
+If the initial role/grant capability probe returns a transient server failure, the permission editor shows a localized non-sensitive error and a DE/EN/FR/IT retry instead of permanently disappearing until a page reload. A successful subsequent authorization check restores the existing editor; a genuine 403 still hides it. The disposable Keycloak/Chromium acceptance injects a failed startup read and verifies successful retry without weakening server-side authorization or M2 privacy gates.
