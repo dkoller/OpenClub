@@ -177,6 +177,28 @@ jobs:
           curl --fail --retry 12 --retry-delay 3 --retry-connrefused http://localhost:5173/
           test "$(curl --fail --silent http://localhost:5173/api/health)" = '{"status":"ok"}'
           test "$(curl --fail --silent http://localhost:5173/api/ready)" = '{"status":"ready"}'
+
+      - name: Verify browser security headers on web, API and denial responses
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in / /api/health /api/v1/club; do
+            headers="$(curl --silent --show-error --dump-header - --output /dev/null "http://localhost:5173${path}")"
+            expected_headers=(
+              'x-content-type-options: nosniff'
+              'x-frame-options: DENY'
+              'referrer-policy: no-referrer'
+              'permissions-policy: camera=(), microphone=(), geolocation=()'
+            )
+            for expected in "${expected_headers[@]}"; do
+              if ! printf '%s\n' "$headers" | tr -d '\r' |
+                grep -Fxi -- "$expected" >/dev/null; then
+                echo "::error::Missing $expected on $path" >&2
+                exit 1
+              fi
+            done
+          done
+
       - name: Verify Keycloak from the browser and API-container issuer URL
         env:
           KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
