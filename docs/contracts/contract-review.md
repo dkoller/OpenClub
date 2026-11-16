@@ -52,6 +52,12 @@ The [working YAML](openapi-draft.yaml) now makes the first member API slice revi
 5. R05/R06/R07: implement authentication, club-scoped authorization and protected bootstrap **before** exposing the member API.
 6. R08–R10: implement club/membership paths and verify against the approved contract.
 
+## Proposed member-edit contract gap (2026-11-16; review only)
+
+The internal `MemberDetailsUpdate.update` already performs an authorized **full replacement** of editable fields for active members. The draft now includes proposed `PUT /v1/members/{memberId}` with explicit live `EDIT_MEMBERS`, session/Origin/CSRF checks, and 204/400/401/403/404/409/503 responses. **No HTTP endpoint is implemented or approved.**
+
+**Critical unresolved #12/#13 decision:** the current proposed `GET /v1/members/{memberId}` only returns the member's name and ID. An edit UI cannot safely populate a full replacement from that minimal response: absent optional contact or gender fields would be cleared. Before approving the route, agree which authorized editor can view each DOB/contact/gender field (especially for minors) and whether the UI needs a restricted edit-detail response or a separately reviewed partial-update contract. Never infer fields from a directory listing, echo unapproved PII, or treat synthetic data as legal privacy approval. Keep `0.0.0-draft` until review is complete.
+
 ## Acceptance checklist
 
 - [ ] Paths, auth/session/CSRF and privilege rules finalized.
