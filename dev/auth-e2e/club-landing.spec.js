@@ -142,6 +142,12 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   await teams.getByRole('button', { name: 'Remove' }).click();
   await expect(teams.getByText('No assignments.')).toBeVisible();
+  // A rename preserves the team's ID, membership relationship and permissions.
+  await teams.getByRole('button', { name: 'Rename' }).click();
+  const renameForm = teams.getByRole('button', { name: 'Save' }).locator('..');
+  await renameForm.getByRole('textbox', { name: 'Team name' }).fill('Youth Team');
+  await renameForm.getByRole('button', { name: 'Save' }).click();
+  await expect(teams.getByText('Youth Team — 0 Members')).toBeVisible();
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
     .getByRole('button', { name: 'Archive' }).click();
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(0);
