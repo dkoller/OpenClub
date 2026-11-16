@@ -163,8 +163,8 @@ paths:
       parameters:
         - name: q
           in: query
-          description: Optional trimmed case-insensitive name search; no email or DOB search.
-          schema: { type: string, minLength: 1, maxLength: 100 }
+          description: Optional name search; empty q is accepted as an unfiltered directory read. No email or DOB search.
+          schema: { type: string, maxLength: 100 }
         - name: limit
           in: query
           schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
@@ -251,6 +251,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MemberSummary' }
+        '400':
+          $ref: '#/components/responses/Invalid'
         '401':
           $ref: '#/components/responses/Unauthenticated'
         '403':
@@ -291,8 +293,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
         '503':
           $ref: '#/components/responses/Unavailable'
     put:
