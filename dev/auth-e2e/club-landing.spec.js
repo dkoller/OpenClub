@@ -39,24 +39,6 @@ test('real frontend shows session, membership denial, language and logout states
     expect(response.headers()['cache-control']).toContain('no-store');
   }
 
-  // A transient permission-init failure must offer a recoverable localized retry.
-  await page.route('**/api/v1/grants?**', async route => {
-    if (route.request().method() === 'GET' &&
-        new URL(route.request().url()).searchParams.get('memberId') === '00000000-0000-0000-0000-000000000000') {
-      await route.fulfill({ status: 503, body: 'Unavailable' });
-    } else {
-      await route.continue();
-    }
-  });
-  await page.reload();
-  const grantRecovery = page.getByRole('region', { name: 'Manage permissions' });
-  await expect(grantRecovery.getByRole('alert')).toContainText('Permissions unavailable.');
-  await page.unroute('**/api/v1/grants?**');
-  await grantRecovery.getByRole('button', { name: 'Try again' }).click();
-  await expect(grantRecovery.getByRole('heading', { name: 'Manage permissions' })).toBeVisible();
-  await expect(grantRecovery.getByRole('button', { name: 'Search' })).toBeEnabled();
-  await expect(grantRecovery.getByRole('alert')).toHaveCount(0);
-
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
   await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
@@ -514,6 +496,24 @@ test('verified login gains club access only after restricted operator bootstrap'
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
     .getByRole('button', { name: 'Confirm archive' }).click();
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(0);
+
+  // A transient permission-init failure must offer a recoverable localized retry.
+  await page.route('**/api/v1/grants?**', async route => {
+    if (route.request().method() === 'GET' &&
+        new URL(route.request().url()).searchParams.get('memberId') === '00000000-0000-0000-0000-000000000000') {
+      await route.fulfill({ status: 503, body: 'Unavailable' });
+    } else {
+      await route.continue();
+    }
+  });
+  await page.reload();
+  const grantRecovery = page.getByRole('region', { name: 'Manage permissions' });
+  await expect(grantRecovery.getByRole('alert')).toContainText('Permissions unavailable.');
+  await page.unroute('**/api/v1/grants?**');
+  await grantRecovery.getByRole('button', { name: 'Try again' }).click();
+  await expect(grantRecovery.getByRole('heading', { name: 'Manage permissions' })).toBeVisible();
+  await expect(grantRecovery.getByRole('button', { name: 'Search' })).toBeEnabled();
+  await expect(grantRecovery.getByRole('alert')).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
