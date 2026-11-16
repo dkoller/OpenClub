@@ -189,3 +189,7 @@ All club-wide capability checks now require an active linked member, an explicit
 ## Localized archive safety in the real browser (PR #231, synthetic M1)
 
 The disposable Keycloak/Chromium member-administration journey now opens and cancels an archive confirmation on the **same fictional member** in German, French, Italian and English, verifying that the member remains visible after every cancellation. It then explicitly confirms archival and verifies removal from the active administration list. This adds four-language behavioral coverage beyond translated labels, while retaining backend identity/grant/CSRF authorization, and does not imply permanent deletion, production accessibility acceptance or M2 privacy approval.
+
+## Accessible archive target context (PR #232, synthetic M1)
+
+The inline archive-confirmation prompt and its Cancel/Confirm buttons now sit inside a named accessibility group. Its accessible name combines the localized archive question with the **selected member's name**, so assistive technology can distinguish the target when more than one member row has an Archive action. The real Keycloak/Chromium journey asserts this group context in DE/EN/FR/IT and confirms cancellation behavior remains unchanged. This is an incremental accessibility improvement, not a complete WCAG audit or any M2 privacy/release approval.
