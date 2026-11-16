@@ -81,6 +81,30 @@ team data until an explicit operator bootstrap, and logout. The provider's
 The existing Keycloak dev overlay and all Keycloak browser checks remain
 supported, are neither removed nor replaced, and must continue passing.
 
+## Secure HTTPS loopback configuration for the next login test
+
+OpenClub now permits **matching HTTPS issuer and HTTPS callback** in
+`OPENCLUB_AUTH_MODE=development` **only when both hosts are loopback**.
+HTTPS development uses the same `Secure`, `HttpOnly`, host-only session
+and login-binding cookies as production. Existing loopback HTTP Keycloak
+development still works with its original development cookies; production
+continues to require HTTPS without exception. Mixed HTTP/HTTPS schemes and
+non-loopback development issuers or callbacks are rejected at startup.
+
+A future browser login fixture can configure `OPENCLUB_OIDC_ISSUER` as
+`https://localhost:8443/auth/v1/`, the **exact** advertised Rauthy
+authorization endpoint, and an `https://localhost:5173` OpenClub callback.
+This does **not** make the existing HTTP-only Rauthy bootstrap callback
+compatible with HTTPS: that client must be provisioned separately with the
+exact HTTPS callback before an actual browser login is attempted.
+
+The provider certificate must be trusted by the JVM and browser using an
+explicit, test-scoped CA/trust store. Do **not** disable certificate or hostname
+validation, globally modify Java trust, accept self-signed certificates in
+production, or reuse Rauthy's unsafe `LOCAL_TEST` configuration externally.
+This change enables secure runtime configuration only; no actual Rauthy login
+or passkey browser acceptance is claimed.
+
 ## OpenClub OIDC compatibility checklist
 
 OpenClub's existing runtime requires one exact verified issuer, a confidential `client_secret_basic` client, HTTPS (unless explicitly isolated loopback development), exact redirect URI, S256 PKCE, same-origin authorization/token/JWKS endpoints, and **RS256** ID tokens. Rauthy normally defaults new clients to EdDSA; configure **RS256** on the specific OpenClub OIDC client, retain PKCE S256, and verify that a signed login token passes the real Kotlin verifier. Never widen validation or match an account by email to make a provider switch work.
