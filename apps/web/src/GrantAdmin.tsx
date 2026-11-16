@@ -88,7 +88,6 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
       setMembers(result.items)
       setMemberId(result.items[0]?.id ?? '')
       if (result.items[0]) await loadGrants(result.items[0].id, controller.signal)
-      if (!controller.signal.aborted) setError(false)
     } catch {
       if (!controller.signal.aborted) setError(true)
     } finally {
