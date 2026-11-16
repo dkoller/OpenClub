@@ -16,6 +16,7 @@ export function App() {
   const [access, setAccess] = useState<ClubAccess | null>(null)
   const [error, setError] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [directoryRevision, setDirectoryRevision] = useState(0)
   const words = translations[language]
 
   useEffect(() => {
@@ -62,8 +63,8 @@ export function App() {
       </select>
       <h1>{words.heading}</h1>
       <p>{words.intro}</p>
-      <PublicMembers language={language} />
-      {access?.state === 'ready' && <MemberAdmin language={language} csrfToken={access.csrfToken} /> }
+      <PublicMembers language={language} revision={directoryRevision} />
+      {access?.state === 'ready' && <MemberAdmin language={language} csrfToken={access.csrfToken} onChanged={() => setDirectoryRevision(value => value + 1)} /> }
       <p role="status">{message}</p>
       {access?.state === 'signed-out' && <a href="/api/v1/auth/login">{words.login}</a>}
       {access?.state === 'unavailable' && <button type="button" onClick={() => { void retryAccess() }}>{words.retry}</button>}
