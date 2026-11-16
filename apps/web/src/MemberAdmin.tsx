@@ -11,7 +11,7 @@ const strings = {
   it: { heading: 'Gestisci membri', search: 'Cerca nomi', find: 'Cerca', loading: 'Caricamento membri…', denied: 'Nessun permesso di gestione membri.', unavailable: 'Gestione membri non disponibile.', retry: 'Riprova', first: 'Nome', last: 'Cognome', dob: 'Data di nascita', email: 'Email', phone: 'Telefono', create: 'Aggiungi membro', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', archive: 'Archivia', more: 'Altri membri', saved: 'Membro aggiornato.', empty: 'Nessun membro trovato.', problem: 'Operazione non riuscita.' },
 } satisfies Record<Language, Record<string, string>>
 
-export function MemberAdmin({ language, csrfToken }: { language: Language; csrfToken: string }) {
+export function MemberAdmin({ language, csrfToken, onChanged }: { language: Language; csrfToken: string; onChanged: () => void }) {
   const t = strings[language]
   const [items, setItems] = useState<Member[] | null>(null)
   const [cursor, setCursor] = useState<string | undefined>()
@@ -62,6 +62,7 @@ export function MemberAdmin({ language, csrfToken }: { language: Language; csrfT
       }
       setEditing(null)
       await load(query)
+      onChanged()
       setFailure('')
       if (method === 'POST' && path === '/api/v1/members') {
         setFirst(''); setLast(''); setDob(''); setEmail(''); setPhone('')
