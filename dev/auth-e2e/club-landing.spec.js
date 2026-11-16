@@ -122,6 +122,11 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(renamed).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toBeVisible();
   await renamed.getByRole('button', { name: 'Archive' }).click();
+  await expect(renamed.getByText('Archive this member?')).toBeVisible();
+  await renamed.getByRole('button', { name: 'Cancel' }).click();
+  await expect(renamed).toBeVisible();
+  await renamed.getByRole('button', { name: 'Archive' }).click();
+  await renamed.getByRole('button', { name: 'Confirm archive' }).click();
   await expect(renamed).toHaveCount(0);
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toHaveCount(0);
 
@@ -139,6 +144,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const completeAdult = memberAdminForAdult.getByRole('listitem').filter({ hasText: 'Adult Synthetic' });
   await expect(completeAdult).toBeVisible();
   await completeAdult.getByRole('button', { name: 'Archive' }).click();
+  await completeAdult.getByRole('button', { name: 'Confirm archive' }).click();
   await expect(completeAdult).toHaveCount(0);
 
 
@@ -228,6 +234,8 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
     .getByRole('button', { name: 'Archive' }).click();
+  await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
+    .getByRole('button', { name: 'Confirm archive' }).click();
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Sign out' }).click();
