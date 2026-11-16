@@ -1,6 +1,6 @@
 # OpenClub delivery roadmap
 
-**Last reviewed:** 2026-11-16 (through merged PR #268) · **Status:** Single-club schema, operator bootstrap/recovery, verified sessions, synthetic member/team/assignment/grant and role browser workflows, club-name and player-gender settings and Keycloak acceptance; full field/settings contract, deployed TLS demo, privacy sign-off and production release remain open · **Source of truth for work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
+**Last reviewed:** 2026-11-16 (through merged PR #274) · **Status:** Single-club schema, operator bootstrap/recovery, verified sessions, synthetic member/team/assignment/grant and role browser workflows, club-name and player-gender settings and Keycloak acceptance; full field/settings contract, deployed TLS demo, privacy sign-off and production release remain open · **Source of truth for work:** [GitHub issues](https://github.com/dkoller/OpenClub/issues)
 
 This roadmap inventories the work identified in the [original first-milestone plan](concepts/ai/first-milestone.md), [MVP proposal](concepts/product/mvp.md), accepted [stack ADR](decisions/0001-stack-selection.md), and [current single-club ADR-0005](decisions/0005-single-club-installation.md) (historical [ADR-0002](decisions/0002-identity-and-membership-model.md) is superseded). The numbered **R01–R22** items are priority/dependency order, **not dates or commitments**. Each implementation PR uses at most **5,000 added + deleted lines** and requires applicable CI and review; the owner-authorized controlled development loop may merge after checks pass without a separate per-PR owner approval (see root `AGENTS.md`). Production/privacy/security approvals remain separate.
 
@@ -43,6 +43,29 @@ The synthetic browser and API workflow has progressed beyond the earlier #233 sn
 After #257, disposable Keycloak/Chromium acceptance added explicit capability-denial behavior (#259), player-policy transient error localization and recovery (#260), and member-directory failed-search messages that follow the selected DE/EN/FR/IT language (#261). Role writes (#262), grant reads/search/writes (#263) and team candidate searches (#264) now close privileged browser controls on HTTP 403; the team roster aborts superseded reads after membership changes (#265). Private member administration (#266), role/grant/team/club-settings interfaces (#267) also fail closed on HTTP 401, with additional role and permission expiry browser acceptance (#268). Issues #24 and #25 track the remaining security and end-to-end assurance gaps. These checks include injected failure responses; they do **not** constitute independent role-revocation penetration testing or a deployed TLS demo.
 
 **Status separation:** The authorized synthetic M1 member/team/grant/role workflows are implemented locally and tested in CI. M1 is **not complete** until an operator-approved external HTTPS/OIDC installation is reachable, its full synthetic browser journey is witnessed, and restart/persistence, resource/cost and limitations are recorded in #27/#28. M2 additionally requires legal/privacy/retention, private-field and lifecycle policy, safe export/erasure/audit, witnessed recovery and explicit release approval (#12/#13/#26/#180). Historical implementation snapshots below are retained as dated history, not current blockers for already registered routes.
+
+## Latest M1 test and contract reconciliation (through merged PR #274; 2026-11-16)
+
+PR #270 clarified the development instructions for coherent vertical slices and
+centralized only the repeated authorized member-name response shape. PR #271
+added PostgreSQL/Ktor coverage proving that a revoked `EDIT_MEMBERS` grant
+denies writes during an otherwise valid session while a separate read grant
+continues to work, and that restoring the grant restores writes. PR #272
+extended this to a real signed-in disposable Keycloak/Chromium browser, using
+live PostgreSQL revocation and UI fail-closed handling. PR #274 demonstrated
+the complementary `VIEW_MEMBER_DIRECTORY` revocation with real browser/API
+403 denial, hidden private names and retained anonymous display-name access.
+PR #273 corrected the synthetic OpenAPI working draft's optional empty member
+search, detail-ID 400 and name-update response descriptions against Ktor tests.
+
+**Still open:** The full R04 private-field/versioned contract and R03 lawful
+data-processing decisions; broader independently reviewed authorization and
+accessibility coverage (#24/#25); and an actual operator-approved, reachable
+HTTPS/OIDC synthetic demo with restart, persistence and resource/cost evidence
+(#27/#28). M2 additionally requires private lifecycle/export/erasure/audit,
+operator recovery approval (#180) and explicit real-data release. None of these
+PRs authorizes entering real member information or claims a hosted M1 demo.
+Earlier dated progress sections are historical snapshots.
 
 ## Code-to-tracker reconciliation (2026-11-16; after PR #201)
 
