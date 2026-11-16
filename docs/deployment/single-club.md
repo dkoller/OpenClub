@@ -177,7 +177,7 @@ bash dev/verify-synthetic-https-demo.sh --synthetic-only
 
 Replace the illustrative domains with actual operator-controlled HTTPS endpoints.
 The script requires publicly trusted TLS (never `curl -k`), an exact HTTPS
-application origin, live API/database readiness with no-store/MIME headers, 401 no-store anonymous club denial with CSP,
+application origin, live API/database readiness with no-store/MIME headers, 401 no-store anonymous club denial with CSP, plus 401 no-store denial for anonymous session, member list/detail, team and permission-grant reads (without collecting protected response bodies),
 browser framing/referrer/MIME defenses plus the expected same-origin CSP and restricted browser permissions policy, and issuer-pinned OIDC discovery/JWKS
 over HTTPS. It sends **no credentials or member data** and writes temporary
 response files outside the checkout with restrictive permissions. It fails
