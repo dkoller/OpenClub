@@ -1,0 +1,28 @@
+[
+  {
+    "id": "openclub-rauthy-ci",
+    "name": "OpenClub synthetic Rauthy CI",
+    "secret": "generate",
+    "redirect_uris": [
+      "http://localhost:5173/api/v1/auth/callback"
+    ],
+    "enabled": true,
+    "flows_enabled": [
+      "authorization_code"
+    ],
+    "access_token_alg": "RS256",
+    "id_token_alg": "RS256",
+    "auth_code_lifetime": 60,
+    "access_token_lifetime": 600,
+    "scopes": [
+      "openid"
+    ],
+    "default_scopes": [
+      "openid"
+    ],
+    "challenges": [
+      "S256"
+    ],
+    "force_mfa": false
+  }
+]
