@@ -92,6 +92,13 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // Complete the real authorized browser journey with fictional member data.
   await expect(page.getByRole('heading', { name: 'Manage members' })).toBeVisible();
+  // Native required-field validation prevents an incomplete browser write.
+  await page.getByLabel('First name').fill('Incomplete');
+  await page.getByLabel('Last name').fill('Synthetic');
+  await page.getByRole('button', { name: 'Add member' }).click();
+  expect(await page.getByLabel('Date of birth').evaluate(input => input.validity.valueMissing)).toBe(true);
+  await expect(page.getByRole('listitem').filter({ hasText: 'Incomplete Synthetic' })).toHaveCount(0);
+
   await page.getByLabel('First name').fill('Nina');
   await page.getByLabel('Last name').fill('Private');
   await page.getByLabel('Date of birth').fill('2013-01-01');
@@ -171,4 +178,18 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
   await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
+
+  // Logout revokes the real session. Private member/team/grant reads now deny
+  // access, while the approved anonymous display-name directory remains usable.
+  for (const path of [
+    '/api/v1/members',
+    '/api/v1/teams',
+    '/api/v1/grants?memberId=00000000-0000-0000-0000-000000000000',
+  ]) {
+    const response = await context.request.get(path);
+    expect(response.status(), path).toBe(401);
+  }
+  const anonymousNames = await context.request.get('/api/v1/public/members');
+  expect(anonymousNames.status()).toBe(200);
+  expect(await anonymousNames.json()).toContainEqual({ displayName: 'Synthetic Administrator' });
 });
