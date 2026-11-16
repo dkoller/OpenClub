@@ -51,6 +51,34 @@ This checks an earlier interoperability boundary than the Kotlin callback:
 it **does not yet prove password/MFA/passkey sign-in, code exchange or an OpenClub
 session**. Those remain acceptance criteria in [#279](https://github.com/dkoller/OpenClub/issues/279).
 
+## Real HTTPS browser acceptance (additional provider, not a replacement)
+
+The optional `.github/workflows/rauthy-e2e.yml` starts the **real** Rauthy
+identity provider and a disposable PostgreSQL database on a GitHub runner,
+then starts Kotlin/Ktor in its normal **production HTTPS-only auth mode**
+with a confidential RS256 OIDC client. It serves the existing React frontend
+through a loopback-only Caddy proxy at `https://localhost:5443`.
+
+Only the Rauthy fixture's generated localhost certificate is imported into a
+**throwaway JVM truststore**. The application does **not** disable Java HTTPS
+certificate or hostname verification. Playwright ignores certificate warnings
+only for the separately isolated, localhost-only testing authorities. No
+insecure external provider, public hosting, OAuth verifier relaxation, test
+storage state, token, credential or authentication trace is published.
+
+The `openclub-rauthy-https-ci` client in the bootstrap fixture is separate
+from the existing HTTP initiation-only client and has an exact HTTPS callback.
+It has a generated secret, authorization-code flow, S256 PKCE and RS256 tokens.
+Synthetic test account credentials are generated on the disposable provider
+and used only in CI.
+
+The browser test is intended to verify a **real** Rauthy password login,
+a valid app-side authenticated session, denied access to private club/member/
+team data until an explicit operator bootstrap, and logout. The provider's
+**MFA and passkey browser flows remain separate pending #279 acceptance**.
+The existing Keycloak dev overlay and all Keycloak browser checks remain
+supported, are neither removed nor replaced, and must continue passing.
+
 ## OpenClub OIDC compatibility checklist
 
 OpenClub's existing runtime requires one exact verified issuer, a confidential `client_secret_basic` client, HTTPS (unless explicitly isolated loopback development), exact redirect URI, S256 PKCE, same-origin authorization/token/JWKS endpoints, and **RS256** ID tokens. Rauthy normally defaults new clients to EdDSA; configure **RS256** on the specific OpenClub OIDC client, retain PKCE S256, and verify that a signed login token passes the real Kotlin verifier. Never widen validation or match an account by email to make a provider switch work.
