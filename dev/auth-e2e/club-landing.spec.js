@@ -125,7 +125,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(teams.getByRole('listitem').filter({ hasText: 'Juniors' })).toBeVisible();
   await teams.getByLabel('Find member').fill('Mara');
   await teams.getByRole('button', { name: 'Search' }).click();
-  await expect(teams.getByRole('option', { name: 'Mara Demo' })).toBeVisible();
+  await expect(teams.getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
   await teams.getByRole('button', { name: 'Assign' }).click();
   await expect(teams.getByRole('button', { name: 'Remove' })).toBeVisible();
   await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
@@ -133,7 +133,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const permissionAdmin = page.getByRole('region', { name: 'Manage permissions' });
   await permissionAdmin.getByLabel('Find member').fill('Mara');
   await permissionAdmin.getByRole('button', { name: 'Search' }).click();
-  await expect(permissionAdmin.getByRole('option', { name: 'Mara Demo' })).toBeVisible();
+  await expect(permissionAdmin.getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
   await permissionAdmin.getByLabel('Capability').selectOption('VIEW_TEAMS');
   await permissionAdmin.getByRole('button', { name: 'Grant' }).click();
   await expect(permissionAdmin.getByRole('listitem').filter({ hasText: 'VIEW_TEAMS' })).toBeVisible();
