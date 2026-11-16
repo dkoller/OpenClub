@@ -371,7 +371,10 @@ test('verified login gains club access only after restricted operator bootstrap'
   const membersPicker = permissionAdmin.getByRole('combobox', { name: 'Member' });
   const adminOption = membersPicker.getByRole('option', { name: 'Synthetic Administrator' });
   await expect(adminOption).toHaveCount(1);
-  await expect(membersPicker.getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
+  const maraOption = membersPicker.getByRole('option', { name: 'Mara Demo' });
+  await expect(maraOption).toHaveCount(1);
+  const maraId = await maraOption.getAttribute('value');
+  if (!maraId) throw new Error('Missing synthetic member ID');
   const adminId = await adminOption.getAttribute('value');
   if (!adminId) throw new Error('Missing synthetic admin member ID');
   await membersPicker.selectOption({ label: 'Mara Demo' });
@@ -394,6 +397,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await oldGrantStarted;
   await membersPicker.selectOption({ label: 'Mara Demo' });
   await canceledOldGrant;
+  await expect(membersPicker).toHaveValue(maraId);
   await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
   await expect(permissionAdmin.getByRole('alert')).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
