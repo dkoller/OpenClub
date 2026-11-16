@@ -72,6 +72,19 @@ COMPOSE_PROJECT_NAME=openclub_single_club_test docker compose up -d --build
 
 Keep separate project names/volumes per club. Do not point two installations at the same `DB_URL`, database or schema. The singleton database constraint does not by itself enforce physical isolation if operators intentionally reuse credentials.
 
+## Browser-facing HTTP response headers (synthetic M1)
+
+The bundled nginx proxy now sets `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and
+`Permissions-Policy: camera=(), microphone=(), geolocation=()` on the browser shell,
+proxied API responses and HTTP error responses. The Compose smoke test checks those
+headers via the same HTTP port that users access. These are browser defense-in-depth,
+**not** authorization checks, a content security policy, HTTPS transport, secure cookie
+configuration, or real-data readiness. The current default Compose port remains
+loopback-only HTTP and Keycloak is still a development identity provider. A real
+TLS/OIDC ingress, external deployment and browser/security acceptance are still
+required before M1 can be marked deployed.
+
 ## Authentication, privacy and access
 
 - Sessions use the installation's verified OIDC issuer and subject, an opaque HttpOnly cookie and server-side PostgreSQL session state.
