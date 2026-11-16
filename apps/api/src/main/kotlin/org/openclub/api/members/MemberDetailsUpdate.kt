@@ -19,6 +19,26 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         val isPlayer: Boolean = false,
     )
 
+
+    /**
+     * Change only directory-visible names; leave DOB, contacts, gender,
+     * identity, role and grants untouched. Internal-only until R03/R04 review.
+     */
+    fun updateNames(actorAccountId: UUID, memberId: UUID, firstName: String, lastName: String): Boolean {
+        val first = MemberFieldValidation.name(firstName)
+        val last = MemberFieldValidation.name(lastName)
+        return database.execute(
+            """UPDATE members SET first_name = ?, last_name = ?
+               WHERE id = ? AND archived_at IS NULL AND EXISTS (
+                   SELECT 1 FROM members actor
+                   JOIN club_capability_grants g ON g.member_id = actor.id
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND g.capability = 'EDIT_MEMBERS'
+               )""",
+            first, last, memberId, actorAccountId,
+        ) == 1
+    }
+
     fun update(actorAccountId: UUID, memberId: UUID, input: Input): Boolean {
         val first = MemberFieldValidation.name(input.firstName)
         val last = MemberFieldValidation.name(input.lastName)
