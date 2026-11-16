@@ -227,9 +227,11 @@ jobs:
           # Last normal check: stop the disposable database after OIDC validation.
           docker compose stop postgres
           unavailable=false
-          for attempt in {1..15}; do
+          # Hikari's configured connection timeout is 5s; curl must wait longer
+          # to observe the application's 503 rather than aborting with nginx 499.
+          for attempt in {1..6}; do
             status="$(curl --silent --output /tmp/openclub-readiness.json \
-              --write-out '%{http_code}' --max-time 3 \
+              --write-out '%{http_code}' --max-time 12 \
               http://localhost:5173/api/ready || true)"
             if [[ "$status" == 503 ]] &&
               [[ "$(cat /tmp/openclub-readiness.json)" == '{"status":"unavailable"}' ]]; then
@@ -239,7 +241,7 @@ jobs:
             sleep 2
           done
           if [[ "$unavailable" != true ]]; then
-            echo "API readiness did not report a database outage" >&2
+            echo "API readiness did not report a database outage; last HTTP status: $status" >&2
             exit 1
           fi
           test "$(curl --fail --silent http://localhost:5173/api/health)" = '{"status":"ok"}'
