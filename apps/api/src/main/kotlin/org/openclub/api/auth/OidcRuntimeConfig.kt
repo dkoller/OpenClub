@@ -82,11 +82,15 @@ internal class OidcRuntimeConfig private constructor(
                     AuthCookiePolicy.production()
                 }
                 else -> {
-                    require(issuer.scheme == "http" && publicOrigin.scheme == "http" &&
-                        issuer.host.isLoopback() && publicOrigin.host.isLoopback()) {
-                        "Development OIDC requires explicit loopback-only HTTP"
+                    require(issuer.host.isLoopback() && publicOrigin.host.isLoopback() &&
+                        ((issuer.scheme == "http" && publicOrigin.scheme == "http") ||
+                            (issuer.scheme == "https" && publicOrigin.scheme == "https"))) {
+                        "Development OIDC requires loopback-only matching HTTP or HTTPS"
                     }
-                    AuthCookiePolicy.localDevelopment()
+                    // HTTPS development is required for passkey-capable providers
+                    // such as Rauthy. Never issue insecure cookies on HTTPS.
+                    if (publicOrigin.scheme == "https") AuthCookiePolicy.production()
+                    else AuthCookiePolicy.localDevelopment()
                 }
             }
             return OidcRuntimeConfig(settings, secret, publicOrigin, cookies)
