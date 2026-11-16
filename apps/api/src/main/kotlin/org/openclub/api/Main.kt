@@ -5,6 +5,7 @@ import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.club.installSingleClubRoutes
 import org.openclub.api.members.PublicMemberNames
 import org.openclub.api.members.installMemberHttpRoutes
+import org.openclub.api.teams.installTeamHttpRoutes
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -117,5 +118,6 @@ internal fun Application.module(
     if (sessions != null && database != null) {
         installSingleClubRoutes(sessions, requireNotNull(cookiePolicy), database)
         installMemberHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
+        installTeamHttpRoutes(sessions, requireNotNull(cookiePolicy), database)
     }
 }
