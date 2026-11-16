@@ -13,7 +13,7 @@ test('Rauthy password login creates a verified OpenClub session without club per
 
   // Rauthy's normal browser flow requests email first, then the password.
   await page.locator('input[type="email"]').fill('openclub-rauthy-ci@example.invalid');
-  await page.getByRole('button', { name: /login|log in|continue|next|sign in/i }).click();
+  await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
   await page.locator('input[type="password"]:visible').fill(password);
   await Promise.all([
     page.waitForURL('https://localhost:5443/'),
