@@ -30,3 +30,7 @@ This is not approval of public member IDs, broader confidential fields, permissi
 ## Synthetic-only team deletion
 
 A verified user with a live **club-wide** `MANAGE_TEAMS` grant can delete an existing team using `DELETE /api/v1/teams/{teamId}`. The request must carry exact Origin and session CSRF, and a strict bounded `{"name":"Exact Team Name"}` confirmation. The server locks the team row and compares the name before invoking the existing SQL-authorized deletion service. A mismatched name or malformed body returns `400`; missing auth `401`; insufficient grant `403`; absent team `404`; unexpected failure `503`; success `204`. Team-scoped grants **never** authorize deletion. This irreversibly removes the team and its assignments/team-specific grants through database foreign-key cascades, **not** the member records. DE/EN/FR/IT browser controls require typing the exact name and clearly warn about assignment removal. Backup, audit and retention obligations for real data remain M2 blockers.
+
+## Transient team-directory refresh recovery (synthetic M1)
+
+The team administration screen clears a previous team-list error whenever a subsequent authorized list read succeeds, including when a second successful team creation triggers a fresh read. The disposable Keycloak/Chromium journey injects a synthetic failed list refresh after one create, then proves that a later successful create recovers the rendered teams without a misleading stale error. This does not modify API contracts, permissions or M2 release gates.

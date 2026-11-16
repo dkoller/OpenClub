@@ -46,6 +46,7 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
           throw new Error('Unexpected response')
         }
         setTeams(items as Team[])
+        setError(false)
       } catch {
         if (active) setError(true)
       }
