@@ -593,6 +593,52 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.reload();
   await expect(page.getByRole('region', { name: 'Manage permissions' })).toBeVisible();
 
+
+  // Exercise real database authorization during an existing Keycloak login.
+  const fixtureGrant = (verb) => {
+    if (process.env.OPENCLUB_E2E_DISPOSABLE !== 'true') {
+      throw new Error('This fixture requires disposable synthetic data');
+    }
+    const command = verb === 'remove'
+      ? "DELETE FROM club_capability_grants WHERE member_id = " +
+          "(SELECT id FROM members WHERE account_id = '" + accountId + "') " +
+          "AND capability = 'EDIT_MEMBERS'"
+      : "INSERT INTO club_capability_grants (member_id, capability) " +
+          "SELECT id, 'EDIT_MEMBERS' FROM members WHERE account_id = '" + accountId + "' " +
+          "ON CONFLICT DO NOTHING";
+    execFileSync('docker', [
+      'compose', '-f', 'compose.yaml', '-f', 'compose.auth.dev.yaml',
+      'exec', '-T', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1',
+      '-U', 'openclub', '-d', 'openclub', '-c', command,
+    ], { cwd: fileURLToPath(new URL('../../', import.meta.url)), stdio: 'pipe' });
+  };
+  fixtureGrant('remove');
+  try {
+    expect((await context.request.get('/api/v1/members?q=Synthetic')).status()).toBe(200);
+    const adminMember = page.getByRole('region', { name: 'Manage members' })
+      .getByRole('listitem').filter({ hasText: 'Synthetic Administrator' });
+    await expect(adminMember).toBeVisible();
+    await adminMember.getByRole('button', { name: 'Edit' }).click();
+    const writeResponse = page.waitForResponse(response =>
+      response.request().method() === 'PATCH' &&
+      /\/api\/v1\/members\/[0-9a-f-]+$/.test(new URL(response.url()).pathname));
+    await adminMember.getByRole('button', { name: 'Save' }).click();
+    expect((await writeResponse).status()).toBe(403);
+    const deniedMemberAdmin = page.getByRole('region', { name: 'Manage members' });
+    await expect(deniedMemberAdmin.getByRole('alert'))
+      .toContainText('No permission to manage members.');
+    await expect(deniedMemberAdmin.getByRole('button', { name: 'Add member' })).toHaveCount(0);
+    const readBack = await context.request.get('/api/v1/members?q=Synthetic');
+    expect(readBack.status()).toBe(200);
+    expect((await readBack.json()).items)
+      .toContainEqual(expect.objectContaining({ firstName: 'Synthetic', lastName: 'Administrator' }));
+  } finally {
+    fixtureGrant('restore');
+  }
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Manage members' })
+    .getByRole('button', { name: 'Add member' })).toBeVisible();
+
   // A genuine capability denial must not be turned into a retryable grant editor.
   await page.route('**/api/v1/grants?**', async route => {
     if (route.request().method() === 'GET' &&
