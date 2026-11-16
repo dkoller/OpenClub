@@ -51,7 +51,10 @@ internal fun Application.installTeamHttpRoutes(
                     val allowed = db.fetchOne(
                         """SELECT EXISTS (
                             SELECT 1 FROM members m WHERE m.account_id = ?
-                              AND m.archived_at IS NULL AND (
+                              AND m.archived_at IS NULL
+                              AND EXISTS (SELECT 1 FROM account_identities identity
+                                          WHERE identity.account_id = m.account_id)
+                              AND (
                                 EXISTS (SELECT 1 FROM club_capability_grants g
                                         WHERE g.member_id = m.id
                                         AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS'))
@@ -147,7 +150,9 @@ internal fun Application.installTeamHttpRoutes(
                         """SELECT 1 FROM members m
                            JOIN club_capability_grants g ON g.member_id = m.id
                            WHERE m.account_id = ? AND m.archived_at IS NULL
-                             AND g.capability = 'MANAGE_TEAMS'""",
+                             AND g.capability = 'MANAGE_TEAMS'
+                             AND EXISTS (SELECT 1 FROM account_identities identity
+                                         WHERE identity.account_id = m.account_id)""",
                         actor.accountId,
                     ) != null
                     if (!authorized) null else TeamAssignments(db).rename(actor.accountId, teamId, name)
@@ -196,7 +201,9 @@ internal fun Application.installTeamHttpRoutes(
                             """SELECT 1 FROM members m
                                JOIN club_capability_grants g ON g.member_id = m.id
                                WHERE m.account_id = ? AND m.archived_at IS NULL
-                                 AND g.capability = 'MANAGE_TEAMS'""",
+                                 AND g.capability = 'MANAGE_TEAMS'
+                                 AND EXISTS (SELECT 1 FROM account_identities identity
+                                             WHERE identity.account_id = m.account_id)""",
                             actor.accountId,
                         ) != null
                         if (!authorized) null else {
