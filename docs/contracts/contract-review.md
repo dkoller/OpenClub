@@ -1,8 +1,8 @@
 # R04 — OpenAPI contract review and approval gate
 
-**Status:** Minimum synthetic M1 technical contract accepted by owner on 2026-11-16 (#13); publication and full confidential/team/grant contracts still require independent review and implementation. See [draft contract](openapi-draft.yaml), [R04 #13](https://github.com/dkoller/OpenClub/issues/13) and [finding #37](https://github.com/dkoller/OpenClub/issues/37).
+**Status:** Minimum synthetic M1 technical contract approved by owner and implemented for authorized list/create/minimal detail/name-only PATCH/archive; private-field replacement, roles, teams and grants remain draft, and M2 real-data approvals are outstanding. See [draft contract](openapi-draft.yaml), [R04 #13](https://github.com/dkoller/OpenClub/issues/13) and [finding #37](https://github.com/dkoller/OpenClub/issues/37).
 
-**Current review scope:** `openapi-draft.yaml` is the single-club working draft after PR #79; the historical findings below refer to the retired multi-club proposal, not current endpoints. Only authenticated `GET /api/v1/club` is implemented. R04 remains unapproved.
+**Current review scope:** `openapi-draft.yaml` is the single-club working draft after PR #79; the historical findings below refer to the retired multi-club proposal, not current endpoints. Authenticated member name list/create/detail/PATCH/archive and the anonymous public-name directory are now implemented; R04 remains open for other draft operations and full acceptance.
 
 This review was written before pilot acceptance and R05 completion. The historical findings below are preserved; **R01/#10 is now closed** and OIDC/Ktor BFF architecture is selected/implemented. The draft contract remains **unapproved**, especially for member data ownership, field requirements and scoped permissions.
 
@@ -119,3 +119,9 @@ and have synthetic tests, but public APIs, localized browser workflows, audit,
 retention, data-subject rights and legal/privacy sign-off are missing. GitHub
 OpenAPI syntax validation cannot establish authorization or privacy approval.
 Keep the entire contract at `0.0.0-draft` until independently reviewed.
+
+## M1 member HTTP/browser implementation (2026-11-16)
+
+After the owner's minimum technical #12/#13 decisions, the secured `GET/POST /api/v1/members`, `GET/PATCH /api/v1/members/{memberId}` and `POST /api/v1/members/{memberId}/archive` routes are implemented using verified sessions and current database-backed `VIEW_MEMBER_DIRECTORY` / `EDIT_MEMBERS` grants. All mutations require exact configured Origin and session CSRF; inputs are capped at 4 KiB and parsed as JSON objects. Name editing does not round-trip DOB, contacts or gender. Per-process AES-GCM cursors are bound to the actor and name filter; a server restart invalidates old cursors (400). The restricted operator bootstrap explicitly seeds the initial administrator's directory and member-edit grants, but no other ADMIN automatically inherits these rights. The four-language browser UI supports synthetic search/create/edit/archive with loading, denial and error handling. See backend tests and real Keycloak Playwright flow.
+
+OpenAPI remains `0.0.0-draft` until the full scoped contract is independently reviewed; confidential-field replacement/reads, role/team/grant delegation, archival retention approval and any real-data handling are **not** authorized by this implementation.
