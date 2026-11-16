@@ -98,7 +98,7 @@ jobs:
                    ((.services.postgres.ports // []) | length) == 0 and
                    (.services["demo-https"].ports | length) == 2 and
                    .services.api.environment.OPENCLUB_AUTH_MODE == "production"'
-          docker run --rm -e OPENCLUB_DEMO_HOST="$OPENCLUB_DEMO_HOST"             -v "$PWD/dev/deployment/Caddyfile:/etc/caddy/Caddyfile:ro"             caddy:2.11.9-alpine validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          docker run --rm -e OPENCLUB_DEMO_HOST="$OPENCLUB_DEMO_HOST"             -v "$PWD/dev/deployment/Caddyfile:/etc/caddy/Caddyfile:ro"             caddy:2.11.9-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Start Keycloak while images build
         env:
           KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
