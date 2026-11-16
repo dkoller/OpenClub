@@ -622,7 +622,8 @@ test('verified login gains club access only after restricted operator bootstrap'
     const writeResponse = page.waitForResponse(response =>
       response.request().method() === 'PATCH' &&
       /\/api\/v1\/members\/[0-9a-f-]+$/.test(new URL(response.url()).pathname));
-    await adminMember.getByRole('button', { name: 'Save' }).click();
+    await page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) })
+      .getByRole('button', { name: 'Save' }).click();
     expect((await writeResponse).status()).toBe(403);
     const deniedMemberAdmin = page.getByRole('region', { name: 'Manage members' });
     await expect(deniedMemberAdmin.getByRole('alert'))
