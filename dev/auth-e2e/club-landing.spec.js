@@ -438,14 +438,6 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
   await expect(permissionAdmin.getByRole('alert')).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
-  // A revoked grant-management permission must hide the editor after a denied write.
-  await page.route('**/api/v1/grants', route =>
-    route.request().method() === 'POST'
-      ? route.fulfill({ status: 403, body: 'Forbidden' }) : route.continue());
-  await permissionAdmin.getByRole('button', { name: 'Grant' }).click();
-  await expect(permissionAdmin).toHaveCount(0);
-  await page.unroute('**/api/v1/grants');
-
   await teams.getByRole('button', { name: 'Remove' }).click();
   await expect(teams.getByText('No assignments.')).toBeVisible();
   // A rename preserves the team's ID, membership relationship and permissions.
@@ -557,6 +549,19 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(grantRecovery.getByRole('heading', { name: 'Manage permissions' })).toBeVisible();
   await expect(grantRecovery.getByRole('button', { name: 'Search' })).toBeEnabled();
   await expect(grantRecovery.getByRole('alert')).toHaveCount(0);
+
+  // A revoked grant-management permission must hide the editor after a denied write.
+  await grantRecovery.getByLabel('Find member').fill('Synthetic');
+  await grantRecovery.getByRole('button', { name: 'Search' }).click();
+  await expect(grantRecovery.getByRole('option', { name: 'Synthetic Administrator' })).toHaveCount(1);
+  await page.route('**/api/v1/grants', route =>
+    route.request().method() === 'POST'
+      ? route.fulfill({ status: 403, body: 'Forbidden' }) : route.continue());
+  await grantRecovery.getByRole('button', { name: 'Grant' }).click();
+  await expect(grantRecovery).toHaveCount(0);
+  await page.unroute('**/api/v1/grants');
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Manage permissions' })).toBeVisible();
 
   // A genuine capability denial must not be turned into a retryable grant editor.
   await page.route('**/api/v1/grants?**', async route => {
