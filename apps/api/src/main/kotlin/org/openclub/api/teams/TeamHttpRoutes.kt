@@ -9,6 +9,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.routing.post
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.patch
 import io.ktor.utils.io.readAvailable
 import kotlinx.serialization.json.Json
@@ -165,6 +166,58 @@ internal fun Application.installTeamHttpRoutes(
             } catch (_: DataAccessException) {
                 call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
                     HttpStatusCode.Conflict)
+            } catch (_: Exception) {
+                call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
+                    HttpStatusCode.ServiceUnavailable)
+            }
+        }
+        delete("/api/v1/teams/{teamId}") {
+            call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+            try {
+                val actor = sessions.read(call.request.cookies[cookies.sessionName])
+                if (actor == null) {
+                    call.respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
+                        HttpStatusCode.Unauthorized)
+                    return@delete
+                }
+                if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
+                    call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                        HttpStatusCode.Forbidden)
+                    return@delete
+                }
+                val teamId = UUID.fromString(call.parameters["teamId"])
+                val expectedName = call.readTeamName()
+                val outcome = database.onDatabaseThread { db ->
+                    val authorized = db.fetchOne(
+                        """SELECT 1 FROM members m
+                           JOIN club_capability_grants g ON g.member_id = m.id
+                           WHERE m.account_id = ? AND m.archived_at IS NULL
+                             AND g.capability = 'MANAGE_TEAMS'""",
+                        actor.accountId,
+                    ) != null
+                    if (!authorized) null else {
+                        val name = db.fetchOne("SELECT name FROM teams WHERE id = ?", teamId)
+                            ?.get(0, String::class.java)
+                        when {
+                            name == null -> false
+                            name != expectedName -> throw IllegalArgumentException("Team name changed")
+                            else -> TeamAssignments(db).remove(actor.accountId, teamId)
+                        }
+                    }
+                }
+                when (outcome) {
+                    null -> call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                        HttpStatusCode.Forbidden)
+                    false -> call.respondText("""{"code":"not_found"}""", ContentType.Application.Json,
+                        HttpStatusCode.NotFound)
+                    true -> call.respond(HttpStatusCode.NoContent)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: IllegalArgumentException) {
+                call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
+                    HttpStatusCode.BadRequest)
             } catch (_: Exception) {
                 call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
                     HttpStatusCode.ServiceUnavailable)
