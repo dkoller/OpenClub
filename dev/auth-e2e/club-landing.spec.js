@@ -293,7 +293,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   // A failed initial roster read must not leave a permanent loading message.
   let failedRoster = false;
   await page.route('**/api/v1/teams/**', async route => {
-    if (!failedRoster && route.request().method() === 'GET' && new URL(route.request().url()).pathname.endsWith('/members')) {
+    if (route.request().method() === 'GET' && new URL(route.request().url()).pathname.endsWith('/members')) {
       failedRoster = true;
       await route.fulfill({ status: 503, body: 'Unavailable' });
     } else {
@@ -303,6 +303,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await teams.getByLabel('Team name').fill('Juniors');
   await teams.getByRole('button', { name: 'Add team' }).click();
   await expect(teams.getByRole('listitem').filter({ hasText: 'Juniors' })).toBeVisible();
+  expect(failedRoster).toBe(true);
   await expect(teams.getByRole('alert').filter({ hasText: 'Team assignment failed.' })).toBeVisible();
   await expect(teams.getByText('Loading team members…')).toHaveCount(0);
   await page.unroute('**/api/v1/teams/**');
