@@ -1,6 +1,8 @@
 package org.openclub.api.club
 
 import io.ktor.client.request.get
+import io.ktor.client.request.patch
+import io.ktor.client.request.setBody
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
@@ -139,4 +141,104 @@ class SingleClubRoutesTest {
             database.close()
         }
     }
+
+    @Test
+    fun clubNameMutationRequiresVerifiedAdminLiveGrantOriginAndCsrf() {
+        val environment = System.getenv()
+        assumeTrue(!environment["DB_URL"].isNullOrBlank(), "Requires PostgreSQL")
+        val database = requireNotNull(DatabaseRuntime.openIfConfigured(environment))
+        val club = UUID.randomUUID()
+        val account = UUID.randomUUID()
+        val member = UUID.randomUUID()
+        val identity = UUID.randomUUID()
+        val origin = "http://localhost:5173"
+        val csrf = "x".repeat(43)
+        val sessions = object : BrowserSessionOperations {
+            override suspend fun read(handle: String?): ActiveSession? =
+                if (handle == "valid") ActiveSession(account, csrf) else null
+            override suspend fun logout(handle: String?, csrfToken: String?) =
+                LogoutResult.UNAUTHENTICATED
+        }
+        try {
+            runBlocking {
+                database.onDatabaseThread { db ->
+                    db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Original', ?)",
+                        club, "profile-" + club)
+                    db.execute("INSERT INTO accounts (id) VALUES (?)", account)
+                    db.execute("""INSERT INTO members (id, account_id, first_name, last_name,
+                        date_of_birth, email, phone, role) VALUES
+                        (?, ?, 'Synthetic', 'Administrator', DATE '1990-01-01',
+                        'admin@example.invalid', '+41000000000', 'ADMIN')""", member, account)
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                                  VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        identity, account, "club-name-" + account)
+                }
+            }
+            testApplication {
+                application {
+                    module(sessions = sessions,
+                        cookiePolicy = AuthCookiePolicy.localDevelopment(),
+                        publicOrigin = origin, database = database)
+                }
+                suspend fun rename(nameJson: String, withCookie: Boolean = true,
+                    withCsrf: Boolean = true, requestOrigin: String = origin) =
+                    client.patch("/api/v1/club") {
+                        if (withCookie) header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                        if (withCsrf) header("X-CSRF-Token", csrf)
+                        header(HttpHeaders.Origin, requestOrigin)
+                        header(HttpHeaders.ContentType, "application/json")
+                        setBody(nameJson)
+                    }
+                assertEquals(HttpStatusCode.Unauthorized,
+                    rename("""{"name":"Denied"}""", withCookie = false).status)
+                assertEquals(HttpStatusCode.Forbidden, rename("""{"name":"Denied"}""").status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("INSERT INTO club_capability_grants (member_id, capability) VALUES (?, 'MANAGE_PERMISSIONS')",
+                            member)
+                    }
+                }
+                assertEquals(HttpStatusCode.Forbidden,
+                    rename("""{"name":"Denied"}""", withCsrf = false).status)
+                assertEquals(HttpStatusCode.Forbidden,
+                    rename("""{"name":"Denied"}""", requestOrigin = "https://invalid.example.invalid").status)
+                assertEquals(HttpStatusCode.BadRequest, rename("""{"name":""}""").status)
+                assertEquals(HttpStatusCode.BadRequest,
+                    rename("""{"name":"Denied","role":"ADMIN"}""").status)
+                assertEquals(HttpStatusCode.NoContent, rename("""{"name":"New Club"}""").status)
+                val allowed = client.get("/api/v1/club") {
+                    header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                }
+                assertEquals(HttpStatusCode.OK, allowed.status)
+                org.junit.jupiter.api.Assertions.assertTrue(allowed.bodyAsText().contains("New Club"))
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("UPDATE members SET role = 'MEMBER' WHERE id = ?", member)
+                    }
+                }
+                assertEquals(HttpStatusCode.Forbidden, rename("""{"name":"Denied"}""").status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("UPDATE members SET role = 'ADMIN' WHERE id = ?", member)
+                        db.execute("DELETE FROM club_capability_grants WHERE member_id = ?", member)
+                    }
+                }
+                assertEquals(HttpStatusCode.Forbidden, rename("""{"name":"Denied"}""").status)
+                org.junit.jupiter.api.Assertions.assertTrue(client.get("/api/v1/club") {
+                    header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                }.bodyAsText().contains("New Club"))
+            }
+        } finally {
+            runBlocking {
+                database.onDatabaseThread { db ->
+                    db.execute("DELETE FROM club_capability_grants WHERE member_id = ?", member)
+                    db.execute("DELETE FROM members WHERE id = ?", member)
+                    db.execute("DELETE FROM accounts WHERE id = ?", account)
+                    db.execute("DELETE FROM clubs WHERE id = ?", club)
+                }
+            }
+            database.close()
+        }
+    }
+
 }
