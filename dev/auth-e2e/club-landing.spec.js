@@ -303,7 +303,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await teams.getByLabel('Team name').fill('Juniors');
   await teams.getByRole('button', { name: 'Add team' }).click();
   await expect(teams.getByRole('listitem').filter({ hasText: 'Juniors' })).toBeVisible();
-  await expect(teams.getByRole('alert', { name: 'Team assignment failed.' })).toBeVisible();
+  await expect(teams.getByRole('alert').filter({ hasText: 'Team assignment failed.' })).toBeVisible();
   await expect(teams.getByText('Loading team members…')).toHaveCount(0);
   await page.unroute('**/api/v1/teams/*/members?**');
   // A superseded team-candidate search must not replace newer choices.
