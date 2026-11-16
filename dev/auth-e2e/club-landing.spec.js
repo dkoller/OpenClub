@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-test('real frontend shows session, membership denial, language and logout states', async ({ page }) => {
+test('real frontend shows session, membership denial, language and logout states', async ({ page, context }) => {
   const password = process.env.OPENCLUB_E2E_USER_PASSWORD;
   if (!password) throw new Error('Disposable synthetic login password required');
 
@@ -27,6 +27,17 @@ test('real frontend shows session, membership denial, language and logout states
     'This account is not yet a club member.',
   );
   await expect(page.getByRole('link', { name: 'Sign in' })).toHaveCount(0);
+
+  // A verified login without a linked club member must not expose private API data.
+  for (const path of [
+    '/api/v1/club',
+    '/api/v1/members',
+    '/api/v1/teams',
+  ]) {
+    const response = await context.request.get(path);
+    expect(response.status(), path).toBe(403);
+    expect(response.headers()['cache-control']).toContain('no-store');
+  }
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
