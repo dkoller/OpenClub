@@ -411,6 +411,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await teams.getByLabel('Team name').fill('Recovered Team');
   await teams.getByRole('button', { name: 'Add team' }).click();
   await expect(teams.getByText('Recovered Team — 0 Members')).toBeVisible();
+  await expect(teams.getByText('Transient Team — 0 Members')).toBeVisible();
   await expect(teams.getByRole('alert').filter({ hasText: 'Teams unavailable.' })).toHaveCount(0);
   await page.unroute('**/api/v1/teams');
   // The whole authenticated workflow remains reachable with localized
