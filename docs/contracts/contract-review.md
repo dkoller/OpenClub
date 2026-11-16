@@ -2,6 +2,18 @@
 
 **Status (2026-11-16, through merged PR #268):** The owner-approved minimum synthetic M1 member contract is implemented for authorized list/create/minimal detail/name-only PATCH/archive. Role, team and grant **HTTP/API and DE/EN/FR/IT React operations are also implemented and exercised in CI**, but their full working-draft contract has **not** received final R04 approval. Private-field replacement remains proposed, and real-data processing/M2 approvals are outstanding. See [draft contract](openapi-draft.yaml), [R04 #13](https://github.com/dkoller/OpenClub/issues/13) and [finding #37](https://github.com/dkoller/OpenClub/issues/37).
 
+**Implementation reconciliation (2026-11-16, through PR #274):** The minimum
+synthetic M1 club/member/team/grant/role HTTP and DE/EN/FR/IT browser workflows
+are registered and exercised in CI, including same-session PostgreSQL
+`EDIT_MEMBERS` and `VIEW_MEMBER_DIRECTORY` revocation (#271–#272, #274).
+PR #273 aligned empty member-search filters, malformed member-ID 400 and
+name-PATCH response codes with real Ktor behavior. These tests do **not**
+approve real data, confidential-field replacement, final API versioning,
+an independent security audit or operator-hosted M1 HTTPS acceptance.
+The dated proposal checklist below remains **historical** wherever it says
+member, team or grant endpoints do not exist. #12/#13 and M2 sign-offs
+remain open.
+
 **Current review scope:** `openapi-draft.yaml` is the single-club working draft after PR #79; the historical findings below refer to the retired multi-club proposal, not current endpoints. Authenticated member name list/create/detail/PATCH/archive and the anonymous public-name directory are now implemented; R04 remains open for other draft operations and full acceptance.
 
 This review was written before pilot acceptance and R05 completion. The historical findings below are preserved; **R01/#10 is now closed** and OIDC/Ktor BFF architecture is selected/implemented. The draft contract remains **unapproved**, especially for member data ownership, field requirements and scoped permissions.
@@ -10,7 +22,7 @@ This review was written before pilot acceptance and R05 completion. The historic
 
 **Verification note:** Latest negative-case/browser changes (#259–#268) test request rejection and UI failure handling but do not expand the agreed field contract or constitute version promotion. Reconcile actual registered routes and their schemas before calling R04 complete; refer to [issue #13](https://github.com/dkoller/OpenClub/issues/13) for outstanding explicit decisions. Earlier “not registered” descriptions below are historical where superseded by the merged implementation.
 
-## Current single-club contract decisions proposed in this PR (#13)
+## Historical single-club contract proposal (superseded where implemented)
 
 The [working YAML](openapi-draft.yaml) now makes the first member API slice reviewable **without authorizing implementation**:
 
