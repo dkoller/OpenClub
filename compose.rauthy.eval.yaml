@@ -1,0 +1,16 @@
+# Optional disposable Rauthy identity-provider evaluation only.
+# DO NOT use LOCAL_TEST or self-signed TLS for public/production deployments.
+# Existing compose.auth.dev.yaml Keycloak integration stays supported unchanged.
+services:
+  rauthy:
+    image: ghcr.io/sebadob/rauthy:0.36.1
+    environment:
+      LOCAL_TEST: "true"
+    ports:
+      - "127.0.0.1:8443:8443"
+    volumes:
+      - rauthy_eval_data:/app/data
+    restart: "no"
+
+volumes:
+  rauthy_eval_data:

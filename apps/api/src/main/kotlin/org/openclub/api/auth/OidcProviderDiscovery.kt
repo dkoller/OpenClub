@@ -42,7 +42,17 @@ internal class OidcProviderDiscovery(
         val discoveryUri = URI.create(
             settings.issuer.toASCIIString().trimEnd('/') + "/.well-known/openid-configuration"
         )
-        val metadata = OIDCProviderMetadata.parse(fetchDocument(discoveryUri))
+        // Some OIDC issuers (including Rauthy) publish discovery at the origin
+        // root even though their exact issuer has a path. Fall back only on
+        // HTTP 404, not on malformed, mismatched or unreachable metadata.
+        val document = try {
+            fetchDocument(discoveryUri)
+        } catch (_: OidcDiscoveryNotFound) {
+            val origin = "${settings.issuer.scheme}://${settings.issuer.rawAuthority}"
+            require(discoveryUri.toASCIIString() != "$origin/.well-known/openid-configuration")
+            fetchDocument(URI.create("$origin/.well-known/openid-configuration"))
+        }
+        val metadata = OIDCProviderMetadata.parse(document)
         require(metadata.issuer.value == settings.issuer.toASCIIString()) { "OIDC issuer mismatch" }
 
         val authorization = requireNotNull(metadata.authorizationEndpointURI) { "Missing authorization endpoint" }
@@ -84,6 +94,8 @@ internal class OidcProviderDiscovery(
  * TLS verification is the JDK default; HTTP is possible only with explicit
  * loopback-only OidcSettings (for local Keycloak development).
  */
+private class OidcDiscoveryNotFound : IllegalArgumentException("OIDC discovery endpoint not found")
+
 private fun fetchOidcDocument(uri: URI): String {
     val http = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(3))
@@ -109,6 +121,7 @@ private fun fetchOidcDocument(uri: URI): String {
     } catch (e: ExecutionException) {
         throw (e.cause ?: e)
     }
+    if (response.statusCode() == 404) throw OidcDiscoveryNotFound()
     require(response.statusCode() == 200) { "OIDC discovery request failed" }
     return String(response.body(), StandardCharsets.UTF_8)
 }

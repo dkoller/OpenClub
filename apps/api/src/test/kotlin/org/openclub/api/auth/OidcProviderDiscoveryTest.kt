@@ -127,6 +127,42 @@ class OidcProviderDiscoveryTest {
     }
 
     @Test
+    fun acceptsRootDiscoveryOnlyForAnExactPathQualifiedIssuer() {
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        val origin = "http://127.0.0.1:${server.address.port}"
+        val identity = "$origin/auth/v1/"
+        val authorization = "${identity}oidc/authorize"
+        val token = "${identity}oidc/token"
+        val jwks = "${identity}oidc/certs"
+        var advertisedIssuer = identity
+        var rootRequests = 0
+        server.createContext("/.well-known/openid-configuration") { exchange ->
+            rootRequests++
+            val body = metadata(identity = advertisedIssuer, authorization = authorization,
+                token = token, jwks = jwks).toByteArray(StandardCharsets.UTF_8)
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { it.write(body) }
+        }
+        server.createContext("/auth/v1/oidc/certs") { exchange ->
+            val body = JWKSet(key.toPublicJWK()).toString().toByteArray(StandardCharsets.UTF_8)
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { it.write(body) }
+        }
+        server.start()
+        try {
+            val client = OidcProviderDiscovery(OidcSettings(URI(identity), URI(authorization),
+                "openclub-bff", URI("http://localhost:5173/api/v1/auth/callback")))
+            assertEquals(URI(token), client.load().tokenEndpoint)
+            assertEquals(1, rootRequests)
+            advertisedIssuer = "$origin/auth/v1/attacker"
+            assertThrows(IllegalArgumentException::class.java) { client.load() }
+            assertEquals(2, rootRequests)
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
     fun readsValidChunkedMetadataAndJwksAtLimitButRejectsOneByteOver() {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         val base = "http://127.0.0.1:${server.address.port}/realms/test"

@@ -54,7 +54,7 @@ jobs:
                   web=true
                   [[ "$file" == apps/web/Dockerfile || "$file" == apps/web/.dockerignore || "$file" == apps/web/nginx.conf ]] && compose=true
                   ;;
-                compose.yaml|compose.dev.yaml|compose.auth.dev.yaml|dev/keycloak/*|.github/workflows/compose-smoke.yml) compose=true ;;
+                compose.yaml|compose.dev.yaml|compose.auth.dev.yaml|compose.rauthy.eval.yaml|dev/keycloak/*|.github/workflows/compose-smoke.yml) compose=true ;;
                 .github/workflows/build.yml) api=true; web=true ;;
                 # Unknown paths run everything rather than silently missing coverage.
                 *) api=true; web=true; compose=true ;;
@@ -99,6 +99,38 @@ jobs:
                    (.services["demo-https"].ports | length) == 2 and
                    .services.api.environment.OPENCLUB_AUTH_MODE == "production"'
           docker run --rm -e OPENCLUB_DEMO_HOST="$OPENCLUB_DEMO_HOST"             -v "$PWD/dev/deployment/Caddyfile:/etc/caddy/Caddyfile:ro"             caddy:2.11.9-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Verify optional Rauthy OIDC discovery with isolated localhost TLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          overlay=(docker compose -f compose.yaml -f compose.rauthy.eval.yaml)
+          "${overlay[@]}" config --quiet
+          "${overlay[@]}" up -d --no-deps rauthy
+          trap '"${overlay[@]}" stop rauthy' EXIT
+          ready=false
+          for attempt in {1..45}; do
+            # Local self-signed evaluation fixture ONLY; never disable TLS
+            # validation for production or remotely hosted OIDC issuers.
+            if curl --fail --silent --insecure --max-time 3 \
+              https://localhost:8443/.well-known/openid-configuration \
+              -o /tmp/openclub-rauthy-discovery.json 2>/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          [[ "$ready" == true ]] || { echo "Rauthy local discovery unavailable" >&2; exit 1; }
+          jq -e '
+            .issuer == "https://localhost:8443/auth/v1/" and
+            (.authorization_endpoint | startswith("https://localhost:8443/")) and
+            (.token_endpoint | startswith("https://localhost:8443/")) and
+            (.jwks_uri | startswith("https://localhost:8443/")) and
+            (.id_token_signing_alg_values_supported | index("RS256") != null)
+          ' /tmp/openclub-rauthy-discovery.json
+          # Never persist the private signing keys or accept an empty JWKS.
+          jwks="$(jq -er '.jwks_uri' /tmp/openclub-rauthy-discovery.json)"
+          curl --fail --silent --insecure --max-time 5 "$jwks" |
+            jq -e '.keys | any(.kty == "RSA" and .kid != null and .n != null and .e != null and .d == null)'
       - name: Start Keycloak while images build
         env:
           KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential
