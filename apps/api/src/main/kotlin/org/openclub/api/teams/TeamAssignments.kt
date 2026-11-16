@@ -20,7 +20,8 @@ internal class TeamAssignments(private val database: DSLContext) {
                    SELECT 1 FROM members actor
                    JOIN club_capability_grants grants ON grants.member_id = actor.id
                    JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND grants.capability = 'MANAGE_TEAMS'
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND grants.capability = 'MANAGE_TEAMS'
                )""",
             id, normalized, actorAccountId,
         ) == 1) id else null
@@ -33,7 +34,8 @@ internal class TeamAssignments(private val database: DSLContext) {
                    SELECT 1 FROM members actor
                    JOIN club_capability_grants grants ON grants.member_id = actor.id
                    JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND grants.capability = 'MANAGE_TEAMS'
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND grants.capability = 'MANAGE_TEAMS'
                )""",
             validName(name), teamId, actorAccountId,
         ) == 1
@@ -44,7 +46,8 @@ internal class TeamAssignments(private val database: DSLContext) {
                    SELECT 1 FROM members actor
                    JOIN club_capability_grants grants ON grants.member_id = actor.id
                    JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND grants.capability = 'MANAGE_TEAMS'
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND grants.capability = 'MANAGE_TEAMS'
                )""",
             teamId, actorAccountId,
         ) == 1
@@ -56,7 +59,7 @@ internal class TeamAssignments(private val database: DSLContext) {
                JOIN members member ON member.id = ? AND member.archived_at IS NULL
                WHERE team.id = ? AND EXISTS (
                    SELECT 1 FROM members actor
-                   WHERE actor.account_id = ? AND (
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL AND (
                        EXISTS (SELECT 1 FROM club_capability_grants g
                                WHERE g.member_id = actor.id AND g.capability = 'MANAGE_TEAMS')
                        OR EXISTS (SELECT 1 FROM team_capability_grants g
@@ -72,7 +75,7 @@ internal class TeamAssignments(private val database: DSLContext) {
             """DELETE FROM member_team_assignments
                WHERE team_id = ? AND member_id = ? AND EXISTS (
                    SELECT 1 FROM members actor
-                   WHERE actor.account_id = ? AND (
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL AND (
                        EXISTS (SELECT 1 FROM club_capability_grants g
                                WHERE g.member_id = actor.id AND g.capability = 'MANAGE_TEAMS')
                        OR EXISTS (SELECT 1 FROM team_capability_grants g
@@ -90,7 +93,7 @@ internal class TeamAssignments(private val database: DSLContext) {
                LEFT JOIN member_team_assignments assignment ON assignment.team_id = team.id
                WHERE EXISTS (
                    SELECT 1 FROM members actor
-                   WHERE actor.account_id = ? AND (
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL AND (
                        EXISTS (SELECT 1 FROM club_capability_grants g
                                WHERE g.member_id = actor.id
                                  AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS'))
