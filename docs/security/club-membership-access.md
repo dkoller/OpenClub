@@ -169,3 +169,7 @@ The member-create INSERT now checks the current linked, unarchived actor, explic
 ## Member archive confirmation in synthetic browser (PR #217)
 
 The DE/EN/FR/IT member-management form now uses a two-step, member-specific archive confirmation. Opening the confirmation does not call the backend; Cancel leaves the member active and visible, while Confirm archives only the selected member via the existing session/CSRF-guarded route. The Keycloak/Chromium acceptance test exercises both paths. This usability safeguard does **not** replace the server's account-link/role/grant checks, nor does archive equal GDPR erasure; retention and M2 privacy approvals remain open.
+
+## Member edit identity-revocation guard (PR #218)
+
+Both the synthetic name-only HTTP member update and the currently internal full-detail update now check for a live verified account-identity association **in the same SQL statement** that changes fields, alongside the linked active actor and explicit EDIT_MEMBERS grant. Removing the identity association immediately prevents new edits, without depending on a separate permission preflight; no roles, grants, account links or private fields are added to the name-only response. PostgreSQL regression tests cover absent and revoked identities for both edit paths; Ktor HTTP tests verify the revoked session cannot edit names. Full-detail HTTP remains unavailable pending R03/R04 privacy review.

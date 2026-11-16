@@ -235,6 +235,14 @@ class MemberHttpRoutesTest {
                         "dateOfBirth":"2013-01-01"}""")
                 }
                 assertEquals(HttpStatusCode.Forbidden, identityRevokedCreate.status)
+                val identityRevokedEdit = client.patch("/api/v1/members/$admin") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                    header(HttpHeaders.Origin, origin)
+                    header("X-CSRF-Token", csrf)
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"firstName":"Denied","lastName":"IdentityRevoked"}""")
+                }
+                assertEquals(HttpStatusCode.NotFound, identityRevokedEdit.status)
                 assertEquals(0, runBlocking {
                     database.onDatabaseThread { db ->
                         db.fetchValue("SELECT COUNT(*) FROM members WHERE first_name = 'Denied'")?.toString()?.toInt()

@@ -5,8 +5,9 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Internal-only update of editable member details, never account/role/grants.
- * actorAccountId must come from a verified session; no HTTP route exists.
+ * Member field updates: session-derived actor, explicit EDIT_MEMBERS grant and
+ * current verified identity are checked inside the modifying SQL statement.
+ * Full private-field updates remain internal until R03/R04 approval.
  */
 internal class MemberDetailsUpdate(private val database: DSLContext) {
     data class Input(
@@ -19,10 +20,9 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         val isPlayer: Boolean = false,
     )
 
-
     /**
      * Change only directory-visible names; leave DOB, contacts, gender,
-     * identity, role and grants untouched. Internal-only until R03/R04 review.
+     * identity, role and grants untouched; synthetic name-only HTTP is guarded.
      */
     fun updateNames(actorAccountId: UUID, memberId: UUID, firstName: String, lastName: String): Boolean {
         val first = MemberFieldValidation.name(firstName)
@@ -34,6 +34,8 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
                    JOIN club_capability_grants g ON g.member_id = actor.id
                    WHERE actor.account_id = ? AND actor.archived_at IS NULL
                      AND g.capability = 'EDIT_MEMBERS'
+                     AND EXISTS (SELECT 1 FROM account_identities identity
+                                 WHERE identity.account_id = actor.account_id)
                )""",
             first, last, memberId, actorAccountId,
         ) == 1
@@ -53,12 +55,13 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
                WHERE id = ? AND archived_at IS NULL AND EXISTS (
                    SELECT 1 FROM members actor
                    JOIN club_capability_grants g ON g.member_id = actor.id
-                   JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL AND g.capability = 'EDIT_MEMBERS'
+                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                     AND g.capability = 'EDIT_MEMBERS'
+                     AND EXISTS (SELECT 1 FROM account_identities identity
+                                 WHERE identity.account_id = actor.account_id)
                )""",
             first, last, birthDate, email, phone, gender,
             input.isPlayer, memberId, actorAccountId,
         ) == 1
     }
-
 }
