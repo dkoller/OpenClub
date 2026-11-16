@@ -265,3 +265,7 @@ An HTTP 403 during team-assignment candidate member search now hides that team's
 ## Team roster request freshness (synthetic M1)
 
 The team roster cancels superseded paginated/reload GET requests and pending requests on unmount. A delayed old response or denial cannot overwrite a newer roster after a member assignment changes. A disposable Keycloak/Chromium acceptance test delays the post-removal roster read, reassigns the synthetic member and verifies the stale fetch is canceled while the current roster remains visible. Server-side permissions remain authoritative; this is not a real-data release approval.
+
+## Expired member session hides private administration (synthetic M1)
+
+Member search and mutation HTTP 401 responses now close the private member editor, the same as HTTP 403, instead of leaving previously fetched names and edit/archive controls visible after session expiry. The disposable Keycloak/Chromium journey simulates a lost session during private member search and verifies that stale private rows and creation controls disappear. Authorization remains server-side; the separate approved anonymous display-name list remains available after logout. This is not production privacy approval.
