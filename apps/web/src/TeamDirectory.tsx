@@ -32,7 +32,7 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
       try {
         const response = await fetch('/api/v1/teams', { credentials: 'same-origin', cache: 'no-store' })
         if (!active) return
-        if (response.status === 403) { setDenied(true); return }
+        if (response.status === 401 || response.status === 403) { setDenied(true); return }
         if (!response.ok) throw new Error('Unavailable')
         const payload: unknown = await response.json()
         if (!payload || typeof payload !== 'object' || !('items' in payload) || !Array.isArray(payload.items)) {
@@ -65,6 +65,7 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ name }),
       })
+      if (response.status === 401) { setDenied(true); return }
       if (response.status === 403) { setCreateDenied(true); return }
       if (!response.ok) throw new Error('Team create rejected')
       setName('')
@@ -89,6 +90,7 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ name: editing.name }),
       })
+      if (response.status === 401) { setDenied(true); return }
       if (response.status === 403) { setCreateDenied(true); setEditing(null); return }
       if (!response.ok) throw new Error('Rename rejected')
       setEditing(null)
@@ -113,6 +115,7 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ name: confirmation }),
       })
+      if (response.status === 401) { setDenied(true); return }
       if (response.status === 403) { setCreateDenied(true); setDeleting(null); return }
       if (!response.ok) throw new Error('Deletion rejected')
       setDeleting(null)

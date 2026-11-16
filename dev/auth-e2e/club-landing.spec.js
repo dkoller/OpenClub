@@ -617,6 +617,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(privateMembers.getByRole('listitem')).toHaveCount(0);
   await expect(privateMembers.getByRole('button', { name: 'Add member' })).toHaveCount(0);
   await page.unroute('**/api/v1/members?**');
+  // A session-expired team write must not leave previously authorized team names visible.
+  await page.route('**/api/v1/teams', route =>
+    route.request().method() === 'POST'
+      ? route.fulfill({ status: 401, body: 'Unauthorized' }) : route.continue());
+  await teams.getByLabel('Team name').fill('Expired Session Team');
+  await teams.getByRole('button', { name: 'Add team' }).click();
+  await expect(teams).toHaveCount(0);
+  await page.unroute('**/api/v1/teams');
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
