@@ -20,6 +20,29 @@ This roadmap inventories the work identified in the [original first-milestone pl
 
 **Implementation versus acceptance:** The OpenAPI member/team/grant operations are still marked `NOT IMPLEMENTED` / `0.0.0-draft`, and the R03 inventory remains unapproved for live personal data. Closing a tracking issue does not itself approve handling real member records. Do not infer deployment readiness from internal PostgreSQL tests.
 
+## Two delivery milestones and critical path (2026-11-16)
+
+**Milestone M1 — deployed synthetic-data demo (no real member data).** A reachable, reproducibly deployed one-club installation with configured OIDC and TLS, where an authorized administrator can use the actual React UI to create, search, edit, and archive synthetic members, assign them to teams, and delegate/revoke club/team capabilities in DE/EN/FR/IT. Verify full browser/API authorization-denial and validation flows with synthetic fixtures. Record the deployment URL or environment, configuration boundaries, test evidence and known limitations in R19/#28. M1 is **not** privacy approval or authorization to store real names, contact details, or birth dates.
+
+**Milestone M2 — real-club production pilot.** M1 plus approved R03 privacy/legal/retention/minors policy and R04 field/access contract, tested export/erasure/audit paths, independent security and operator-recovery acceptance, documented operator identity and responsibilities, production TLS/secrets/OIDC/monitoring, encrypted off-site backups and a witnessed restore/upgrade/rollback drill. Explicit owner/operator release acceptance is required before any real member data. Neither a green CI badge nor M1 automatically promotes the system to M2.
+
+### Ordered delivery batches (execution priority, not deadlines)
+
+| Batch | Concrete completion | Primary tracking |
+| --- | --- | --- |
+| **A — decisions and secured API** | Resolve minimum R03/R04 decisions before exposing personal fields; deliver authorized club settings, member CRUD/archive, teams/assignments and grant/revoke HTTP routes with CSRF, rate/size and negative authorization tests. | #12, #13, #15, #17–#19, #75, #76 |
+| **B — usable browser MVP** | Club settings plus accessible member list/search/create/edit/archive, team assignments, scoped permission management and complete DE/EN/FR/IT coverage. | #22, #23, #75, #76 |
+| **C — assurance and lifecycle** | Browser journeys, SQL/API privilege regressions, last-admin safety, safe export/deletion and audit, all with synthetic data. Security reviews remain gates. | #16, #24–#26 |
+| **D — deployment and acceptance** | Reproducible no-paid-service-required synthetic environment with TLS/OIDC, health checks, restart/persistence, operational evidence and M1 acceptance; separately validate production costs, backup/restore/upgrade and real-data policy for M2. | #27, #28, #11, #12 |
+
+**Sequencing:** A -> B -> C -> D is the critical path, but tests, deployment preparation and independent privacy review may progress concurrently. Do not delay core volunteer workflows for speculative infrastructure refactoring or agent orchestration. Continue focused PRs (at most 5,000 changed lines, applicable CI and Ponytail review) and owner-authorized merges without per-PR checkpoints; checkpoint files only mark actual execution boundaries.
+
+**M1 acceptance:** [ ] repeatable install and deployment recorded; [ ] real OIDC login/secure bootstrap; [ ] complete synthetic member/team/grant journey through browser; [ ] DE/EN/FR/IT, denied-role and invalid-input cases; [ ] data persists across application restart; [ ] HTTPS, secrets and health check demonstrated; [ ] no real personal data; [ ] #28 demo evidence and deviations recorded. A local Compose run alone is not a deployed demo.
+
+**M2 acceptance:** [ ] R03/R04 reviewed and signed off for fields, minors and lawful processing; [ ] export/erasure/audit accepted; [ ] authorization/E2E test evidence; [ ] production identity recovery and operator approval; [ ] known hosting cost and accountable operator; [ ] TLS, backups, retention, restore, upgrade/rollback and monitoring verified; [ ] explicit permission to enter real data.
+
+**Scope control:** Accountless administrator entry of members is sufficient for M1; invitation emails and verified member account linking (#20) are optional unless the pilot specifically requires them. Payments, calendars, chat, tournaments, general-purpose multi-agent orchestration and multi-club features remain outside both MVP milestones. No mandatory paid hosting is authorized. Truly free, reliable public hosting is **not assumed**; first measure deployment resource requirements and document free-tier constraints, then obtain an explicit hosting decision. No infrastructure purchase or real-data migration is part of M1.
+
 ## Priority rules and sequencing rationale
 
 1. **P0 — required for a safe first working slice:** pilot intent, identity, authorization, backend and browser membership management, plus local authorization and independent-deployment isolation tests. Security guards precede exposed data-modifying endpoints, even when a demo could be built faster without them.
