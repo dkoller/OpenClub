@@ -128,7 +128,9 @@ internal fun Application.installMemberHttpRoutes(
                                    JOIN club_capability_grants g ON g.member_id = actor.id
                                       AND g.capability = 'VIEW_MEMBER_DIRECTORY'
                                    WHERE m.id = ? AND m.archived_at IS NULL
-                                      AND actor.archived_at IS NULL""",
+                                      AND actor.archived_at IS NULL
+                                      AND EXISTS (SELECT 1 FROM account_identities identity
+                                                  WHERE identity.account_id = actor.account_id)""",
                                 actor.accountId, id,
                             )?.let { it.get(0, String::class.java) to it.get(1, String::class.java) }
                         }
