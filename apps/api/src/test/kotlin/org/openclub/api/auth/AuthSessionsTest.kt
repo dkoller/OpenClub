@@ -38,6 +38,9 @@ class AuthSessionsTest {
                 "INSERT INTO accounts (id, display_name) VALUES (?, ?)",
                 accountId, "Synthetic session test person",
             )
+            db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                UUID.randomUUID(), accountId, "session-test-" + accountId)
             try {
                 test(AuthSessions(db), db, accountId)
             } finally {
@@ -272,6 +275,24 @@ class AuthSessionsTest {
             pool.shutdownNow()
         }
     }
+
+    @Test
+    fun revokedIdentityInvalidatesSessionReadsMutationsAndRotationWithoutSlidingExpiry() =
+        withStore { sessions, db, accountId ->
+            val issued = sessions.create(accountId)
+            assertNotNull(sessions.find(issued.handle))
+            db.execute("DELETE FROM account_identities WHERE account_id = ?", accountId)
+            val before = db.fetchOne(
+                "SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE account_id = ?", accountId)
+            assertNull(sessions.find(issued.handle))
+            assertNull(sessions.findForMutation(issued.handle, issued.csrfToken))
+            assertNull(sessions.rotate(issued.handle))
+            assertEquals(before, db.fetchOne(
+                "SELECT last_used_at, idle_expires_at FROM auth_sessions WHERE account_id = ?", accountId))
+            // A revoked account may still explicitly log out its stale handle.
+            assertEquals(LogoutResult.REVOKED, sessions.logout(issued.handle, issued.csrfToken))
+            assertNull(sessions.find(issued.handle))
+        }
 
     @Test
     fun databaseOutageFailsClosedInsteadOfGrantingAccess() {
