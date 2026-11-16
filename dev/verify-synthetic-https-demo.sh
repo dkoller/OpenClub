@@ -38,6 +38,8 @@ status="$(curl_https -D "$work/web.headers" -o "$work/index.html" -w '%{http_cod
 check_header "X-Content-Type-Options" "nosniff" "$work/web.headers"
 check_header "X-Frame-Options" "DENY" "$work/web.headers"
 check_header "Referrer-Policy" "no-referrer" "$work/web.headers"
+check_header "Permissions-Policy" "camera=(), microphone=(), geolocation=()" "$work/web.headers"
+check_header "Content-Security-Policy" "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self'" "$work/web.headers"
 # Enforce a modest HTTPS-only retention period on the public demo hostname.
 hsts="$(tr -d '\r' < "$work/web.headers" | grep -im1 '^Strict-Transport-Security:' || true)"
 hsts_age="$(printf '%s\n' "$hsts" | grep -Eio 'max-age=[0-9]+' | head -n1 | cut -d= -f2 || true)"
