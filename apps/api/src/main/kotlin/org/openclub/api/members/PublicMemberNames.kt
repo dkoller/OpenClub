@@ -7,7 +7,7 @@ import org.jooq.DSLContext
  * name before anything leaves the database: no IDs, DOBs or minor surnames.
  */
 internal class PublicMemberNames(private val database: DSLContext) {
-    fun listJson(): String = database.fetchValue(
+    fun listJson(): String = database.fetchOne(
         """
         SELECT COALESCE(
             json_agg(json_build_object('displayName', public.display_name)
@@ -21,6 +21,5 @@ internal class PublicMemberNames(private val database: DSLContext) {
             WHERE m.archived_at IS NULL
         ) public
         """.trimIndent(),
-        String::class.java,
-    ) ?: "[]"
+    )?.get(0, String::class.java) ?: "[]"
 }
