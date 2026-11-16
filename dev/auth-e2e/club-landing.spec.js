@@ -595,16 +595,19 @@ test('verified login gains club access only after restricted operator bootstrap'
 
 
   // Exercise real database authorization during an existing Keycloak login.
-  const fixtureGrant = (verb) => {
+  const fixtureGrant = (verb, capability = 'EDIT_MEMBERS') => {
+    if (!['EDIT_MEMBERS', 'VIEW_MEMBER_DIRECTORY'].includes(capability)) {
+      throw new Error('Unrecognized synthetic fixture capability');
+    }
     if (process.env.OPENCLUB_E2E_DISPOSABLE !== 'true') {
       throw new Error('This fixture requires disposable synthetic data');
     }
     const command = verb === 'remove'
       ? "DELETE FROM club_capability_grants WHERE member_id = " +
           "(SELECT id FROM members WHERE account_id = '" + accountId + "') " +
-          "AND capability = 'EDIT_MEMBERS'"
+          "AND capability = '" + capability + "'"
       : "INSERT INTO club_capability_grants (member_id, capability) " +
-          "SELECT id, 'EDIT_MEMBERS' FROM members WHERE account_id = '" + accountId + "' " +
+          "SELECT id, '" + capability + "' FROM members WHERE account_id = '" + accountId + "' " +
           "ON CONFLICT DO NOTHING";
     execFileSync('docker', [
       'compose', '-f', 'compose.yaml', '-f', 'compose.auth.dev.yaml',
@@ -639,6 +642,29 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.reload();
   await expect(page.getByRole('region', { name: 'Manage members' })
     .getByRole('button', { name: 'Add member' })).toBeVisible();
+
+  // A real read-grant revocation must also hide already rendered member names
+  // and edit controls, without affecting the separate anonymous name policy.
+  fixtureGrant('remove', 'VIEW_MEMBER_DIRECTORY');
+  try {
+    expect((await context.request.get('/api/v1/members?q=Synthetic')).status()).toBe(403);
+    const memberPanel = page.getByRole('region', { name: 'Manage members' });
+    await memberPanel.getByLabel('Search names').fill('Synthetic');
+    await memberPanel.getByRole('button', { name: 'Search' }).click();
+    await expect(memberPanel.getByRole('alert'))
+      .toContainText('No permission to manage members.');
+    await expect(memberPanel.getByRole('listitem')).toHaveCount(0);
+    await expect(memberPanel.getByRole('button', { name: 'Add member' })).toHaveCount(0);
+    const publicAfterRevocation = await context.request.get('/api/v1/public/members');
+    expect(publicAfterRevocation.status()).toBe(200);
+    expect(await publicAfterRevocation.json())
+      .toContainEqual({ displayName: 'Synthetic Administrator' });
+  } finally {
+    fixtureGrant('restore', 'VIEW_MEMBER_DIRECTORY');
+  }
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Manage members' })
+    .getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
 
   // A genuine capability denial must not be turned into a retryable grant editor.
   await page.route('**/api/v1/grants?**', async route => {
