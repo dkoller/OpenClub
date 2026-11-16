@@ -204,4 +204,4 @@ The member-create form now explains in DE/EN/FR/IT that both email and telephone
 
 ## Anonymous minor-name browser regression (synthetic M1)
 
-The real disposable Keycloak/Chromium member journey additionally checks the anonymous public endpoint after creating a fictional minor: it returns an abbreviated surname (`Nina P.`), never the private full name (`Nina Private`). This complements the authorized administrator's full-name member row and the already tested anonymous browser display; it does not authorize publishing real minors' data or change the R03/M2 privacy gate.
+The real disposable Keycloak/Chromium member journey additionally checks the anonymous public endpoint after creating a fictional minor: it returns an abbreviated surname (`Nina P.`), never the private full name (`Nina Private`). The same browser journey also confirms that archiving this minor removes the abbreviated name from the anonymous API, not just from the administration UI. This complements the authorized administrator's full-name member row and the already tested anonymous browser display; it does not authorize publishing real minors' data or change the R03/M2 privacy gate.
