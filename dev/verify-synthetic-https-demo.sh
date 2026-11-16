@@ -42,7 +42,8 @@ check_header "Permissions-Policy" "camera=(), microphone=(), geolocation=()" "$w
 check_header "Content-Security-Policy" "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self'" "$work/web.headers"
 # Enforce a modest HTTPS-only retention period on the public demo hostname.
 hsts="$(tr -d '\r' < "$work/web.headers" | grep -im1 '^Strict-Transport-Security:' || true)"
-hsts_age="$(printf '%s\n' "$hsts" | grep -Eio 'max-age=[0-9]+' | head -n1 | cut -d= -f2 || true)"
+# Only accept a complete max-age directive; reject substrings such as notmax-age or max-age=86400junk.
+hsts_age="$(printf '%s\n' "${hsts#*:}" | grep -Eio '(^|;)[[:space:]]*max-age=[0-9]+([[:space:]]*;|[[:space:]]*$)' | grep -Eo '[0-9]+' | head -n1 || true)"
 if [[ ! "$hsts_age" =~ ^[0-9]{1,9}$ ]] || (( 10#$hsts_age < 86400 )); then
   echo "HTTPS demo must advertise HSTS max-age of at least one day" >&2
   exit 1
