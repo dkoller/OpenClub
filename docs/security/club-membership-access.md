@@ -225,3 +225,7 @@ If a private member search fails, the four-language browser shows its existing l
 ## Team candidate search freshness (synthetic M1)
 
 The team-assignment member picker now clears outdated options and cancels any previous candidate search when a new query starts or the team component unmounts. Aborted requests cannot replace the current selection or report a misleading error. The disposable Keycloak/Chromium journey delays a fictional old search, requests a new member and checks cancellation before performing the normal authorized team assignment. Server-side team and member-directory grants are unchanged.
+
+## Initial team roster failure state (synthetic M1)
+
+If a first team-roster request fails, the UI displays its localized error rather than showing an indefinite loading message. Existing loaded roster pages remain visible on later request failure. The real disposable Keycloak/Chromium acceptance injects one failed team-roster response and confirms the loading state clears before continuing the synthetic assignment journey. This does not change team permissions or expose private server errors.

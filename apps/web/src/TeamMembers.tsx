@@ -44,6 +44,7 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
       setError(false)
     } catch {
       setError(true)
+      setMembers(previous => previous ?? [])
     }
   }, [endpoint])
 

@@ -290,9 +290,23 @@ test('verified login gains club access only after restricted operator bootstrap'
 
 
   const teams = page.getByRole('region', { name: 'Teams', exact: true });
+  // A failed initial roster read must not leave a permanent loading message.
+  let failedRoster = false;
+  await page.route('**/api/v1/teams/**', async route => {
+    if (route.request().method() === 'GET' && new URL(route.request().url()).pathname.endsWith('/members')) {
+      failedRoster = true;
+      await route.fulfill({ status: 503, body: 'Unavailable' });
+    } else {
+      await route.continue();
+    }
+  });
   await teams.getByLabel('Team name').fill('Juniors');
   await teams.getByRole('button', { name: 'Add team' }).click();
   await expect(teams.getByRole('listitem').filter({ hasText: 'Juniors' })).toBeVisible();
+  await expect.poll(() => failedRoster).toBe(true);
+  await expect(teams.getByRole('alert').filter({ hasText: 'Team assignment failed.' })).toBeVisible();
+  await expect(teams.getByText('Loading team members…')).toHaveCount(0);
+  await page.unroute('**/api/v1/teams/**');
   // A superseded team-candidate search must not replace newer choices.
   let notifySlowCandidate;
   const slowCandidateStarted = new Promise(resolve => { notifySlowCandidate = resolve; });
