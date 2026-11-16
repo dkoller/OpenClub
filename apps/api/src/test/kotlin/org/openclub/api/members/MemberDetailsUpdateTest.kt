@@ -52,6 +52,11 @@ class MemberDetailsUpdateTest {
                 assertFalse(service.update(account, target, update))
                 assertFalse(service.update(outsider, target, update))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'EDIT_MEMBERS')", editor)
+                assertFalse(service.update(account, target, update))
+                assertFalse(service.updateNames(account, target, "Denied", "Unverified"))
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), account, "member-edit-" + account)
                 assertTrue(service.update(account, target, update))
                 // Name-only edits work without reading or replacing protected fields.
                 assertFalse(service.updateNames(outsider, target, "Denied", "Outsider"))
@@ -136,6 +141,12 @@ class MemberDetailsUpdateTest {
                 assertEquals("Changed", db.fetchValue(
                     "SELECT first_name FROM members WHERE id = ?", target))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'EDIT_MEMBERS')", editor)
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", account)
+                assertFalse(service.update(account, target, update))
+                assertFalse(service.updateNames(account, target, "Denied", "IdentityRevoked"))
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), account, "restored-edit-" + account)
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", editor)
                 assertFalse(service.update(account, target, update))
                 assertFalse(service.updateNames(account, target, "DeniedUnlinked", "NoAccount"))
