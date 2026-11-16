@@ -3,11 +3,12 @@ info:
   title: OpenClub single-club management API — working draft
   version: 0.0.0-draft
   description: >
-    WORKING DRAFT. Only authenticated GET /v1/club and the separately documented
-    /v1/auth routes are implemented. Owner approved the minimum M1 technical
-    member contract (#13) and anonymous name-display policy (#12), but the
-    corresponding public/admin endpoints are NOT IMPLEMENTED and this draft
-    awaits independent contract/security validation before release. Full
+    WORKING DRAFT for unimplemented member administration, teams and grants.
+    Anonymous GET /v1/public/members, authenticated GET /v1/club and the
+    separately documented /v1/auth routes are implemented. The owner approved
+    the minimum M1 technical member contract (#13) and public name policy (#12).
+    Private member management operations still require implementation and
+    independent security review. Full
     confidential member, team and grant access still needs separate approval.
     Bootstrap and emergency admin recovery are offline operator-only commands,
     never HTTP APIs. Exactly one
@@ -48,7 +49,7 @@ paths:
     get:
       tags: [Members]
       operationId: listPublicMemberNames
-      summary: Proposed anonymous active-member display-name list (NOT IMPLEMENTED)
+      summary: Anonymous active-member display-name list (IMPLEMENTED)
       security: []
       description: >
         Owner-approved synthetic M1 public display: adult 'Peter Smith',
@@ -58,8 +59,9 @@ paths:
         gender, role, account link or team grant. Exclude archived members.
         No full-surname search, identifiers or raw-name cursor may leak
         unmasked minors' surnames; any future search/pagination requires
-        separate inference-resistant contract review. This is NOT approval
-        to publish real personal data.
+        separate inference-resistant contract review. Current implementation
+        returns the complete active list, with no search or cursor parameters.
+        This is NOT approval to publish real personal data.
       responses:
         '200':
           description: Public names of active synthetic members, safely displayed
