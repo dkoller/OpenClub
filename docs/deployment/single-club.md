@@ -102,6 +102,35 @@ Before any real-data pilot, the operator must document (1) hosting and recurring
 
 **Operator approval remains open:** The restricted bootstrap/recovery commands exist and their synthetic tests are implemented. [#16](https://github.com/dkoller/OpenClub/issues/16) is closed for engineering; [#180](https://github.com/dkoller/OpenClub/issues/180) tracks witnessed recovery approval and sign-off for M2. The current Compose web port is localhost-only and nginx listens on HTTP; a real TLS ingress and externally reachable deployment have **not** been demonstrated. Current /health endpoints are liveness only, not database/OIDC readiness.
 
+**M1 HTTPS/OIDC remote acceptance probe (read-only, PR #223):** After a real
+HTTPS ingress and issuer have been configured by an authorized operator, run
+the following from a workstation with `bash`, `curl` and `jq` (these tools
+are not required by the default Compose startup):
+
+```sh
+OPENCLUB_DEMO_ORIGIN=https://club.example.org \
+OPENCLUB_OIDC_ISSUER=https://idp.example.org/realms/openclub \
+bash dev/verify-synthetic-https-demo.sh --synthetic-only
+```
+
+Replace the illustrative domains with actual operator-controlled HTTPS endpoints.
+The script requires publicly trusted TLS (never `curl -k`), an exact HTTPS
+application origin, live API/database readiness, 401 anonymous club denial,
+browser framing/referrer/MIME defenses, and issuer-pinned OIDC discovery/JWKS
+over HTTPS. It sends **no credentials or member data** and writes temporary
+response files outside the checkout with restrictive permissions. It fails
+closed when given HTTP endpoints. CI tests the script's shell syntax and
+negative input behavior, **not** a hosted environment.
+
+Record the actual deployment URL, timestamp, command exit code and an
+operator-reviewed summary in the restricted M1 acceptance record, without
+committing real account identifiers or credentials. A passing probe alone
+is **not M1 sign-off**: actual Keycloak sign-in, verified first-admin bootstrap,
+full synthetic member/team/grant DE/EN/FR/IT browser journey, restart
+persistence, resource/cost limits, and the remaining privacy/security checks
+must still be witnessed. An unavailable free HTTPS host is a deployment
+blocker to document in #27/#28, not permission to drop TLS.
+
 **M1 — deployed synthetic demo:** Document the actual target and URL, free-tier limits or no-cost infrastructure assumption, runtime resources, reproducible build/deploy, TLS, OIDC callback/proxy settings, secrets injection, health checks, data persistence after restart, and a full browser member/team/grant demo. Use synthetic identities and member data only. Do not claim deployment completion from local Compose smoke tests or PostgreSQL restore CI. Track acceptance evidence in [R19/#28](https://github.com/dkoller/OpenClub/issues/28).
 
 **M2 — production pilot:** In addition to M1, require an accountable operator and approved privacy/legal rules before real member data, externally reachable production-domain/TLS and secure OIDC provisioning, separate per-club encrypted backup storage and retention, a witnessed restore and Flyway upgrade/rollback rehearsal, monitoring/alerts, secret rotation, operator recovery authorization, and an approved operating cost and incident plan. Track operational proof in [R18/#27](https://github.com/dkoller/OpenClub/issues/27). Production readiness is **not** implied by the synthetic CI drill.
