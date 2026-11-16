@@ -70,6 +70,8 @@ export function App() {
       {access?.state === 'ready' && <h2>{access.clubName}</h2>}
       {access?.state === 'ready' && <ClubSettings key={access.csrfToken} language={language}
         name={access.clubName} csrfToken={access.csrfToken}
+        genderRequiredForPlayers={access.genderRequiredForPlayers}
+        onPolicyChanged={required => setAccess(current => current?.state === 'ready' ? { ...current, genderRequiredForPlayers: required } : current)}
         onChanged={name => setAccess(current => current?.state === 'ready' ? { ...current, clubName: name } : current)} />}
       <PublicMembers language={language} revision={directoryRevision} />
       {access?.state === 'ready' && <GrantAdmin language={language} csrfToken={access.csrfToken} />}
