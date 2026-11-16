@@ -1,0 +1,6 @@
+# Synthetic HTTPS demo only. Caddy obtains and renews public ACME certificates.
+# DNS must already point to the operator's host and ports 80/443 must be reachable.
+# The upstream nginx/React stack remains private to the Compose network.
+{$OPENCLUB_DEMO_HOST} {
+    reverse_proxy web:80
+}
