@@ -18,7 +18,7 @@ This roadmap inventories the work identified in the [original first-milestone pl
 - [PRs #169–#170](https://github.com/dkoller/OpenClub/pull/170): real React/Vite/Keycloak browser sign-in, unlinked denial, operator bootstrap, authorized landing; R12/#21 closed
 - [PRs #166 and #171](https://github.com/dkoller/OpenClub/pull/171): actual synthetic PostgreSQL restore CI and recovered Kotlin API startup evidence (not a production drill)
 
-**Implementation versus acceptance:** Public anonymous display names are implemented; authenticated OpenAPI member/team/grant operations are still marked `NOT IMPLEMENTED` / `0.0.0-draft`, and the R03 inventory remains unapproved for live personal data. Closing a tracking issue does not itself approve handling real member records. Do not infer deployment readiness from internal PostgreSQL tests.
+**Implementation versus acceptance:** Public names and authenticated member search/create/minimal detail/name-only edit/archive HTTP + React workflow are implemented; other OpenAPI team/grant/role/private-detail operations remain `NOT IMPLEMENTED` / `0.0.0-draft`, and the R03 inventory remains unapproved for live personal data. Closing a tracking issue does not itself approve handling real member records. Do not infer deployment readiness from internal PostgreSQL tests.
 
 ## Code-to-tracker reconciliation (2026-11-16; after PR #179)
 
@@ -33,6 +33,8 @@ This roadmap inventories the work identified in the [original first-milestone pl
 **Execution reliability (2026-11-16):** The controlled loop now specifies actual stop conditions, branch/PR/CI inspection when resuming, diagnosis and bounded retry of CI failures without bypassing required checks, and an evidence-based handoff at genuine execution boundaries. See [AGENTS.md](../AGENTS.md#stop-recovery-ci-failures-and-handoff). These instructions do not create background execution.
 
 **Throughput policy (2026-11-16):** Optimize for complete, tested M1 workflows over PR count. Prefer cohesive vertical slices within 5,000 changed lines; classify implementation/M1/M2 blockers; parallelize only isolated work; measure CI before optimizing; and use incremental reviews after merges. Preserve privacy/security approvals and all applicable CI. See [AGENTS.md](../AGENTS.md#throughput-without-weaker-gates).
+
+**M1 member workflow increment (2026-11-16):** Verified-session name directory, accountless create, name-only update and archive routes are now connected to a DE/EN/FR/IT React administration flow and synthetic negative/Keycloak browser tests. The operator bootstrap seeds explicit read/edit grants for the first ADMIN. Private DOB/contact edit-detail, team/grant HTTP and their browser workflows, final contract acceptance, and M1 deployment remain open. No M2 approval is implied.
 
 **Owner product decision (2026-11-16):** The synthetic M1 includes an anonymous public *display-name-only* active-member list: adult `Peter Smith`, minor `Peter S.`. Derive minor status server-side using configured adult threshold; never expose full minor surnames, member IDs, DOB, contacts or grants in public responses. Full-name member administration remains explicitly authorized, separate from the public display endpoint. The owner accepted the minimum #13 technical contract, not full private/team/grant contracts or M2 real-data publication. See [R03 inventory](discovery/privacy-inventory.md) and [OpenAPI working draft](contracts/openapi-draft.yaml).
 
