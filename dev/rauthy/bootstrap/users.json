@@ -1,0 +1,11 @@
+[
+  {
+    "email": "openclub-rauthy-ci@example.invalid",
+    "password": "generate",
+    "roles": [
+      "user"
+    ],
+    "enabled": true,
+    "email_verified": true
+  }
+]
