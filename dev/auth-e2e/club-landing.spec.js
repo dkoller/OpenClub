@@ -307,6 +307,9 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(teams.getByRole('alert').filter({ hasText: 'Team assignment failed.' })).toBeVisible();
   await expect(teams.getByText('Loading team members…')).toHaveCount(0);
   await page.unroute('**/api/v1/teams/**');
+  await teams.getByRole('button', { name: 'Try again' }).click();
+  await expect(teams.getByText('No assignments.')).toBeVisible();
+  await expect(teams.getByRole('alert').filter({ hasText: 'Team assignment failed.' })).toHaveCount(0);
   // A superseded team-candidate search must not replace newer choices.
   let notifySlowCandidate;
   const slowCandidateStarted = new Promise(resolve => { notifySlowCandidate = resolve; });
