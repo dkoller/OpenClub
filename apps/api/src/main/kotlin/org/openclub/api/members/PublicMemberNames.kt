@@ -10,17 +10,16 @@ internal class PublicMemberNames(private val database: DSLContext) {
     fun listJson(): String = database.fetchValue(
         """
         SELECT COALESCE(
-            json_agg(
-                json_build_object(
-                    'displayName',
-                    CASE WHEN m.date_of_birth >
-                        (CURRENT_DATE - make_interval(years => c.adult_age_years))::date
-                    THEN m.first_name || ' ' || left(m.last_name, 1) || '.'
-                    ELSE m.first_name || ' ' || m.last_name END
-                ) ORDER BY m.last_name, m.first_name, m.id
-            )::text, '[]')
-        FROM members m CROSS JOIN clubs c
-        WHERE m.archived_at IS NULL
+            json_agg(json_build_object('displayName', public.display_name)
+                ORDER BY public.display_name)::text, '[]')
+        FROM (
+            SELECT CASE WHEN m.date_of_birth >
+                (CURRENT_DATE - make_interval(years => c.adult_age_years))::date
+                THEN m.first_name || ' ' || left(m.last_name, 1) || '.'
+                ELSE m.first_name || ' ' || m.last_name END AS display_name
+            FROM members m CROSS JOIN clubs c
+            WHERE m.archived_at IS NULL
+        ) public
         """.trimIndent(),
         String::class.java,
     ) ?: "[]"
