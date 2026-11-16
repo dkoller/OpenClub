@@ -5,7 +5,8 @@ import { test, expect } from '@playwright/test';
 test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', async ({ page, context }) => {
   const password = process.env.OPENCLUB_RAUTHY_E2E_USER_PASSWORD;
   if (!password) throw new Error('Synthetic Rauthy password missing');
-  test.setTimeout(120000);
+  test.setTimeout(70000);
+  page.setDefaultTimeout(10000);
 
   const cdp = await context.newCDPSession(page);
   await cdp.send('WebAuthn.enable');
@@ -52,7 +53,7 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     await expect(page.getByRole('status')).toHaveText('This account is not yet a club member.');
     expect((await context.request.get('/api/v1/club')).status()).toBe(403);
   } finally {
-    await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
-    await cdp.detach();
+    await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId }).catch(() => {});
+    await cdp.detach().catch(() => {});
   }
 });
