@@ -1,6 +1,9 @@
 package org.openclub.api.teams
 
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import kotlinx.serialization.json.jsonPrimitive
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
@@ -34,6 +37,7 @@ class TeamHttpRoutesTest {
         val outsider = UUID.randomUUID()
         val visible = UUID.randomUUID()
         val secret = UUID.randomUUID()
+        var created: UUID? = null
         val cookiePolicy = AuthCookiePolicy.localDevelopment()
         val sessions = object : BrowserSessionOperations {
             override suspend fun read(handle: String?): ActiveSession? = when (handle) {
@@ -86,6 +90,66 @@ class TeamHttpRoutesTest {
                 assertEquals(1, items.size)
                 assertTrue(allowed.bodyAsText().contains("Scoped Team"))
                 assertFalse(allowed.bodyAsText().contains("Hidden Team"))
+                val badCsrf = client.post("/api/v1/teams") {
+                    header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=viewer")
+                    header(HttpHeaders.Origin, "http://localhost:5173")
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"name":"Forbidden"}""")
+                }
+                assertEquals(HttpStatusCode.Forbidden, badCsrf.status)
+                val wrongOrigin = client.post("/api/v1/teams") {
+                    header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=viewer")
+                    header(HttpHeaders.Origin, "https://attacker.example.invalid")
+                    header("X-CSRF-Token", "x".repeat(43))
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"name":"Forbidden"}""")
+                }
+                assertEquals(HttpStatusCode.Forbidden, wrongOrigin.status)
+                val teamScopedCannotCreate = client.post("/api/v1/teams") {
+                    header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=viewer")
+                    header(HttpHeaders.Origin, "http://localhost:5173")
+                    header("X-CSRF-Token", "x".repeat(43))
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"name":"Forbidden"}""")
+                }
+                assertEquals(HttpStatusCode.Forbidden, teamScopedCannotCreate.status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_TEAMS')", viewer)
+                    }
+                }
+                val invalid = client.post("/api/v1/teams") {
+                    header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=viewer")
+                    header(HttpHeaders.Origin, "http://localhost:5173")
+                    header("X-CSRF-Token", "x".repeat(43))
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"name":"Test","actorAccountId":"injected"}""")
+                }
+                assertEquals(HttpStatusCode.BadRequest, invalid.status)
+                val create = client.post("/api/v1/teams") {
+                    header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=viewer")
+                    header(HttpHeaders.Origin, "http://localhost:5173")
+                    header("X-CSRF-Token", "x".repeat(43))
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"name":"New Team"}""")
+                }
+                assertEquals(HttpStatusCode.Created, create.status)
+                created = UUID.fromString(Json.parseToJsonElement(create.bodyAsText())
+                    .jsonObject.getValue("id").jsonPrimitive.content)
+                assertEquals("/api/v1/teams/$created", create.headers[HttpHeaders.Location])
+                assertEquals(HttpStatusCode.Conflict, client.post("/api/v1/teams") {
+                    header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=viewer")
+                    header(HttpHeaders.Origin, "http://localhost:5173")
+                    header("X-CSRF-Token", "x".repeat(43))
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"name":"new team"}""")
+                }.status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("DELETE FROM club_capability_grants WHERE member_id = ? AND capability = 'MANAGE_TEAMS'",
+                            viewer)
+                    }
+                }
                 runBlocking {
                     database.onDatabaseThread { db ->
                         db.execute("DELETE FROM team_capability_grants WHERE member_id = ?", viewer)
@@ -98,6 +162,7 @@ class TeamHttpRoutesTest {
         } finally {
             runBlocking {
                 database.onDatabaseThread { db ->
+                    created?.let { db.execute("DELETE FROM teams WHERE id = ?", it) }
                     db.execute("DELETE FROM teams WHERE id IN (?, ?)", visible, secret)
                     db.execute("DELETE FROM members WHERE id IN (?, ?)", viewer, outsider)
                     db.execute("DELETE FROM accounts WHERE id IN (?, ?)", viewerAccount, outsiderAccount)

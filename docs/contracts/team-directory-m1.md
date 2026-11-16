@@ -9,4 +9,6 @@ The team read endpoint is a narrowly scoped implementation step toward [#75](htt
 - Failures return generic JSON codes; unexpected failures use `503` and do not disclose database details.
 - DE/EN/FR/IT browser states cover loading, denial, empty lists, errors and retry.
 
-**Still open:** team creation, editing and deletion; membership assignments; grant/revoke routes; permission-management browser UI; approved full R04 contract; M1 browser acceptance and deployment; separate M2 privacy sign-off. This slice uses only synthetic test records and does not authorize real data.
+**Additional synthetic M1 workflow:** A verified first administrator receives explicit club-level `VIEW_TEAMS` and `MANAGE_TEAMS` grants at operator bootstrap. `POST /api/v1/teams` accepts strict bounded JSON `{"name":"Juniors"}` with exact configured Origin and session CSRF token. Only a club-wide `MANAGE_TEAMS` grant permits creation; team-scoped grants do not. The route returns `201` with the new ID and Location; missing/invalid fields return `400`, duplicates `409`, unauthenticated `401`, denied `403`, and unexpected failures `503`. The four-language browser view includes team creation and reloads the directory after a successful request.
+
+**Still open:** team rename and deletion; membership assignments; grant/revoke routes; permission-management browser UI; approved full R04 contract; M1 browser acceptance and deployment; separate M2 privacy sign-off. This slice uses only synthetic test records and does not authorize real data.

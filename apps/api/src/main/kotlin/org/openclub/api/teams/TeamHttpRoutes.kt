@@ -5,6 +5,13 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.response.respondText
+import io.ktor.server.request.receiveChannel
+import io.ktor.server.routing.post
+import io.ktor.utils.io.readAvailable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import org.jooq.exception.DataAccessException
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CancellationException
@@ -20,6 +27,7 @@ internal fun Application.installTeamHttpRoutes(
     sessions: BrowserSessionOperations,
     cookies: AuthCookiePolicy,
     database: DatabaseRuntime,
+    origin: String,
 ) {
     routing {
         get("/api/v1/teams") {
@@ -68,6 +76,60 @@ internal fun Application.installTeamHttpRoutes(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
+            } catch (_: Exception) {
+                call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
+                    HttpStatusCode.ServiceUnavailable)
+            }
+        }
+        post("/api/v1/teams") {
+            call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+            try {
+                val actor = sessions.read(call.request.cookies[cookies.sessionName])
+                if (actor == null) {
+                    call.respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
+                        HttpStatusCode.Unauthorized)
+                    return@post
+                }
+                if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
+                    call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                        HttpStatusCode.Forbidden)
+                    return@post
+                }
+                require(call.request.headers.getAll(HttpHeaders.ContentType)?.singleOrNull()?.let {
+                    ContentType.parse(it).withoutParameters() == ContentType.Application.Json
+                } == true)
+                val channel = call.receiveChannel()
+                val bytes = ByteArray(4097)
+                var size = 0
+                while (size < bytes.size) {
+                    val count = channel.readAvailable(bytes, size, bytes.size - size)
+                    if (count == -1) break
+                    size += count
+                }
+                require(size <= 4096)
+                val fields = Json.parseToJsonElement(bytes.copyOf(size).toString(Charsets.UTF_8)) as? JsonObject
+                    ?: throw IllegalArgumentException("Invalid team JSON")
+                require(fields.keys == setOf("name"))
+                val name = (fields["name"] as? JsonPrimitive)?.let { require(it.isString); it.content }
+                    ?: throw IllegalArgumentException("Missing team name")
+                val id = database.onDatabaseThread { TeamAssignments(it).create(actor.accountId, name) }
+                if (id == null) {
+                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                        HttpStatusCode.Forbidden)
+                } else {
+                    call.response.headers.append(HttpHeaders.Location, "/api/v1/teams/$id")
+                    call.respondText(buildJsonObject { put("id", id.toString()) }.toString(),
+                        ContentType.Application.Json, HttpStatusCode.Created)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: IllegalArgumentException) {
+                call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
+                    HttpStatusCode.BadRequest)
+            } catch (_: DataAccessException) {
+                call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
+                    HttpStatusCode.Conflict)
             } catch (_: Exception) {
                 call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
                     HttpStatusCode.ServiceUnavailable)

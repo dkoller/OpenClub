@@ -65,7 +65,7 @@ export function App() {
       <h1>{words.heading}</h1>
       <p>{words.intro}</p>
       <PublicMembers language={language} revision={directoryRevision} />
-      {access?.state === 'ready' && <TeamDirectory language={language} />}
+      {access?.state === 'ready' && <TeamDirectory language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <MemberAdmin language={language} csrfToken={access.csrfToken} onChanged={() => setDirectoryRevision(value => value + 1)} /> }
       <p role="status">{message}</p>
       {access?.state === 'signed-out' && <a href="/api/v1/auth/login">{words.login}</a>}

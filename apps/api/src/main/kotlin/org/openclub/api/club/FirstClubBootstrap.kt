@@ -62,8 +62,9 @@ internal class FirstClubBootstrap(private val database: DSLContext) {
             // Explicit initial grants, only for the verified first administrator.
             db.execute(
                 """INSERT INTO club_capability_grants (member_id, capability)
-                   VALUES (?, 'MANAGE_PERMISSIONS'), (?, 'VIEW_MEMBER_DIRECTORY'), (?, 'EDIT_MEMBERS')""",
-                adminMemberId, adminMemberId, adminMemberId,
+                   VALUES (?, 'MANAGE_PERMISSIONS'), (?, 'VIEW_MEMBER_DIRECTORY'), (?, 'EDIT_MEMBERS'),
+                          (?, 'VIEW_TEAMS'), (?, 'MANAGE_TEAMS')""",
+                adminMemberId, adminMemberId, adminMemberId, adminMemberId, adminMemberId,
             )
             clubId
         }
