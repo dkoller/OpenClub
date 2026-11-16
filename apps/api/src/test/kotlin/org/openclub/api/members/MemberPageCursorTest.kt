@@ -21,7 +21,8 @@ class MemberPageCursorTest {
             MemberPageCursor.decode(actor, "other", token)
         }
         assertThrows(IllegalArgumentException::class.java) {
-            val changed = token.dropLast(1) + (if (token.last() == 'A') 'B' else 'A')
+            val middle = token.length / 2
+            val changed = token.take(middle) + (if (token[middle] == 'A') 'B' else 'A') + token.drop(middle + 1)
             MemberPageCursor.decode(actor, "nina", changed)
         }
         assertThrows(IllegalArgumentException::class.java) {
