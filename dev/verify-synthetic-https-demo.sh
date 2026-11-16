@@ -44,7 +44,10 @@ check_header "Content-Security-Policy" "default-src 'self'; base-uri 'self'; obj
 hsts="$(tr -d '\r' < "$work/web.headers" | grep -im1 '^Strict-Transport-Security:' || true)"
 # Only accept a complete max-age directive; reject substrings such as notmax-age or max-age=86400junk.
 hsts_age="$(printf '%s\n' "${hsts#*:}" | grep -Eio '(^|;)[[:space:]]*max-age=[0-9]+([[:space:]]*;|[[:space:]]*$)' | grep -Eo '[0-9]+' | head -n1 || true)"
-if [[ ! "$hsts_age" =~ ^[0-9]{1,9}$ ]] || (( 10#$hsts_age < 86400 )); then
+# Duplicate header fields or max-age directives are ambiguous; fail closed.
+hsts_headers="$(tr -d '\r' < "$work/web.headers" | grep -ic '^Strict-Transport-Security:' || true)"
+hsts_directives="$(printf '%s\n' "${hsts#*:}" | tr ';' '\n' | grep -Eic '^[[:space:]]*max-age[[:space:]]*=' || true)"
+if [[ "$hsts_headers" != 1 || "$hsts_directives" != 1 || ! "$hsts_age" =~ ^[0-9]{1,9}$ ]] || (( 10#$hsts_age < 86400 )); then
   echo "HTTPS demo must advertise HSTS max-age of at least one day" >&2
   exit 1
 fi
