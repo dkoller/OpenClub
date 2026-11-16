@@ -2,6 +2,7 @@ package org.openclub.api.teams
 
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.patch
 import io.ktor.client.request.setBody
 import kotlinx.serialization.json.jsonPrimitive
 import io.ktor.client.request.header
@@ -144,12 +145,49 @@ class TeamHttpRoutesTest {
                     header(HttpHeaders.ContentType, "application/json")
                     setBody("""{"name":"new team"}""")
                 }.status)
+                fun rename(handle: String, teamId: UUID, newName: String, sendCsrf: Boolean = true,
+                    requestOrigin: String = "http://localhost:5173") =
+                    client.patch("/api/v1/teams/$teamId") {
+                        header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=$handle")
+                        header(HttpHeaders.Origin, requestOrigin)
+                        if (sendCsrf) header("X-CSRF-Token", "x".repeat(43))
+                        header(HttpHeaders.ContentType, "application/json")
+                        setBody("""{"name":"$newName"}""")
+                    }
+                assertEquals(HttpStatusCode.Unauthorized, client.patch("/api/v1/teams/$visible") {
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"name":"Denied"}""")
+                }.status)
+                assertEquals(HttpStatusCode.Forbidden, rename("outsider", visible, "Denied").status)
+                assertEquals(HttpStatusCode.Forbidden, rename("viewer", visible, "Denied", false).status)
+                assertEquals(HttpStatusCode.Forbidden,
+                    rename("viewer", visible, "Denied", requestOrigin = "https://attacker.example.invalid").status)
+                assertEquals(HttpStatusCode.BadRequest, client.patch("/api/v1/teams/$visible") {
+                    header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=viewer")
+                    header(HttpHeaders.Origin, "http://localhost:5173")
+                    header("X-CSRF-Token", "x".repeat(43))
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody("""{"name":"Denied","accountId":"injected"}""")
+                }.status)
+                assertEquals(HttpStatusCode.Conflict, rename("viewer", visible, "hidden team").status)
+                assertEquals(HttpStatusCode.NotFound,
+                    rename("viewer", UUID.randomUUID(), "Missing").status)
+                assertEquals(HttpStatusCode.NoContent, rename("viewer", visible, "Renamed Team").status)
+                assertTrue(client.get("/api/v1/teams") {
+                    header(HttpHeaders.Cookie, "${cookiePolicy.sessionName}=viewer")
+                }.bodyAsText().contains("Renamed Team"))
+                assertEquals("Renamed Team", runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.fetchValue("SELECT name FROM teams WHERE id = ?", visible, String::class.java)
+                    }
+                })
                 runBlocking {
                     database.onDatabaseThread { db ->
                         db.execute("DELETE FROM club_capability_grants WHERE member_id = ? AND capability = 'MANAGE_TEAMS'",
                             viewer)
                     }
                 }
+                assertEquals(HttpStatusCode.Forbidden, rename("viewer", visible, "Denied").status)
                 runBlocking {
                     database.onDatabaseThread { db ->
                         db.execute("DELETE FROM team_capability_grants WHERE member_id = ?", viewer)
