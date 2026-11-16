@@ -88,6 +88,61 @@ loopback-only HTTP and Keycloak is still a development identity provider. A real
 TLS/OIDC ingress, external deployment and browser/security acceptance are still
 required before M1 can be marked deployed.
 
+## Opt-in public HTTPS reference deployment (synthetic data only)
+
+`compose.https.demo.yaml` is an **optional** reference overlay for a host that an
+operator already controls. It is not used by the local development command,
+does not provision hosting/DNS, and does not constitute a deployed M1 demo.
+The overlay uses the pinned open-source Caddy `2.11.9-alpine` image as an
+ACME TLS reverse proxy to the existing nginx/web and Kotlin API; only
+ports **80 and 443** are published. The default HTTP web and PostgreSQL host
+ports are reset to empty in this overlay. Caddy stores certificate and
+configuration state in separate persistent volumes.
+
+Before attempting it, the operator must arrange **all** of the following:
+a host with public ports 80/443 and DNS pointing to it; an **independent
+HTTPS OIDC provider** with a confidential client and *exact* callback
+`https://<demo-host>/api/v1/auth/callback`; a fresh disposable/synthetic
+Compose project and a unique database password; and an agreed way to
+securely supply the required client secret. Do **not** use the
+`compose.auth.dev.yaml` Keycloak start-dev/embedded database with a public
+demo. Never expose real member data or use an existing production volume.
+
+Supply the variables through a restricted operator environment or gitignored
+`.env`, without printing secret-bearing `docker compose config` output:
+
+```sh
+# In the operator shell, set a unique COMPOSE_PROJECT_NAME and all required
+# POSTGRES_PASSWORD, OPENCLUB_DEMO_HOST, OPENCLUB_OIDC_ISSUER,
+# OPENCLUB_OIDC_AUTHORIZATION_ENDPOINT, OPENCLUB_OIDC_CLIENT_ID and
+# OPENCLUB_OIDC_CLIENT_SECRET variables first. No values are checked in.
+docker compose -f compose.yaml -f compose.https.demo.yaml config --quiet
+docker compose -f compose.yaml -f compose.https.demo.yaml up -d --build --wait
+```
+
+The API runs `OPENCLUB_AUTH_MODE=production`, with an HTTPS origin and
+callback built from the operator-supplied demo hostname. Missing OIDC secrets
+or an unreachable/mismatched provider must fail startup. Caddy obtains and
+renews publicly trusted certificates when DNS and ACME reachability are
+correct. A new, empty installation still requires the verified-identity,
+operator-only first-club bootstrap; login itself grants no club rights.
+
+For read-only external TLS/OIDC verification, use
+[`dev/verify-synthetic-https-demo.sh`](../../dev/verify-synthetic-https-demo.sh)
+and the example below. Then conduct the **real** DE/EN/FR/IT synthetic member,
+team, permission and negative browser workflows and restart/persistence
+checks, recording evidence in [#28](https://github.com/dkoller/OpenClub/issues/28).
+The overlay is not a production hardening recipe: app/database secrets are
+in container environment, and unattended backups, provider operations,
+monitoring, abuse limits, incident procedures and M2 privacy/legal decisions
+remain unresolved. Public demo costs depend on operator hosting and DNS;
+no free public host is supplied or assumed.
+
+To stop the reference environment while keeping PostgreSQL and TLS
+certificate volumes, use `docker compose -f compose.yaml -f
+compose.https.demo.yaml down` with the same project name. **Never** run
+`down -v` against a project containing anything you need to retain.
+
 ## Authentication, privacy and access
 
 - Sessions use the installation's verified OIDC issuer and subject, an opaque HttpOnly cookie and server-side PostgreSQL session state.
