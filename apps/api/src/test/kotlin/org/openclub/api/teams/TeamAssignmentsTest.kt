@@ -63,6 +63,14 @@ class TeamAssignmentsTest {
                 assertTrue(operations.list(manager).isEmpty())
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_TEAMS')", managerMember)
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'VIEW_TEAMS')", viewerMember)
+                // A grant without a verified identity does not authorize team access.
+                assertNull(operations.create(manager, "Unverified"))
+                assertTrue(operations.list(viewer).isEmpty())
+                for (account in listOf(manager, viewer)) {
+                    db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                        VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                        UUID.randomUUID(), account, "team-assignments-" + account)
+                }
                 team = operations.create(manager, "Juniors")
                 otherTeam = operations.create(manager, "Adults")
                 assertNotNull(team)
@@ -116,7 +124,12 @@ class TeamAssignmentsTest {
                     "SELECT COUNT(*) AS total FROM member_team_assignments WHERE team_id = ?",
                     otherTeam,
                 )?.get("total", Int::class.java))
-                // Unlinking manager immediately revokes all access.
+                // Even a still-linked member's grant is unusable after identity revocation.
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", manager)
+                assertFalse(operations.assign(manager, team!!, child))
+                assertFalse(operations.rename(manager, team!!, "Revoked"))
+                assertTrue(operations.list(manager).isEmpty())
+                // Unlinking manager independently revokes all access.
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", managerMember)
                 assertFalse(operations.assign(manager, team!!, child))
                 assertTrue(operations.list(manager).isEmpty())
@@ -161,6 +174,9 @@ class TeamAssignmentsTest {
                     VALUES (?, 'Member', 'Test', DATE '1990-01-01',
                     'test@example.invalid', '+41000000000')""", member)
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_TEAMS')", manager)
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), account, "team-race-" + account)
                 team = requireNotNull(TeamAssignments(db).create(account, "Concurrent"))
                 val ready = CountDownLatch(2)
                 val go = CountDownLatch(1)
