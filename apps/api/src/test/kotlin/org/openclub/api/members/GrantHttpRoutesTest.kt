@@ -10,6 +10,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -80,8 +82,12 @@ class GrantHttpRoutesTest {
                 val outsiderCookie = "${cookies.sessionName}=outsider"
                 val clubBody = """{"memberId":"$target","scope":"CLUB","capability":"VIEW_MEMBER_DIRECTORY"}"""
                 fun grantBody(cap: String, scope: String = "CLUB", teamId: UUID? = null) =
-                    """{"memberId":"$target","scope":"$scope","capability":"$cap"""" +
-                        (teamId?.let { ""","teamId":"$it"}""" } ?: "}")
+                    buildJsonObject {
+                        put("memberId", target.toString())
+                        put("scope", scope)
+                        put("capability", cap)
+                        if (teamId != null) put("teamId", teamId.toString())
+                    }.toString()
                 assertEquals(HttpStatusCode.Unauthorized,
                     client.get("/api/v1/grants?memberId=$target").status)
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/grants?memberId=$target") {
