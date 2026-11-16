@@ -12,8 +12,8 @@ import org.jooq.impl.DSL
 import java.util.concurrent.Executors
 
 /**
- * Process-owned PostgreSQL pool and bounded dispatcher. No HTTP routes currently
- * use this service. Future handlers MUST call [onDatabaseThread] for all JDBC work.
+ * Process-owned PostgreSQL pool and bounded dispatcher. HTTP routes MUST use [onDatabaseThread] for all JDBC work, including
+ * the database readiness probe; never block the Ktor event loop.
  */
 internal class DatabaseRuntime private constructor(
     private val source: HikariDataSource,
