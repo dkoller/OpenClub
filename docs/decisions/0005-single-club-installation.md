@@ -6,6 +6,8 @@
 
 ## Decision and purpose
 
+**Current engineering/release boundary (2026-11-16):** Operator-only first-club bootstrap and sole-admin recovery are implemented and tested (#16 closed); witnessed production recovery/authorization is **not approved** and is tracked in [#180](https://github.com/dkoller/OpenClub/issues/180) and #27. The deployed-demo and real-data release gates are separately tracked in #28. Earlier references below to unfinished first-admin *implementation* are historical and do not supersede this status.
+
 Exactly **one club per deployment and PostgreSQL database**, reusable for any sports club, orchestra or nonprofit by deploying the same open-source software separately. Each installation has independent members, accounts, secrets, backups and operations. OpenClub does not provide cross-installation member lookup, shared account identity, synchronization or club switching.
 
 A club's administrator can create member records without login. Verified OIDC accounts may later be explicitly linked to local members. Login alone grants no member or administrator authority; never adopt member records by matching email/name. Club-wide and team-specific capabilities, multiple team assignments, and four supported languages (DE/EN/FR/IT) remain required for the first usable release.
@@ -38,7 +40,7 @@ The application implements **`GET /api/v1/club`** with a verified session and a 
 - **Local privacy:** No OpenClub cross-installation member/data service exists; operators must configure separate databases, credentials, backups and OIDC clients for each installation. Sensitive member fields still require R03 privacy decisions and server field-level permission checks.
 - **Authentication:** Preserve verified OIDC issuer/subject, session expiry, CSRF/Origin checks and concurrency invariants. A login account can remain unlinked; a member can remain accountless. Account/member linking still needs R11.
 - **Authorization:** The installation-local guard checks session-linked membership for club-ID reading only. Member/team writes and permission management are internal operations guarded by explicit database-checked capabilities (V2–V4); the old interim ADMIN-only member-write shortcut was removed in #129. Protected role/grant changes serialize critical mutations and defend the final eligible permission manager. **No member/team/grant HTTP endpoint is exposed.** R03 privacy, R04 contract, CSRF/Origin, field-level authorization, audit and independent security acceptance remain mandatory before public mutation APIs.
-- **Release:** Member/team/grant APIs, first-admin provisioning, browser workflows, validated backups/restores and operational sign-off remain unfinished. This PR is **not** release approval.
+- **Release:** Member/team/grant HTTP APIs, member-administration browser workflows, production backup/restore validation and operational sign-off remain unfinished. Operator-only first-admin provisioning and synthetic restore tests are implemented; #180 tracks operational recovery acceptance. This PR is **not** release approval.
 - **Cost:** Local development uses free/open-source dependencies; hosting multiple independent installations can involve costs. Nothing automatically provisions or purchases hosting. See [operating guide](../deployment/single-club.md).
 
 ## Acceptance strategy

@@ -83,6 +83,8 @@ Before any real-data pilot, the operator must document (1) hosting and recurring
 
 ## Deployment acceptance: synthetic demo versus real-data pilot (2026-11-16)
 
+**Operator approval remains open:** The restricted bootstrap/recovery commands exist and their synthetic tests are implemented. [#16](https://github.com/dkoller/OpenClub/issues/16) is closed for engineering; [#180](https://github.com/dkoller/OpenClub/issues/180) tracks witnessed recovery approval and sign-off for M2. The current Compose web port is localhost-only and nginx listens on HTTP; a real TLS ingress and externally reachable deployment have **not** been demonstrated. Current /health endpoints are liveness only, not database/OIDC readiness.
+
 **M1 — deployed synthetic demo:** Document the actual target and URL, free-tier limits or no-cost infrastructure assumption, runtime resources, reproducible build/deploy, TLS, OIDC callback/proxy settings, secrets injection, health checks, data persistence after restart, and a full browser member/team/grant demo. Use synthetic identities and member data only. Do not claim deployment completion from local Compose smoke tests or PostgreSQL restore CI. Track acceptance evidence in [R19/#28](https://github.com/dkoller/OpenClub/issues/28).
 
 **M2 — production pilot:** In addition to M1, require an accountable operator and approved privacy/legal rules before real member data, externally reachable production-domain/TLS and secure OIDC provisioning, separate per-club encrypted backup storage and retention, a witnessed restore and Flyway upgrade/rollback rehearsal, monitoring/alerts, secret rotation, operator recovery authorization, and an approved operating cost and incident plan. Track operational proof in [R18/#27](https://github.com/dkoller/OpenClub/issues/27). Production readiness is **not** implied by the synthetic CI drill.
@@ -92,6 +94,6 @@ The project targets no mandatory paid services, not a promise that permanent pub
 ## Next engineering gates
 
 - [#74](https://github.com/dkoller/OpenClub/issues/74): architecture and schema foundation completed in merged PR #79.
-- [R07/#16](https://github.com/dkoller/OpenClub/issues/16): operator-only bootstrap and sole-admin recovery implemented; CI, independent security review and documented approval/recovery drill remain acceptance gates.
+- [R07/#16](https://github.com/dkoller/OpenClub/issues/16): operator-only bootstrap and sole-admin recovery implemented (#16 engineering closed); witnessed operational recovery and production authorization remain open in #180 and #27.
 - [R04/#13](https://github.com/dkoller/OpenClub/issues/13), [R06/#15](https://github.com/dkoller/OpenClub/issues/15): approved contracts and server authorization.
 - [R15/#24](https://github.com/dkoller/OpenClub/issues/24), [R18/#27](https://github.com/dkoller/OpenClub/issues/27): local security tests and operational validation.
