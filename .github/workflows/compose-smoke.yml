@@ -106,6 +106,7 @@ jobs:
           overlay=(docker compose -f compose.yaml -f compose.rauthy.eval.yaml)
           "${overlay[@]}" config --quiet
           python3 -m json.tool dev/rauthy/bootstrap/clients.json > /dev/null
+          python3 -m json.tool dev/rauthy/bootstrap/users.json > /dev/null
           "${overlay[@]}" up -d --no-deps rauthy
           trap '"${overlay[@]}" stop rauthy' EXIT
           ready=false
@@ -120,7 +121,16 @@ jobs:
             fi
             sleep 2
           done
-          [[ "$ready" == true ]] || { echo "Rauthy local discovery unavailable" >&2; exit 1; }
+          if [[ "$ready" != true ]]; then
+            # A synthetic-only startup failure: expose matching error diagnostics,
+            # never full logs (the Rauthy first-boot log can contain credentials).
+            "${overlay[@]}" logs --no-color rauthy 2>&1 |
+              grep -Ei 'ERROR|panic|validation failed|invalid role|role.*not found' |
+              sed -E 's/(password|secret|token)[=:][^ ]+/[REDACTED]/Ig' |
+              tail -n 12 >&2 || true
+            echo "Rauthy local discovery unavailable" >&2
+            exit 1
+          fi
           jq -e '
             .issuer == "https://localhost:8443/auth/v1/" and
             (.authorization_endpoint | startswith("https://localhost:8443/")) and
@@ -133,7 +143,31 @@ jobs:
           client_secret="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
             -c /app/config-local-test.toml --kind client --id openclub-rauthy-ci --field secret --format raw)"
           [[ "${#client_secret}" -ge 32 ]] || { echo "No confidential Rauthy client secret bootstrapped" >&2; exit 1; }
-          echo "Synthetic confidential Rauthy client bootstrapped with generated secret."
+          user_password="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+            -c /app/config-local-test.toml --kind user \
+            --id openclub-rauthy-ci@example.invalid --field password --format raw)"
+          [[ "${#user_password}" -ge 16 ]] ||
+            { echo "Synthetic Rauthy user did not receive generated credentials" >&2; exit 1; }
+          echo "Synthetic unprivileged Rauthy user and confidential OIDC client are provisioned."
+          # Validate that a real OIDC authorization-code request with PKCE
+          # reaches Rauthy. Never follow redirects or print callback/state.
+          auth_endpoint="$(jq -er '.authorization_endpoint' /tmp/openclub-rauthy-discovery.json)"
+          challenge="$(printf '%s' 'openclub-disposable-pkce-verifier-with-at-least-forty-three-characters' |
+            openssl dgst -binary -sha256 | openssl base64 -A | tr '+/' '-_' | tr -d '=')"
+          auth_status="$(curl --silent --insecure --max-time 10 -o /dev/null -w '%{http_code}' \
+            -G "$auth_endpoint" \
+            --data-urlencode 'response_type=code' \
+            --data-urlencode 'client_id=openclub-rauthy-ci' \
+            --data-urlencode 'redirect_uri=http://localhost:5173/api/v1/auth/callback' \
+            --data-urlencode 'scope=openid' \
+            --data-urlencode 'state=synthetic-ci-only-state' \
+            --data-urlencode 'nonce=synthetic-ci-only-nonce' \
+            --data-urlencode "code_challenge=$challenge" \
+            --data-urlencode 'code_challenge_method=S256')"
+          [[ "$auth_status" == 200 || "$auth_status" == 302 || "$auth_status" == 303 ]] ||
+            { echo "Rauthy declined valid confidential authorization-code initiation: HTTP $auth_status" >&2; exit 1; }
+          echo "Rauthy accepted synthetic confidential authorization-code initiation."
+
           # Never persist the private signing keys or accept an empty JWKS.
           jwks="$(jq -er '.jwks_uri' /tmp/openclub-rauthy-discovery.json)"
           curl --fail --silent --insecure --max-time 5 "$jwks" |

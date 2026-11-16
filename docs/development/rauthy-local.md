@@ -35,6 +35,22 @@ is **not** a proven browser login, MFA/passkey flow or usable OpenClub session.
 Rauthy's independent provider credentials and database remain isolated from
 Keycloak. Do not copy this synthetic client or configuration to production.
 
+## Synthetic user and authorization initiation
+
+The read-only `dev/rauthy/bootstrap/users.json` fixture creates an enabled,
+email-verified, non-administrator test identity with an **internally generated
+password** in disposable CI. Its credentials are retrieved via Rauthy's local
+bootstrap CLI only into shell variables, not logs or uploaded artifacts.
+
+The Compose smoke test now also sends a **real authorization-code request** to
+Rauthy's advertised authorization endpoint, naming the provisioned confidential
+client and exact OpenClub development callback, with `state`, `nonce`,
+`openid` scope and a valid S256 PKCE challenge. It verifies that the provider
+accepts this initiation without following redirects or exposing callback values.
+This checks an earlier interoperability boundary than the Kotlin callback:
+it **does not yet prove password/MFA/passkey sign-in, code exchange or an OpenClub
+session**. Those remain acceptance criteria in [#279](https://github.com/dkoller/OpenClub/issues/279).
+
 ## OpenClub OIDC compatibility checklist
 
 OpenClub's existing runtime requires one exact verified issuer, a confidential `client_secret_basic` client, HTTPS (unless explicitly isolated loopback development), exact redirect URI, S256 PKCE, same-origin authorization/token/JWKS endpoints, and **RS256** ID tokens. Rauthy normally defaults new clients to EdDSA; configure **RS256** on the specific OpenClub OIDC client, retain PKCE S256, and verify that a signed login token passes the real Kotlin verifier. Never widen validation or match an account by email to make a provider switch work.
