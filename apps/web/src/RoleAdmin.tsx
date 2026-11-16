@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 
 type Member = { id: string; firstName: string; lastName: string }
@@ -21,38 +21,49 @@ export function RoleAdmin({ language, csrfToken }: { language: Language; csrfTok
   const [error, setError] = useState(false)
   const [denied, setDenied] = useState(false)
   const [busy, setBusy] = useState(false)
+  const currentLookup = useRef<AbortController | null>(null)
+  useEffect(() => () => currentLookup.current?.abort(), [])
 
-  async function loadRole(id: string) {
+  async function loadRole(id: string, controller: AbortController) {
     setMemberId(id)
     setCurrent(null)
     if (!id) return
     try {
       const response = await fetch('/api/v1/members/' + encodeURIComponent(id) + '/role',
-        { credentials: 'same-origin', cache: 'no-store' })
+        { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
+      if (controller.signal.aborted) return
       if (response.status === 403) { setDenied(true); return }
       if (!response.ok) throw new Error('Role unavailable')
       const value: unknown = await response.json()
+      if (controller.signal.aborted) return
       if (!value || typeof value !== 'object' || !('role' in value) ||
           (value.role !== 'ADMIN' && value.role !== 'MEMBER')) throw new Error('Invalid role')
       setCurrent(value.role)
       setChosen(value.role)
-    } catch { setError(true) }
+    } catch { if (!controller.signal.aborted) setError(true) }
   }
 
   async function find(event: FormEvent) {
     event.preventDefault()
+    currentLookup.current?.abort()
+    const controller = new AbortController()
+    currentLookup.current = controller
     setError(false)
     setMembers(null)
+    setMemberId('')
+    setCurrent(null)
     try {
       const response = await fetch('/api/v1/members?' + new URLSearchParams({ q: query, limit: '20' }),
-        { credentials: 'same-origin', cache: 'no-store' })
+        { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
+      if (controller.signal.aborted) return
       if (response.status === 403) { setDenied(true); return }
       if (!response.ok) throw new Error('Search unavailable')
       const value: { items?: Member[] } = await response.json()
+      if (controller.signal.aborted) return
       if (!Array.isArray(value.items)) throw new Error('Invalid results')
       setMembers(value.items)
-      await loadRole(value.items[0]?.id ?? '')
-    } catch { setError(true) }
+      await loadRole(value.items[0]?.id ?? '', controller)
+    } catch { if (!controller.signal.aborted) setError(true) }
   }
 
   async function save(event: FormEvent) {
@@ -69,7 +80,10 @@ export function RoleAdmin({ language, csrfToken }: { language: Language; csrfTok
       })
       if (response.status === 403) { setError(true); return }
       if (!response.ok) throw new Error('Role update rejected')
-      await loadRole(memberId)
+      currentLookup.current?.abort()
+      const controller = new AbortController()
+      currentLookup.current = controller
+      await loadRole(memberId, controller)
     } catch { setError(true) }
     finally { setBusy(false) }
   }
@@ -87,7 +101,12 @@ export function RoleAdmin({ language, csrfToken }: { language: Language; csrfTok
       {members?.length === 0 && <p>{t.empty}</p>}
       {members && members.length > 0 && <form onSubmit={event => { void save(event) }}>
         <label>{t.member}
-          <select value={memberId} onChange={event => { void loadRole(event.target.value) }}>
+          <select value={memberId} disabled={busy} onChange={event => {
+            currentLookup.current?.abort()
+            const controller = new AbortController()
+            currentLookup.current = controller
+            void loadRole(event.target.value, controller)
+          }}>
             {members.map(member => <option key={member.id} value={member.id}>
               {member.firstName} {member.lastName}
             </option>)}
