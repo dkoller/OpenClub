@@ -394,6 +394,25 @@ test('verified login gains club access only after restricted operator bootstrap'
   await renameForm.getByRole('textbox', { name: 'Team name' }).fill('Youth Team');
   await renameForm.getByRole('button', { name: 'Save' }).click();
   await expect(teams.getByText('Youth Team — 0 Members')).toBeVisible();
+  // A transient team-list failure must clear after a later successful create/reload.
+  let failedTeamList = false;
+  await page.route('**/api/v1/teams', async route => {
+    if (!failedTeamList && route.request().method() === 'GET') {
+      failedTeamList = true;
+      await route.fulfill({ status: 503, body: 'Unavailable' });
+    } else {
+      await route.continue();
+    }
+  });
+  await teams.getByLabel('Team name').fill('Transient Team');
+  await teams.getByRole('button', { name: 'Add team' }).click();
+  await expect.poll(() => failedTeamList).toBe(true);
+  await expect(teams.getByRole('alert').filter({ hasText: 'Teams unavailable.' })).toBeVisible();
+  await teams.getByLabel('Team name').fill('Recovered Team');
+  await teams.getByRole('button', { name: 'Add team' }).click();
+  await expect(teams.getByText('Recovered Team — 0 Members')).toBeVisible();
+  await expect(teams.getByRole('alert').filter({ hasText: 'Teams unavailable.' })).toHaveCount(0);
+  await page.unroute('**/api/v1/teams');
   // The whole authenticated workflow remains reachable with localized
   // member, team and delegation controls, not just a translated landing page.
   for (const locale of [
