@@ -42,7 +42,16 @@ class MemberFieldValidationTest {
         assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.email("x".repeat(321)) }
         assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.phone("x".repeat(41)) }
         assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.gender("x".repeat(201)) }
-        assertEquals("x".repeat(320), MemberFieldValidation.email("x".repeat(320)))
+        val longEmail = "x".repeat(318) + "@b"
+        assertEquals(longEmail, MemberFieldValidation.email(longEmail))
+        assertEquals("member+team@example.invalid",
+            MemberFieldValidation.email("member+team@example.invalid"))
+        for (invalid in listOf("missing-at", "@example.invalid", "member@", "a@@b", "a @b",
+            "a@ b", "x".repeat(320))) {
+            assertThrows(IllegalArgumentException::class.java) {
+                MemberFieldValidation.email(invalid)
+            }
+        }
         assertEquals("x".repeat(40), MemberFieldValidation.phone("x".repeat(40)))
         assertEquals("x".repeat(200), MemberFieldValidation.gender("x".repeat(200)))
         assertThrows(IllegalArgumentException::class.java) { MemberFieldValidation.email("a@b\r\nBcc: x") }
