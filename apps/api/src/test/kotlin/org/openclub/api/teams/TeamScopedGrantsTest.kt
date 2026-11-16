@@ -59,6 +59,11 @@ class TeamScopedGrantsTest {
                 }
                 db.execute("""INSERT INTO team_capability_grants
                     (team_id, member_id, capability) VALUES (?, ?, 'VIEW_TEAMS')""", juniors, coach)
+                assertFalse(access.hasForTeam(coachAccount, juniors, view))
+                assertTrue(ops.list(coachAccount).isEmpty())
+                db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                    VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), coachAccount, "team-scope-" + coachAccount)
                 assertTrue(access.hasForTeam(coachAccount, juniors, view))
                 assertFalse(access.hasForTeam(coachAccount, juniors, manage))
                 assertFalse(access.hasForTeam(coachAccount, adults, view))
@@ -126,6 +131,10 @@ class TeamScopedGrantsTest {
                 // Link restored: the stored scoped grant is active until the member is deleted.
                 db.execute("UPDATE members SET account_id = ? WHERE id = ?", coachAccount, coach)
                 assertTrue(access.hasForTeam(coachAccount, adults, manage))
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", coachAccount)
+                assertFalse(access.hasForTeam(coachAccount, adults, manage))
+                assertFalse(ops.assign(coachAccount, adults, player))
+                assertTrue(ops.list(coachAccount).isEmpty())
                 // Deleting the local member must cascade the grant immediately.
                 db.execute("DELETE FROM members WHERE id = ?", coach)
                 assertEquals(0L, db.fetchValue(
