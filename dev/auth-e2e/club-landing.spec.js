@@ -606,6 +606,18 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
 
+  // A lost session must hide previously authorized private member names and controls.
+  await page.route('**/api/v1/members?**', route =>
+    new URL(route.request().url()).searchParams.get('q') === 'Synthetic'
+      ? route.fulfill({ status: 401, body: 'Unauthorized' }) : route.continue());
+  const privateMembers = page.getByRole('region', { name: 'Manage members' });
+  await privateMembers.getByLabel('Search names').fill('Synthetic');
+  await privateMembers.getByRole('button', { name: 'Search' }).click();
+  await expect(privateMembers.getByRole('alert')).toContainText('No permission to manage members.');
+  await expect(privateMembers.getByRole('listitem')).toHaveCount(0);
+  await expect(privateMembers.getByRole('button', { name: 'Add member' })).toHaveCount(0);
+  await page.unroute('**/api/v1/members?**');
+
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
   await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
