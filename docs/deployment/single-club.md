@@ -97,7 +97,11 @@ The overlay uses the pinned open-source Caddy `2.11.9-alpine` image as an
 ACME TLS reverse proxy to the existing nginx/web and Kotlin API; only
 ports **80 and 443** are published. The default HTTP web and PostgreSQL host
 ports are reset to empty in this overlay. Caddy stores certificate and
-configuration state in separate persistent volumes.
+configuration state in separate persistent volumes. The reference ingress adds
+`Strict-Transport-Security: max-age=86400` (one day, no `includeSubDomains` or
+preload), only on the public HTTPS hostname, avoiding long-term browser pinning
+of an experimental club domain. The read-only external probe requires an HSTS
+age of at least one day; locally served HTTP development remains unaffected.
 
 Before attempting it, the operator must arrange **all** of the following:
 a host with public ports 80/443 and DNS pointing to it; an **independent

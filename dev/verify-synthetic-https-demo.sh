@@ -38,6 +38,13 @@ status="$(curl_https -D "$work/web.headers" -o "$work/index.html" -w '%{http_cod
 check_header "X-Content-Type-Options" "nosniff" "$work/web.headers"
 check_header "X-Frame-Options" "DENY" "$work/web.headers"
 check_header "Referrer-Policy" "no-referrer" "$work/web.headers"
+# Enforce a modest HTTPS-only retention period on the public demo hostname.
+hsts="$(tr -d '\r' < "$work/web.headers" | grep -im1 '^Strict-Transport-Security:' || true)"
+hsts_age="$(printf '%s\n' "$hsts" | grep -Eio 'max-age=[0-9]+' | head -n1 | cut -d= -f2 || true)"
+if [[ ! "$hsts_age" =~ ^[0-9]{1,9}$ ]] || (( 10#$hsts_age < 86400 )); then
+  echo "HTTPS demo must advertise HSTS max-age of at least one day" >&2
+  exit 1
+fi
 
 status="$(curl_https -D "$work/ready.headers" -o "$work/ready.json" -w '%{http_code}' "$origin/api/ready")"
 [[ "$status" == 200 ]] && jq -e '.status == "ready"' "$work/ready.json" >/dev/null ||

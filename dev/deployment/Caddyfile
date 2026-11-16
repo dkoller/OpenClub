@@ -2,5 +2,7 @@
 # DNS must already point to the operator's host and ports 80/443 must be reachable.
 # The upstream nginx/React stack remains private to the Compose network.
 {$OPENCLUB_DEMO_HOST} {
+    # Short HSTS lifetime for an operator-owned synthetic demo hostname; no subdomains.
+    header Strict-Transport-Security "max-age=86400"
     reverse_proxy web:80
 }
