@@ -29,6 +29,16 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 - Only create or advance `loopcounterN.txt` **when execution actually must end**, recording the next resume point, never as a reason to end. Counter must never exceed 100. The dedicated counter CI check waits 20 seconds.
 - If truly blocked, document the precise blocker and any incomplete checks. Never claim asynchronous work will continue once the execution ends.
 
+### Deterministic next-increment selection (M1 critical path)
+
+At the start of **every** iteration, inspect current `main`, applicable CI, open issues and the [M1/M2 roadmap](docs/roadmap.md). Choose the **highest-priority unblocked, independently reviewable change that materially advances the deployed synthetic-data MVP (M1)**, rather than polishing already-working foundations or optional orchestration.
+
+1. Prefer prerequisite decisions and executable work in this order: minimum approved R03/R04 field/permission contract; secured member/settings/team/grant HTTP operations; React administration in DE/EN/FR/IT; full synthetic browser/security tests; reproducible synthetic deployment and M1 acceptance. Preserve required security, privacy and operational gates.
+2. For equal-priority work, prefer a complete vertical slice and reuse existing PostgreSQL services. Avoid redundant scaffolding, speculative refactoring, infrastructure churn and added dependencies.
+3. If a task requires an unavailable human legal/privacy/production decision, document the **exact pending decision** in its existing issue; **do not invent approval or expose protected data**. Select the next safe independent M1 increment (for example contract tests, authorization tests, UI scaffolding without sensitive data, or deployment preparation) instead of stopping.
+4. Before each merge, confirm applicable CI and review passed; afterward re-read `main` and open issues and immediately choose the next increment. Neither a merged PR nor a checkpoint is a pause signal.
+5. Work on M2-only approvals, post-MVP features, or tooling only when they unblock M1, can safely proceed in parallel without displacing critical-path work, or no useful unblocked M1 work remains. Record why the chosen increment outranks other options in the PR.
+
 ## Working method
 
 1. Read `README.md`, the relevant concept documents and accepted ADRs.
