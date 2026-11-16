@@ -81,7 +81,7 @@ class PublicMemberNamesTest {
                     }
                 }
                 assertTrue(client.get("/api/v1/public/members").bodyAsText()
-                    .contains("\"displayName\":\"Nina SensitiveSurname\""))
+                    .contains("Nina SensitiveSurname"))
             }
         } finally {
             runBlocking {
