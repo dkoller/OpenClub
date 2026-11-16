@@ -15,7 +15,7 @@ docker compose -f compose.yaml -f compose.rauthy.eval.yaml stop rauthy
 
 The **only** permitted use of `--insecure` above is against Rauthy's explicitly isolated, localhost-only **self-signed development certificate**. Never bypass certificate checks for deployed OpenClub or its external OIDC issuer. The Rauthy `LOCAL_TEST=true` fixture includes unsafe demo defaults and must never be enabled on an internet-facing service. The 8443 port is bound to loopback; the evaluation has a separate persistent named volume and does not enable OpenClub authentication by itself. Do not log or commit generated administrator credentials.
 
-The discovery endpoint exposes the issuer, endpoints, supported signing algorithms and JWKS. It does not establish that an OpenClub confidential client exists, or that an ID token will use RS256.
+Rauthy publishes its discovery document at the **origin root**, but advertises a path-qualified issuer (in local evaluation, `https://localhost:8443/auth/v1/`). OpenClub's OIDC discovery now tries the issuer-relative URL first and, **only on an HTTP 404**, tries the issuer's root-origin discovery URL. Metadata still must match the configured issuer exactly, and endpoints/RS256/JWKS remain pinned. The discovery endpoint exposes the issuer, endpoints, supported signing algorithms and JWKS. It does not establish that an OpenClub confidential client exists, or that an ID token will use RS256.
 
 ## OpenClub OIDC compatibility checklist
 
