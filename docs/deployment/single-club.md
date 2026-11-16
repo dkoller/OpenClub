@@ -1,6 +1,6 @@
 # Operating one OpenClub club per installation
 
-**Decision:** 2026-11-15. **Status:** Pre-production implementation in progress; no live member data permitted yet.
+**Decision:** 2026-11-15. **Status verified 2026-11-16 (through merged PR #268):** One-club synthetic pre-production application with local Compose, optional Caddy HTTPS/OIDC reference configuration, and browser/API CI. **No operator-hosted external TLS/OIDC demo or live-member-data authorization exists.**
 
 Each club runs an independent application process (API + web), PostgreSQL database, application configuration and backups. The same MIT-licensed source can serve any club; never share a PostgreSQL database or schema, session cookie secret, OIDC client configuration or member records across installations.
 
@@ -198,6 +198,16 @@ blocker to document in #27/#28, not permission to drop TLS.
 **M2 — production pilot:** In addition to M1, require an accountable operator and approved privacy/legal rules before real member data, externally reachable production-domain/TLS and secure OIDC provisioning, separate per-club encrypted backup storage and retention, a witnessed restore and Flyway upgrade/rollback rehearsal, monitoring/alerts, secret rotation, operator recovery authorization, and an approved operating cost and incident plan. Track operational proof in [R18/#27](https://github.com/dkoller/OpenClub/issues/27). Production readiness is **not** implied by the synthetic CI drill.
 
 The project targets no mandatory paid services, not a promise that permanent public hosting is free. Capture realistic resource measurements and any provider free-tier restrictions before choosing a host; do not provision paid resources without explicit approval. If no suitable cost-free public host is available, record the blocker rather than weakening security or claiming M1 deployed.
+
+## Verified evidence versus outstanding M1/M2 actions (through PR #268)
+
+| Evidence available | Still required before claiming completion |
+| --- | --- |
+| Disposable Keycloak/Chromium member, team, role and permission journeys in DE/EN/FR/IT, including synthetic 401/403 denial and retry tests (#256–#268) | Actual operator-approved external HTTPS/OIDC host, configured callbacks, deployment URL, witnessed end-to-end synthetic browser journey and restart/persistence proof for M1 (#28) |
+| Optional Caddy TLS overlay, HSTS/header probe and PostgreSQL readiness/backup-restoration checks in CI | Actual external DNS/secret/TLS evidence, operator resource and zero-cost constraints plus hosted restart/backup evidence (#27) |
+| Synthetic authorization, session revocation and private UI access-denial regressions | Reviewed privacy/lawful basis, private field and data lifecycle decisions, independent security/operator recovery/backup acceptance and explicit M2 release approval (#12/#13/#24/#26/#180) |
+
+Do not check off hosted proof because local CI succeeds. Do not import or process real member data in the synthetic demo.
 
 ## Next engineering gates
 
