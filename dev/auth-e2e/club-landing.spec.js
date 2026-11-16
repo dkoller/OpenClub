@@ -465,6 +465,32 @@ test('verified login gains club access only after restricted operator bootstrap'
     await expect(page.locator('html')).toHaveAttribute('lang', locale.code);
   }
 
+  // Policy conflicts stay localized even if language changes after a failed save.
+  const settings = page.getByRole('region', { name: 'Edit club name' });
+  await settings.getByLabel('Require gender for players').uncheck();
+  await settings.getByRole('button', { name: 'Save policy' }).click();
+  await settings.getByLabel('Require gender for players').check();
+  await page.route('**/api/v1/club/player-gender-policy', async route => {
+    if (route.request().method() === 'PATCH') {
+      await route.fulfill({ status: 409, body: 'Conflict' });
+    } else {
+      await route.continue();
+    }
+  });
+  await settings.getByRole('button', { name: 'Save policy' }).click();
+  for (const locale of [
+    { code: 'de', setting: 'Vereinsname bearbeiten', error: 'Aktive Spieler ohne Geschlechtsangabe verhindern diese Regel.' },
+    { code: 'fr', setting: 'Modifier le nom du club', error: 'Des joueurs sans genre renseigné empêchent cette règle.' },
+    { code: 'it', setting: 'Modifica nome del club', error: 'Alcuni giocatori non hanno un genere indicato.' },
+    { code: 'en', setting: 'Edit club name', error: 'Existing players without gender must be updated first.' },
+  ]) {
+    await page.locator('#language').selectOption(locale.code);
+    await expect(page.getByRole('region', { name: locale.setting }).getByRole('alert')).toContainText(locale.error);
+  }
+  await page.unroute('**/api/v1/club/player-gender-policy');
+  await settings.getByRole('button', { name: 'Save policy' }).click();
+  await expect(settings.getByRole('alert')).toHaveCount(0);
+
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
     .getByRole('button', { name: 'Archive' }).click();
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })

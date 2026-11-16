@@ -19,7 +19,7 @@ export function ClubSettings({ language, name, csrfToken, onChanged,
 }) {
   const [draft, setDraft] = useState(name)
   const [requiresGender, setRequiresGender] = useState(genderRequiredForPlayers)
-  const [policyError, setPolicyError] = useState('')
+  const [policyError, setPolicyError] = useState<'conflict' | 'error' | null>(null)
   const [busy, setBusy] = useState(false)
   const [denied, setDenied] = useState(false)
   const [error, setError] = useState(false)
@@ -51,7 +51,7 @@ export function ClubSettings({ language, name, csrfToken, onChanged,
   async function saveGenderPolicy(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
-    setPolicyError('')
+    setPolicyError(null)
     try {
       const response = await fetch('/api/v1/club/player-gender-policy', {
         method: 'PATCH',
@@ -60,11 +60,11 @@ export function ClubSettings({ language, name, csrfToken, onChanged,
         body: JSON.stringify({ genderRequiredForPlayers: requiresGender }),
       })
       if (response.status === 403) { setDenied(true); return }
-      if (response.status === 409) { setPolicyError(t.conflict); return }
+      if (response.status === 409) { setPolicyError('conflict'); return }
       if (!response.ok) throw new Error('Policy rejected')
       onPolicyChanged(requiresGender)
     } catch {
-      setPolicyError(t.policyError)
+      setPolicyError('error')
     } finally {
       setBusy(false)
     }
@@ -91,7 +91,7 @@ export function ClubSettings({ language, name, csrfToken, onChanged,
           {t.savePolicy}
         </button>
       </form>
-      {policyError && <p role="alert">{policyError}</p>}
+      {policyError && <p role="alert">{policyError === 'conflict' ? t.conflict : t.policyError}</p>}
     </section>
   )
 }

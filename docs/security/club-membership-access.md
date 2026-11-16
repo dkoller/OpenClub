@@ -237,3 +237,7 @@ After a failed team-roster read, a localized retry control in DE/FR/IT/EN reload
 ## Role editor member search and detail freshness (synthetic M1)
 
 The role editor aborts superseded member searches and role-detail lookups, clears outdated selection while searching, and discards canceled responses without exposing raw errors. This prevents stale role reads from setting the role dropdown for a different selected member. The disposable Keycloak/Chromium flow verifies cancellation of a fictional old member query before selecting and safely updating the intended member role. Backend authorization, administrator safeguards and M2 privacy approvals remain unchanged.
+
+## Localized player-policy conflict after language changes (synthetic M1)
+
+The club player-gender policy editor retains a semantic conflict/failure code rather than a language-specific error string. A failed save therefore displays the correct current DE/EN/FR/IT message after a language change; it never changes the persisted rule on a 409. Disposable Keycloak/Chromium acceptance injects a synthetic conflict, checks all four translations and verifies a subsequent valid save. The PostgreSQL constraint and existing administrator permissions remain authoritative; M2 privacy approval is unchanged.
