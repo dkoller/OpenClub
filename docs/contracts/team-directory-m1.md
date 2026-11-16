@@ -22,3 +22,7 @@ The team read endpoint is a narrowly scoped implementation step toward [#75](htt
 - The localized browser workflow searches the authorized member directory, offers assignment/removal, and refreshes team counts. It hides private roster controls when dual visibility is denied.
 
 This is not approval of public member IDs, broader confidential fields, permission-delegation endpoints, or real-data operation.
+
+## Team rename (synthetic M1)
+
+`PATCH /api/v1/teams/{teamId}` accepts the same strict name-only JSON object as team creation (maximum 4 KiB). A verified session, exact configured Origin, matching CSRF token and an **active club-wide** `MANAGE_TEAMS` grant are required; a team-scoped grant cannot rename a team. A successful rename returns `204`; unauthenticated `401`, unauthorized `403`, malformed input `400`, nonexistent team `404`, duplicate team name `409`, and unavailable service `503`. The localized browser provides a rename form. Existing member assignments remain attached to the unchanged team UUID. This is a synthetic workflow only; full private/production contracts remain subject to independent approval.
