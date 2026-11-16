@@ -193,3 +193,7 @@ The disposable Keycloak/Chromium member-administration journey now opens and can
 ## Accessible archive target context (PR #232, synthetic M1)
 
 The inline archive-confirmation prompt and its Cancel/Confirm buttons now sit inside a named accessibility group. Its accessible name combines the localized archive question with the **selected member's name**, so assistive technology can distinguish the target when more than one member row has an Archive action. The real Keycloak/Chromium journey asserts this group context in DE/EN/FR/IT and confirms cancellation behavior remains unchanged. This is an incremental accessibility improvement, not a complete WCAG audit or any M2 privacy/release approval.
+
+## Single-club metadata identity revocation (PR #233, synthetic M1)
+
+The private `GET /api/v1/club` lookup now requires an active linked local member **and a current verified OIDC identity row in the same SQL query**. A test-only still-valid synthetic session cannot retrieve the club's name, slug, ID or player-policy flag after identity revocation. Direct SQL and Ktor tests cover unverified linkage, normal access, revocation and generic no-store 403 denial. This complements the real session revocation boundary from #229–#230 and does not disclose new personal fields or constitute M2 approval.
