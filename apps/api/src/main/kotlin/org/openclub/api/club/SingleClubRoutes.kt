@@ -8,6 +8,8 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
@@ -29,14 +31,25 @@ internal fun Application.installSingleClubRoutes(
                         ContentType.Application.Json, HttpStatusCode.Unauthorized)
                     return@get
                 }
-                val clubId = database.onDatabaseThread { db ->
-                    MemberAccess(db).authorizedClubId(session.accountId)
+                val club = database.onDatabaseThread { db ->
+                    val id = MemberAccess(db).authorizedClubId(session.accountId)
+                    id?.let {
+                        db.fetchOne("SELECT name, slug FROM clubs WHERE id = ?", it)?.let { row ->
+                            Triple(it,
+                                requireNotNull(row.get("name", String::class.java)),
+                                requireNotNull(row.get("slug", String::class.java)))
+                        }
+                    }
                 }
-                if (clubId == null) {
+                if (club == null) {
                     call.respondText("""{"code":"forbidden","message":"Club membership required"}""",
                         ContentType.Application.Json, HttpStatusCode.Forbidden)
                 } else {
-                    call.respondText("""{"id":"$clubId"}""", ContentType.Application.Json)
+                    call.respondText(buildJsonObject {
+                        put("id", club.first.toString())
+                        put("name", club.second)
+                        put("slug", club.third)
+                    }.toString(), ContentType.Application.Json)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
