@@ -59,12 +59,12 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
 
     await page.locator('input[type="email"]').fill('openclub-rauthy-ci@example.invalid');
     await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
-    // Rauthy may auto-start WebAuthn after E-Mail entry, or show a
-    // dedicated passkey choice. Never fall back to the password field.
-    const passkeyChoice = page.getByRole('button', { name: /passkey|security key/i });
-    if (await passkeyChoice.isVisible().catch(() => false)) {
-      await passkeyChoice.click();
-    }
+    // Rauthy's Passkey button uses aria-label="Login" for accessibility,
+    // so its accessible name is NOT "Passkey". Match its visible text and
+    // wait for the email->password/passkey stage to settle before clicking.
+    const passkeyChoice = page.locator('button').filter({ hasText: /passkey/i });
+    await expect(passkeyChoice).toBeVisible({ timeout: 10000 });
+    await passkeyChoice.click();
     await expect(page).toHaveURL('https://localhost:5443/');
     const signedCredentials = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials;
     expect(signedCredentials.some(c => c.signCount > 0),
