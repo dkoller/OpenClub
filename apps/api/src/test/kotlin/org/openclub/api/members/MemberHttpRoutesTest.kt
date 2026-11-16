@@ -163,12 +163,12 @@ class MemberHttpRoutesTest {
                     header("X-CSRF-Token", csrf)
                 }
                 assertEquals(HttpStatusCode.NotFound, repeated.status)
-                val protected = client.post("/api/v1/members/$admin/archive") {
+                val protectedArchive = client.post("/api/v1/members/$admin/archive") {
                     header(HttpHeaders.Cookie, auth("valid"))
                     header(HttpHeaders.Origin, origin)
                     header("X-CSRF-Token", csrf)
                 }
-                assertEquals(HttpStatusCode.Conflict, protected.status)
+                assertEquals(HttpStatusCode.Conflict, protectedArchive.status)
 
                 // Revoking the directory grant immediately denies subsequent requests.
                 runBlocking {
