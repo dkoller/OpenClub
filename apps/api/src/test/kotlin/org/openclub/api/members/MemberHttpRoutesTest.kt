@@ -227,9 +227,19 @@ class MemberHttpRoutesTest {
                         db.execute("""INSERT INTO members (id, first_name, last_name,
                             date_of_birth) VALUES (?, 'Revocation', 'Target', DATE '2014-01-01')""",
                             revocationTarget)
+                        db.execute("INSERT INTO club_capability_grants VALUES (?, 'VIEW_MEMBER_DIRECTORY')", admin)
                         db.execute("DELETE FROM account_identities WHERE account_id = ?", account)
                     }
                 }
+                val revokedList = client.get("/api/v1/members") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                }
+                assertEquals(HttpStatusCode.Forbidden, revokedList.status)
+                assertFalse(revokedList.bodyAsText().contains("Synthetic"))
+                val revokedDetail = client.get("/api/v1/members/$admin") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                }
+                assertEquals(HttpStatusCode.Forbidden, revokedDetail.status)
                 val identityRevokedCreate = client.post("/api/v1/members") {
                     header(HttpHeaders.Cookie, auth("valid"))
                     header(HttpHeaders.Origin, origin)
@@ -244,7 +254,7 @@ class MemberHttpRoutesTest {
                     header(HttpHeaders.Origin, origin)
                     header("X-CSRF-Token", csrf)
                 }
-                assertEquals(HttpStatusCode.Conflict, identityRevokedArchive.status)
+                assertEquals(HttpStatusCode.Forbidden, identityRevokedArchive.status)
                 assertNull(runBlocking {
                     database.onDatabaseThread { db ->
                         db.fetchValue("SELECT archived_at FROM members WHERE id = ?", revocationTarget)
@@ -258,7 +268,7 @@ class MemberHttpRoutesTest {
                     header(HttpHeaders.ContentType, "application/json")
                     setBody("""{"firstName":"Denied","lastName":"IdentityRevoked"}""")
                 }
-                assertEquals(HttpStatusCode.NotFound, identityRevokedEdit.status)
+                assertEquals(HttpStatusCode.Forbidden, identityRevokedEdit.status)
                 assertEquals(0, runBlocking {
                     database.onDatabaseThread { db ->
                         db.fetchValue("SELECT COUNT(*) FROM members WHERE first_name = 'Denied'")?.toString()?.toInt()

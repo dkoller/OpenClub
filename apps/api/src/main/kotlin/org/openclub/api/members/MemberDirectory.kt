@@ -7,7 +7,7 @@ import java.util.UUID
  * Internal-only member directory query. Not exposed over HTTP until privacy
  * and capability rules (#12/#76) approve directory visibility.
  *
- * The installation-local actor's explicit directory-read grant is checked
+ * The installation-local actor's verified identity and explicit directory-read grant are checked
  * in the same SQL statement as the read; linking an account alone is insufficient.
  */
 internal class MemberDirectory(private val database: DSLContext) {
@@ -30,6 +30,8 @@ internal class MemberDirectory(private val database: DSLContext) {
             """SELECT target.id, target.first_name, target.last_name
                FROM members target
                JOIN members actor ON actor.account_id = ? AND actor.archived_at IS NULL
+                   AND EXISTS (SELECT 1 FROM account_identities identity
+                               WHERE identity.account_id = actor.account_id)
                JOIN club_capability_grants g ON g.member_id = actor.id
                    AND g.capability = 'VIEW_MEMBER_DIRECTORY'
                JOIN clubs club ON TRUE
