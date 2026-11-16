@@ -47,6 +47,17 @@ At the start of **every** iteration, inspect current `main`, applicable CI, open
 - **Measure before changing CI.** Review actual job durations, wait time, and repeated work before adding fast lanes, matrices, or dependencies. Use targeted checks while developing and all applicable required checks before merge. Browser E2E remains required when changes may affect auth, API authorization, or user-visible workflows—even for backend-only changes. Never trade security coverage for apparent speed.
 - **Keep review and documentation proportional.** Do a broad repository/backlog inspection on resume and when architecture, blockers, or evidence materially change. Between successful merges, review the new `main`, changed areas, impacted issues, CI results, and next dependencies instead of repeating an exhaustive audit without reason. Update affected docs in the feature PR; avoid status-only PRs or duplicate progress paragraphs unless correcting a real discrepancy.
 
+### Nonterminal progress and post-merge continuation (owner correction, 2026-11-16)
+
+Repeated voluntary stops after green PRs demonstrated that a prose instruction to "continue" is insufficient. Treat **the next useful work item**, not the merged PR or a status response, as the unit of loop control.
+
+- **Immediately after each successful merge:** record the merged SHA, inspect current `main` and any newly open PRs/issues, then select and begin the next safe unblocked M1 increment. **The next meaningful operation must be repository/task work**, not a terminal summary, unless an actual stop condition below has been demonstrated.
+- **Progress updates are nonterminal.** Briefly report merged PRs and CI to the user when useful, then keep using available tools in the same execution. Never turn "green CI", "no open PRs", "clean main", "finished batch", a checkpoint opportunity, or a progress report into a completion signal.
+- **Before ending an execution, run the stop audit:** (1) identify and substantiate a specific allowed stop condition; (2) verify current `main`, open PRs and their latest-head CI; (3) inspect the next highest-value unblocked issue or explain why every useful task is blocked; (4) write the existing counter checkpoint and handoff if tools still permit; (5) report the evidence and exact next action. If the audit does not establish an allowed stop condition, **return to step one of the next iteration instead of ending**.
+- **Execution limits are external.** These instructions cannot keep ChatGPT running after its execution ends, compel another turn, or create an unattended worker. Do not claim an automatic restart. If a limit prevents writing the checkpoint, say so explicitly with the verified repository state; the next execution must recover from GitHub.
+- A checkpoint PR, when required, must include structured handoff details in the **PR description**, while the root `loopcounterN.txt` content stays numeric-only for the existing CI contract. Do not create a parallel state file, periodic checkpoint, or new CI orchestrator to simulate continuous execution.
+- On resume, reconcile the **actual repository state** before trusting any old checkpoint or conversation summary. A checkpoint is not an instruction to redo already merged work.
+
 ### Stop, recovery, CI failures and handoff
 
 These rules apply to humans and coding agents running the controlled loop; they do not create a background worker or grant new permissions.
@@ -57,7 +68,7 @@ These rules apply to humans and coding agents running the controlled loop; they 
 
 **When CI fails:** Inspect the failing job/logs and classify the cause. Fix and rerun deterministic source/test failures; retry a demonstrably transient runner/service failure only after inspecting evidence, with bounded attempts; for unavailable runners, exhausted minutes or permission failures, document the exact blocker and continue with other safe work. Never weaken, bypass, dismiss or assume success for required checks. Merge only when the current PR head has all applicable required checks successful, review is complete, and security/privacy gates remain satisfied.
 
-**At an actual execution boundary:** Report the latest verified `main` commit, merged PRs, any open branch/PR with head SHA and CI state, checks actually run, outstanding blockers with issue links, and the highest-value next unblocked task. Create or increment the checkpoint only if execution must stop, never beyond 100, and preserve its dedicated check. Do not promise automatic/background continuation after the active execution ends.
+**At an actual execution boundary:** Apply the stop audit above. Report the specific allowed stop reason **and its evidence**, latest verified `main` SHA, merged PRs, any open branch/PR with head SHA and current-head CI state, checks actually run, outstanding blockers with issue links, and a specific next unblocked issue/task. If tools permit, record the same handoff in the existing counter-only checkpoint PR description; never increment beyond 100 or bypass its dedicated check. If checkpoint creation is impossible, explicitly state why. Do not promise automatic/background continuation after the active execution ends.
 
 ## Working method
 
