@@ -29,8 +29,8 @@ describe('single-club session', () => {
     const request = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411361', csrfToken: 'x'.repeat(43) }) })
       .mockResolvedValueOnce({ ok: true, status: 200,
-        json: async () => ({ id: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411360', name: 'Synthetic club', slug: 'synthetic-club' }) })
-    expect(await loadClubAccess(request)).toEqual({ state: 'ready', csrfToken: 'x'.repeat(43), clubName: 'Synthetic club' })
+        json: async () => ({ id: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411360', name: 'Synthetic club', slug: 'synthetic-club', genderRequiredForPlayers: false }) })
+    expect(await loadClubAccess(request)).toEqual({ state: 'ready', csrfToken: 'x'.repeat(43), clubName: 'Synthetic club', genderRequiredForPlayers: false })
   })
 
   it('does not consider malformed or non-200 club results to be authorized', async () => {
@@ -41,6 +41,7 @@ describe('single-club session', () => {
       { ok: true, status: 200, json: async () => ({ id: '' }) },
       { ok: true, status: 200, json: async () => ({ id: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411360', name: '', slug: 'club' }) },
       { ok: true, status: 200, json: async () => ({ id: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411360', name: 'Club', slug: '../invalid' }) },
+      { ok: true, status: 200, json: async () => ({ id: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411360', name: 'Club', slug: 'club', genderRequiredForPlayers: 'true' }) },
     ]) {
       const request = vi.fn()
         .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411361', csrfToken: 'x'.repeat(43) }) })
