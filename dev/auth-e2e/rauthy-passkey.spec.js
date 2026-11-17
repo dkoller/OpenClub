@@ -132,7 +132,10 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
       `https://localhost:8443/auth/v1/users/${encodeURIComponent(userId)}/webauthn/delete/${encodeURIComponent('Synthetic virtual passkey')}`,
       { headers: adminHeaders },
     );
-    expect([200, 204], 'Authorized operator must revoke the named lost credential').toContain(revoked.status());
+    const removalError = revoked.ok() ? null : await revoked.json().catch(() => ({}));
+    const removalCode = removalError?.error ?? removalError?.message ?? removalError?.details ?? 'unknown';
+    expect([200, 204], `Authorized passkey deletion failed: HTTP ${revoked.status()}, reason ${String(removalCode).slice(0,120)}`)
+      .toContain(revoked.status());
 
     // Fresh browser login on a replacement device must now succeed using
     // the still-verified password. The lost authenticator was already removed
