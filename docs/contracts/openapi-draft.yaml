@@ -913,10 +913,13 @@ components:
         teamId: { type: string, format: uuid }
     Error:
       type: object
-      required: [code, message]
+      additionalProperties: false
+      required: [code]
       properties:
         code: { type: string }
-        message: { type: string }
+        message:
+          type: string
+          description: Optional generic detail; some M1 routes return code only, while member routes include a safe message.
   responses:
     Invalid:
       description: Invalid input, query, cursor or member field; no private data reflected

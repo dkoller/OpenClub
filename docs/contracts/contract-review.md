@@ -1,5 +1,7 @@
 # R04 — OpenAPI contract review and approval gate
 
+**M1 runtime response-shape acceptance (2026-11-17):** PostgreSQL-backed Ktor HTTP tests now assert exact privacy-minimized keys for member creation, directory list, member detail and anonymous public names; malformed member IDs return a safe `code` and generic `message` envelope. The shared `Error` schema now requires only `code` because some other implemented routes return code alone; `message` remains optional. This complements static route checks but does not approve private-field expansion, complete payload coverage or R04 version promotion.
+
 **M1 route-drift protection (2026-11-17, separate from R04 approval):**
 `dev/verify-m1-openapi.py` and the narrowly triggered `m1-contract.yml`
 workflow compare the 21 synthetic club/member/team/role/grant/public HTTP
