@@ -42,6 +42,8 @@ From `apps/api`, run `./gradlew bootstrapFirstClub` (Windows: `gradlew.bat boots
 
 ## Operator-only recovery of the sole administrator
 
+**Required human controls:** follow the [administrator identity-verification, independent-approval, audit and witnessed-drill procedure](../security/admin-recovery-procedure.md) and record each action using its [private case template](../security/admin-recovery-case-template.md). The CLI enforces technical database/session conditions only; it does not replace these controls or constitute M2 sign-off.
+
 **Emergency only, not self-service.** This recovery command changes the account attached to the existing sole `ADMIN` member; it does not create members, promote roles, or change the club. It is not registered as an HTTP route. The operator's database credentials are the privileged recovery boundary; the CLI cannot independently prove the human's entitlement.
 
 Before executing: (1) confirm the old administrator's login is genuinely inaccessible; (2) obtain and verify written authorization from the club's designated responsible person and an independent reviewer, and keep the decision in a restricted incident record; (3) take and **verify** a recoverable database backup; (4) authenticate the replacement identity through the configured OIDC provider and independently check its issuer + subject and account UUID in `account_identities`; (5) verify the expected club ID, sole administrator member ID, and previous account ID from the database. **Never select accounts by email/name alone.** If the rightful owner is disputed, multiple administrators exist, or independent verification is impossible, stop and escalate instead of guessing.
