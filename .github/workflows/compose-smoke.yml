@@ -295,6 +295,9 @@ jobs:
           test "$(curl --fail --silent http://localhost:5173/api/health)" = '{"status":"ok"}'
           test "$(curl --fail --silent http://localhost:5173/api/ready)" = '{"status":"ready"}'
 
+      - name: Measure running synthetic stack resource usage (non-peak)
+        shell: bash
+        run: bash dev/measure-synthetic-compose.sh --synthetic-only
       - name: Verify browser security headers on web, API and denial responses
         shell: bash
         run: |

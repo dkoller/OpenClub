@@ -33,6 +33,11 @@ jobs:
         run: |
           set -euo pipefail
           bash -n dev/verify-synthetic-https-demo.sh
+          bash -n dev/measure-synthetic-compose.sh
+          if COMPOSE_PROJECT_NAME= bash dev/measure-synthetic-compose.sh --synthetic-only; then
+            echo "::error::Resource probe accepted an unspecified Compose project" >&2
+            exit 1
+          fi
           if env OPENCLUB_DEMO_ORIGIN=http://localhost:5173 OPENCLUB_OIDC_ISSUER=http://localhost:8180/realms/openclub-dev bash dev/verify-synthetic-https-demo.sh --synthetic-only; then
             echo "::error::Demo probe accepted insecure HTTP targets" >&2
             exit 1
