@@ -108,4 +108,4 @@ These rules apply to humans and coding agents running the controlled loop; they 
 
 - ADR-0001 selects React/TypeScript/Vite frontend, Kotlin/Ktor backend, PostgreSQL with **jOOQ**, and Flyway migrations.
 - Follow accepted ADRs on `main` and any agreed task-specific decisions; do not silently override an accepted ADR.
-- ADR-0003 selects Keycloak as the self-hosted reference OIDC provider (other OIDC providers can be configured later) and a Kotlin/Ktor BFF with server-side sessions. Hosting and agent orchestration are undecided.
+- ADR-0003 records the original Keycloak reference and Kotlin/Ktor BFF with server-side sessions. **ADR-0006 requires continued support for both Keycloak and Rauthy** as alternative OIDC providers; one verified issuer is configured per installation, not simultaneous multi-issuer login. Preserve both integrations and their tests. Hosted M1 acceptance and M2 production/privacy approval remain outstanding.
