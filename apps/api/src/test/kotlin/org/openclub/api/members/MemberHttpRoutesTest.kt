@@ -156,23 +156,35 @@ class MemberHttpRoutesTest {
                     setBody("""{"firstName":"Nina","lastName":"Private","dateOfBirth":"2013-01-01"}""")
                 }
                 assertEquals(HttpStatusCode.Created, create.status)
-                val id = UUID.fromString(Json.parseToJsonElement(create.bodyAsText())
-                    .jsonObject.getValue("id").jsonPrimitive.content)
+                val createdBody = Json.parseToJsonElement(create.bodyAsText()).jsonObject
+                // OpenAPI MemberReference: never echo birth date or adult/minor contacts.
+                assertEquals(setOf("id"), createdBody.keys)
+                val id = UUID.fromString(createdBody.getValue("id").jsonPrimitive.content)
                 created = id
                 assertEquals("/api/v1/members/$id", create.headers[HttpHeaders.Location])
                 val list = client.get("/api/v1/members?q=Nina") {
                     header(HttpHeaders.Cookie, auth("valid"))
                 }
                 assertEquals(HttpStatusCode.OK, list.status)
-                val items = Json.parseToJsonElement(list.bodyAsText()).jsonObject
-                    .getValue("items").jsonArray
+                val memberPage = Json.parseToJsonElement(list.bodyAsText()).jsonObject
+                // The unpaginated M1 response must match MemberPage without private fields.
+                assertEquals(setOf("items"), memberPage.keys)
+                val items = memberPage.getValue("items").jsonArray
                 assertEquals(1, items.size)
+                assertEquals(setOf("id", "firstName", "lastName"), items.first().jsonObject.keys)
                 assertEquals(id.toString(), items.first().jsonObject.getValue("id").jsonPrimitive.content)
                 assertFalse(list.bodyAsText().contains("2013-01-01"))
                 val privateAttempt = client.get("/api/v1/members/$id") {
                     header(HttpHeaders.Cookie, auth("other"))
                 }
                 assertEquals(HttpStatusCode.Forbidden, privateAttempt.status)
+                val detail = client.get("/api/v1/members/$id") {
+                    header(HttpHeaders.Cookie, auth("valid"))
+                }
+                assertEquals(HttpStatusCode.OK, detail.status)
+                val summary = Json.parseToJsonElement(detail.bodyAsText()).jsonObject
+                assertEquals(setOf("id", "firstName", "lastName"), summary.keys)
+                assertEquals("Private", summary.getValue("lastName").jsonPrimitive.content)
 
                 // The documented optional empty filter is a valid unfiltered read.
                 val emptyFilter = client.get("/api/v1/members?q=") {
@@ -184,6 +196,9 @@ class MemberHttpRoutesTest {
                     header(HttpHeaders.Cookie, auth("valid"))
                 }
                 assertEquals(HttpStatusCode.BadRequest, malformedDetail.status)
+                val invalidResponse = Json.parseToJsonElement(malformedDetail.bodyAsText()).jsonObject
+                assertEquals(setOf("code"), invalidResponse.keys)
+                assertEquals("invalid", invalidResponse.getValue("code").jsonPrimitive.content)
                 val missingDetail = client.get("/api/v1/members/${UUID.randomUUID()}") {
                     header(HttpHeaders.Cookie, auth("valid"))
                 }
@@ -199,6 +214,9 @@ class MemberHttpRoutesTest {
                 assertEquals(HttpStatusCode.NoContent, edit.status)
                 val public = client.get("/api/v1/public/members")
                 assertEquals(HttpStatusCode.OK, public.status)
+                val publicEntries = Json.parseToJsonElement(public.bodyAsText()).jsonArray
+                assertTrue(publicEntries.isNotEmpty())
+                assertTrue(publicEntries.all { it.jsonObject.keys == setOf("displayName") })
                 assertTrue(public.bodyAsText().contains("Nina R."))
                 assertFalse(public.bodyAsText().contains("Renamed"))
                 assertFalse(public.bodyAsText().contains(id.toString()))
