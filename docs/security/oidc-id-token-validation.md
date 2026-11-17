@@ -1,6 +1,8 @@
 # R05 / C3 — Verified OIDC ID-token identity
 
-**Status:** Internal verification component only; no HTTP login, callback, OAuth token exchange or browser sessions are enabled. Parent issue [#14](https://github.com/dkoller/OpenClub/issues/14).
+**Current state (2026-11-17):** This component is now part of the implemented browser login (callback, code exchange and server-side sessions; see [OIDC browser login](oidc-browser-login.md) and [session API](session-api.md)), used with Keycloak or Rauthy ([ADR-0006](../decisions/0006-oidc-provider-choice.md)). The status line below records the component's original, pre-login stage.
+
+*Original status:* Internal verification component only; no HTTP login, callback, OAuth token exchange or browser sessions are enabled. Parent issue [#14](https://github.com/dkoller/OpenClub/issues/14).
 
 The Kotlin backend pins `com.nimbusds:oauth2-oidc-sdk:11.39` (Apache-2.0), the selected maintained OIDC validator. `OidcIdTokenVerifier` uses Nimbus `IDTokenValidator` with the configured issuer/client, **RS256 only**, a trusted public JWK set supplied by backend configuration/discovery (never a URL from the token header), and a 30-second clock-skew allowance. It requires a valid signed JWT, expected stored nonce, a single audience equal to the client ID and nonblank subject. The wrapper also rejects tokens whose optional `nbf` is more than 30 seconds in the future and requires optional `azp` to exactly match the configured client ID; these checks are not enforced by the pinned Nimbus validator itself. It returns only `issuer + subject`, **not an authenticated member or club role**. Any verifier exception must cause authentication to fail closed.
 

@@ -1,7 +1,15 @@
 # Internal team-roster visibility (pre-production)
 
-**Status:** Internal SQL only. There is no HTTP endpoint, browser roster,
-approved identity/contact exposure policy or permission to use real member data.
+**Status (updated 2026-11-17):** The roster is now exposed to authorized users as
+`GET /api/v1/teams/{teamId}/members`, with assignment through `POST`/`DELETE
+/api/v1/teams/{teamId}/members/{memberId}` (`TeamMemberHttpRoutes.kt`, OpenAPI draft).
+The DE/EN/FR/IT browser roster is in `apps/web/src/TeamMembers.tsx`. The rules below still apply:
+the roster requires both the directory grant and a club-wide or exact-team team grant, and the
+query itself requires a current verified identity. There is still **no approved
+identity/contact exposure policy and no permission to use real member data**.
+
+*Original status (pre-HTTP): "Internal SQL only. There is no HTTP endpoint, browser roster,
+approved identity/contact exposure policy or permission to use real member data."*
 
 `TeamMemberDirectory.list(verifiedAccountId, teamId, limit, after)` returns a
 bounded, deterministically ordered **single-team** member-name page (local UUID,

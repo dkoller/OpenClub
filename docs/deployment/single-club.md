@@ -223,5 +223,5 @@ Do not check off hosted proof because local CI succeeds. Do not import or proces
 
 - [#74](https://github.com/dkoller/OpenClub/issues/74): architecture and schema foundation completed in merged PR #79.
 - [R07/#16](https://github.com/dkoller/OpenClub/issues/16): operator-only bootstrap and sole-admin recovery implemented (#16 engineering closed); witnessed operational recovery and production authorization remain open in #180 and #27.
-- [R04/#13](https://github.com/dkoller/OpenClub/issues/13), [R06/#15](https://github.com/dkoller/OpenClub/issues/15): approved contracts and server authorization.
+- [R04/#13](https://github.com/dkoller/OpenClub/issues/13): approved versioned contract. Server authorization ([R06/#15](https://github.com/dkoller/OpenClub/issues/15)) is implemented and closed; its remaining edge cases are tracked in [#24](https://github.com/dkoller/OpenClub/issues/24).
 - [R15/#24](https://github.com/dkoller/OpenClub/issues/24), [R18/#27](https://github.com/dkoller/OpenClub/issues/27): local security tests and operational validation.

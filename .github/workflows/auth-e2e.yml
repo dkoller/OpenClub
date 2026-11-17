@@ -82,18 +82,6 @@ jobs:
             fi
           ' _ "$RUNNER_TEMP/openclub-browser-setup.status" \
             > "$RUNNER_TEMP/openclub-browser-setup.log" 2>&1 < /dev/null &
-      # Compiling the API needs neither the provider nor fixtures. Build it while
-      # PostgreSQL and the provider start; the API is launched only after the
-      # build reported success (measured 2026-11-17: ~38s build after ~40s startup).
-      - name: Build API alongside provider startup
-        shell: bash
-        working-directory: apps/api
-        run: |
-          set -euo pipefail
-          nohup bash -c '
-            if ./gradlew installDist --no-daemon; then echo success > "$1"; else echo failed > "$1"; fi
-          ' _ "$RUNNER_TEMP/openclub-api-build.status" \
-            > "$RUNNER_TEMP/openclub-api-build.log" 2>&1 < /dev/null &
       - name: Start disposable PostgreSQL and Keycloak
         run: |
           set -euo pipefail
@@ -118,19 +106,11 @@ jobs:
           bash dev/keycloak/provision-test-fixtures.sh
           echo "OPENCLUB_OIDC_CLIENT_SECRET=$client_secret" >> "$GITHUB_ENV"
           echo "OPENCLUB_E2E_USER_PASSWORD=$user_password" >> "$GITHUB_ENV"
-      - name: Start API behind the fixture callback origin
+      - name: Build API behind the fixture callback origin
         working-directory: apps/api
         run: |
           set -euo pipefail
-          for attempt in {1..300}; do
-            [[ -f "$RUNNER_TEMP/openclub-api-build.status" ]] && break
-            sleep 1
-          done
-          if [[ "$(cat "$RUNNER_TEMP/openclub-api-build.status" 2>/dev/null || true)" != success ]]; then
-            echo 'API build failed or timed out' >&2
-            tail -n 40 "$RUNNER_TEMP/openclub-api-build.log" >&2 || true
-            exit 1
-          fi
+          ./gradlew installDist --no-daemon
           nohup build/install/openclub-api/bin/openclub-api > "$RUNNER_TEMP/auth-api.log" 2>&1 &
           for attempt in {1..60}; do
             if curl -fsS --max-time 2 http://localhost:8080/health -o /dev/null; then exit 0; fi
