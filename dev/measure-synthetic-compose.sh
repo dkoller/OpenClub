@@ -50,7 +50,8 @@ done
 # Read-only, no usernames, process lists, volume paths or application secrets.
 if command -v free >/dev/null; then
   echo "Host memory and swap snapshot (MiB; Linux):"
-  free -m | awk 'NR == 2 || NR == 3 { print $1, "total=" $2, "used=" $3, "free=" $4, "available=" $7 }'
+  free -m | awk 'NR == 2 { print $1, "total=" $2, "used=" $3, "free=" $4, "available=" $7 }
+                 NR == 3 { print $1, "total=" $2, "used=" $3, "free=" $4 }'
 else
   echo "Host memory snapshot unavailable: Linux free command not installed."
 fi
