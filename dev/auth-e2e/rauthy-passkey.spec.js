@@ -95,6 +95,19 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     await page.getByRole('button', { name: 'Sign out' }).click();
     await expect(page.getByRole('status')).toHaveText('Please sign in.');
     expect((await context.request.get('/api/v1/auth/me')).status()).toBe(401);
+
+    // Simulate a lost security key. After MFA enrollment, a password alone
+    // must not silently downgrade authentication or issue an OpenClub session.
+    await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
+    await context.clearCookies();
+    await page.goto('https://localhost:5443/');
+    await page.getByRole('link', { name: 'Sign in' }).click();
+    await page.locator('input[type="email"]').fill('openclub-rauthy-ci@example.invalid');
+    await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
+    await page.locator('input[type="password"]:visible').fill(password);
+    await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
+    await expect(page).toHaveURL(/^https:\/\/localhost:8443\/auth\/v1\//);
+    expect((await context.request.get('/api/v1/auth/me')).status()).toBe(401);
   } finally {
     await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId }).catch(() => {});
     await cdp.detach().catch(() => {});
