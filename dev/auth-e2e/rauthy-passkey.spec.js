@@ -57,6 +57,24 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     await page.getByRole('link', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/^https:\/\/localhost:8443\/auth\/v1\//);
 
+    // Also exercise Rauthy's password-plus-registered-security-key path.
+    // Assert an actual signature, not simply the presence of an MFA screen.
+    const signatureBeforePassword = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials[0].signCount;
+    await page.locator('input[type="email"]').fill('openclub-rauthy-ci@example.invalid');
+    await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
+    await page.locator('input[type="password"]:visible').fill(password);
+    await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
+    await expect(page).toHaveURL('https://localhost:5443/');
+    const signatureAfterPassword = (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials[0].signCount;
+    expect(signatureAfterPassword, 'Password sign-in must also require a WebAuthn assertion')
+      .toBeGreaterThan(signatureBeforePassword);
+    expect((await context.request.get('/api/v1/auth/me')).status()).toBe(200);
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await context.clearCookies();
+    await page.goto('https://localhost:5443/');
+    await page.getByRole('link', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/^https:\/\/localhost:8443\/auth\/v1\//);
+
     // A resident (discoverable) passkey supports login without typing the
     // E-Mail or entering a password. Other deployments may choose a
     // nonresident key and use Rauthy's E-Mail-first flow instead.
