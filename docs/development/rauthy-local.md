@@ -213,6 +213,27 @@ boundaries. Neither this local experiment nor its temporary archive is a
 production-ready offsite recovery method. Keep #279 open for email recovery,
 **actual Rauthy key rotation**, and hosted resource/backup acceptance.
 
+## Disposable SMTP and live provider key rotation (CI experiment)
+
+The optional Rauthy evaluation overlay now includes a **local-only Mailpit**
+SMTP sink and enables opt-in Rauthy E-Mail OTP with deliberately insecure
+SMTP transport **inside the disposable Compose network only**. A separate
+synthetic account exercises OTP enrollment and message delivery without
+publishing inbox contents or authentication codes. Do not enable this
+insecure SMTP transport on a public network, and do not treat email-based
+OTP as equivalent to phishing-resistant WebAuthn.
+
+For a **real provider-managed signing-key rotation** experiment, the
+disposable overlay accelerates Rauthy's normal JWKS rotation cron to once
+per minute. CI starts the normal TLS-validating Kotlin verifier, waits
+for the provider's public JWKS to change, then runs new real Chromium
+authorization-code logins against the rotated provider. This differs
+from the existing unit test that only simulates a trusted JWKS reload.
+The cron must not be copied to a production provider. A successful
+test proves the CI-time provider rollover; it does not establish
+emergency administrator rotation, production overlap policy, or
+operator-recovery procedures.
+
 ## OpenClub OIDC compatibility checklist
 
 OpenClub's existing runtime requires one exact verified issuer, a confidential `client_secret_basic` client, HTTPS (unless explicitly isolated loopback development), exact redirect URI, S256 PKCE, same-origin authorization/token/JWKS endpoints, and **RS256** ID tokens. Rauthy normally defaults new clients to EdDSA; configure **RS256** on the specific OpenClub OIDC client, retain PKCE S256, and verify that a signed login token passes the real Kotlin verifier. Never widen validation or match an account by email to make a provider switch work.
