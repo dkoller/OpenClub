@@ -1,5 +1,7 @@
 # R04 — OpenAPI contract review and approval gate
 
+**Current reading note (2026-11-17):** The minimum synthetic HTTP contract and actual member, team, grant, role and club-settings routes are implemented and covered by API/Chromium tests. The remaining R04 issue is **final review/versioning and private-data contract**, not registering those already-live routes. Earlier implementation snapshots below that say member/team/grant routes do not exist are historical and superseded; preserve them only as dated evidence. No M2 privacy approval is inferred.
+
 **Status (2026-11-16, through merged PR #268):** The owner-approved minimum synthetic M1 member contract is implemented for authorized list/create/minimal detail/name-only PATCH/archive. Role, team and grant **HTTP/API and DE/EN/FR/IT React operations are also implemented and exercised in CI**, but their full working-draft contract has **not** received final R04 approval. Private-field replacement remains proposed, and real-data processing/M2 approvals are outstanding. See [draft contract](openapi-draft.yaml), [R04 #13](https://github.com/dkoller/OpenClub/issues/13) and [finding #37](https://github.com/dkoller/OpenClub/issues/37).
 
 **Implementation reconciliation (2026-11-16, through PR #274):** The minimum
