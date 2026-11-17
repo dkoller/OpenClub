@@ -38,8 +38,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Docker Compose restart does not remove or replace named PostgreSQL volumes.
-"${compose[@]}" restart postgres api web >/dev/null
+# Restart the database first so the API never starts before PostgreSQL is ready.
+# Compose restart preserves its existing named database volume.
+"${compose[@]}" restart postgres >/dev/null
+database_ready=false
+for attempt in {1..30}; do
+  if "${compose[@]}" exec -T postgres pg_isready -U openclub -d openclub >/dev/null 2>&1; then
+    database_ready=true
+    break
+  fi
+  sleep 2
+done
+[[ "$database_ready" == true ]] || { echo "PostgreSQL did not recover after restart." >&2; exit 1; }
+"${compose[@]}" restart api web >/dev/null
 ready=false
 for attempt in {1..45}; do
   if curl --fail --silent --max-time 5 http://localhost:5173/api/ready |
