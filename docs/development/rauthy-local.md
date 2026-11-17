@@ -128,6 +128,18 @@ stored in artifacts. The **existing Keycloak test and Rauthy password
 test must both remain green**. This acceptance does not cover TOTP/email
 OTP recovery, independent backup restore or live-data deployment.
 
+## Real HTTPS callback rejection regression
+
+The Rauthy Chromium acceptance also exercises the **actual** OpenClub HTTPS
+callback with missing state/code, provider error, duplicated state/code and a
+forged state/code with no browser-binding cookie. Every attempt must fail
+closed (400 for malformed responses; 401 for unsolicited well-formed responses),
+return `Cache-Control: no-store`, avoid redirects and leave `/auth/me`
+unauthenticated. This tests callback rejection independently of the successful
+Rauthy password and passkey browser journeys. It does **not** substitute for
+password+MFA enrollment, token-signature tampering, provider key rotation,
+independent backup recovery or a 4 GB stack measurement.
+
 ## OpenClub OIDC compatibility checklist
 
 OpenClub's existing runtime requires one exact verified issuer, a confidential `client_secret_basic` client, HTTPS (unless explicitly isolated loopback development), exact redirect URI, S256 PKCE, same-origin authorization/token/JWKS endpoints, and **RS256** ID tokens. Rauthy normally defaults new clients to EdDSA; configure **RS256** on the specific OpenClub OIDC client, retain PKCE S256, and verify that a signed login token passes the real Kotlin verifier. Never widen validation or match an account by email to make a provider switch work.
