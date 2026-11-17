@@ -41,3 +41,51 @@ Keycloak starts once before image builds, allowing its initialization to overlap
 Compare GitHub Actions durations before and after using the same change categories. The baseline observed around 2026-11-14 was ~95 seconds for the API job, ~15 seconds for web, and ~105 seconds for a full Compose smoke run. The size gate alone takes a few seconds. This is a historical scaffold baseline, before the auth/backchannel checks were added. A later sampled auth-enabled Compose job took about 180 seconds, including roughly 108 seconds for build/start and an unnecessary second Keycloak startup. The current optimization adds Docker layer caching and removes that restart. Measure a first (possibly cold) run and a subsequent run of the same workflow/ref; cache transfer time can outweigh benefits for very small layers. Do not claim a fixed speedup until both are measured. More selective CI routing and artifact sharing remain deferred.
 
 **Failure safety:** Any failure in PR changed-file enumeration fails the `changes` job; it must not silently mark a PR as passing without checks. Main-branch pushes always run the complete test suite.
+
+## 2026-11-17 measured follow-up: critical-path browser setup
+
+The recorded job logs for PRs #285/#286/#287 show, respectively, Keycloak browser
+jobs taking **140/146/151s**, Rauthy browser **104/127/97s**, Compose
+**98/82/95s**, and the API build job **95/90/86s** (approximate elapsed
+job-log times, not scheduling latency). The PR #287 Keycloak step combining
+`pnpm install`, `playwright install --with-deps chromium`, and four tests
+ran for **66s**; Playwright reported **31.9s** of tests and the remainder
+was setup. Chromium binaries downloaded in about **5s**, while Linux package
+installation accounted for much of the setup. An additional browser cache
+would need to outperform its own transfer overhead; **no cache has been added**.
+
+The Keycloak and Rauthy browser workflows now start the *same* pinned
+Playwright/Chromium install immediately after Node setup, in the background
+during provider initialization and JVM compilation. A status file on the
+disposable runner is checked before tests; install failures still fail the
+workflow, and no browser tests are omitted. The temporary installation logs
+are not uploaded. This changes timing only; browser/OS dependencies and exact
+test commands remain unchanged. Compare the **complete browser job elapsed
+time**, not merely the shortened final test step, across several post-change
+runs before claiming improvement. This is a controlled experiment; revert if
+resource contention or reliability outweighs overlap.
+
+### Other examined opportunities, deferred for safety
+
+- **Gradle/jOOQ:** PR #287 ran `./gradlew test generateJooq --no-daemon`
+  in approximately **69s**. Generation began at 04:40:02 and compilation
+  at 04:40:18 (about **16s**), but generated Java sources are declared as
+  an input to Kotlin application compilation. No evidence yet supports
+  skipping generation based solely on PR file paths. Profiling task
+  up-to-date/cache inputs would be required before changing it.
+- **Queue and cancellation:** The existing concurrency groups cancel only
+  superseded runs on the same PR/ref. The timestamped job logs measure
+  execution but do not prove a material scheduling delay or duplicate run
+  cost; keep cancellation enabled until run-created, started and completed
+  timestamps show a reproducible problem.
+- **Shared build artifacts:** API tests and the two provider browser jobs
+  each compile independently, but already run in parallel and verify
+  different runtime configurations. Centralizing the build with
+  `needs`/cross-workflow artifact downloads would introduce a dependency
+  before browser tests and could worsen merge latency. No such dependency
+  has been added without an A/B critical-path measurement.
+
+These jobs are deliberately all relevant on shared API/authentication
+changes. Compose verifies actual image/overlay behavior, while both provider
+browser jobs verify distinct OIDC security journeys. None is removed or
+moved to main-only.

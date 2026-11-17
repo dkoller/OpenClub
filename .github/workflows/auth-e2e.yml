@@ -64,6 +64,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # The real browser install took ~34s in Keycloak #287. Run it while
+      # the independent provider and JVM start, but require success before tests.
+      - name: Prepare Playwright Chromium alongside provider startup
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup bash -c '
+            cd dev/auth-e2e
+            if pnpm install --frozen-lockfile &&
+               pnpm exec playwright install --with-deps chromium; then
+              echo success > "$1"
+            else
+              echo failed > "$1"
+            fi
+          ' _ "$RUNNER_TEMP/openclub-browser-setup.status" \
+            > "$RUNNER_TEMP/openclub-browser-setup.log" 2>&1 < /dev/null &
       - name: Start disposable PostgreSQL and Keycloak
         run: |
           set -euo pipefail
@@ -117,8 +133,18 @@ jobs:
       - name: Install Chromium and run real browser journey
         working-directory: dev/auth-e2e
         run: |
-          pnpm install --frozen-lockfile
-          pnpm exec playwright install --with-deps chromium
+          set -euo pipefail
+          # An earlier step installs the same pinned browser/dependencies in
+          # parallel with backend startup. No tests run until it completed.
+          for attempt in {1..180}; do
+            [[ -f "$RUNNER_TEMP/openclub-browser-setup.status" ]] && break
+            sleep 1
+          done
+          if [[ "$(cat "$RUNNER_TEMP/openclub-browser-setup.status" 2>/dev/null || true)" != success ]]; then
+            echo "Chromium install failed or timed out" >&2
+            tail -n 25 "$RUNNER_TEMP/openclub-browser-setup.log" >&2 || true
+            exit 1
+          fi
           pnpm test
       # No traces, screenshots, storage states or server logs are uploaded:
       # callback URLs and HTTP diagnostics can contain authentication material.
