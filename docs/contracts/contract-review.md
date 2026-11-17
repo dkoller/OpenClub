@@ -1,5 +1,16 @@
 # R04 — OpenAPI contract review and approval gate
 
+**M1 route-drift protection (2026-11-17, separate from R04 approval):**
+`dev/verify-m1-openapi.py` and the narrowly triggered `m1-contract.yml`
+workflow compare the 21 synthetic club/member/team/role/grant/public HTTP
+operations registered in Ktor with their working-draft methods, success and
+denial statuses, session security and required CSRF headers. They reject a
+new undocumented route or removal of a known route from the inspected files.
+The proposed private-member PUT and reactivation remain explicitly marked
+**NOT IMPLEMENTED**. This is a static inventory check, not runtime payload
+conformance, complete R04 versioning, a permission/privacy sign-off or an M2
+real-data release. Keep PostgreSQL HTTP and browser tests for authorization.
+
 **Current reading note (2026-11-17):** The minimum synthetic HTTP contract and actual member, team, grant, role and club-settings routes are implemented and covered by API/Chromium tests. The remaining R04 issue is **final review/versioning and private-data contract**, not registering those already-live routes. Earlier implementation snapshots below that say member/team/grant routes do not exist are historical and superseded; preserve them only as dated evidence. No M2 privacy approval is inferred.
 
 **Status (2026-11-16, through merged PR #268):** The owner-approved minimum synthetic M1 member contract is implemented for authorized list/create/minimal detail/name-only PATCH/archive. Role, team and grant **HTTP/API and DE/EN/FR/IT React operations are also implemented and exercised in CI**, but their full working-draft contract has **not** received final R04 approval. Private-field replacement remains proposed, and real-data processing/M2 approvals are outstanding. See [draft contract](openapi-draft.yaml), [R04 #13](https://github.com/dkoller/OpenClub/issues/13) and [finding #37](https://github.com/dkoller/OpenClub/issues/37).
