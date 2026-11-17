@@ -2,6 +2,8 @@
 
 **Status (2026-11-17):** Synthetic real-HTTPS password, WebAuthn, email OTP and administrator-assisted lost-passkey recovery are accepted in disposable CI through #297; this is **not** a production hosting recipe or human-approved incident drill. [ADR-0006](../decisions/0006-oidc-provider-choice.md) requires **both Rauthy and Keycloak** to stay supported. Keep using the existing [Keycloak development and browser tests](keycloak-local.md) for established end-to-end acceptance.
 
+**Reading note:** Early setup and smoke-test sections below describe what individual incremental PRs tested **at that time**, not the present acceptance limit. The current technical acceptance is summarized at the top and in the later HTTPS/OTP/passkey/recovery sections. Technical completion of #279 does not constitute external M1 hosting or M2 operator approval.
+
 ## Inspect a lightweight provider
 
 With Docker Compose v2, from the repository root:
@@ -48,7 +50,7 @@ client and exact OpenClub development callback, with `state`, `nonce`,
 `openid` scope and a valid S256 PKCE challenge. It verifies that the provider
 accepts this initiation without following redirects or exposing callback values.
 This checks an earlier interoperability boundary than the Kotlin callback:
-it **does not yet prove password/MFA/passkey sign-in, code exchange or an OpenClub
+at that earlier smoke-test stage it **did not prove password/MFA/passkey sign-in, code exchange or an OpenClub
 session**. Those remain acceptance criteria in [#279](https://github.com/dkoller/OpenClub/issues/279).
 
 ## Real HTTPS browser acceptance (additional provider, not a replacement)
@@ -78,7 +80,7 @@ The existing browser test verifies a **real** Rauthy password login,
 a valid app-side authenticated session, denied access to private club/member/
 team data until an explicit operator bootstrap, and logout. **Passkey**
 acceptance is tested separately below; password + additional MFA and recovery
-remain open under #279.
+were still open at that stage under #279 (now technically completed and closed).
 The existing Keycloak dev overlay and all Keycloak browser checks remain
 supported, are neither removed nor replaced, and must continue passing.
 
