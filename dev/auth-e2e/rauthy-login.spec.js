@@ -36,3 +36,26 @@ test('Rauthy password login creates a verified OpenClub session without club per
   await expect(page.getByRole('status')).toHaveText('Please sign in.');
   expect((await context.request.get('/api/v1/auth/me')).status()).toBe(401);
 });
+
+test('Rauthy callback rejects unsolicited and malformed responses without creating an OpenClub session', async ({ context }) => {
+  // This is the real HTTPS Ktor callback behind Caddy, not a mocked route.
+  // Never send a valid authorization code to these negative cases: the
+  // one-time code, state and browser binding must all be bound together.
+  const rejected = [
+    ['/api/v1/auth/callback', 400],
+    ['/api/v1/auth/callback?error=access_denied&state=synthetic', 400],
+    ['/api/v1/auth/callback?state=synthetic&code=forged&state=duplicate', 400],
+    ['/api/v1/auth/callback?state=synthetic&code=forged&code=duplicate', 400],
+    ['/api/v1/auth/callback?state=synthetic&code=forged', 401],
+  ];
+  for (const [path, status] of rejected) {
+    const response = await context.request.get(path, { maxRedirects: 0 });
+    expect(response.status(), path).toBe(status);
+    expect(response.headers()['cache-control'], path).toContain('no-store');
+    expect(response.headers()['location'], path).toBeUndefined();
+    const body = await response.text();
+    expect(body, path).not.toContain('forged');
+    expect(body, path).not.toContain('synthetic');
+    expect((await context.request.get('/api/v1/auth/me')).status(), path).toBe(401);
+  }
+});
