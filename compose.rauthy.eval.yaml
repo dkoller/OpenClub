@@ -13,7 +13,7 @@ services:
       # Disposable local SMTP only; never use this insecure mode externally.
       OTP_ENABLE: "true"
       OTP_EMAIL_ENABLE: "true"
-      OTP_RENEW_EXP: "0"
+      OTP_RENEW_EXP: "0s"
       SMTP_URL: mailpit
       SMTP_PORT: "1025"
       SMTP_TLS_MODE: danger-insecure
