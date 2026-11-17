@@ -45,5 +45,18 @@ for sample in 1 2 3; do
   docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}' "${containers[@]}"
   if (( sample < 3 )); then sleep 2; fi
 done
-echo "These are three instantaneous Docker samples, NOT peak/total host RAM, disk usage, or a 4 GB hosting acceptance result."
-echo "Record host overhead, load conditions, restart/persistence and external TLS/OIDC results separately."
+# Host snapshots complement Docker stats: container samples omit the kernel,
+# Docker daemon, identity provider (which may live elsewhere) and cold-start peaks.
+# Read-only, no usernames, process lists, volume paths or application secrets.
+if command -v free >/dev/null; then
+  echo "Host memory and swap snapshot (MiB; Linux):"
+  free -m | awk 'NR == 2 || NR == 3 { print $1, "total=" $2, "used=" $3, "free=" $4, "available=" $7 }'
+else
+  echo "Host memory snapshot unavailable: Linux free command not installed."
+fi
+if command -v df >/dev/null; then
+  echo "Filesystem snapshot for current working directory (KiB; other mounts may differ):"
+  df -Pk . | awk 'NR == 2 { print "total=" $2, "used=" $3, "available=" $4, "used_percent=" $5 }'
+fi
+echo "These are instantaneous snapshots, NOT peak load or proof of a 4 GB host."
+echo "Record OS/Docker/provider overhead, provider hosting, cold-start/load peaks, separate data/backups volumes, restart/persistence and external TLS/OIDC results independently."
