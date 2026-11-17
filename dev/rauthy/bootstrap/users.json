@@ -7,5 +7,14 @@
     "email_verified": true,
     "given_name": "Synthetic",
     "family_name": "Test"
+  },
+  {
+    "email": "openclub-rauthy-otp-ci@example.invalid",
+    "password": "generate",
+    "roles": [],
+    "enabled": true,
+    "email_verified": true,
+    "given_name": "Synthetic",
+    "family_name": "OTP"
   }
 ]
