@@ -1,6 +1,6 @@
 # Operating one OpenClub club per installation
 
-**Decision:** 2026-11-15. **Status verified 2026-11-16 (through merged PR #268):** One-club synthetic pre-production application with local Compose, optional Caddy HTTPS/OIDC reference configuration, and browser/API CI. **No operator-hosted external TLS/OIDC demo or live-member-data authorization exists.**
+**Decision:** 2026-11-15. **Current operations status 2026-11-17 (through merged #298):** One-club synthetic pre-production application with local Compose, optional Caddy HTTPS/OIDC reference configuration, and browser/API CI. **No operator-hosted external TLS/OIDC demo or live-member-data authorization exists.**
 
 Each club runs an independent application process (API + web), PostgreSQL database, application configuration and backups. The same MIT-licensed source can serve any club; never share a PostgreSQL database or schema, session cookie secret, OIDC client configuration or member records across installations.
 
@@ -20,7 +20,7 @@ curl --fail http://localhost:5173/api/health
 
 The basic stack starts without authentication. OIDC is opt-in; without it there are **no member administration endpoints enabled**. To configure a local test OIDC provider, follow [Keycloak development setup](../development/keycloak-local.md). The nginx/Vite proxies preserve `/api` so Ktor routes remain reachable.
 
-**First-club setup:** an operator-only bootstrap command now creates the sole club and first ADMIN member atomically. Flyway V9 also enforces a maximum **raw** club display-name length of 200 characters for direct SQL changes, including whitespace padding (the original nonblank rule still applies). It is **not an HTTP route**. No second club can be created. The human-reviewed recovery process remains open in [R07/#16](https://github.com/dkoller/OpenClub/issues/16). Use **synthetic data only** until privacy and production requirements are approved.
+**First-club setup:** an operator-only bootstrap command now creates the sole club and first ADMIN member atomically. Flyway V9 also enforces a maximum **raw** club display-name length of 200 characters for direct SQL changes, including whitespace padding (the original nonblank rule still applies). It is **not an HTTP route**. No second club can be created. The restricted command is implemented under closed [R07/#16](https://github.com/dkoller/OpenClub/issues/16); human-reviewed recovery drills and operator sign-off remain open in [#180](https://github.com/dkoller/OpenClub/issues/180). Use **synthetic data only** until privacy and production requirements are approved.
 
 ## Operator-only first-club bootstrap (pre-production)
 

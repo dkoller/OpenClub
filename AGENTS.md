@@ -71,6 +71,11 @@ These rules apply to humans and coding agents running the controlled loop; they 
 
 **At an actual execution boundary:** Apply the stop audit above. Report the specific allowed stop reason **and its evidence**, latest verified `main` SHA, merged PRs, any open branch/PR with head SHA and current-head CI state, checks actually run, outstanding blockers with issue links, and a specific next unblocked issue/task. If tools permit, record the same handoff in the existing counter-only checkpoint PR description; never increment beyond 100 or bypass its dedicated check. If checkpoint creation is impossible, explicitly state why. Do not promise automatic/background continuation after the active execution ends.
 
+## GitHub connector review batching (observed 2026-11-17)
+
+- When retrieving repository issues, PRs, files or workflow results through the ChatGPT GitHub connector, limit **each programmatic tool execution to at most 20 GitHub requests**. A 20-issue parallel fetch succeeded; a larger orchestration previously returned `Code Mode exceeded the maximum number of tool calls`. This is a conservative **agent operating rule**, not a proven GitHub API rate limit or published ChatGPT hard ceiling.
+- Split audits into subsequent executions of up to 20, return only useful fields, and resume from current GitHub state if a tool execution stops. Do not silently truncate issue coverage, treat connector failures as CI failures, or claim a complete audit if some batches failed.
+
 ## Working method
 
 1. Read `README.md`, the relevant concept documents and accepted ADRs.
