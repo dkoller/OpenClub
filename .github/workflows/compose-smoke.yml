@@ -363,6 +363,11 @@ jobs:
             jq -e '.keys | type == "array" and length > 0'
           "${overlay[@]}" exec -T api wget -q -O - http://127.0.0.1:8080/health |
             grep -F '"status":"ok"'
+      - name: Prove synthetic Flyway club persistence across service restart
+        shell: bash
+        env:
+          OPENCLUB_RESTART_CI_CONFIRM: disposable-only
+        run: bash dev/verify-synthetic-compose-restart.sh --synthetic-only
       - name: Verify failed database readiness does not masquerade as liveness
         shell: bash
         run: |
