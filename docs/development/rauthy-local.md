@@ -122,7 +122,8 @@ account login, password reauthentication to obtain permission to modify MFA,
 named passkey registration through Chromium's virtual FIDO2 authenticator,
 independent Rauthy logout and clearing of SSO cookies, then passkey-only
 sign-in through OpenClub. The test must observe a signed assertion and the
-normal application session with **no club grants**. No virtual credential,
+normal application session with **no club grants**, then signs out and proves
+that the Ktor app session is rejected by `/api/v1/auth/me` (401). No virtual credential,
 private key, raw WebAuthn response, account session or browser trace is
 stored in artifacts. The **existing Keycloak test and Rauthy password
 test must both remain green**. This acceptance does not cover TOTP/email
