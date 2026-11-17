@@ -919,7 +919,7 @@ components:
         code: { type: string }
         message:
           type: string
-          description: Optional detail; actual M1 Ktor error responses use code only.
+          description: Optional generic detail; some M1 routes return code only, while member routes include a safe message.
   responses:
     Invalid:
       description: Invalid input, query, cursor or member field; no private data reflected
