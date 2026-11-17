@@ -109,8 +109,8 @@ jobs:
           "${overlay[@]}" config --quiet
           python3 -m json.tool dev/rauthy/bootstrap/clients.json > /dev/null
           python3 -m json.tool dev/rauthy/bootstrap/users.json > /dev/null
-          "${overlay[@]}" up -d --no-deps rauthy
-          trap '"${overlay[@]}" stop rauthy' EXIT
+          "${overlay[@]}" up -d --no-deps mailpit rauthy
+          trap '"${overlay[@]}" stop rauthy mailpit' EXIT
           ready=false
           for attempt in {1..45}; do
             # Local self-signed evaluation fixture ONLY; never disable TLS

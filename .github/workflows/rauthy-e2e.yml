@@ -71,7 +71,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker compose -f compose.yaml -f compose.rauthy.eval.yaml up -d postgres rauthy
+          docker compose -f compose.yaml -f compose.rauthy.eval.yaml up -d postgres mailpit
+          for attempt in {1..30}; do
+            if curl --fail --silent --max-time 2 http://127.0.0.1:8025/api/v1/messages -o /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent --show-error http://127.0.0.1:8025/api/v1/messages -o /dev/null
+          docker compose -f compose.yaml -f compose.rauthy.eval.yaml up -d --no-deps rauthy
           ready=false
           for attempt in {1..60}; do
             if curl --fail --silent --insecure --max-time 3 \
@@ -106,6 +112,11 @@ jobs:
           echo "::add-mask::$user_password"
           echo "OPENCLUB_OIDC_CLIENT_SECRET=$client_secret" >> "$GITHUB_ENV"
           echo "OPENCLUB_RAUTHY_E2E_USER_PASSWORD=$user_password" >> "$GITHUB_ENV"
+          otp_password="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+            -c /app/config-local-test.toml --kind user --id openclub-rauthy-otp-ci@example.invalid --field password --format raw)"
+          [[ "${#otp_password}" -ge 16 ]] || { echo 'Synthetic OTP user credentials unavailable' >&2; exit 1; }
+          echo "::add-mask::$otp_password"
+          echo "OPENCLUB_RAUTHY_OTP_PASSWORD=$otp_password" >> "$GITHUB_ENV"
       - name: Verify provider restart preserves signing keys and login credentials
         shell: bash
         run: |
@@ -177,6 +188,30 @@ jobs:
             { echo 'Synthetic client or user identity changed after restore' >&2; exit 1; }
           rm -f "$RUNNER_TEMP/rauthy-identity-backup.tar"
           echo 'Offline archive restored to a fresh volume; real browser logins follow.'
+      - name: Enable real Rauthy key rotation after safe offline restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The fast cron applies ONLY to this disposable runner. Production
+          # remains on the standard monthly provider rotation schedule.
+          export OPENCLUB_RAUTHY_JWK_ROTATE_CRON='0 * * * * * *'
+          echo "OPENCLUB_RAUTHY_JWK_ROTATE_CRON=$OPENCLUB_RAUTHY_JWK_ROTATE_CRON" >> "$GITHUB_ENV"
+          overlay=(docker compose -f compose.yaml -f compose.rauthy.eval.yaml)
+          "${overlay[@]}" up -d --no-deps --force-recreate rauthy >/dev/null
+          ready=false
+          for attempt in {1..60}; do
+            if curl --fail --silent --insecure --max-time 2 \
+              https://localhost:8443/.well-known/openid-configuration -o /dev/null 2>/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          [[ "$ready" == true ]] || { echo 'Rauthy did not restart with test rotation schedule' >&2; exit 1; }
+          curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/oidc/certs |
+            jq -e '[.keys[] | select(.alg == "RS256") | .kid] | length > 0' >/dev/null
+          curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/oidc/certs |
+            jq -cS '[.keys[] | select(.alg == "RS256") | .kid] | sort' > "$RUNNER_TEMP/rauthy-keys-before.json"
       - name: Trust only the disposable Rauthy HTTPS certificate for the JVM
         shell: bash
         run: |
@@ -207,6 +242,23 @@ jobs:
             tail -n 15 >&2 || true
           echo 'Rauthy-configured Ktor app did not start' >&2
           exit 1
+      - name: Require actual provider-generated signing-key rotation
+        shell: bash
+        run: |
+          set -euo pipefail
+          rotated=false
+          for attempt in {1..90}; do
+            current="$(curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/oidc/certs |
+              jq -cS '[.keys[] | select(.alg == "RS256") | .kid] | sort')"
+            if jq -en --argjson old "$(cat "$RUNNER_TEMP/rauthy-keys-before.json")" --argjson new "$current" \
+              'any($new[]; . as $kid | ($old | index($kid) == null))' >/dev/null; then
+              rotated=true
+              break
+            fi
+            sleep 1
+          done
+          [[ "$rotated" == true ]] || { echo 'Rauthy did not generate new RS256 signing keys' >&2; exit 1; }
+          echo 'Rauthy created new public signing keys; full OIDC browser login follows.'
       - name: Start local HTTPS frontend reverse proxy
         shell: bash
         run: |

@@ -10,11 +10,26 @@ services:
       # Synthetic virtual authenticator tests require discoverable credentials.
       # Never mandate resident keys on real hardware by copying this overlay.
       WEBAUTHN_PASSKEY_REG_TYPE: "resident_key"
+      # Disposable local SMTP only; never use this insecure mode externally.
+      OTP_ENABLE: "true"
+      OTP_EMAIL_ENABLE: "true"
+      OTP_RENEW_EXP: "0s"
+      SMTP_URL: mailpit
+      SMTP_PORT: "1025"
+      SMTP_TLS_MODE: danger-insecure
+      SMTP_FROM: "OpenClub synthetic <rauthy@localhost>"
+      JWK_AUTOROTATE_CRON: "${OPENCLUB_RAUTHY_JWK_ROTATE_CRON:-0 30 3 1 * * *}"
     ports:
       - "127.0.0.1:8443:8443"
     volumes:
       - rauthy_eval_data:/app/data
       - ./dev/rauthy/bootstrap:/app/bootstrap:ro
+    restart: "no"
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    # Captured messages remain on this disposable host; never relay.
+    ports:
+      - "127.0.0.1:8025:8025"
     restart: "no"
 
 volumes:
