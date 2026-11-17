@@ -9,9 +9,12 @@ async function mailCode(request) {
   if (!res.ok()) return null;
   const list = await res.json();
   if (!list.messages?.some(message => JSON.stringify(message.To).includes(email))) return null;
-  const body = await request.get(`${inbox}/view/latest.txt`);
-  if (!body.ok()) return null;
-  return (await body.text()).match(/\b\d{6}\b/)?.[0] ?? null;
+  const newest = list.messages.find(message => message.To?.some(to => to.Address === email));
+  if (!newest) return null;
+  const details = await request.get(`${inbox}/api/v1/message/${encodeURIComponent(newest.ID)}`);
+  if (!details.ok()) return null;
+  const message = await details.json();
+  return (message.Text ?? '').match(/\b\d{6}\b/)?.[0] ?? null;
 }
 
 test('Rauthy registers email OTP and verifies password plus delivered OTP before OpenClub session', async ({ page, context }) => {
@@ -38,7 +41,11 @@ test('Rauthy registers email OTP and verifies password plus delivered OTP before
   await expect(page.locator('dialog[open]')).not.toBeVisible({ timeout: 10000 });
   await page.getByRole('button', { name: 'Cancel', exact: true }).first().click();
 
-  await page.getByRole('button', { name: 'Register New OTP' }).click();
+  const [otpRegistration] = await Promise.all([
+    page.waitForResponse(response => response.url().includes('/otp') && response.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Register New OTP' }).click(),
+  ]);
+  expect(otpRegistration.status(), 'Rauthy must accept OTP enrollment').toBe(201);
   let code = null;
   await expect.poll(async () => {
     code = await mailCode(context.request);
