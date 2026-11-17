@@ -196,7 +196,14 @@ test('verified login gains club access only after restricted operator bootstrap'
     name: 'Archive this member? Nina Renamed',
   })).toBeVisible();
   await expect(renamed.getByText('Archive this member?')).toBeVisible();
-  await renamed.getByRole('button', { name: 'Cancel' }).click();
+  // The named confirmation group must be operable without a pointer.
+  await renamed.getByRole('button', { name: 'Confirm archive' }).focus();
+  await page.keyboard.press('Tab');
+  await expect(renamed.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(renamed.getByRole('group', {
+    name: 'Archive this member? Nina Renamed',
+  })).toHaveCount(0);
   await expect(renamed).toBeVisible();
   await renamed.getByRole('button', { name: 'Archive' }).click();
   await renamed.getByRole('button', { name: 'Confirm archive' }).click();
@@ -492,16 +499,25 @@ test('verified login gains club access only after restricted operator bootstrap'
   // The whole authenticated workflow remains reachable with localized
   // member, team and delegation controls, not just a translated landing page.
   for (const locale of [
-    { code: 'de', member: 'Mitglieder verwalten', team: 'Teams', grant: 'Berechtigungen verwalten' },
-    { code: 'fr', member: 'Gérer les membres', team: 'Équipes', grant: 'Gérer les autorisations' },
-    { code: 'it', member: 'Gestisci membri', team: 'Squadre', grant: 'Gestisci permessi' },
-    { code: 'en', member: 'Manage members', team: 'Teams', grant: 'Manage permissions' },
+    { code: 'de', member: 'Mitglieder verwalten', team: 'Teams', grant: 'Berechtigungen verwalten', search: 'Name suchen', find: 'Suchen' },
+    { code: 'fr', member: 'Gérer les membres', team: 'Équipes', grant: 'Gérer les autorisations', search: 'Rechercher un nom', find: 'Rechercher' },
+    { code: 'it', member: 'Gestisci membri', team: 'Squadre', grant: 'Gestisci permessi', search: 'Cerca nomi', find: 'Cerca' },
+    { code: 'en', member: 'Manage members', team: 'Teams', grant: 'Manage permissions', search: 'Search names', find: 'Search' },
   ]) {
     await page.locator('#language').selectOption(locale.code);
     await expect(page.getByRole('heading', { name: locale.member })).toBeVisible();
     await expect(page.getByRole('region', { name: locale.team, exact: true })).toBeVisible();
     await expect(page.getByRole('region', { name: locale.grant, exact: true })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', locale.code);
+    // Real Chromium keyboard semantics in each locale: visible label,
+    // predictable Tab order and Enter-submitted member search.
+    const names = page.getByRole('region', { name: locale.member });
+    await names.getByLabel(locale.search).focus();
+    await page.keyboard.press('Tab');
+    const submit = names.getByRole('button', { name: locale.find, exact: true });
+    await expect(submit).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(names.getByLabel(locale.search)).toBeVisible();
   }
 
   // Policy conflicts stay localized even if language changes after a failed save.
