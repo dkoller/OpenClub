@@ -45,6 +45,8 @@ jobs:
               case "$file" in
                 # Docs-only changes should not rebuild the application.
                 docs/contracts/*) api=true; web=true ;;
+                # Rauthy browser specs run in rauthy-e2e.yml; no image or stack changes.
+                dev/auth-e2e/rauthy-*.spec.js) ;;
                 docs/*|README.md|.gitignore|AGENTS.md|apps/api/AGENTS.md|apps/web/AGENTS.md|.github/pull_request_template.md|.github/workflows/pr-size.yml) ;;
                 apps/api/*)
                   api=true
