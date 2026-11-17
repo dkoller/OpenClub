@@ -159,7 +159,7 @@ if [[ "$api_health" != '{"status":"ok"}' ]]; then
   exit 1
 fi
 api_ready="$(docker compose -p "$restore_project" exec -T api \
-  wget -q -O - http://127.0.0.1:8080/ready)"
+  wget -q -O - http://127.0.0.1:8080/api/ready)"
 if [[ "$api_ready" != '{"status":"ready"}' ]]; then
   echo "Recovered API/database did not become ready" >&2
   exit 1
