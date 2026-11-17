@@ -6,6 +6,7 @@ services:
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a unique database password before startup}
     ports: !reset []
+    restart: unless-stopped
   api:
     environment:
       DB_PASSWORD: ${POSTGRES_PASSWORD:?Set a unique database password before startup}
@@ -16,9 +17,11 @@ services:
       OPENCLUB_OIDC_CLIENT_ID: ${OPENCLUB_OIDC_CLIENT_ID:?Set a confidential OIDC client ID}
       OPENCLUB_OIDC_CLIENT_SECRET: ${OPENCLUB_OIDC_CLIENT_SECRET:?Provide a secret of at least 32 characters}
       OPENCLUB_OIDC_REDIRECT_URI: https://${OPENCLUB_DEMO_HOST:?Set a public DNS hostname}/api/v1/auth/callback
+    restart: unless-stopped
   web:
     # Only the TLS ingress is reachable from the host; no alternate HTTP app port.
     ports: !reset []
+    restart: unless-stopped
   demo-https:
     image: caddy:2.11.9-alpine
     ports:

@@ -99,7 +99,8 @@ jobs:
             jq -e '((.services.web.ports // []) | length) == 0 and
                    ((.services.postgres.ports // []) | length) == 0 and
                    (.services["demo-https"].ports | length) == 2 and
-                   .services.api.environment.OPENCLUB_AUTH_MODE == "production"'
+                   ([.services.postgres, .services.api, .services.web, .services["demo-https"]] | all(.restart == "unless-stopped")) and
+                    .services.api.environment.OPENCLUB_AUTH_MODE == "production"'
           docker run --rm -e OPENCLUB_DEMO_HOST="$OPENCLUB_DEMO_HOST"             -v "$PWD/dev/deployment/Caddyfile:/etc/caddy/Caddyfile:ro"             caddy:2.11.9-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Verify optional Rauthy OIDC discovery with isolated localhost TLS
         shell: bash

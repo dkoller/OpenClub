@@ -102,7 +102,11 @@ does not provision hosting/DNS, and does not constitute a deployed M1 demo.
 The overlay uses the pinned open-source Caddy `2.11.9-alpine` image as an
 ACME TLS reverse proxy to the existing nginx/web and Kotlin API; only
 ports **80 and 443** are published. The default HTTP web and PostgreSQL host
-ports are reset to empty in this overlay. Caddy stores certificate and
+ports are reset to empty in this overlay. All four services use
+`restart: unless-stopped`, allowing Docker to restart them after a host reboot
+when the Docker daemon itself starts. This is **not** a guarantee of startup
+order or provider health: verify `/api/ready`, real synthetic OIDC login and
+persistent volumes after an actual host reboot. Caddy stores certificate and
 configuration state in separate persistent volumes. The reference ingress adds
 `Strict-Transport-Security: max-age=86400` (one day, no `includeSubDomains` or
 preload), only on the public HTTPS hostname, avoiding long-term browser pinning
