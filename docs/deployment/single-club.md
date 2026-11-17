@@ -1,6 +1,6 @@
 # Operating one OpenClub club per installation
 
-**Decision:** 2026-11-15. **Current operations status 2026-11-17 (through merged #298):** One-club synthetic pre-production application with local Compose, optional Caddy HTTPS/OIDC reference configuration, and browser/API CI. **No operator-hosted external TLS/OIDC demo or live-member-data authorization exists.**
+**Decision:** 2026-11-15. **Current operations status 2026-11-17 (through merged #306):** One-club synthetic pre-production application with local Compose, optional Caddy HTTPS/OIDC reference configuration, Keycloak and Rauthy as alternative issuers, and browser/API CI. Disposable Compose CI now additionally proves synthetic-club persistence across PostgreSQL/API/web restarts (#305), and records non-peak container resource samples (#301). **No operator-hosted external TLS/OIDC demonstration, validated 4 GB host footprint or live-member-data authorization exists.**
 
 **M1 synthetic deployment evidence:** [Resource sampling and external acceptance checklist](m1-resource-evidence.md) distinguishes read-only three-sample CI resource observations from host-level peak usage, 4 GB sizing and the still-unperformed real external HTTPS/OIDC/browser demonstration. The external read-only probe supports either Keycloak issuer-relative discovery or Rauthy origin-root discovery on 404, always with valid TLS and exact issuer verification. No hosting, live-data or production approval is implied.
 
@@ -191,7 +191,7 @@ negative input behavior, **not** a hosted environment.
 Record the actual deployment URL, timestamp, command exit code and an
 operator-reviewed summary in the restricted M1 acceptance record, without
 committing real account identifiers or credentials. A passing probe alone
-is **not M1 sign-off**: actual Keycloak sign-in, verified first-admin bootstrap,
+is **not M1 sign-off**: actual sign-in via the selected Keycloak or Rauthy issuer, verified first-admin bootstrap,
 full synthetic member/team/grant DE/EN/FR/IT browser journey, restart
 persistence, resource/cost limits, and the remaining privacy/security checks
 must still be witnessed. An unavailable free HTTPS host is a deployment
@@ -203,7 +203,7 @@ blocker to document in #27/#28, not permission to drop TLS.
 
 The project targets no mandatory paid services, not a promise that permanent public hosting is free. Capture realistic resource measurements and any provider free-tier restrictions before choosing a host; do not provision paid resources without explicit approval. If no suitable cost-free public host is available, record the blocker rather than weakening security or claiming M1 deployed.
 
-## Verified evidence versus outstanding M1/M2 actions (through PR #268)
+## Historical evidence snapshot versus outstanding M1/M2 actions (through PR #268; see latest #301–#306 evidence above)
 
 | Evidence available | Still required before claiming completion |
 | --- | --- |
