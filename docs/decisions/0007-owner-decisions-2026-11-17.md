@@ -29,3 +29,7 @@ The M1 code work was largely complete, but several gates needed decisions only t
   - the per-club adult-age setting: authorized `PATCH`, 409 when existing adults would lack contacts, four-language UI and tests (#17);
   - any future contact-reading endpoint, which must enforce decision 4 server-side.
 - **Still open for M2 (#12, #26, #180):** controller and lawful basis, retention, consent/notices, export/erasure/audit, backups and witnessed recovery.
+
+## Implementation notes
+
+- **Decision 2 implemented (2026-11-17):** `docs/contracts/openapi-v1.yaml` (version `1.0.0`, exactly the 21 implemented operations) and `docs/contracts/openapi-m2-draft.yaml` (unapproved M2 proposals) replace the former `openapi-draft.yaml`. `dev/verify-m1-openapi.py` enforces an exact operation match, the frozen version, and the NOT IMPLEMENTED markers in the M2 draft.

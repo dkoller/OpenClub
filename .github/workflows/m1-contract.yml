@@ -2,7 +2,8 @@ name: M1 registered API contract drift
 on:
   pull_request:
     paths:
-      - 'docs/contracts/openapi-draft.yaml'
+      - 'docs/contracts/openapi-v1.yaml'
+      - 'docs/contracts/openapi-m2-draft.yaml'
       - 'dev/verify-m1-openapi.py'
       - 'apps/api/src/main/kotlin/org/openclub/api/Main.kt'
       - 'apps/api/src/main/kotlin/org/openclub/api/club/*Routes.kt'
@@ -12,7 +13,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'docs/contracts/openapi-draft.yaml'
+      - 'docs/contracts/openapi-v1.yaml'
+      - 'docs/contracts/openapi-m2-draft.yaml'
       - 'dev/verify-m1-openapi.py'
       - 'apps/api/src/main/kotlin/org/openclub/api/Main.kt'
       - 'apps/api/src/main/kotlin/org/openclub/api/club/*Routes.kt'

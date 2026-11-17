@@ -88,9 +88,27 @@ def implemented_routes():
     return observed
 
 
+FROZEN_VERSION = "1.0.0"
+M2_PROPOSALS = ("PUT /v1/members/{memberId}", "POST /v1/members/{memberId}/reactivate")
+OPERATIONS = {"get", "post", "put", "patch", "delete"}
+
+
+def operations(spec):
+    return {f"{method.upper()} {path}" for path, item in spec["paths"].items()
+            for method in item if method in OPERATIONS}
+
+
 def verify_contract(spec):
+    if spec.get("info", {}).get("version") != FROZEN_VERSION:
+        fail(f"Frozen M1 contract must stay at version {FROZEN_VERSION}; "
+             "a change needs a new owner-approved version")
     if spec.get("servers") != [{"url": "/api"}]:
         fail("M1 contract must remain mounted at /api")
+    documented = operations(spec)
+    if documented != EXPECTED:
+        fail(f"Frozen contract operations differ from implemented routes: "
+             f"undocumented={sorted(EXPECTED - documented)} "
+             f"unimplemented={sorted(documented - EXPECTED)}")
     paths = spec["paths"]
     if not spec.get("security"):
         fail("M1 contract lost its default authenticated session requirement")
@@ -123,10 +141,16 @@ def verify_contract(spec):
         if not csrf:
             fail(f"Mutating operation has no required CSRF header: {entry}")
 
-    # These are *proposals*, not M1 API routes. Keep them visibly unimplemented.
-    for entry in ("PUT /v1/members/{memberId}", "POST /v1/members/{memberId}/reactivate"):
+
+
+def verify_m2_draft(draft):
+    # These are *proposals*, not M1 API routes. Keep them visibly unimplemented
+    # and outside the frozen contract (the operations check above).
+    if "draft" not in str(draft.get("info", {}).get("version", "")):
+        fail("M2 proposals must stay in an unversioned draft")
+    for entry in M2_PROPOSALS:
         method, path = entry.split(" ", 1)
-        summary = paths[path][method.lower()].get("summary", "")
+        summary = draft["paths"][path][method.lower()].get("summary", "")
         if "NOT IMPLEMENTED" not in summary:
             fail(f"Proposed private-data route lost its not-implemented marker: {entry}")
 
@@ -136,10 +160,13 @@ def main():
     if observed != EXPECTED:
         fail(f"Ktor M1 route inventory differs: missing={sorted(EXPECTED - observed)} "
              f"unexpected={sorted(observed - EXPECTED)}")
-    with (ROOT / "docs/contracts/openapi-draft.yaml").open() as contract:
+    with (ROOT / "docs/contracts/openapi-v1.yaml").open() as contract:
         spec = yaml.safe_load(contract)
     verify_contract(spec)
-    print(f"Verified {len(EXPECTED)} registered synthetic M1 operations against the working OpenAPI draft.")
+    with (ROOT / "docs/contracts/openapi-m2-draft.yaml").open() as contract:
+        verify_m2_draft(yaml.safe_load(contract))
+    print(f"Verified {len(EXPECTED)} registered synthetic M1 operations against the frozen "
+          f"OpenAPI {FROZEN_VERSION} contract (exact match) and the separate M2 proposal draft.")
     print("Not verified: runtime payloads, privacy decisions, real data, M2 approval or proposed operations.")
 
 
