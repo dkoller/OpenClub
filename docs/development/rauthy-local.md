@@ -154,8 +154,11 @@ keys can instead use Rauthy's E-Mail-first WebAuthn flow.
 The additional `dev/auth-e2e/rauthy-passkey.spec.js` exercises password-based
 account login, password reauthentication to obtain permission to modify MFA,
 named passkey registration through Chromium's virtual FIDO2 authenticator,
-independent Rauthy logout and clearing of SSO cookies, then passkey-only
-sign-in through OpenClub. The test must observe a signed assertion and the
+independent Rauthy logout and clearing of SSO cookies, then a **fresh
+password + registered WebAuthn factor** OpenClub sign-in. It checks that
+Chromium's virtual authenticator signs a new assertion beyond registration,
+verifies the resulting Ktor session and logs out. A separate fresh login then
+uses the resident passkey alone through OpenClub. The test must observe a signed assertion and the
 normal application session with **no club grants**, then signs out and proves
 that the Ktor app session is rejected by `/api/v1/auth/me` (401). No virtual credential,
 private key, raw WebAuthn response, account session or browser trace is
