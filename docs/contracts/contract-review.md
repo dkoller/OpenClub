@@ -1,8 +1,8 @@
 # R04 — OpenAPI contract review and approval gate
 
-## Current contract status — 2026-11-17 (frozen 1.0.0)
+## Current contract status — 2026-11-17 (frozen 1.1.0)
 
-**Frozen:** [`openapi-v1.yaml`](openapi-v1.yaml) is the owner-accepted **OpenAPI 1.0.0** contract for the synthetic M1 HTTP surface ([ADR-0007](../decisions/0007-owner-decisions-2026-11-17.md), [#13](https://github.com/dkoller/OpenClub/issues/13)). It contains exactly the **21 registered** club, member, team, role, grant and public-name operations. `dev/verify-m1-openapi.py` (run by `.github/workflows/m1-contract.yml`) fails if:
+**Frozen:** [`openapi-v1.yaml`](openapi-v1.yaml) is the owner-accepted **OpenAPI 1.x** contract for the synthetic M1 HTTP surface ([ADR-0007](../decisions/0007-owner-decisions-2026-11-17.md), [#13](https://github.com/dkoller/OpenClub/issues/13)). 1.0.0 froze 21 operations; **1.1.0** adds the per-club adult-age setting (#17). It contains exactly the **22 registered** club, member, team, role, grant and public-name operations. `dev/verify-m1-openapi.py` (run by `.github/workflows/m1-contract.yml`) fails if:
 
 - an implemented Ktor route is undocumented, or a documented operation is not implemented;
 - the version changes without a new approval;
@@ -12,7 +12,7 @@ Selected PostgreSQL/Ktor tests additionally assert privacy-minimized member and 
 
 **Separate M2 proposals:** [`openapi-m2-draft.yaml`](openapi-m2-draft.yaml) (`0.0.0-draft`) holds the operations that are **NOT IMPLEMENTED**: full confidential member replacement (`PUT /v1/members/{memberId}`) and HTTP reactivation. Internal database reactivation is not a user-facing route. These need the M2 privacy decisions, audit (#26) and security review. ADR-0007 already fixes that contacts are readable only by explicitly granted roles and that the adult age is configurable per club.
 
-**What 1.0.0 does not mean:** approval of real member data, private-field reads or writes, export or erasure, or complete runtime payload conformance. A change to the M1 surface needs a new, owner-approved contract version. A real-data deployment also requires [M2 authorization](../roadmap.md#delivery-gates).
+**What 1.x does not mean:** approval of real member data, private-field reads or writes, export or erasure, or complete runtime payload conformance. A change to the M1 surface needs a new, owner-approved contract version. A real-data deployment also requires [M2 authorization](../roadmap.md#delivery-gates).
 
 ## Historical review chronology — superseded implementation snapshots
 

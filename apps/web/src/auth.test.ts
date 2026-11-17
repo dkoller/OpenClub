@@ -29,8 +29,8 @@ describe('single-club session', () => {
     const request = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accountId: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411361', csrfToken: 'x'.repeat(43) }) })
       .mockResolvedValueOnce({ ok: true, status: 200,
-        json: async () => ({ id: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411360', name: 'Synthetic club', slug: 'synthetic-club', genderRequiredForPlayers: false }) })
-    expect(await loadClubAccess(request)).toEqual({ state: 'ready', csrfToken: 'x'.repeat(43), clubName: 'Synthetic club', genderRequiredForPlayers: false })
+        json: async () => ({ id: '7f53bd36-6b66-4ce0-a4ed-3ca1b8411360', name: 'Synthetic club', slug: 'synthetic-club', genderRequiredForPlayers: false, adultAgeYears: 18 }) })
+    expect(await loadClubAccess(request)).toEqual({ state: 'ready', csrfToken: 'x'.repeat(43), clubName: 'Synthetic club', genderRequiredForPlayers: false, adultAgeYears: 18 })
   })
 
   it('does not consider malformed or non-200 club results to be authorized', async () => {

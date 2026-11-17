@@ -35,6 +35,7 @@ GET /v1/public/members
 GET /v1/club
 PATCH /v1/club
 PATCH /v1/club/player-gender-policy
+PATCH /v1/club/adult-age-policy
 GET /v1/members
 POST /v1/members
 GET /v1/members/{memberId}
@@ -88,7 +89,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.0.0"
+FROZEN_VERSION = "1.1.0"
 M2_PROPOSALS = ("PUT /v1/members/{memberId}", "POST /v1/members/{memberId}/reactivate")
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
 

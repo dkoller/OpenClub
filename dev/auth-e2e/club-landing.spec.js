@@ -281,6 +281,19 @@ test('verified login gains club access only after restricted operator bootstrap'
   await clubSettings.getByRole('button', { name: 'Save policy' }).click();
   await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).genderRequiredForPlayers).toBe(true);
 
+  // ADR-0007: the adult age is configurable per club and shown in the member form.
+  // Raising it can never conflict with existing members' contacts.
+  const adultAge = clubSettings.getByLabel('Adult from age (13–25)');
+  await expect(adultAge).toHaveValue('18');
+  await adultAge.fill('20');
+  await clubSettings.getByRole('button', { name: 'Save adult age' }).click();
+  await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).adultAgeYears).toBe(20);
+  await expect(memberAdmin.getByText('Adult from age 20.')).toBeVisible();
+  await adultAge.fill('18');
+  await clubSettings.getByRole('button', { name: 'Save adult age' }).click();
+  await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).adultAgeYears).toBe(18);
+  await expect(memberAdmin.getByText('Adult from age 18.')).toBeVisible();
+
   // When the club enables this rule, player creation cannot omit gender.
   await memberAdmin.getByLabel('First name').fill('Player');
   await memberAdmin.getByLabel('Last name').fill('Missing');

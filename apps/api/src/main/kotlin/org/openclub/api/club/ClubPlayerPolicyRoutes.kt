@@ -4,6 +4,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -22,7 +23,7 @@ import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 
-/** Configures only player-gender requirement; database triggers enforce existing member compatibility. */
+/** Club member-policy settings (player gender, adult age). Database triggers enforce existing member compatibility. */
 internal fun Application.installClubPlayerPolicyRoutes(
     sessions: BrowserSessionOperations,
     cookies: AuthCookiePolicy,
@@ -31,65 +32,90 @@ internal fun Application.installClubPlayerPolicyRoutes(
 ) {
     routing {
         patch("/api/v1/club/player-gender-policy") {
-            call.response.headers.append(HttpHeaders.CacheControl, "no-store")
-            try {
-                val actor = sessions.read(call.request.cookies[cookies.sessionName])
-                if (actor == null) {
-                    call.respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
-                        HttpStatusCode.Unauthorized)
-                    return@patch
-                }
-                if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-                    call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
-                    return@patch
-                }
-                require(call.request.headers.getAll(HttpHeaders.ContentType)?.singleOrNull()?.let {
-                    ContentType.parse(it).withoutParameters() == ContentType.Application.Json
-                } == true)
-                val channel = call.receiveChannel()
-                val bytes = ByteArray(4097)
-                var size = 0
-                while (size < bytes.size) {
-                    val count = channel.readAvailable(bytes, size, bytes.size - size)
-                    if (count == -1) break
-                    size += count
-                }
-                require(size in 1..4096)
-                val fields = Json.parseToJsonElement(bytes.copyOf(size).toString(Charsets.UTF_8)) as? JsonObject
-                    ?: throw IllegalArgumentException("Invalid policy object")
-                require(fields.keys == setOf("genderRequiredForPlayers"))
-                val policy = fields["genderRequiredForPlayers"] as? JsonPrimitive
-                    ?: throw IllegalArgumentException("Missing policy")
-                require(!policy.isString)
-                val required = policy.booleanOrNull ?: throw IllegalArgumentException("Invalid boolean")
-                val updated = database.onDatabaseThread { db ->
-                    // Enforce a live, identity-bound admin grant atomically with the change.
-                    // V7's club policy trigger rejects stricter settings when existing
-                    // players lack gender and serializes changes with member writes.
-                    db.execute(
-                        """UPDATE clubs SET gender_required_for_players = ?
-                           WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_PERMISSIONS, requireAdmin = true)}""",
-                        required, actor.accountId,
-                    ) == 1
-                }
-                if (updated) call.respond(HttpStatusCode.NoContent)
-                else call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                    HttpStatusCode.Forbidden)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: IllegalArgumentException) {
-                call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                    HttpStatusCode.BadRequest)
-            } catch (_: DataAccessException) {
-                // V7 rejects incompatible stricter policies without disclosing member fields.
-                call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
-                    HttpStatusCode.Conflict)
-            } catch (_: Exception) {
-                call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
-                    HttpStatusCode.ServiceUnavailable)
+            call.updateClubPolicy(sessions, cookies, origin, database,
+                field = "genderRequiredForPlayers", column = "gender_required_for_players") { value ->
+                require(!value.isString)
+                value.booleanOrNull ?: throw IllegalArgumentException("Invalid boolean")
             }
         }
+        patch("/api/v1/club/adult-age-policy") {
+            // ADR-0007: the adult age is configurable per club within the schema bounds.
+            call.updateClubPolicy(sessions, cookies, origin, database,
+                field = "adultAgeYears", column = "adult_age_years") { value ->
+                require(!value.isString)
+                val years = value.content.toIntOrNull() ?: throw IllegalArgumentException("Invalid integer")
+                require(value.content == years.toString() && years in ADULT_AGE_RANGE)
+                years
+            }
+        }
+    }
+}
+
+internal val ADULT_AGE_RANGE = 13..25
+
+/**
+ * Applies one club policy field from a JSON body with exactly that key. The
+ * session, exact Origin and session CSRF are checked first; the UPDATE itself
+ * requires a live, identity-bound ADMIN with MANAGE_PERMISSIONS. V7's club policy
+ * trigger rejects a stricter setting that existing members do not satisfy (409),
+ * serialized with member writes, without disclosing which members are affected.
+ */
+private suspend fun ApplicationCall.updateClubPolicy(
+    sessions: BrowserSessionOperations,
+    cookies: AuthCookiePolicy,
+    origin: String,
+    database: DatabaseRuntime,
+    field: String,
+    column: String,
+    parse: (JsonPrimitive) -> Any,
+) {
+    response.headers.append(HttpHeaders.CacheControl, "no-store")
+    try {
+        val actor = sessions.read(request.cookies[cookies.sessionName])
+        if (actor == null) {
+            respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
+                HttpStatusCode.Unauthorized)
+            return
+        }
+        if (request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
+            request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+            respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                HttpStatusCode.Forbidden)
+            return
+        }
+        require(request.headers.getAll(HttpHeaders.ContentType)?.singleOrNull()?.let {
+            ContentType.parse(it).withoutParameters() == ContentType.Application.Json
+        } == true)
+        val channel = receiveChannel()
+        val bytes = ByteArray(4097)
+        var size = 0
+        while (size < bytes.size) {
+            val count = channel.readAvailable(bytes, size, bytes.size - size)
+            if (count == -1) break
+            size += count
+        }
+        require(size in 1..4096)
+        val fields = Json.parseToJsonElement(bytes.copyOf(size).toString(Charsets.UTF_8)) as? JsonObject
+            ?: throw IllegalArgumentException("Invalid policy object")
+        require(fields.keys == setOf(field))
+        val value = parse(fields[field] as? JsonPrimitive ?: throw IllegalArgumentException("Missing policy"))
+        val updated = database.onDatabaseThread { db ->
+            db.execute(
+                """UPDATE clubs SET $column = ?
+                   WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_PERMISSIONS, requireAdmin = true)}""",
+                value, actor.accountId,
+            ) == 1
+        }
+        if (updated) respond(HttpStatusCode.NoContent)
+        else respondText("""{"code":"forbidden"}""", ContentType.Application.Json, HttpStatusCode.Forbidden)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: IllegalArgumentException) {
+        respondText("""{"code":"invalid"}""", ContentType.Application.Json, HttpStatusCode.BadRequest)
+    } catch (_: DataAccessException) {
+        respondText("""{"code":"conflict"}""", ContentType.Application.Json, HttpStatusCode.Conflict)
+    } catch (_: Exception) {
+        respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
+            HttpStatusCode.ServiceUnavailable)
     }
 }

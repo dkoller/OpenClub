@@ -1,7 +1,9 @@
+import { isAdultAge } from './policy'
+
 export type ClubAccess =
   | { state: 'signed-out' }
   | { state: 'not-member'; csrfToken: string }
-  | { state: 'ready'; csrfToken: string; clubName: string; genderRequiredForPlayers: boolean }
+  | { state: 'ready'; csrfToken: string; clubName: string; genderRequiredForPlayers: boolean; adultAgeYears: number }
   | { state: 'unavailable' }
 
 export async function loadClubAccess(request: typeof fetch = fetch): Promise<ClubAccess> {
@@ -19,7 +21,7 @@ export async function loadClubAccess(request: typeof fetch = fetch): Promise<Clu
     const clubDetails: unknown = await club.json()
     if (!isClub(clubDetails)) return { state: 'unavailable' }
     return { state: 'ready', csrfToken: details.csrfToken, clubName: clubDetails.name,
-      genderRequiredForPlayers: clubDetails.genderRequiredForPlayers }
+      genderRequiredForPlayers: clubDetails.genderRequiredForPlayers, adultAgeYears: clubDetails.adultAgeYears }
   } catch {
     return { state: 'unavailable' }
   }
@@ -37,7 +39,7 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
-function isClub(value: unknown): value is { id: string; name: string; slug: string; genderRequiredForPlayers: boolean } {
+function isClub(value: unknown): value is { id: string; name: string; slug: string; genderRequiredForPlayers: boolean; adultAgeYears: number } {
   return value !== null && typeof value === 'object'
     && 'id' in value && typeof value.id === 'string'
     && isUuid(value.id)
@@ -46,6 +48,7 @@ function isClub(value: unknown): value is { id: string; name: string; slug: stri
     && 'slug' in value && typeof value.slug === 'string'
     && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(value.slug)
     && 'genderRequiredForPlayers' in value && typeof value.genderRequiredForPlayers === 'boolean'
+    && 'adultAgeYears' in value && isAdultAge(value.adultAgeYears)
 }
 
 export async function signOut(csrfToken: string, request: typeof fetch = fetch): Promise<boolean> {
