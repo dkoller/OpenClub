@@ -133,6 +133,50 @@ jobs:
           [[ "$client_after" == "$OPENCLUB_OIDC_CLIENT_SECRET" && "$user_after" == "$OPENCLUB_RAUTHY_E2E_USER_PASSWORD" ]] ||
             { echo 'Synthetic Rauthy credentials changed on restart' >&2; exit 1; }
           echo 'Rauthy keys and credentials persisted across restart; browser acceptance follows.'
+      - name: Recover disposable Rauthy identity from an independent volume archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          overlay=(docker compose -f compose.yaml -f compose.rauthy.eval.yaml)
+          # Only ever delete the synthetic Rauthy volume belonging to this CI job.
+          container="$("${overlay[@]}" ps -q rauthy)"
+          [[ -n "$container" ]] || { echo 'Synthetic Rauthy container missing' >&2; exit 1; }
+          volume="$(docker inspect "$container" --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Name}}{{end}}{{end}}')"
+          [[ "$volume" == "${COMPOSE_PROJECT_NAME}_rauthy_eval_data" ]] ||
+            { echo 'Refusing to restore unexpected identity volume' >&2; exit 1; }
+          before="$(curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/oidc/certs | jq -cS . | sha256sum | cut -d' ' -f1)"
+          "${overlay[@]}" stop rauthy >/dev/null
+          # An offline backup of a fully stopped provider prevents torn Hiqlite state.
+          # The archive stays on this disposable runner, never in CI artifacts.
+          docker run --rm -v "$volume:/source:ro" -v "$RUNNER_TEMP:/backup" alpine:3.21 \
+            tar -C /source -cf /backup/rauthy-identity-backup.tar .
+          test -s "$RUNNER_TEMP/rauthy-identity-backup.tar"
+          "${overlay[@]}" rm -f rauthy >/dev/null
+          docker volume rm "$volume" >/dev/null
+          docker volume create "$volume" >/dev/null
+          docker run --rm -v "$volume:/restore" -v "$RUNNER_TEMP:/backup:ro" alpine:3.21 \
+            tar -C /restore -xf /backup/rauthy-identity-backup.tar
+          "${overlay[@]}" up -d --no-deps rauthy >/dev/null
+          ready=false
+          for attempt in {1..60}; do
+            if curl --fail --silent --insecure --max-time 3 \
+              https://localhost:8443/.well-known/openid-configuration -o /dev/null 2>/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          [[ "$ready" == true ]] || { echo 'Restored provider did not become ready' >&2; exit 1; }
+          after="$(curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/oidc/certs | jq -cS . | sha256sum | cut -d' ' -f1)"
+          [[ "$before" == "$after" ]] || { echo 'Signing identity changed after restore' >&2; exit 1; }
+          client="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+            -c /app/config-local-test.toml --kind client --id openclub-rauthy-https-ci --field secret --format raw)"
+          user="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+            -c /app/config-local-test.toml --kind user --id openclub-rauthy-ci@example.invalid --field password --format raw)"
+          [[ "$client" == "$OPENCLUB_OIDC_CLIENT_SECRET" && "$user" == "$OPENCLUB_RAUTHY_E2E_USER_PASSWORD" ]] ||
+            { echo 'Synthetic client or user identity changed after restore' >&2; exit 1; }
+          rm -f "$RUNNER_TEMP/rauthy-identity-backup.tar"
+          echo 'Offline archive restored to a fresh volume; real browser logins follow.'
       - name: Trust only the disposable Rauthy HTTPS certificate for the JVM
         shell: bash
         run: |
@@ -195,7 +239,6 @@ jobs:
         working-directory: dev/auth-e2e
         shell: bash
         run: |
-          set -euo pipefail
           set -euo pipefail
           # An earlier step installs the same pinned browser/dependencies in
           # parallel with backend startup. No tests run until it completed.
