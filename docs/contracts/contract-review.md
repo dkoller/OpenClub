@@ -1,5 +1,7 @@
 # R04 — OpenAPI contract review and approval gate
 
+**Reading guide (2026-11-17):** The [OpenAPI draft](openapi-draft.yaml) and its 21-route CI inventory are the working technical contract for implemented synthetic M1 HTTP operations. This review retains historical multi-club design findings and dated proposal checklists; those are **not** instructions to reimplement existing routes. Proposed full private-member update/reactivation remain unimplemented, and neither static route coverage nor selected runtime response-shape assertions amount to complete schema conformance, accessibility certification, legal approval or R04 version promotion. The current action items are [#13](https://github.com/dkoller/OpenClub/issues/13), [#12](https://github.com/dkoller/OpenClub/issues/12) and the [M1 hosted evidence checklist](../deployment/m1-resource-evidence.md).
+
 **M1 runtime response-shape acceptance (2026-11-17):** PostgreSQL-backed Ktor HTTP tests now assert exact privacy-minimized keys for member creation, directory list, member detail and anonymous public names; malformed member IDs return a safe `code` and generic `message` envelope. The shared `Error` schema now requires only `code` because some other implemented routes return code alone; `message` remains optional. This complements static route checks but does not approve private-field expansion, complete payload coverage or R04 version promotion.
 
 **M1 route-drift protection (2026-11-17, separate from R04 approval):**
