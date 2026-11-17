@@ -94,6 +94,32 @@ class OidcIdTokenVerifierTest {
     }
 
     @Test
+    fun keycloakAndRauthyTokensCannotCrossConfiguredIssuerBoundary() {
+        val rauthyIssuer = "https://localhost:8443/auth/v1/"
+        val rauthyVerifier = OidcIdTokenVerifier(
+            OidcSettings(
+                URI(rauthyIssuer),
+                URI("${rauthyIssuer}oidc/authorize"),
+                clientId,
+                URI("https://app.example/api/v1/auth/callback"),
+            ),
+            JWKSet(key.toPublicJWK()),
+        )
+        val rauthyToken = signed(claims(tokenIssuer = rauthyIssuer))
+
+        assertEquals(
+            VerifiedOidcIdentity(rauthyIssuer, "provider-subject"),
+            rauthyVerifier.verify(rauthyToken, nonce),
+        )
+        rejects(rauthyToken)
+        assertThrows(Exception::class.java) { rauthyVerifier.verify(signed(), nonce) }
+        // The issuer's trailing slash is significant; do not normalize it away.
+        assertThrows(Exception::class.java) {
+            rauthyVerifier.verify(signed(claims(tokenIssuer = rauthyIssuer.dropLast(1))), nonce)
+        }
+    }
+
+    @Test
     fun enforcesOptionalNotBeforeWithThirtySecondSkew() {
         assertEquals(
             VerifiedOidcIdentity(issuer, "provider-subject"),
