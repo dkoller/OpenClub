@@ -89,6 +89,9 @@ test('Rauthy registers email OTP and verifies password plus delivered OTP before
   await expect(page.getByText('Email-based OTP', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Register New OTP' })).not.toBeVisible();
 
+  // Everything delivered so far (enrollment and any other provider mail) is old:
+  // only a message arriving after this point can carry the login factor.
+  for (const message of await mailCodes(context.request)) seen.add(message.id);
   await page.getByRole('button', { name: 'Logout', exact: true }).click();
   await context.clearCookies();
   await page.goto('https://localhost:5443/');
