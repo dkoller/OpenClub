@@ -1,6 +1,6 @@
 # R05 / D1 — PostgreSQL opaque session store
 
-**Status (2026-11-14):** Opt-in login/callback and session routes now exist; default authentication remains disabled. No member routes. See [session API](session-api.md).
+**Status (2026-11-14; route note updated 2026-11-17):** Opt-in login/callback and session routes exist; default authentication remains disabled. *Member, team, role, grant and club-settings routes have since been added* and use these sessions with CSRF/Origin checks. See [session API](session-api.md).
 
 Fresh Flyway `V1__single_club.sql` adds a separate authenticated-session table. The browser's 256-bit random session handle is **never persisted as plaintext**: only its SHA-256 digest is the primary key. Each session references an existing `accounts.id` and has a distinct 256-bit CSRF token stored server-side, creation/last-use timestamps, a **30-minute idle expiry** and an **unextendable 12-hour absolute expiry**, determined by PostgreSQL's clock.
 

@@ -1,6 +1,8 @@
 # R05 — OIDC BFF security implementation design
 
-**Status:** Proposed implementation detail for review (2026-11-14). Architecture is accepted in [ADR-0003](../decisions/0003-oidc-session-proposal.md), but nothing in this document implements login or authorizes handling real member data. Parent [#14](https://github.com/dkoller/OpenClub/issues/14), prerequisite [#11](https://github.com/dkoller/OpenClub/issues/11).
+**Current state (2026-11-17):** This design was implemented (R05/#14 closed after PR #71) and has run in synthetic CI ever since. Two scope statements below are superseded: Keycloak and **Rauthy** are both supported, with one issuer per installation ([ADR-0006](../decisions/0006-oidc-provider-choice.md)). Each installation also has exactly one club ([ADR-0005](../decisions/0005-single-club-installation.md)), so authorization resolves verified account → local member → explicit grants, not a "requested club". The text below is the original design record.
+
+*Original status:* Proposed implementation detail for review (2026-11-14). Architecture is accepted in [ADR-0003](../decisions/0003-oidc-session-proposal.md), but nothing in this document implements login or authorizes handling real member data. Parent [#14](https://github.com/dkoller/OpenClub/issues/14), prerequisite [#11](https://github.com/dkoller/OpenClub/issues/11).
 
 ## Scope and trust boundaries
 

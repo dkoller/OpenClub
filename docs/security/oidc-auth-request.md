@@ -1,6 +1,8 @@
 # R05 / PR C1 — OIDC authorization request core
 
-**Status:** Request-construction component only. No login route or authenticated session is enabled. Part of [#14](https://github.com/dkoller/OpenClub/issues/14), following [PR #50](https://github.com/dkoller/OpenClub/pull/50).
+**Current state (2026-11-17):** This component is now part of the implemented browser login (callback, code exchange and server-side sessions; see [OIDC browser login](oidc-browser-login.md) and [session API](session-api.md)), used with Keycloak or Rauthy ([ADR-0006](../decisions/0006-oidc-provider-choice.md)). The status line below records the component's original, pre-login stage.
+
+*Original status:* Request-construction component only. No login route or authenticated session is enabled. Part of [#14](https://github.com/dkoller/OpenClub/issues/14), following [PR #50](https://github.com/dkoller/OpenClub/pull/50).
 
 `OidcAuthorizationRequests` constructs an authorization-code request using independent CSPRNG-generated `state`, `nonce`, and PKCE S256 verifier. The verifier is returned **only to trusted backend code**, never embedded in the redirect. `OidcSettings` rejects insecure remote HTTP issuers, wrong-host authorization endpoints, hostless URLs and unparsed internationalized authorities (including different Unicode domains whose `URI.host` values would otherwise both be `null`), and unexpected redirect URI paths. Use ASCII/punycode hostnames explicitly if internationalized domains are needed; do not compare unresolved authorities. Tests verify URL parameters, challenge hashing, uniqueness and rejected configurations.
 

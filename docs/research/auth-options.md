@@ -1,6 +1,6 @@
 # R02 — Authentication options and security design
 
-**Status:** Research / proposed approach, **not an accepted ADR or provider selection**. Parent: [#11](https://github.com/dkoller/OpenClub/issues/11); unresolved questions in [#35](https://github.com/dkoller/OpenClub/issues/35). Sources reviewed 2026-11-14.
+**Status:** Historical research. The provider decision was later made in [ADR-0006](../decisions/0006-oidc-provider-choice.md) (Keycloak and Rauthy supported, one issuer per installation). This page itself is research and not an ADR. Parent: [#11](https://github.com/dkoller/OpenClub/issues/11); unresolved questions in [#35](https://github.com/dkoller/OpenClub/issues/35). Sources reviewed 2026-11-14.
 
 ## Comparison (verify versions, operational costs and licenses before approval)
 

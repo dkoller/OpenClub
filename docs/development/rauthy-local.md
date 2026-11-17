@@ -51,7 +51,7 @@ client and exact OpenClub development callback, with `state`, `nonce`,
 accepts this initiation without following redirects or exposing callback values.
 This checks an earlier interoperability boundary than the Kotlin callback:
 at that earlier smoke-test stage it **did not prove password/MFA/passkey sign-in, code exchange or an OpenClub
-session**. Those remain acceptance criteria in [#279](https://github.com/dkoller/OpenClub/issues/279).
+session**. Those were later accepted under [#279](https://github.com/dkoller/OpenClub/issues/279) (closed; see the real HTTPS browser acceptance below).
 
 ## Real HTTPS browser acceptance (additional provider, not a replacement)
 

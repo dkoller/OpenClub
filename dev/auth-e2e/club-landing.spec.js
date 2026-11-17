@@ -310,12 +310,21 @@ test('verified login gains club access only after restricted operator bootstrap'
   await roleAdmin.getByLabel('Find member').fill('Slow');
   await roleAdmin.getByRole('button', { name: 'Search' }).click();
   await slowRoleStarted;
+  // Record the selected member's role lookup so an intermittent failure reports
+  // its HTTP outcome instead of a generic timeout on a disabled control.
+  const maraRoleRead = page.waitForResponse(response =>
+    response.request().method() === 'GET' &&
+    /\/api\/v1\/members\/[^/]+\/role$/.test(new URL(response.url()).pathname),
+  { timeout: 30_000 });
   await roleAdmin.getByLabel('Find member').fill('Mara');
   await roleAdmin.getByRole('button', { name: 'Search' }).click();
   await canceledRoleSearch;
   await page.unroute('**/api/v1/members?**');
   await expect(roleAdmin.getByRole('combobox', { name: 'Member' })
     .getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
+  const roleRead = await maraRoleRead;
+  expect(roleRead.status(), `role lookup ${new URL(roleRead.url()).pathname}`).toBe(200);
+  await expect(roleAdmin.getByRole('combobox', { name: 'Role' })).toBeEnabled();
   await expect(roleAdmin.getByRole('combobox', { name: 'Role' })).toHaveValue('MEMBER');
   await roleAdmin.getByRole('combobox', { name: 'Role' }).selectOption('ADMIN');
   await roleAdmin.getByRole('button', { name: 'Save role' }).click();
