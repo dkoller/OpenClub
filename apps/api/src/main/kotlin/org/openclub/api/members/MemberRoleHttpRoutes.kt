@@ -4,23 +4,21 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
-import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.routing
-import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import java.util.UUID
+import org.openclub.api.receiveJsonObject
+import org.openclub.api.requiredString
 
 /** Minimal synthetic-M1 role boundary: privileged inspection and serialized changes only. */
 internal fun Application.installMemberRoleHttpRoutes(
@@ -78,24 +76,8 @@ internal fun Application.installMemberRoleHttpRoutes(
                     return@patch
                 }
                 val id = UUID.fromString(call.parameters["memberId"])
-                require(call.request.headers.getAll(HttpHeaders.ContentType)?.singleOrNull()?.let {
-                    ContentType.parse(it).withoutParameters() == ContentType.Application.Json
-                } == true)
-                val channel = call.receiveChannel()
-                val bytes = ByteArray(4097)
-                var size = 0
-                while (size < bytes.size) {
-                    val count = channel.readAvailable(bytes, size, bytes.size - size)
-                    if (count == -1) break
-                    size += count
-                }
-                require(size in 1..4096)
-                val fields = Json.parseToJsonElement(bytes.copyOf(size).toString(Charsets.UTF_8)) as? JsonObject
-                    ?: throw IllegalArgumentException("Invalid role JSON")
-                require(fields.keys == setOf("role"))
-                val value = fields["role"] as? JsonPrimitive ?: throw IllegalArgumentException("Missing role")
-                require(value.isString)
-                val role = MemberRoles.Role.valueOf(value.content)
+                val role = MemberRoles.Role.valueOf(
+                    call.receiveJsonObject(required = setOf("role")).requiredString("role"))
                 val outcome = database.onDatabaseThread { db ->
                     MemberRoles(db).change(actor.accountId, id, role)
                 }

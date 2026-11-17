@@ -1,3 +1,5 @@
+import { sendJson } from './api'
+
 /** Per-club adult age bounds (ADR-0007); the database CHECK and API enforce the same range. */
 export const ADULT_AGE_MIN = 13
 export const ADULT_AGE_MAX = 25
@@ -37,3 +39,10 @@ export async function saveAdultAge(years: number, csrfToken: string,
     return 'error'
   }
 }
+
+export const saveClubName = (name: string, csrfToken: string, request: typeof fetch = fetch) =>
+  sendJson('/api/v1/club', 'PATCH', csrfToken, { name }, request)
+
+/** 'conflict' means existing players lack the gender the stricter rule would require. */
+export const saveGenderPolicy = (required: boolean, csrfToken: string, request: typeof fetch = fetch) =>
+  sendJson('/api/v1/club/player-gender-policy', 'PATCH', csrfToken, { genderRequiredForPlayers: required }, request)

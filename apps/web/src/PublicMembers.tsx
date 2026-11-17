@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Language } from './language'
-
-type PublicName = { displayName: string }
+import { readPublicNames, type PublicName } from './publicMembers'
 
 const words = {
   de: { heading: 'Mitglieder', loading: 'Mitglieder werden geladen…', empty: 'Noch keine Mitglieder.', error: 'Mitglieder sind momentan nicht verfügbar.', retry: 'Erneut versuchen' },
@@ -20,16 +19,7 @@ export function PublicMembers({ language, revision = 0 }: { language: Language; 
     const controller = new AbortController()
     setNames(null)
     setError(false)
-    fetch('/api/v1/public/members', { signal: controller.signal, credentials: 'omit', cache: 'no-store' })
-      .then(async response => {
-        if (!response.ok) throw new Error('Member directory unavailable')
-        const value: unknown = await response.json()
-        if (!Array.isArray(value) || !value.every(item =>
-          typeof item === 'object' && item !== null &&
-          Object.keys(item).length === 1 && typeof item.displayName === 'string'
-        )) throw new Error('Unexpected directory response')
-        return value as PublicName[]
-      })
+    readPublicNames(controller.signal)
       .then(value => { if (!controller.signal.aborted) setNames(value) })
       .catch(() => { if (!controller.signal.aborted) setError(true) })
     return () => controller.abort()

@@ -35,7 +35,7 @@ The basic stack starts without authentication. OIDC is opt-in; without it there 
 | Variable | Meaning |
 | --- | --- |
 | `OPENCLUB_BOOTSTRAP_CONFIRM` | Literal `create-first-club` |
-| `OPENCLUB_BOOTSTRAP_ACCOUNT_ID` | UUID of that previously verified local account |
+| `OPENCLUB_BOOTSTRAP_ACCOUNT_ID` | UUID of that previously verified local account, in canonical 8-4-4-4-12 form (shortened spellings are rejected) |
 | `OPENCLUB_BOOTSTRAP_CLUB_NAME` | Club display name |
 | `OPENCLUB_BOOTSTRAP_CLUB_SLUG` | Unique lowercase slug |
 | `OPENCLUB_BOOTSTRAP_FIRST_NAME`, `OPENCLUB_BOOTSTRAP_LAST_NAME` | First administrator's local member names |
@@ -61,6 +61,8 @@ On a restricted operator shell with the same `DB_URL`, `DB_USER` and `DB_PASSWOR
 | `OPENCLUB_RECOVERY_MEMBER_ID` | Existing sole ADMIN member UUID |
 | `OPENCLUB_RECOVERY_OLD_ACCOUNT_ID` | Account currently linked to that member |
 | `OPENCLUB_RECOVERY_NEW_ACCOUNT_ID` | Different, verified OIDC account not linked to any member |
+
+All four recovery IDs must be canonical 8-4-4-4-12 UUIDs. The command rejects shortened spellings such as `1-1-1-1-1` before connecting to the database, so a typo cannot silently expand into a different ID.
 
 Run `./gradlew recoverSoleAdmin` from `apps/api` (Windows: `gradlew.bat recoverSoleAdmin`). Do not put private IDs, credentials or approval evidence in committed files, command-line arguments, CI job output or shared logs. The command locks and verifies the one club and sole-admin member, requires a verified replacement identity held stable through recovery, rejects linked replacements, changes the member account association atomically, and **revokes existing sessions for both the old and replacement accounts in the same transaction**. This prevents an already signed-in replacement account from inheriting administrator privileges without a new login. A retry with stale IDs fails; concurrent recoveries and protected role/grant mutations are serialized so the sole-admin condition cannot change during recovery. A failed command leaves all access unchanged.
 

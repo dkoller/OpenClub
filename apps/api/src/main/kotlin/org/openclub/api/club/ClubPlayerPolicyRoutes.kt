@@ -5,15 +5,12 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.routing
-import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import org.jooq.exception.DataAccessException
@@ -22,6 +19,7 @@ import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
+import org.openclub.api.receiveJsonObject
 
 /** Club member-policy settings (player gender, adult age). Database triggers enforce existing member compatibility. */
 internal fun Application.installClubPlayerPolicyRoutes(
@@ -83,21 +81,7 @@ private suspend fun ApplicationCall.updateClubPolicy(
                 HttpStatusCode.Forbidden)
             return
         }
-        require(request.headers.getAll(HttpHeaders.ContentType)?.singleOrNull()?.let {
-            ContentType.parse(it).withoutParameters() == ContentType.Application.Json
-        } == true)
-        val channel = receiveChannel()
-        val bytes = ByteArray(4097)
-        var size = 0
-        while (size < bytes.size) {
-            val count = channel.readAvailable(bytes, size, bytes.size - size)
-            if (count == -1) break
-            size += count
-        }
-        require(size in 1..4096)
-        val fields = Json.parseToJsonElement(bytes.copyOf(size).toString(Charsets.UTF_8)) as? JsonObject
-            ?: throw IllegalArgumentException("Invalid policy object")
-        require(fields.keys == setOf(field))
+        val fields = receiveJsonObject(required = setOf(field))
         val value = parse(fields[field] as? JsonPrimitive ?: throw IllegalArgumentException("Missing policy"))
         val updated = database.onDatabaseThread { db ->
             db.execute(

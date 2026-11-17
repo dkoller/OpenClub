@@ -4,10 +4,14 @@ const email = 'openclub-rauthy-otp-ci@example.invalid';
 const inbox = 'http://127.0.0.1:8025';
 
 // Never print codes, message contents, browser storage or authentication tokens.
-async function mailCode(request) {
+// Returns this address's messages as { id, code } (code may be null), so a new
+// email is recognised by its Mailpit message ID, never by its code differing or
+// by list order: a provider may legitimately resend an identical, still-valid code.
+async function mailCodes(request) {
   const res = await request.get(`${inbox}/api/v1/messages`);
-  if (!res.ok()) return null;
+  if (!res.ok()) return [];
   const list = await res.json();
+  const found = [];
   for (const summary of list.messages ?? []) {
     if (!summary.To?.some(to => to.Address === email)) continue;
     const details = await request.get(`${inbox}/api/v1/message/${encodeURIComponent(summary.ID)}`);
@@ -16,13 +20,33 @@ async function mailCode(request) {
     // The provider may group digits in its template. Use only the
     // message text/HTML in memory; never log the code or email content.
     const body = [message.Text ?? '', message.HTML ?? ''].join(' ');
-    const matches = body.match(/(?:\d[\s-]*){6,8}/g) ?? [];
-    for (const candidate of matches) {
+    let code = null;
+    for (const candidate of body.match(/(?:\d[\s-]*){6,8}/g) ?? []) {
       const digits = candidate.replace(/\D/g, '');
-      if (digits.length === 6) return digits;
+      if (digits.length === 6) { code = digits; break; }
     }
+    found.push({ id: summary.ID, code });
   }
-  return null;
+  return found;
+}
+
+/** Waits for a message not in `seen` and returns its code; the timeout message is code-free. */
+async function nextCode(request, seen) {
+  let result = null;
+  let observed = [];
+  await expect.poll(async () => {
+    observed = await mailCodes(request);
+    const fresh = observed.find(message => !seen.has(message.id));
+    if (fresh?.code) result = fresh;
+    return result !== null;
+  }, {
+    timeout: 15000,
+    message: () => `no new OTP email: ${observed.length} message(s) for the address, ` +
+      `${observed.filter(m => !seen.has(m.id)).length} new, ` +
+      `${observed.filter(m => !seen.has(m.id) && !m.code).length} new without a 6-digit code`,
+  }).toBe(true);
+  seen.add(result.id);
+  return result.code;
 }
 
 test('Rauthy registers email OTP and verifies password plus delivered OTP before OpenClub session', async ({ page, context }) => {
@@ -59,15 +83,15 @@ test('Rauthy registers email OTP and verifies password plus delivered OTP before
     if (!inboxResponse.ok()) return -1;
     return (await inboxResponse.json()).total ?? 0;
   }, { timeout: 15000 }).toBeGreaterThan(0);
-  let code = null;
-  await expect.poll(async () => {
-    code = await mailCode(context.request);
-    return code !== null;
-  }, { timeout: 15000 }).toBe(true);
+  const seen = new Set();
+  const code = await nextCode(context.request, seen);
   await page.locator('input[name="otp"]:visible').fill(code);
   await expect(page.getByText('Email-based OTP', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Register New OTP' })).not.toBeVisible();
 
+  // Everything delivered so far (enrollment and any other provider mail) is old:
+  // only a message arriving after this point can carry the login factor.
+  for (const message of await mailCodes(context.request)) seen.add(message.id);
   await page.getByRole('button', { name: 'Logout', exact: true }).click();
   await context.clearCookies();
   await page.goto('https://localhost:5443/');
@@ -81,12 +105,8 @@ test('Rauthy registers email OTP and verifies password plus delivered OTP before
   // from the password before the OTP is submitted.
   await expect(page).toHaveURL(/^https:\/\/localhost:8443\/auth\/v1\//);
   expect((await context.request.get('/api/v1/auth/me')).status()).toBe(401);
-  let loginCode = null;
-  await expect.poll(async () => {
-    const candidate = await mailCode(context.request);
-    if (candidate && candidate !== code) loginCode = candidate;
-    return loginCode !== null;
-  }, { timeout: 15000 }).toBe(true);
+  // The login factor must arrive as a new email after enrollment.
+  const loginCode = await nextCode(context.request, seen);
   await page.locator('input[name="otp"]:visible').fill(loginCode);
   await expect(page).toHaveURL('https://localhost:5443/');
   expect((await context.request.get('/api/v1/auth/me')).status()).toBe(200);

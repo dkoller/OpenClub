@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 import { writeJson } from './api'
-import { capabilityChoices, capabilityForScope, fetchGrants, grantChange,
+import { capabilityChoices, capabilityForScope, fetchGrants, grantChange, probeGrantAccess,
   type Capability, type Grant, type Scope } from './grants'
 import { fetchMemberPage, type Member } from './members'
 
@@ -35,11 +35,9 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
     let active = true
     void (async () => {
       try {
-        const response = await fetch('/api/v1/grants?memberId=00000000-0000-0000-0000-000000000000',
-          { credentials: 'same-origin', cache: 'no-store' })
+        const access = await probeGrantAccess()
         if (!active) return
-        if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
-        if (!response.ok) throw new Error('Grant access unavailable')
+        if (access === 'denied') { setDenied(true); return }
         setAllowed(true)
         setError(false)
         const result = await fetch('/api/v1/teams', { credentials: 'same-origin', cache: 'no-store' })

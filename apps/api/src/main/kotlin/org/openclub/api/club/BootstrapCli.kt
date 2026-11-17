@@ -12,14 +12,27 @@ import java.util.UUID
  */
 fun main() {
     val env = System.getenv()
+    val input = bootstrapInput(env)
+    requireNotNull(DatabaseRuntime.openIfConfigured(env)) { "DB_URL required" }.use { database ->
+        val id = runBlocking { database.onDatabaseThread { FirstClubBootstrap(it).create(input) } }
+        println("Created first club: $id")
+    }
+}
+
+/**
+ * Validates the operator environment before any database connection: the explicit
+ * confirmation phrase and every required, non-blank value. Field rules (lengths, slug,
+ * adult contacts) are enforced afterwards by [FirstClubBootstrap] and PostgreSQL.
+ */
+internal fun bootstrapInput(env: Map<String, String>): FirstClubBootstrap.Input {
     require(env["OPENCLUB_BOOTSTRAP_CONFIRM"] == "create-first-club") {
         "Explicit OPENCLUB_BOOTSTRAP_CONFIRM=create-first-club required"
     }
     fun required(key: String): String =
         requireNotNull(env[key]?.trim()?.takeIf(String::isNotEmpty)) { "$key required" }
 
-    val input = FirstClubBootstrap.Input(
-        accountId = UUID.fromString(required("OPENCLUB_BOOTSTRAP_ACCOUNT_ID")),
+    return FirstClubBootstrap.Input(
+        accountId = canonicalUuid(required("OPENCLUB_BOOTSTRAP_ACCOUNT_ID"), "OPENCLUB_BOOTSTRAP_ACCOUNT_ID"),
         clubName = required("OPENCLUB_BOOTSTRAP_CLUB_NAME"),
         slug = required("OPENCLUB_BOOTSTRAP_CLUB_SLUG"),
         firstName = required("OPENCLUB_BOOTSTRAP_FIRST_NAME"),
@@ -28,8 +41,15 @@ fun main() {
         email = required("OPENCLUB_BOOTSTRAP_EMAIL"),
         phone = required("OPENCLUB_BOOTSTRAP_PHONE"),
     )
-    requireNotNull(DatabaseRuntime.openIfConfigured(env)) { "DB_URL required" }.use { database ->
-        val id = runBlocking { database.onDatabaseThread { FirstClubBootstrap(it).create(input) } }
-        println("Created first club: $id")
-    }
+}
+
+/**
+ * Operator-supplied IDs must be in canonical 8-4-4-4-12 form: `UUID.fromString` also
+ * accepts shortened spellings such as `1-1-1-1-1`, which would silently expand a typo.
+ */
+internal fun canonicalUuid(value: String, key: String): UUID {
+    val trimmed = value.trim()
+    val parsed = runCatching { UUID.fromString(trimmed) }.getOrNull()
+    require(parsed != null && parsed.toString() == trimmed.lowercase()) { "$key must be a canonical UUID" }
+    return parsed
 }

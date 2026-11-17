@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 import { TeamMembers } from './TeamMembers'
-
-type Team = { id: string; name: string; memberCount: number }
+import { createTeam as requestCreateTeam, deleteTeam as requestDeleteTeam, readTeams,
+  renameTeam as requestRenameTeam, type Team } from './teams'
 const words = {
   de: { title: 'Teams', loading: 'Teams werden geladen…', error: 'Teams nicht verfügbar.', retry: 'Erneut versuchen', empty: 'Keine Teams vorhanden.', count: 'Mitglieder', name: 'Teamname', create: 'Team hinzufügen', createError: 'Team konnte nicht erstellt werden.', rename: 'Umbenennen', save: 'Speichern', cancel: 'Abbrechen', renameError: 'Team konnte nicht umbenannt werden.', delete: 'Team löschen', deleteWarning: 'Team und alle Zuordnungen werden gelöscht. Teamnamen zur Bestätigung eingeben.', confirmDelete: 'Endgültig löschen', deleteError: 'Team konnte nicht gelöscht werden.' },
   en: { title: 'Teams', loading: 'Loading teams…', error: 'Teams unavailable.', retry: 'Try again', empty: 'No teams yet.', count: 'Members', name: 'Team name', create: 'Add team', createError: 'Could not create team.', rename: 'Rename', save: 'Save', cancel: 'Cancel', renameError: 'Could not rename team.', delete: 'Delete team', deleteWarning: 'The team and all assignments will be deleted. Enter its name to confirm.', confirmDelete: 'Delete permanently', deleteError: 'Could not delete team.' },
@@ -30,22 +30,10 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
     let active = true
     void (async () => {
       try {
-        const response = await fetch('/api/v1/teams', { credentials: 'same-origin', cache: 'no-store' })
+        const teams = await readTeams()
         if (!active) return
-        if (response.status === 401 || response.status === 403) { setDenied(true); return }
-        if (!response.ok) throw new Error('Unavailable')
-        const payload: unknown = await response.json()
-        if (!payload || typeof payload !== 'object' || !('items' in payload) || !Array.isArray(payload.items)) {
-          throw new Error('Unexpected response')
-        }
-        const items = payload.items
-        if (!items.every((item: unknown) => item !== null && typeof item === 'object'
-          && 'id' in item && typeof item.id === 'string'
-          && 'name' in item && typeof item.name === 'string'
-          && 'memberCount' in item && typeof item.memberCount === 'number')) {
-          throw new Error('Unexpected response')
-        }
-        setTeams(items as Team[])
+        if (teams === 'denied') { setDenied(true); return }
+        setTeams(teams)
         setError(false)
       } catch {
         if (active) setError(true)
@@ -59,15 +47,10 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
     setCreating(true)
     setCreateError(false)
     try {
-      const response = await fetch('/api/v1/teams', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        body: JSON.stringify({ name }),
-      })
-      if (response.status === 401) { setDenied(true); return }
-      if (response.status === 403) { setCreateDenied(true); return }
-      if (!response.ok) throw new Error('Team create rejected')
+      const outcome = await requestCreateTeam(name, csrfToken)
+      if (outcome === 'unauthenticated') { setDenied(true); return }
+      if (outcome === 'forbidden') { setCreateDenied(true); return }
+      if (outcome !== 'ok') throw new Error('Team create rejected')
       setName('')
       setTeams(null)
       setRevision(value => value + 1)
@@ -84,15 +67,10 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
     setCreating(true)
     setRenameError(false)
     try {
-      const response = await fetch('/api/v1/teams/' + encodeURIComponent(editing.id), {
-        method: 'PATCH',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        body: JSON.stringify({ name: editing.name }),
-      })
-      if (response.status === 401) { setDenied(true); return }
-      if (response.status === 403) { setCreateDenied(true); setEditing(null); return }
-      if (!response.ok) throw new Error('Rename rejected')
+      const outcome = await requestRenameTeam(editing.id, editing.name, csrfToken)
+      if (outcome === 'unauthenticated') { setDenied(true); return }
+      if (outcome === 'forbidden') { setCreateDenied(true); setEditing(null); return }
+      if (outcome !== 'ok') throw new Error('Rename rejected')
       setEditing(null)
       setTeams(null)
       setRevision(value => value + 1)
@@ -109,15 +87,10 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
     setCreating(true)
     setDeleteError(false)
     try {
-      const response = await fetch('/api/v1/teams/' + encodeURIComponent(deleting.id), {
-        method: 'DELETE',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        body: JSON.stringify({ name: confirmation }),
-      })
-      if (response.status === 401) { setDenied(true); return }
-      if (response.status === 403) { setCreateDenied(true); setDeleting(null); return }
-      if (!response.ok) throw new Error('Deletion rejected')
+      const outcome = await requestDeleteTeam(deleting.id, confirmation, csrfToken)
+      if (outcome === 'unauthenticated') { setDenied(true); return }
+      if (outcome === 'forbidden') { setCreateDenied(true); setDeleting(null); return }
+      if (outcome !== 'ok') throw new Error('Deletion rejected')
       setDeleting(null)
       setConfirmation('')
       setTeams(null)

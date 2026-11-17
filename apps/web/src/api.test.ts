@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { readItems, writeJson } from './api'
+import { readItems, sendJson, writeJson } from './api'
 
 const csrf = 'x'.repeat(43)
 
@@ -55,5 +55,17 @@ describe('writeJson', () => {
       .toBe('denied')
     await expect(writeJson('/x', 'POST', csrf, {}, vi.fn().mockResolvedValue({ ok: false, status: 409 })))
       .rejects.toThrow()
+  })
+})
+
+describe('sendJson', () => {
+  it('reports each HTTP outcome separately', async () => {
+    for (const [status, outcome] of [[200, 'ok'], [204, 'ok'], [401, 'unauthenticated'], [403, 'forbidden'], [409, 'conflict'], [400, 'failed'], [503, 'failed']] as const) {
+      expect(await sendJson('/x', 'POST', csrf, {}, vi.fn().mockResolvedValue({ ok: status < 300, status }))).toBe(outcome)
+    }
+  })
+
+  it('rejects on network errors so callers can show a retryable error', async () => {
+    await expect(sendJson('/x', 'POST', csrf, {}, vi.fn().mockRejectedValue(new Error('offline')))).rejects.toThrow()
   })
 })
