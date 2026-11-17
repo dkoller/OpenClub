@@ -213,6 +213,37 @@ boundaries. Neither this local experiment nor its temporary archive is a
 production-ready offsite recovery method. Keep #279 open for email recovery,
 **actual Rauthy key rotation**, and hosted resource/backup acceptance.
 
+
+## SMTP-backed OTP and real signing-key rotation acceptance (2026-11-17)
+
+The **disposable CI-only** Rauthy overlay now enables the provider's supported
+E-Mail OTP feature with a network-local Mailpit SMTP sink. The captured
+messages are exposed only on the runner loopback; nothing is relayed or
+uploaded. Rauthy's `danger-insecure` SMTP mode is restricted to this
+localhost-only synthetic fixture and must **never** be copied into a
+production deployment. A second, non-admin synthetic identity with a
+generated password tests enrolling an email OTP and the subsequent real
+password-plus-delivered-code OIDC login. The browser must remain
+unauthenticated until the OTP is submitted; the resulting signed session
+still has no club grants.
+
+The same workflow enables Rauthy's **real provider-side automatic JWKS rotation**
+using a test-only every-minute cron, only **after** the existing offline
+provider backup/restore acceptance. It requires a new public RS256 key ID
+from the running provider while Kotlin is already started, then exercises
+fresh actual OIDC password/OTP and passkey browser logins. The CI override
+does not alter the production/default monthly schedule, and the private
+signing keys and OTP contents are never logged or archived.
+
+**Recovery boundary:** An email OTP registered on a different account proves
+email delivery and second-factor authentication, **not** recovery of an
+account whose only passkey is lost. Rauthy 0.37.2 prefers an existing passkey
+and does not present email OTP as an automatic fallback; an operator with
+proper authority must first revoke the lost passkey. A witnessed
+admin-revocation / replacement-device recovery remains an explicit
+open item in #279. SMTP delivery and renewal policies must be reviewed
+before using any of this with real identities.
+
 ## OpenClub OIDC compatibility checklist
 
 OpenClub's existing runtime requires one exact verified issuer, a confidential `client_secret_basic` client, HTTPS (unless explicitly isolated loopback development), exact redirect URI, S256 PKCE, same-origin authorization/token/JWKS endpoints, and **RS256** ID tokens. Rauthy normally defaults new clients to EdDSA; configure **RS256** on the specific OpenClub OIDC client, retain PKCE S256, and verify that a signed login token passes the real Kotlin verifier. Never widen validation or match an account by email to make a provider switch work.
