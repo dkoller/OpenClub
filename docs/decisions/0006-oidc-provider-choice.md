@@ -1,6 +1,6 @@
 # ADR-0006: Support both Keycloak and Rauthy as OIDC providers
 
-- **Status:** Accepted provider-support decision (2026-11-16); Rauthy integration **in progress**, not production-approved
+- **Status:** Accepted provider-support decision (2026-11-16); Rauthy synthetic OIDC/browser acceptance implemented through merged #297 (2026-11-17), **not production-approved**
 - **Related:** [R05/#14](https://github.com/dkoller/OpenClub/issues/14), [R16/#25](https://github.com/dkoller/OpenClub/issues/25), [R18/#27](https://github.com/dkoller/OpenClub/issues/27), [R19/#28](https://github.com/dkoller/OpenClub/issues/28)
 - **Owner instruction:** **Keep Keycloak and add Rauthy; both must remain supported.**
 
