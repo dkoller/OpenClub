@@ -82,7 +82,19 @@ for protected_path in \
   check_header "Cache-Control" "no-store" "$work/denied.headers"
 done
 
-status="$(curl_https -D "$work/oidc.headers" -o "$work/oidc.json" -w '%{http_code}' "$issuer/.well-known/openid-configuration")"
+# Keycloak publishes discovery beneath its path-qualified issuer. Rauthy may
+# publish at the origin root while advertising a path-qualified issuer.
+# Only a 404 permits the root fallback; never follow redirects or relax TLS.
+discovery_url="${issuer%/}/.well-known/openid-configuration"
+status="$(curl_https -D "$work/oidc.headers" -o "$work/oidc.json" -w '%{http_code}' "$discovery_url")"
+if [[ "$status" == 404 ]]; then
+  issuer_authority="${issuer#https://}"
+  issuer_origin="https://${issuer_authority%%/*}"
+  if [[ "$discovery_url" != "$issuer_origin/.well-known/openid-configuration" ]]; then
+    status="$(curl_https -D "$work/oidc.headers" -o "$work/oidc.json" -w '%{http_code}' \
+      "$issuer_origin/.well-known/openid-configuration")"
+  fi
+fi
 [[ "$status" == 200 ]] || { echo "OIDC discovery did not return 200" >&2; exit 1; }
 jq -e --arg issuer "$issuer" '
   .issuer == $issuer and
