@@ -45,6 +45,9 @@ application {
 
 tasks.test {
     useJUnitPlatform()
+    // Integration tests depend on the live PostgreSQL service, which is not a task
+    // input: never restore their result from the build cache, always run them.
+    outputs.cacheIf("PostgreSQL-backed tests must always execute") { false }
 }
 
 tasks.register<JavaExec>("generateJooq") {

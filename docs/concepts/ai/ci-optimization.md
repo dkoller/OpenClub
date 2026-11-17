@@ -89,3 +89,15 @@ These jobs are deliberately all relevant on shared API/authentication
 changes. Compose verifies actual image/overlay behavior, while both provider
 browser jobs verify distinct OIDC security journeys. None is removed or
 moved to main-only.
+
+## 2026-11-17 browser critical path, Gradle cache and trigger alignment
+
+**Measured before the change** (100 completed PR runs on 2026-11-17, plus step timings for PR #314): no run waited in a queue and none was retried. A PR's checks finished in about 2.5 minutes. The longest jobs were Keycloak browser (~147s) and Rauthy browser (~146s). In both, the API `installDist` build (~36–38s) ran only *after* provider startup (~31–40s), although it depends on neither the provider nor the fixtures. The API job spent ~68s in `./gradlew test generateJooq`.
+
+Changes:
+
+- **Overlapped API build.** Both browser workflows now start `./gradlew installDist` in the background immediately before provider startup, using the same status-file pattern as the Chromium install. The step that launches the API waits for a `success` status (up to 300s) and otherwise fails, printing the build log tail. Build output contains no credentials. The fixtures, the API runtime environment and every test step are unchanged. In the Rauthy job, the build now runs before the step that sets the test-only `JAVA_TOOL_OPTIONS` truststore, so Gradle uses the runner's default trust store. The truststore still applies to the API at runtime.
+- **Gradle build cache.** `apps/api/gradle.properties` enables `org.gradle.caching`. `setup-gradle` persists the cache (written by `main`, read-only on PRs), so unchanged compilation can be restored instead of recompiled. The `test` task opts out (`outputs.cacheIf { false }`) because the PostgreSQL service is not a task input: integration tests always execute. Verified locally: after `clean`, `compileKotlin` and `compileTestKotlin` came `FROM-CACHE` and `test` ran.
+- **Browser triggers.** Both browser workflows skip PRs whose only web changes are Vitest unit-test files (`apps/web/src/**/*.test.ts`), which do not ship in the bundle. The Rauthy workflow previously did **not** run for API Gradle build/dependency changes (`build.gradle.kts`, wrapper, properties), web dependency/Vite config changes, its own `rauthy.playwright.config.js`, or the shared Playwright manifest/lockfile. It now matches the Keycloak triggers for those paths. Runtime API, web, provider and workflow changes still run both suites.
+
+Expected effect: about 30–35s off each browser job, with some CPU contention on the runner; verify by comparing complete job times across several PRs. The Gradle cache mostly helps when compiled inputs are unchanged, such as browser jobs on web-only PRs or API test-only changes; changed sources still compile normally.
