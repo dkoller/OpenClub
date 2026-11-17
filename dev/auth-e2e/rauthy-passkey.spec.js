@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
 test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', async ({ page, context }) => {
   const password = process.env.OPENCLUB_RAUTHY_E2E_USER_PASSWORD;
   if (!password) throw new Error('Synthetic Rauthy password missing');
-  test.setTimeout(70000);
+  test.setTimeout(120000);
   page.setDefaultTimeout(10000);
 
   const cdp = await context.newCDPSession(page);
@@ -107,6 +107,47 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     await page.locator('input[type="password"]:visible').fill(password);
     await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
     await expect(page).toHaveURL(/^https:\/\/localhost:8443\/auth\/v1\//);
+    expect((await context.request.get('/api/v1/auth/me')).status()).toBe(401);
+
+    // A separate, operator-authorized action is required to recover a user
+    // whose ONLY WebAuthn factor was lost. OpenClub never receives this key.
+    const recoveryKey = process.env.OPENCLUB_RAUTHY_RECOVERY_KEY;
+    if (!recoveryKey) throw new Error('Disposable scoped recovery key missing');
+    const usersUrl = 'https://localhost:8443/auth/v1/users';
+    const unauthorized = await context.request.get(usersUrl);
+    expect([401, 403], 'Anonymous user enumeration must be denied').toContain(unauthorized.status());
+    const adminHeaders = { Authorization: `API-Key ${recoveryKey}` };
+    const users = await context.request.get(usersUrl, { headers: adminHeaders });
+    expect(users.status(), 'Recovery operator must be able to inspect users').toBe(200);
+    const response = await users.json();
+    const entries = Array.isArray(response) ? response :
+      (response.users ?? response.data?.users ?? response.data ?? response.values ?? []);
+    expect(Array.isArray(entries), 'Unexpected Rauthy user listing format').toBe(true);
+    const matches = entries.filter(user => user.email === 'openclub-rauthy-ci@example.invalid');
+    expect(matches, 'Revocation requires an exact verified synthetic account match').toHaveLength(1);
+    const userId = matches[0].id;
+    expect(typeof userId).toBe('string');
+    expect(userId.length).toBeGreaterThan(0);
+    const revoked = await context.request.delete(
+      `https://localhost:8443/auth/v1/users/${encodeURIComponent(userId)}/webauthn/delete/${encodeURIComponent('Synthetic virtual passkey')}`,
+      { headers: adminHeaders },
+    );
+    expect([200, 204], 'Authorized operator must revoke the named lost credential').toContain(revoked.status());
+
+    // Fresh browser login on a replacement device must now succeed using
+    // the still-verified password. The lost authenticator was already removed
+    // from Chromium, so this cannot rely on a stale WebAuthn signature.
+    await context.clearCookies();
+    await page.goto('https://localhost:5443/');
+    await page.getByRole('link', { name: 'Sign in' }).click();
+    await page.locator('input[type="email"]').fill('openclub-rauthy-ci@example.invalid');
+    await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
+    await page.locator('input[type="password"]:visible').fill(password);
+    await page.locator('form').getByRole('button', { name: 'Login', exact: true }).click();
+    await expect(page).toHaveURL('https://localhost:5443/');
+    expect((await context.request.get('/api/v1/auth/me')).status()).toBe(200);
+    expect((await context.request.get('/api/v1/club')).status()).toBe(403);
+    await page.getByRole('button', { name: 'Sign out' }).click();
     expect((await context.request.get('/api/v1/auth/me')).status()).toBe(401);
   } finally {
     await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId }).catch(() => {});
