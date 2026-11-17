@@ -197,8 +197,9 @@ class MemberHttpRoutesTest {
                 }
                 assertEquals(HttpStatusCode.BadRequest, malformedDetail.status)
                 val invalidResponse = Json.parseToJsonElement(malformedDetail.bodyAsText()).jsonObject
-                assertEquals(setOf("code"), invalidResponse.keys)
+                assertEquals(setOf("code", "message"), invalidResponse.keys)
                 assertEquals("invalid", invalidResponse.getValue("code").jsonPrimitive.content)
+                assertEquals("Request rejected", invalidResponse.getValue("message").jsonPrimitive.content)
                 val missingDetail = client.get("/api/v1/members/${UUID.randomUUID()}") {
                     header(HttpHeaders.Cookie, auth("valid"))
                 }
