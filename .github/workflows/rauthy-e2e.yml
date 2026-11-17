@@ -3,18 +3,40 @@ on:
   pull_request:
     paths:
       - 'apps/api/src/main/**'
+      - 'apps/api/build.gradle.kts'
+      - 'apps/api/settings.gradle.kts'
+      - 'apps/api/gradle.properties'
+      - 'apps/api/gradle/**'
       - 'apps/web/src/**'
+      - '!apps/web/src/**/*.test.ts'
+      - 'apps/web/vite.config.ts'
+      - 'apps/web/package.json'
+      - 'apps/web/pnpm-lock.yaml'
       - 'dev/rauthy/**'
       - 'dev/auth-e2e/rauthy-*'
+      - 'dev/auth-e2e/rauthy.playwright.config.js'
+      - 'dev/auth-e2e/package.json'
+      - 'dev/auth-e2e/pnpm-lock.yaml'
       - 'compose.rauthy.eval.yaml'
       - '.github/workflows/rauthy-e2e.yml'
   push:
     branches: [main]
     paths:
       - 'apps/api/src/main/**'
+      - 'apps/api/build.gradle.kts'
+      - 'apps/api/settings.gradle.kts'
+      - 'apps/api/gradle.properties'
+      - 'apps/api/gradle/**'
       - 'apps/web/src/**'
+      - '!apps/web/src/**/*.test.ts'
+      - 'apps/web/vite.config.ts'
+      - 'apps/web/package.json'
+      - 'apps/web/pnpm-lock.yaml'
       - 'dev/rauthy/**'
       - 'dev/auth-e2e/rauthy-*'
+      - 'dev/auth-e2e/rauthy.playwright.config.js'
+      - 'dev/auth-e2e/package.json'
+      - 'dev/auth-e2e/pnpm-lock.yaml'
       - 'compose.rauthy.eval.yaml'
       - '.github/workflows/rauthy-e2e.yml'
 permissions:
@@ -67,6 +89,18 @@ jobs:
             fi
           ' _ "$RUNNER_TEMP/openclub-browser-setup.status" \
             > "$RUNNER_TEMP/openclub-browser-setup.log" 2>&1 < /dev/null &
+      # Compiling the API needs neither the provider nor fixtures. Build it while
+      # PostgreSQL and the provider start; the API is launched only after the
+      # build reported success (measured 2026-11-17: ~38s build after ~40s startup).
+      - name: Build API alongside provider startup
+        shell: bash
+        working-directory: apps/api
+        run: |
+          set -euo pipefail
+          nohup bash -c '
+            if ./gradlew installDist --no-daemon; then echo success > "$1"; else echo failed > "$1"; fi
+          ' _ "$RUNNER_TEMP/openclub-api-build.status" \
+            > "$RUNNER_TEMP/openclub-api-build.log" 2>&1 < /dev/null &
       - name: Start disposable PostgreSQL and Rauthy
         shell: bash
         run: |
@@ -231,12 +265,20 @@ jobs:
           keytool -importcert -noprompt -alias rauthy-local -file "$RUNNER_TEMP/rauthy-local.pem" \
             -keystore "$RUNNER_TEMP/rauthy-local.p12" -storepass disposable-local-truststore
           echo "JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStore=$RUNNER_TEMP/rauthy-local.p12 -Djavax.net.ssl.trustStorePassword=disposable-local-truststore" >> "$GITHUB_ENV"
-      - name: Build and start Ktor with real TLS-verified Rauthy OIDC
+      - name: Start Ktor with real TLS-verified Rauthy OIDC
         shell: bash
         working-directory: apps/api
         run: |
           set -euo pipefail
-          ./gradlew installDist --no-daemon
+          for attempt in {1..300}; do
+            [[ -f "$RUNNER_TEMP/openclub-api-build.status" ]] && break
+            sleep 1
+          done
+          if [[ "$(cat "$RUNNER_TEMP/openclub-api-build.status" 2>/dev/null || true)" != success ]]; then
+            echo 'API build failed or timed out' >&2
+            tail -n 40 "$RUNNER_TEMP/openclub-api-build.log" >&2 || true
+            exit 1
+          fi
           nohup build/install/openclub-api/bin/openclub-api > "$RUNNER_TEMP/rauthy-api.log" 2>&1 &
           for attempt in {1..60}; do
             if curl -fsS --max-time 2 http://localhost:8080/health -o /dev/null; then exit 0; fi
