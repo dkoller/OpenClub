@@ -114,6 +114,30 @@ class MemberRoleHttpRoutesTest {
                             ?.get(0, String::class.java)
                     }
                 })
+                // Restoring a role manager's DB grant restores privilege to the
+                // same session, but does not bypass verified-identity revocation.
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_PERMISSIONS')", admin)
+                    }
+                }
+                val restoredRead = read(regular)
+                assertEquals(HttpStatusCode.OK, restoredRead.status)
+                assertEquals("""{"role":"MEMBER"}""", restoredRead.bodyAsText())
+                assertEquals(HttpStatusCode.NoContent, update(regular, """{"role":"MEMBER"}""").status)
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("DELETE FROM account_identities WHERE id = ?", identity)
+                    }
+                }
+                assertEquals(HttpStatusCode.Forbidden, read(regular).status)
+                assertEquals(HttpStatusCode.Forbidden, update(regular, """{"role":"ADMIN"}""").status)
+                assertEquals("MEMBER", runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.fetchOne("SELECT role FROM members WHERE id = ?", regular)
+                            ?.get(0, String::class.java)
+                    }
+                })
             }
         } finally {
             runBlocking {
