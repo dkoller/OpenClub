@@ -1,21 +1,20 @@
 openapi: 3.1.0
 info:
-  title: OpenClub single-club management API — working draft
-  version: 0.0.0-draft
+  title: OpenClub single-club management API — synthetic M1
+  version: 1.0.0
   description: >
-    WORKING DRAFT: narrow synthetic M1 routes are implemented, but full private-field and real-data contracts remain unapproved.
-    Anonymous GET /v1/public/members, authenticated GET /v1/club and the
-    separately documented /v1/auth routes are implemented. The owner approved
-    the minimum M1 technical member contract (#13) and public name policy (#12).
-    Member name listing, accountless create, minimal detail, name-only PATCH
-    and archive now have authenticated, capability-checked HTTP implementations.
-    Private full-details replacement and reactivation remain draft;
-    role, team and grant operations have narrow synthetic HTTP boundaries; independent security and real-data review remain. Full
-    confidential member, team and grant access still needs separate approval.
-    Bootstrap and emergency admin recovery are offline operator-only commands,
-    never HTTP APIs. Exactly one
-    club exists per installation; no clubId tenant selector or switcher exists.
-    Never treat the browser session alone as permission to read personal data.
+    Frozen contract for the implemented synthetic M1 HTTP surface, accepted by
+    the owner on 2026-11-17 (ADR-0007, #13). It contains exactly the operations
+    registered in Ktor and checked by `dev/verify-m1-openapi.py`. Authentication
+    routes (/v1/auth) are documented separately in auth-api-proposal.yaml.
+    Version 1.0.0 covers synthetic data only. It does not approve real member
+    data, private-field reads or writes, export or erasure (M2, #12). Proposed
+    M2 operations live in openapi-m2-draft.yaml and are not part of this
+    contract. Bootstrap and emergency admin recovery are offline operator-only
+    commands, never HTTP APIs. Exactly one club exists per installation; there
+    is no clubId tenant selector. Never treat the browser session alone as
+    permission to read personal data: every private operation checks explicit
+    grants server-side.
 servers:
   - url: /api
 security:
@@ -51,7 +50,7 @@ paths:
     patch:
       tags: [Club]
       operationId: updateMyClubName
-      summary: Update only the singleton club name (synthetic M1)
+      summary: Update only the singleton club name
       description: >
         A verified, active, identity-bound ADMIN with an explicit current
         MANAGE_PERMISSIONS club grant may update the name only. Exact Origin and
@@ -122,7 +121,7 @@ paths:
     get:
       tags: [Members]
       operationId: listPublicMemberNames
-      summary: Anonymous active-member display-name list (IMPLEMENTED)
+      summary: Anonymous active-member display-name list
       security: []
       description: >
         Owner-approved synthetic M1 public display: adult 'Peter Smith',
@@ -150,7 +149,7 @@ paths:
     get:
       tags: [Members]
       operationId: listLocalMembers
-      summary: Authorized member search (IMPLEMENTED)
+      summary: Authorized member search
       description: >
         This authenticated, full-name/UUID administration directory is distinct
         from the anonymous /v1/public/members display-name list. Linked club
@@ -190,7 +189,7 @@ paths:
     post:
       tags: [Members]
       operationId: addLocalMember
-      summary: Accountless member creation (IMPLEMENTED)
+      summary: Accountless member creation
       description: >
         Requires an explicitly authorized club-level member-write capability,
         exact configured Origin, session-bound X-CSRF-Token and JSON Content-Type.
@@ -238,13 +237,14 @@ paths:
     get:
       tags: [Members]
       operationId: readLocalMember
-      summary: Authorized minimal member detail (IMPLEMENTED)
+      summary: Authorized minimal member detail
       description: >
         This member-ID detail is for authenticated, explicitly authorized
-        administration only, not the public name list. R03/#76 must separately
-        define who may see DOB, contacts and player gender. This proposed
-        shape returns a full-name admin summary; conceal non-existent and
-        non-visible IDs with the same 404.
+        administration only, not the public name list. It returns only the
+        member ID and full name. DOB, contacts and player gender are never
+        returned in 1.0.0; under ADR-0007, any future contact read is limited
+        to explicitly granted roles (M2). Non-existent and non-visible IDs are
+        concealed with the same 404.
       responses:
         '200':
           description: Minimal member summary
@@ -264,7 +264,7 @@ paths:
     patch:
       tags: [Members]
       operationId: changeLocalMemberNames
-      summary: Name-only update preserving private fields (IMPLEMENTED)
+      summary: Name-only update preserving private fields
       description: >
         The internal MemberDetailsUpdate.updateNames changes first and last
         name only for an active member under an explicit EDIT_MEMBERS grant.
@@ -295,52 +295,11 @@ paths:
           $ref: '#/components/responses/NotFound'
         '503':
           $ref: '#/components/responses/Unavailable'
-    put:
-      tags: [Members]
-      operationId: replaceLocalMemberDetails
-      summary: Proposed authorized member details replacement (NOT IMPLEMENTED)
-      description: >
-        The existing internal MemberDetailsUpdate replaces editable fields for
-        a currently active member under an explicit live EDIT_MEMBERS grant.
-        It cannot modify account links, ADMIN/MEMBER roles, grants or teams.
-        Proposed HTTP write must derive the actor from the verified session
-        and require exact configured Origin, session-bound CSRF and JSON input.
-        Supply all editable fields on every call; omitted optional contacts
-        and gender clear those values, so a browser edit form MUST NOT guess
-        unseen private fields. R03 must first approve a restricted, authorized
-        detail-read contract and adult/minor contact disclosure to editors,
-        including policy transitions. Never round-trip a directory-only DTO
-        into this write or silently reset hidden private fields. Do not enable
-        this route until the privacy/contract, audit and security review gates
-        are explicitly accepted.
-      parameters:
-        - $ref: '#/components/parameters/CsrfToken'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NewMember'
-      responses:
-        '204':
-          description: Active member updated; never echo private fields
-        '400':
-          $ref: '#/components/responses/Invalid'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '503':
-          $ref: '#/components/responses/Unavailable'
   /v1/members/{memberId}/archive:
     post:
       tags: [Members]
       operationId: archiveLocalMember
-      summary: Archive an unlinked ordinary member (IMPLEMENTED)
+      summary: Archive an unlinked ordinary member
       description: >
         Internal-only MemberArchive currently requires a verified session actor
         holding a live club-wide EDIT_MEMBERS grant, an unlinked MEMBER target,
@@ -372,39 +331,6 @@ paths:
           $ref: '#/components/responses/Conflict'
         '503':
           $ref: '#/components/responses/Unavailable'
-  /v1/members/{memberId}/reactivate:
-    post:
-      tags: [Members]
-      operationId: reactivateLocalMember
-      summary: Proposed reactivation without restored rights (NOT IMPLEMENTED)
-      description: >
-        Internal-only MemberReactivation restores only a currently archived,
-        unlinked MEMBER to active status under a live EDIT_MEMBERS grant.
-        It never restores old login links, team assignments or capability grants.
-        Current adult contact/gender policy must still validate at reactivation;
-        conflict and audit behavior require R03/R04 approval before HTTP access.
-        No request body or caller-provided actor account ID.
-      parameters:
-        - name: memberId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-        - $ref: '#/components/parameters/CsrfToken'
-      responses:
-        '204':
-          description: Member reactivated without restoring old privileges
-        '400':
-          $ref: '#/components/responses/Invalid'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '503':
-          $ref: '#/components/responses/Unavailable'
   /v1/members/{memberId}/role:
     parameters:
       - name: memberId
@@ -414,7 +340,7 @@ paths:
     get:
       tags: [Members]
       operationId: readLocalMemberRole
-      summary: Read a local active member role (synthetic M1)
+      summary: Read a local active member role
       description: >
         Requires an active, verified ADMIN session with a current club
         MANAGE_PERMISSIONS grant; role lookup never exposes contact fields.
@@ -440,7 +366,7 @@ paths:
     patch:
       tags: [Members]
       operationId: changeLocalMemberRole
-      summary: Change a local member role (synthetic M1)
+      summary: Change a local member role
       description: >
         Verifies session, exact Origin and CSRF, then uses serialized
         MemberRoles checks with a live eligible ADMIN/MANAGE_PERMISSIONS
@@ -474,7 +400,7 @@ paths:
     get:
       tags: [Teams]
       operationId: listLocalTeams
-      summary: Authorized team list (synthetic M1)
+      summary: Authorized team list
       description: >
         Verified active member with explicit club or exact-team VIEW_TEAMS or
         MANAGE_TEAMS grant. Only authorized teams and aggregate member counts
@@ -494,7 +420,7 @@ paths:
     post:
       tags: [Teams]
       operationId: createLocalTeam
-      summary: Create a team (synthetic M1)
+      summary: Create a team
       description: >
         Requires verified session, exact Origin, session CSRF and club-wide
         MANAGE_TEAMS; a team-scoped grant cannot create a club team.
@@ -534,7 +460,7 @@ paths:
     patch:
       tags: [Teams]
       operationId: renameLocalTeam
-      summary: Rename a team (synthetic M1)
+      summary: Rename a team
       description: >
         Club-wide MANAGE_TEAMS, exact Origin and session CSRF required.
         Existing assignments remain attached to the same team ID.
@@ -563,7 +489,7 @@ paths:
     delete:
       tags: [Teams]
       operationId: deleteLocalTeam
-      summary: Confirmed restricted team removal (synthetic M1)
+      summary: Confirmed restricted team removal
       description: >
         Club-wide MANAGE_TEAMS and exact Origin/CSRF required. Caller must
         supply the current exact name. A name mismatch is rejected, and
@@ -593,7 +519,7 @@ paths:
     get:
       tags: [Teams]
       operationId: listVisibleTeamMembers
-      summary: Authenticated exact-team private roster (synthetic M1)
+      summary: Authenticated exact-team private roster
       description: >
         Requires BOTH explicit club VIEW_MEMBER_DIRECTORY and exact-team
         VIEW_TEAMS/MANAGE_TEAMS (or club-wide team capability).
@@ -639,7 +565,7 @@ paths:
     post:
       tags: [Teams]
       operationId: assignLocalTeamMember
-      summary: Assign active member to team (synthetic M1)
+      summary: Assign active member to team
       description: >
         Exact team or club MANAGE_TEAMS, verified session, exact Origin and
         session CSRF. Duplicate/archived member assignments are rejected.
@@ -661,7 +587,7 @@ paths:
     delete:
       tags: [Teams]
       operationId: unassignLocalTeamMember
-      summary: Remove team assignment (synthetic M1)
+      summary: Remove team assignment
       description: >
         Exact team or club MANAGE_TEAMS, verified session, exact Origin and
         session CSRF; no member record is deleted.
@@ -684,7 +610,7 @@ paths:
     get:
       tags: [Permissions]
       operationId: listLocalGrants
-      summary: Inspect member grants (synthetic M1)
+      summary: Inspect member grants
       description: >
         A verified, linked ADMIN with explicit current club MANAGE_PERMISSIONS
         may inspect club and exact-team capabilities for a given member ID.
@@ -711,7 +637,7 @@ paths:
     post:
       tags: [Permissions]
       operationId: grantLocalCapability
-      summary: Delegate a capability (synthetic M1)
+      summary: Delegate a capability
       description: >
         Verified ADMIN/MANAGE_PERMISSIONS and session Origin/CSRF required.
         Serialized mutation prevents self-escalation, undelegable team scope
@@ -737,7 +663,7 @@ paths:
     delete:
       tags: [Permissions]
       operationId: revokeLocalCapability
-      summary: Revoke a capability (synthetic M1)
+      summary: Revoke a capability
       description: >
         Same verified ADMIN, CSRF and serialized last-manager safeguards as
         granting. A revocation is effective on the next protected read.

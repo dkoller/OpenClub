@@ -1,6 +1,6 @@
 # R05 — Browser auth HTTP contract
 
-**Status:** Opt-in HTTP routes implemented; no public release approved. [OpenAPI proposal](auth-api-proposal.yaml); parent [R05/#14](https://github.com/dkoller/OpenClub/issues/14). This standalone auth contract does not turn the [membership discussion draft](openapi-draft.yaml) into an implementation contract.
+**Status:** Opt-in HTTP routes implemented; no public release approved. [OpenAPI proposal](auth-api-proposal.yaml); parent [R05/#14](https://github.com/dkoller/OpenClub/issues/14). This standalone auth contract is separate from the [frozen M1 contract](openapi-v1.yaml) (version 1.0.0, ADR-0007) and the [M2 proposals draft](openapi-m2-draft.yaml).
 
 ## Integration boundary
 
@@ -51,7 +51,7 @@ openapi-spec-validator 0.7.2, including YAML parsing and OpenAPI schema/referenc
 validation. The contracts job runs independently of application path filters.
 Locally: install that pinned validator and run
 `openapi-spec-validator docs/contracts/auth-api-proposal.yaml` (repeat for
-`docs/contracts/openapi-draft.yaml`).
+`docs/contracts/openapi-v1.yaml` and `docs/contracts/openapi-m2-draft.yaml`).
 
 Following #64, opt-in `/api/v1/auth/me` and `/api/v1/auth/logout` are implemented.
 Logout requires exact Origin, JSON `{}` and session-bound CSRF, with transactional

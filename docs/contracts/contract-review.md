@@ -1,20 +1,24 @@
 # R04 — OpenAPI contract review and approval gate
 
-## Current contract status — 2026-11-17
+## Current contract status — 2026-11-17 (frozen 1.0.0)
 
-The [OpenAPI 3.1 working draft](openapi-draft.yaml) describes the **21 registered synthetic M1** club, member, team, role, grant and public-name operations. The source inventory is checked by `dev/verify-m1-openapi.py` and `.github/workflows/m1-contract.yml`; selected PostgreSQL/Ktor HTTP tests also assert privacy-minimized member/public response keys and safe error envelopes. The `Error` schema requires `code` while `message` is optional, matching the tested endpoints.
+**Frozen:** [`openapi-v1.yaml`](openapi-v1.yaml) is the owner-accepted **OpenAPI 1.0.0** contract for the synthetic M1 HTTP surface ([ADR-0007](../decisions/0007-owner-decisions-2026-11-17.md), [#13](https://github.com/dkoller/OpenClub/issues/13)). It contains exactly the **21 registered** club, member, team, role, grant and public-name operations. `dev/verify-m1-openapi.py` (run by `.github/workflows/m1-contract.yml`) fails if:
 
-**Implemented, not yet finally approved:** authenticated member search/create/minimal detail/name-only PATCH/archive, team and assignment operations, role and scoped grant administration, club-name/player-gender settings, and anonymous privacy-masked public names. Current security controls still require verified sessions, applicable grants and write-side Origin/CSRF checks. See [#13](https://github.com/dkoller/OpenClub/issues/13).
+- an implemented Ktor route is undocumented, or a documented operation is not implemented;
+- the version changes without a new approval;
+- a private operation loses its session, 401/403 or CSRF contract.
 
-**Still proposed / NOT IMPLEMENTED:** full confidential member replacement (`PUT /v1/members/{memberId}`) and HTTP reactivation. Internal database reactivation is **not** a user-facing route. The draft remains `0.0.0-draft`; static operation coverage and selected runtime tests do not prove complete payload conformance, contract version approval or M2 legal/privacy acceptance.
+Selected PostgreSQL/Ktor tests additionally assert privacy-minimized member and public response keys and the safe error envelope.
 
-**Remaining decisions:** finalize private-field visibility and update semantics, age/contact and policy settings, authorization/denial and pagination cases, versioning, and reviewed test evidence with [R03/#12](https://github.com/dkoller/OpenClub/issues/12) and [R04/#13](https://github.com/dkoller/OpenClub/issues/13). A real-data deployment also requires [M2 authorization](../roadmap.md#delivery-gates); the hosted synthetic M1 evidence remains [separate](../deployment/m1-resource-evidence.md).
+**Separate M2 proposals:** [`openapi-m2-draft.yaml`](openapi-m2-draft.yaml) (`0.0.0-draft`) holds the operations that are **NOT IMPLEMENTED**: full confidential member replacement (`PUT /v1/members/{memberId}`) and HTTP reactivation. Internal database reactivation is not a user-facing route. These need the M2 privacy decisions, audit (#26) and security review. ADR-0007 already fixes that contacts are readable only by explicitly granted roles and that the adult age is configurable per club.
+
+**What 1.0.0 does not mean:** approval of real member data, private-field reads or writes, export or erasure, or complete runtime payload conformance. A change to the M1 surface needs a new, owner-approved contract version. A real-data deployment also requires [M2 authorization](../roadmap.md#delivery-gates).
 
 ## Historical review chronology — superseded implementation snapshots
 
 The following dated notes, proposal checklists and multi-club findings are retained to explain earlier decisions. In particular, statements below that member/team/grant routes were not registered, or that multiple clubs share an installation, **must not** be used as current requirements. Only the current-status section above, the accepted ADRs, the working draft and open issues determine unfinished work.
 
-**Status (2026-11-16, through merged PR #268):** The owner-approved minimum synthetic M1 member contract is implemented for authorized list/create/minimal detail/name-only PATCH/archive. Role, team and grant **HTTP/API and DE/EN/FR/IT React operations are also implemented and exercised in CI**, but their full working-draft contract has **not** received final R04 approval. Private-field replacement remains proposed, and real-data processing/M2 approvals are outstanding. See [draft contract](openapi-draft.yaml), [R04 #13](https://github.com/dkoller/OpenClub/issues/13) and [finding #37](https://github.com/dkoller/OpenClub/issues/37).
+**Status (2026-11-16, through merged PR #268):** The owner-approved minimum synthetic M1 member contract is implemented for authorized list/create/minimal detail/name-only PATCH/archive. Role, team and grant **HTTP/API and DE/EN/FR/IT React operations are also implemented and exercised in CI**, but their full working-draft contract has **not** received final R04 approval. Private-field replacement remains proposed, and real-data processing/M2 approvals are outstanding. See [draft contract](https://github.com/dkoller/OpenClub/blob/f2fede6/docs/contracts/openapi-draft.yaml), [R04 #13](https://github.com/dkoller/OpenClub/issues/13) and [finding #37](https://github.com/dkoller/OpenClub/issues/37).
 
 **Implementation reconciliation (2026-11-16, through PR #274):** The minimum
 synthetic M1 club/member/team/grant/role HTTP and DE/EN/FR/IT browser workflows
@@ -28,7 +32,7 @@ The dated proposal checklist below remains **historical** wherever it says
 member, team or grant endpoints do not exist. #12/#13 and M2 sign-offs
 remain open.
 
-**Current review scope:** `openapi-draft.yaml` is the single-club working draft after PR #79; the historical findings below refer to the retired multi-club proposal, not current endpoints. Authenticated member name list/create/detail/PATCH/archive and the anonymous public-name directory are now implemented; R04 remains open for other draft operations and full acceptance.
+**Current review scope:** [`openapi-draft.yaml`](https://github.com/dkoller/OpenClub/blob/f2fede6/docs/contracts/openapi-draft.yaml) was the single-club working draft after PR #79; the historical findings below refer to the retired multi-club proposal, not current endpoints. Authenticated member name list/create/detail/PATCH/archive and the anonymous public-name directory are now implemented; R04 remains open for other draft operations and full acceptance.
 
 This review was written before pilot acceptance and R05 completion. The historical findings below are preserved; **R01/#10 is now closed** and OIDC/Ktor BFF architecture is selected/implemented. The draft contract remains **unapproved**, especially for member data ownership, field requirements and scoped permissions.
 
@@ -38,7 +42,7 @@ This review was written before pilot acceptance and R05 completion. The historic
 
 ## Historical single-club contract proposal (superseded where implemented)
 
-The [working YAML](openapi-draft.yaml) now makes the first member API slice reviewable **without authorizing implementation**:
+The [working YAML](https://github.com/dkoller/OpenClub/blob/f2fede6/docs/contracts/openapi-draft.yaml) now makes the first member API slice reviewable **without authorizing implementation**:
 
 - **Runtime reality:** only `GET /api/v1/club` (plus standalone auth routes) exists; member, team, and grant paths remain proposals. Operator-only bootstrap/recovery from PRs #82/#83 are **not HTTP endpoints**.
 - **Two noninterchangeable read boundaries (owner decision, 2026-11-16):** anonymous `/v1/public/members` returns only `displayName`: full first/last name for adults (`Peter Smith`), first name and surname initial for minors (`Peter S.`). Do not include member UUID, DOB, exact age, contacts, gender or roles. Authenticated `GET /v1/members` and detail retain full names/IDs **only with explicit `VIEW_MEMBER_DIRECTORY`**, not merely login; sensitive fields need further access review. Public endpoint implementation must not leak masked surnames through filters, ordering or cursors. No member HTTP routes exist yet. This is synthetic M1 product scope, not M2 legal approval.
@@ -111,7 +115,7 @@ The original R01 dependency and R02 session-architecture uncertainty in the tabl
 - **Never share, auto-fill, query or sync another club's personal data**, including for one authentication identity. Global `personId` references/DTOs in the current draft are not proof that this boundary is safe. See [#74](https://github.com/dkoller/OpenClub/issues/74).
 - First-release team assignments ([#75](https://github.com/dkoller/OpenClub/issues/75)) and configurable club/team-scoped capability grants with restricted delegation ([#76](https://github.com/dkoller/OpenClub/issues/76)). Four supported UI languages.
 
-The [OpenAPI discussion draft](openapi-draft.yaml) has been reworked for single-club paths, but remains **unapproved**; proposed member/team/grant shapes and interim roles are not authorization approval. **Do not implement the unapproved paths as written.** Revise contract, pagination, field-level access, tenant-safe 401/403/404 behavior and first-admin bootstrap semantics under [R04/#13](https://github.com/dkoller/OpenClub/issues/13) after coordinating with R03 privacy and R06 authorization. Auth-only contract validation in CI does not imply acceptance of the club/member shapes.
+The [OpenAPI discussion draft](https://github.com/dkoller/OpenClub/blob/f2fede6/docs/contracts/openapi-draft.yaml) has been reworked for single-club paths, but remains **unapproved**; proposed member/team/grant shapes and interim roles are not authorization approval. **Do not implement the unapproved paths as written.** Revise contract, pagination, field-level access, tenant-safe 401/403/404 behavior and first-admin bootstrap semantics under [R04/#13](https://github.com/dkoller/OpenClub/issues/13) after coordinating with R03 privacy and R06 authorization. Auth-only contract validation in CI does not imply acceptance of the club/member shapes.
 
 
 ## Single-club contract pivot (2026-11-15)

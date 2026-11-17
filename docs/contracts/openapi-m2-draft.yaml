@@ -1,0 +1,290 @@
+openapi: 3.1.0
+info:
+  title: OpenClub single-club management API — M2 proposals (draft)
+  version: 0.0.0-draft
+  description: >
+    UNAPPROVED DRAFT of operations proposed for M2 (real member data). None of
+    these operations is implemented or exposed. They depend on the owner's
+    privacy decisions (#12, ADR-0007: contacts readable only by explicitly
+    granted roles; adult age configurable per club), audit (#26) and security
+    review before any HTTP exposure. The implemented synthetic M1 surface is
+    frozen separately in openapi-v1.yaml (version 1.0.0). Components are copied
+    from that contract so this file validates on its own.
+servers:
+  - url: /api
+security:
+  - browserSession: []
+tags:
+  - name: Members
+paths:
+  /v1/members/{memberId}:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [Members]
+      operationId: replaceLocalMemberDetails
+      summary: Proposed authorized member details replacement (NOT IMPLEMENTED)
+      description: >
+        The existing internal MemberDetailsUpdate replaces editable fields for
+        a currently active member under an explicit live EDIT_MEMBERS grant.
+        It cannot modify account links, ADMIN/MEMBER roles, grants or teams.
+        Proposed HTTP write must derive the actor from the verified session
+        and require exact configured Origin, session-bound CSRF and JSON input.
+        Supply all editable fields on every call; omitted optional contacts
+        and gender clear those values, so a browser edit form MUST NOT guess
+        unseen private fields. R03 must first approve a restricted, authorized
+        detail-read contract and adult/minor contact disclosure to editors,
+        including policy transitions. Never round-trip a directory-only DTO
+        into this write or silently reset hidden private fields. Do not enable
+        this route until the privacy/contract, audit and security review gates
+        are explicitly accepted.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewMember'
+      responses:
+        '204':
+          description: Active member updated; never echo private fields
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/members/{memberId}/reactivate:
+    post:
+      tags: [Members]
+      operationId: reactivateLocalMember
+      summary: Proposed reactivation without restored rights (NOT IMPLEMENTED)
+      description: >
+        Internal-only MemberReactivation restores only a currently archived,
+        unlinked MEMBER to active status under a live EDIT_MEMBERS grant.
+        It never restores old login links, team assignments or capability grants.
+        Current adult contact/gender policy must still validate at reactivation;
+        conflict and audit behavior require R03/R04 approval before HTTP access.
+        No request body or caller-provided actor account ID.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204':
+          description: Member reactivated without restoring old privileges
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+components:
+  parameters:
+    CsrfToken:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      description: >
+        Secret returned by authenticated GET /v1/auth/me; must belong to the
+        same unexpired session cookie. Also require exact configured Origin.
+      schema: { type: string, minLength: 43, maxLength: 43 }
+  securitySchemes:
+    browserSession:
+      type: apiKey
+      in: cookie
+      name: __Host-openclub_session
+      description: >
+        Verified OIDC-backed server-side session, with local loopback
+        development cookie openclub_dev_session. A login is not an authorization.
+  schemas:
+    ClubReference:
+      type: object
+      additionalProperties: false
+      required: [id, name, slug, genderRequiredForPlayers]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        slug: { type: string, minLength: 3, maxLength: 60, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' }
+        genderRequiredForPlayers: { type: boolean }
+    MemberReference:
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }
+    PublicMemberName:
+      type: object
+      additionalProperties: false
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 402
+          examples: [Peter Smith, Peter S.]
+          description: Only the server-formatted public name; minors get first name and last-name initial.
+    MemberSummary:
+      type: object
+      additionalProperties: false
+      required: [id, firstName, lastName]
+      properties:
+        id: { type: string, format: uuid }
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
+    MemberPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/MemberSummary' }
+        nextCursor:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: Absent on the last page.
+    MemberNames:
+      type: object
+      additionalProperties: false
+      required: [firstName, lastName]
+      properties:
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
+    NewMember:
+      type: object
+      additionalProperties: false
+      required: [firstName, lastName, dateOfBirth]
+      properties:
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
+        dateOfBirth:
+          type: string
+          format: date
+          description: Required for all members; no future dates. Private, never directory-visible.
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          description: Required for adults under the locally configured threshold.
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 40
+          description: Required alongside email for adults.
+        gender:
+          type: string
+          minLength: 1
+          description: Optional unless the club requires gender for players; not binary-only.
+        isPlayer: { type: boolean, default: false }
+    Team:
+      type: object
+      additionalProperties: false
+      required: [id, name, memberCount]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        memberCount: { type: integer, minimum: 0 }
+    TeamPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Team' }
+    TeamName:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+    GrantView:
+      type: object
+      additionalProperties: false
+      required: [capability, scope]
+      properties:
+        capability:
+          type: string
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS]
+        scope: { type: string, enum: [CLUB, TEAM] }
+        teamId: { type: string, format: uuid }
+    GrantPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/GrantView' }
+    GrantMutation:
+      type: object
+      additionalProperties: false
+      required: [memberId, capability, scope]
+      properties:
+        memberId: { type: string, format: uuid }
+        capability:
+          type: string
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS]
+        scope: { type: string, enum: [CLUB, TEAM] }
+        teamId: { type: string, format: uuid }
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code: { type: string }
+        message:
+          type: string
+          description: Optional generic detail; some M1 routes return code only, while member routes include a safe message.
+  responses:
+    Invalid:
+      description: Invalid input, query, cursor or member field; no private data reflected
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthenticated:
+      description: Session missing or expired
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authenticated, but caller lacks operation-level permission
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Unknown or non-visible member ID; indistinguishable results
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: Write conflicts with an existing record or policy state
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unavailable:
+      description: Database or authorization service unavailable
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
