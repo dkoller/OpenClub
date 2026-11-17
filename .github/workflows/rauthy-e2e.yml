@@ -75,17 +75,6 @@ jobs:
             echo 'Disposable Rauthy not ready' >&2
             exit 1
           fi
-      - name: Trust only the disposable Rauthy HTTPS certificate for the JVM
-        shell: bash
-        run: |
-          set -euo pipefail
-          # The application TLS client is not insecure: import only this
-          # generated loopback certificate into a fresh throwaway truststore.
-          openssl s_client -connect localhost:8443 -servername localhost </dev/null 2>/dev/null |
-            openssl x509 -out "$RUNNER_TEMP/rauthy-local.pem"
-          keytool -importcert -noprompt -alias rauthy-local -file "$RUNNER_TEMP/rauthy-local.pem" \
-            -keystore "$RUNNER_TEMP/rauthy-local.p12" -storepass disposable-local-truststore
-          echo "JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStore=$RUNNER_TEMP/rauthy-local.p12 -Djavax.net.ssl.trustStorePassword=disposable-local-truststore" >> "$GITHUB_ENV"
       - name: Obtain synthetic confidential client and user credentials
         shell: bash
         run: |
@@ -128,6 +117,17 @@ jobs:
           [[ "$client_after" == "$OPENCLUB_OIDC_CLIENT_SECRET" && "$user_after" == "$OPENCLUB_RAUTHY_E2E_USER_PASSWORD" ]] ||
             { echo 'Synthetic Rauthy credentials changed on restart' >&2; exit 1; }
           echo 'Rauthy keys and credentials persisted across restart; browser acceptance follows.'
+      - name: Trust only the disposable Rauthy HTTPS certificate for the JVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The application TLS client is not insecure: import only this
+          # generated loopback certificate into a fresh throwaway truststore.
+          openssl s_client -connect localhost:8443 -servername localhost </dev/null 2>/dev/null |
+            openssl x509 -out "$RUNNER_TEMP/rauthy-local.pem"
+          keytool -importcert -noprompt -alias rauthy-local -file "$RUNNER_TEMP/rauthy-local.pem" \
+            -keystore "$RUNNER_TEMP/rauthy-local.p12" -storepass disposable-local-truststore
+          echo "JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStore=$RUNNER_TEMP/rauthy-local.p12 -Djavax.net.ssl.trustStorePassword=disposable-local-truststore" >> "$GITHUB_ENV"
       - name: Build and start Ktor with real TLS-verified Rauthy OIDC
         shell: bash
         working-directory: apps/api
