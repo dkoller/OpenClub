@@ -1,5 +1,7 @@
 # Synthetic M1 deployment evidence (operator checklist)
 
+**Disposable restart evidence (2026-11-17):** A guarded Compose CI step now inserts one fictional club into the real Flyway schema only when the CI database has no club, restarts PostgreSQL followed by API/web, checks `/api/ready`, verifies the same club UUID persisted and deletes the fixture. It requires the exact disposable GitHub Actions project and a separate confirmation token; **never run it on a real club**. This demonstrates restart persistence, not encrypted backups, a verified signed-in workflow, host-level 4 GB sizing or external hosting acceptance.
+
 **Not a hosting claim or a real-data release.** This page is the evidence sheet for
 [#27](https://github.com/dkoller/OpenClub/issues/27) and
 [#28](https://github.com/dkoller/OpenClub/issues/28). CI exercises disposable
