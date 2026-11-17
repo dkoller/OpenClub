@@ -19,6 +19,8 @@ import org.jooq.exception.DataAccessException
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.members.ActorSql
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 
 /** Configures only player-gender requirement; database triggers enforce existing member compatibility. */
 internal fun Application.installClubPlayerPolicyRoutes(
@@ -68,14 +70,7 @@ internal fun Application.installClubPlayerPolicyRoutes(
                     // players lack gender and serializes changes with member writes.
                     db.execute(
                         """UPDATE clubs SET gender_required_for_players = ?
-                           WHERE EXISTS (
-                               SELECT 1 FROM members actor
-                               JOIN club_capability_grants g ON g.member_id = actor.id
-                               WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                                 AND actor.role = 'ADMIN' AND g.capability = 'MANAGE_PERMISSIONS'
-                                 AND EXISTS (SELECT 1 FROM account_identities identity
-                                             WHERE identity.account_id = actor.account_id)
-                           )""",
+                           WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_PERMISSIONS, requireAdmin = true)}""",
                         required, actor.accountId,
                     ) == 1
                 }

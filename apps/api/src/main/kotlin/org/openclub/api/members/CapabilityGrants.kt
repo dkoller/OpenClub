@@ -43,10 +43,8 @@ internal class CapabilityGrants(private val database: DSLContext) {
             val actor = db.fetchOne(
                 """SELECT actor.id FROM members actor
                    JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL AND actor.role = 'ADMIN'
-                     AND g.capability = 'MANAGE_PERMISSIONS'
-                     AND EXISTS (SELECT 1 FROM account_identities ai
-                                 WHERE ai.account_id = actor.account_id)""",
+                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND actor.role = 'ADMIN'
+                     AND g.capability = 'MANAGE_PERMISSIONS'""",
                 actorAccountId,
             )?.get("id", UUID::class.java) ?: return@transactionResult Change.DENIED
             if (actor == memberId) return@transactionResult Change.DENIED
@@ -76,10 +74,8 @@ internal class CapabilityGrants(private val database: DSLContext) {
                 val managers = db.fetchValue(
                     """SELECT COUNT(*) FROM members m
                        JOIN club_capability_grants g ON g.member_id = m.id
-                       WHERE m.role = 'ADMIN' AND m.archived_at IS NULL
-                         AND g.capability = 'MANAGE_PERMISSIONS'
-                         AND EXISTS (SELECT 1 FROM account_identities ai
-                                     WHERE ai.account_id = m.account_id)""",
+                       WHERE m.role = 'ADMIN' AND ${ActorSql.activeVerified("m")}
+                         AND g.capability = 'MANAGE_PERMISSIONS'""",
                 )?.toString()?.toLongOrNull() ?: error("Cannot count permission managers")
                 if (managers <= 1) return@transactionResult Change.DENIED
             }

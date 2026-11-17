@@ -2,6 +2,18 @@ package org.openclub.api.teams
 
 import org.jooq.DSLContext
 import java.util.UUID
+import org.openclub.api.members.ActorSql
+import org.openclub.api.members.ClubCapabilityAccess.Capability
+
+/** Club-wide MANAGE_TEAMS; binds the actor account ID. */
+private val MANAGE_TEAMS_GATE = ActorSql.holdsClubCapability(Capability.MANAGE_TEAMS)
+
+/** MANAGE_TEAMS club-wide or on one team; binds actor account ID, then team ID. */
+private val MANAGE_ONE_TEAM_GATE = ActorSql.holdsTeamCapability("?", Capability.MANAGE_TEAMS)
+
+/** VIEW_TEAMS or MANAGE_TEAMS club-wide or on the listed `team` row; binds actor account ID. */
+private val VIEW_LISTED_TEAM_GATE =
+    ActorSql.holdsTeamCapability("team.id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)
 
 /**
  * Internal team operations. actorAccountId must come from a verified session.
@@ -17,15 +29,7 @@ internal class TeamAssignments(private val database: DSLContext) {
         val id = UUID.randomUUID()
         return if (database.execute(
             """INSERT INTO teams (id, name)
-               SELECT ?, ? WHERE EXISTS (
-                   SELECT 1 FROM members actor
-                   JOIN club_capability_grants grants ON grants.member_id = actor.id
-                   JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id)
-                     AND grants.capability = 'MANAGE_TEAMS'
-               )""",
+               SELECT ?, ? WHERE $MANAGE_TEAMS_GATE""",
             id, normalized, actorAccountId,
         ) == 1) id else null
     }
@@ -33,29 +37,13 @@ internal class TeamAssignments(private val database: DSLContext) {
     fun rename(actorAccountId: UUID, teamId: UUID, name: String): Boolean =
         database.execute(
             """UPDATE teams SET name = ?
-               WHERE id = ? AND EXISTS (
-                   SELECT 1 FROM members actor
-                   JOIN club_capability_grants grants ON grants.member_id = actor.id
-                   JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id)
-                     AND grants.capability = 'MANAGE_TEAMS'
-               )""",
+               WHERE id = ? AND $MANAGE_TEAMS_GATE""",
             validName(name), teamId, actorAccountId,
         ) == 1
 
     fun remove(actorAccountId: UUID, teamId: UUID): Boolean =
         database.execute(
-            """DELETE FROM teams WHERE id = ? AND EXISTS (
-                   SELECT 1 FROM members actor
-                   JOIN club_capability_grants grants ON grants.member_id = actor.id
-                   JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id)
-                     AND grants.capability = 'MANAGE_TEAMS'
-               )""",
+            """DELETE FROM teams WHERE id = ? AND $MANAGE_TEAMS_GATE""",
             teamId, actorAccountId,
         ) == 1
 
@@ -64,36 +52,14 @@ internal class TeamAssignments(private val database: DSLContext) {
             """INSERT INTO member_team_assignments (team_id, member_id)
                SELECT team.id, member.id FROM teams team
                JOIN members member ON member.id = ? AND member.archived_at IS NULL
-               WHERE team.id = ? AND EXISTS (
-                   SELECT 1 FROM members actor
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id) AND (
-                       EXISTS (SELECT 1 FROM club_capability_grants g
-                               WHERE g.member_id = actor.id AND g.capability = 'MANAGE_TEAMS')
-                       OR EXISTS (SELECT 1 FROM team_capability_grants g
-                                  WHERE g.member_id = actor.id AND g.team_id = ?
-                                    AND g.capability = 'MANAGE_TEAMS')
-                   )
-               ) FOR UPDATE OF member ON CONFLICT DO NOTHING""",
+               WHERE team.id = ? AND $MANAGE_ONE_TEAM_GATE FOR UPDATE OF member ON CONFLICT DO NOTHING""",
             memberId, teamId, actorAccountId, teamId,
         ) == 1
 
     fun unassign(actorAccountId: UUID, teamId: UUID, memberId: UUID): Boolean =
         database.execute(
             """DELETE FROM member_team_assignments
-               WHERE team_id = ? AND member_id = ? AND EXISTS (
-                   SELECT 1 FROM members actor
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id) AND (
-                       EXISTS (SELECT 1 FROM club_capability_grants g
-                               WHERE g.member_id = actor.id AND g.capability = 'MANAGE_TEAMS')
-                       OR EXISTS (SELECT 1 FROM team_capability_grants g
-                                  WHERE g.member_id = actor.id AND g.team_id = ?
-                                    AND g.capability = 'MANAGE_TEAMS')
-                   )
-               )""",
+               WHERE team_id = ? AND member_id = ? AND $MANAGE_ONE_TEAM_GATE""",
             teamId, memberId, actorAccountId, teamId,
         ) == 1
 
@@ -102,19 +68,7 @@ internal class TeamAssignments(private val database: DSLContext) {
             """SELECT team.id, team.name, COUNT(assignment.member_id)::int AS member_count
                FROM teams team
                LEFT JOIN member_team_assignments assignment ON assignment.team_id = team.id
-               WHERE EXISTS (
-                   SELECT 1 FROM members actor
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id) AND (
-                       EXISTS (SELECT 1 FROM club_capability_grants g
-                               WHERE g.member_id = actor.id
-                                 AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS'))
-                       OR EXISTS (SELECT 1 FROM team_capability_grants g
-                                  WHERE g.member_id = actor.id AND g.team_id = team.id
-                                    AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS'))
-                   )
-               )
+               WHERE $VIEW_LISTED_TEAM_GATE
                GROUP BY team.id, team.name ORDER BY team.name, team.id""",
             actorAccountId,
         ).map {

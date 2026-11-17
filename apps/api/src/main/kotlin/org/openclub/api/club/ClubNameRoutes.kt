@@ -17,6 +17,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.members.ActorSql
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 
 /** A narrow synthetic-M1 settings write; neither role nor actor is supplied by the caller. */
 internal fun Application.installClubNameRoutes(
@@ -66,14 +68,7 @@ internal fun Application.installClubNameRoutes(
                 val changed = database.onDatabaseThread { db ->
                     db.execute(
                         """UPDATE clubs SET name = ?
-                           WHERE EXISTS (
-                               SELECT 1 FROM members actor
-                               JOIN club_capability_grants g ON g.member_id = actor.id
-                               WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                                 AND actor.role = 'ADMIN' AND g.capability = 'MANAGE_PERMISSIONS'
-                                 AND EXISTS (SELECT 1 FROM account_identities identity
-                                             WHERE identity.account_id = actor.account_id)
-                           )""",
+                           WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_PERMISSIONS, requireAdmin = true)}""",
                         name, actor.accountId,
                     ) == 1
                 }

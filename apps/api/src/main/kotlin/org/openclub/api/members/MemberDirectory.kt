@@ -29,9 +29,7 @@ internal class MemberDirectory(private val database: DSLContext) {
         val rows = database.fetch(
             """SELECT target.id, target.first_name, target.last_name
                FROM members target
-               JOIN members actor ON actor.account_id = ? AND actor.archived_at IS NULL
-                   AND EXISTS (SELECT 1 FROM account_identities identity
-                               WHERE identity.account_id = actor.account_id)
+               JOIN members actor ON actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
                JOIN club_capability_grants g ON g.member_id = actor.id
                    AND g.capability = 'VIEW_MEMBER_DIRECTORY'
                JOIN clubs club ON TRUE

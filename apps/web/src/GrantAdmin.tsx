@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
+import { writeJson } from './api'
+import { capabilityChoices, capabilityForScope, fetchGrants, grantChange,
+  type Capability, type Grant, type Scope } from './grants'
+import { fetchMemberPage, type Member } from './members'
 
-type Member = { id: string; firstName: string; lastName: string }
 type Team = { id: string; name: string }
-type Grant = { capability: string; scope: 'CLUB' | 'TEAM'; teamId?: string }
-type Capability = 'VIEW_MEMBER_DIRECTORY' | 'EDIT_MEMBERS' | 'VIEW_TEAMS' | 'MANAGE_TEAMS' | 'MANAGE_PERMISSIONS'
-const capabilities: Capability[] = ['VIEW_MEMBER_DIRECTORY', 'EDIT_MEMBERS', 'VIEW_TEAMS', 'MANAGE_TEAMS', 'MANAGE_PERMISSIONS']
 const words = {
   de: { title: 'Berechtigungen verwalten', search: 'Mitglied suchen', find: 'Suchen', member: 'Mitglied', scope: 'Bereich', club: 'Verein', team: 'Team', capability: 'Berechtigung', grant: 'Erteilen', revoke: 'Entziehen', existing: 'Aktive Berechtigungen', empty: 'Keine Berechtigungen.', error: 'Berechtigungen nicht verfügbar.', retry: 'Erneut versuchen', select: 'Bitte Mitglied auswählen.' },
   en: { title: 'Manage permissions', search: 'Find member', find: 'Search', member: 'Member', scope: 'Scope', club: 'Club', team: 'Team', capability: 'Capability', grant: 'Grant', revoke: 'Revoke', existing: 'Current grants', empty: 'No grants.', error: 'Permissions unavailable.', retry: 'Try again', select: 'Select a member.' },
@@ -22,7 +22,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
   const [search, setSearch] = useState('')
   const [memberId, setMemberId] = useState('')
   const [grants, setGrants] = useState<Grant[]>([])
-  const [scope, setScope] = useState<'CLUB' | 'TEAM'>('CLUB')
+  const [scope, setScope] = useState<Scope>('CLUB')
   const [teamId, setTeamId] = useState('')
   const [capability, setCapability] = useState<Capability>('VIEW_TEAMS')
   const [error, setError] = useState(false)
@@ -56,14 +56,9 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
 
   async function loadGrants(targetId: string, signal?: AbortSignal) {
     try {
-      const response = await fetch('/api/v1/grants?memberId=' + encodeURIComponent(targetId),
-        { credentials: 'same-origin', cache: 'no-store', signal })
+      const result = await fetchGrants(targetId, signal)
       if (signal?.aborted) return
-      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
-      if (!response.ok) throw new Error('Read denied')
-      const result: { items: Grant[] } = await response.json()
-      if (signal?.aborted) return
-      if (!Array.isArray(result.items)) throw new Error('Invalid grants')
+      if (result === 'denied') { setDenied(true); return }
       setGrants(result.items)
       setError(false)
     } catch {
@@ -81,14 +76,9 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
     setMemberId('')
     setGrants([])
     try {
-      const response = await fetch('/api/v1/members?' + new URLSearchParams({ q: search, limit: '20' }),
-        { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
+      const result = await fetchMemberPage(search, undefined, controller.signal)
       if (controller.signal.aborted) return
-      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
-      if (!response.ok) throw new Error('Search denied')
-      const result: { items: Member[] } = await response.json()
-      if (controller.signal.aborted) return
-      if (!Array.isArray(result.items)) throw new Error('Invalid members')
+      if (result === 'denied') { setDenied(true); return }
       setMembers(result.items)
       setMemberId(result.items[0]?.id ?? '')
       if (result.items[0]) await loadGrants(result.items[0].id, controller.signal)
@@ -104,14 +94,10 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
     setBusy(true)
     setError(false)
     try {
-      const response = await fetch('/api/v1/grants', {
-        method,
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        body: JSON.stringify({ memberId, ...grant }),
-      })
-      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
-      if (!response.ok) throw new Error('Grant change denied')
+      if (await writeJson('/api/v1/grants', method, csrfToken, { memberId, ...grant }) === 'denied') {
+        setDenied(true)
+        return
+      }
       await loadGrants(memberId)
     } catch {
       setError(true)
@@ -125,8 +111,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
     <p role="alert">{t.error}</p>
     <button type="button" onClick={() => { setError(false); setRetryCount(value => value + 1) }}>{t.retry}</button>
   </section> : null
-  const choices = scope === 'TEAM' ? capabilities.filter(value =>
-    value === 'VIEW_TEAMS' || value === 'MANAGE_TEAMS') : capabilities
+  const choices = capabilityChoices(scope)
   return (
     <section aria-label={t.title}>
       <h2>{t.title}</h2>
@@ -161,15 +146,13 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
           </li>)}</ul>}
         <form onSubmit={event => {
           event.preventDefault()
-          void changeGrant({ capability, scope, ...(scope === 'TEAM' ? { teamId } : {}) }, 'POST')
+          void changeGrant(grantChange(capability, scope, teamId), 'POST')
         }}>
           <label>{t.scope}
             <select value={scope} onChange={event => {
-              const next = event.target.value as 'CLUB' | 'TEAM'
+              const next = event.target.value as Scope
               setScope(next)
-              if (next === 'TEAM' && !['VIEW_TEAMS', 'MANAGE_TEAMS'].includes(capability)) {
-                setCapability('VIEW_TEAMS')
-              }
+              setCapability(capabilityForScope(next, capability))
             }}>
               <option value="CLUB">{t.club}</option><option value="TEAM">{t.team}</option>
             </select>

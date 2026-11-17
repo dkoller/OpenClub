@@ -3,6 +3,8 @@
 Read root `AGENTS.md` and ADR-0001 first.
 
 - Kotlin + Ktor; PostgreSQL; **jOOQ is mandatory** for database access; use Flyway migrations.
+- Use jOOQ's **plain-SQL API with `?` bind parameters**; feature code does not use generated classes (see the ADR-0001 2026-11-17 amendment). Never interpolate request input into SQL.
+- Use `members/ActorSql.kt` for the actor-authorization predicate (active member + current verified identity + capability) instead of copying it into new queries.
 - Do not introduce Hibernate/JPA or Exposed as an alternative persistence layer.
 - Keep jOOQ code and generated database records out of public API DTOs.
 - Prefer concrete services and data access classes; add abstractions only where they provide an actual boundary. First trace a feature end-to-end through HTTP, authentication/authorization, SQL, tests and OpenAPI before changing the structure.

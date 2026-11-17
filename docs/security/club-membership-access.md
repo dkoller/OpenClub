@@ -285,3 +285,17 @@ Club settings, role management, team rosters and permission management now treat
 ## Expired-session browser denial matrix (synthetic M1)
 
 The disposable Keycloak/Chromium workflow injects HTTP 401 during the initial permission-capability check and role-member search, confirming both privileged editors disappear without exposing retry controls or previously selected names. This complements HTTP 401 denial tests for member searches and team mutations. These targeted injected responses verify frontend fail-closed presentation, not an independent production-role security audit or live-data permission.
+
+## Shared actor-authorization predicate (2026-11-17)
+
+Previously, each protected query had its own copy of the actor check: active, unarchived linked member; current verified OIDC identity row; explicit grant. These now come from one place, `members/ActorSql.kt`:
+
+- `activeVerified(alias)`: the member is unarchived and has a current verified identity.
+- `holdsClubCapability(capability, requireAdmin)`: EXISTS gate for a club-wide grant, optionally requiring ADMIN.
+- `holdsTeamCapability(team, capabilities)`: EXISTS gate for a club-wide grant or a grant on the exact team.
+
+Authorization stays **inside the same SQL statement** as the read or write; the fragments are embedded, not run as a separate preflight check. The fragments interpolate only validated aliases and enum names; the actor account ID stays a bind parameter.
+
+Consolidating the copies exposed one that had drifted. The internal team roster query (`TeamMemberDirectory.list`) checked grants but not the actor's verified identity. The HTTP route already rejected revoked identities through separate preflight checks, so this was a defence-in-depth gap, not a reachable bypass. The roster query now requires a verified identity itself, and `TeamMemberDirectoryTest` covers revoking and restoring it.
+
+Behaviour changes are fail-closed only. Club-wide capability gates for member and club-settings writes now also require the installation's club row to exist, as team writes already did. That can only matter in an inconsistent database with no club.

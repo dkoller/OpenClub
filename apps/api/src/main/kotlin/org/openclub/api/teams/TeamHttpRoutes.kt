@@ -27,6 +27,8 @@ import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import java.util.UUID
+import org.openclub.api.members.ActorSql
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 
 /** Team names/counts are private, and are never returned without a verified team grant. */
 internal fun Application.installTeamHttpRoutes(
@@ -49,20 +51,8 @@ internal fun Application.installTeamHttpRoutes(
                     // The service filters individual team visibility; no blanket club-wide grant
                     // is required for readers with a grant on only one team.
                     val allowed = db.fetchOne(
-                        """SELECT EXISTS (
-                            SELECT 1 FROM members m WHERE m.account_id = ?
-                              AND m.archived_at IS NULL
-                              AND EXISTS (SELECT 1 FROM account_identities identity
-                                          WHERE identity.account_id = m.account_id)
-                              AND (
-                                EXISTS (SELECT 1 FROM club_capability_grants g
-                                        WHERE g.member_id = m.id
-                                        AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS'))
-                                OR EXISTS (SELECT 1 FROM team_capability_grants g
-                                           WHERE g.member_id = m.id
-                                           AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS'))
-                              )
-                        )""", actor.accountId,
+                        "SELECT ${ActorSql.holdsTeamCapability(null, Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)}",
+                        actor.accountId,
                     )?.get(0, Boolean::class.java) == true
                     if (allowed) TeamAssignments(db).list(actor.accountId) else null
                 }
@@ -147,12 +137,7 @@ internal fun Application.installTeamHttpRoutes(
                 val name = call.readTeamName()
                 val outcome = database.onDatabaseThread { db ->
                     val authorized = db.fetchOne(
-                        """SELECT 1 FROM members m
-                           JOIN club_capability_grants g ON g.member_id = m.id
-                           WHERE m.account_id = ? AND m.archived_at IS NULL
-                             AND g.capability = 'MANAGE_TEAMS'
-                             AND EXISTS (SELECT 1 FROM account_identities identity
-                                         WHERE identity.account_id = m.account_id)""",
+                        "SELECT 1 WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_TEAMS)}",
                         actor.accountId,
                     ) != null
                     if (!authorized) null else TeamAssignments(db).rename(actor.accountId, teamId, name)
@@ -198,12 +183,7 @@ internal fun Application.installTeamHttpRoutes(
                     db.transactionResult { configuration ->
                         val tx = DSL.using(configuration)
                         val authorized = tx.fetchOne(
-                            """SELECT 1 FROM members m
-                               JOIN club_capability_grants g ON g.member_id = m.id
-                               WHERE m.account_id = ? AND m.archived_at IS NULL
-                                 AND g.capability = 'MANAGE_TEAMS'
-                                 AND EXISTS (SELECT 1 FROM account_identities identity
-                                             WHERE identity.account_id = m.account_id)""",
+                            "SELECT 1 WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_TEAMS)}",
                             actor.accountId,
                         ) != null
                         if (!authorized) null else {

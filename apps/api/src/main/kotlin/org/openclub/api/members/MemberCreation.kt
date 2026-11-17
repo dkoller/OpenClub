@@ -3,6 +3,7 @@ package org.openclub.api.members
 import org.jooq.DSLContext
 import java.time.LocalDate
 import java.util.UUID
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 
 /**
  * Accountless member creation from a verified browser-session account.
@@ -32,14 +33,7 @@ internal class MemberCreation(private val database: DSLContext) {
             """INSERT INTO members
                (id, first_name, last_name, date_of_birth, email, phone, gender, is_player)
                SELECT ?, ?, ?, ?, ?, ?, ?, ?
-               WHERE EXISTS (
-                   SELECT 1 FROM members actor
-                   JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND g.capability = 'EDIT_MEMBERS'
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id)
-               )""",
+               WHERE ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}""",
             newId, firstName, lastName, birthDate,
             email, phone, gender, input.isPlayer, actorAccountId,
         )

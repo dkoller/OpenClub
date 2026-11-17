@@ -52,6 +52,6 @@ On Windows without WSL, use `gradlew.bat` instead of `./gradlew`. Do not manuall
 ## Deferred intentionally
 
 - Authentication, membership APIs, deployment and business logic
-- Continuous database connection pool and generated jOOQ types wired into feature code
+- Continuous database connection pool and generated jOOQ types wired into feature code. *(2026-11-17: the pool exists; feature code intentionally uses plain-SQL jOOQ rather than generated types; see the ADR-0001 amendment.)*
 
 The first code PR establishes a working skeleton, not a production-ready service.
