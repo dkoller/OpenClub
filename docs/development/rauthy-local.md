@@ -178,6 +178,41 @@ Rauthy password and passkey browser journeys. It does **not** substitute for
 password+MFA enrollment, token-signature tampering, provider key rotation,
 independent backup recovery or a 4 GB stack measurement.
 
+## Rauthy MFA lost-key, signing-key rollover and provider-outage evidence
+
+The optional CI now checks the **lost-device fail-closed boundary**: once
+password + WebAuthn MFA has been registered, Chromium removes its virtual
+security key and retries the password-only sign-in. Rauthy must not return
+the browser to OpenClub, and the Ktor session endpoint must still return 401.
+This prevents an implicit MFA downgrade; it is **not** a tested way for the
+user to regain access. Recovering from a lost *only* passkey needs an operator
+runbook and an alternate previously enrolled factor. Rauthy 0.37.2 supports
+optional E-Mail OTP, but it is disabled by default and **requires a separately
+configured, tested SMTP service and recovery policy**. This disposable
+evaluation config does not send E-Mail; do not claim OTP delivery, enrollments,
+fallback or lost-device recovery are accepted.
+
+A Kotlin test checks the **relying-party half of signing-key rotation**: a
+signed ID token with a new RSA `kid` triggers a refresh of the issuer-pinned
+trusted JWKS, verifies the new signature and exact issuer, and rejects a
+wrong issuer despite a trusted signing key. This complements existing
+missing-key, expired-key and concurrent-refresh tests. No Rauthy admin API
+or scheduler is invoked here: actual provider-generated rotation, old-key
+overlap and a new live browser login after rotation are still outstanding.
+
+After all successful password, MFA and passkey browser tests, the Rauthy CI
+workflow **stops the disposable identity provider**. It confirms that
+OpenClub's liveness endpoint is still healthy but a brand-new login can only
+redirect to the now-unreachable pinned issuer and cannot establish an
+authenticated application session. An anonymous `/api/v1/auth/me` request
+remains 401. This does not yet prove provider reconnection without
+restarting the JVM, existing-session continuity or administrative recovery.
+
+All tests retain real JWT signature, HTTPS trust, OIDC issuer, PKCE and session
+boundaries. Neither this local experiment nor its temporary archive is a
+production-ready offsite recovery method. Keep #279 open for email recovery,
+**actual Rauthy key rotation**, and hosted resource/backup acceptance.
+
 ## OpenClub OIDC compatibility checklist
 
 OpenClub's existing runtime requires one exact verified issuer, a confidential `client_secret_basic` client, HTTPS (unless explicitly isolated loopback development), exact redirect URI, S256 PKCE, same-origin authorization/token/JWKS endpoints, and **RS256** ID tokens. Rauthy normally defaults new clients to EdDSA; configure **RS256** on the specific OpenClub OIDC client, retain PKCE S256, and verify that a signed login token passes the real Kotlin verifier. Never widen validation or match an account by email to make a provider switch work.
