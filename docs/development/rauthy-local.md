@@ -95,6 +95,27 @@ a metadata-only Compose restart smoke. The restart keeps the existing local
 named volume; it is **not** a proof of independent backup restore, active
 session continuity across an outage, or production key rotation.
 
+## Disposable offline identity backup and independent restore acceptance
+
+The real HTTPS Rauthy browser workflow now takes an **offline** tar archive of
+the stopped synthetic Rauthy data volume, removes the original container and
+volume, creates a **fresh** volume, and restores the archive *before* Kotlin
+starts and the real password/passkey browser scenarios execute. The workflow
+refuses to remove any volume whose name does not exactly match its disposable
+Compose project. It verifies RSA signing JWKS and synthetic client/user
+credentials match the pre-backup values, then accepts signed OIDC logins with
+the restored provider. The archive remains only in runner temporary storage
+and is removed on success; no backup, signing key, login credential or browser
+trace is uploaded. The local JVM truststore is generated **after** recovery
+because the disposable localhost TLS certificate may be regenerated.
+
+This establishes **test-volume offline archive restoration**, distinct from
+ordinary container restart. It does not prove recovery from a corrupted live
+database, remote/offsite encrypted backup handling, live session continuity,
+an operator-witnessed production drill, key rotation, or password + OTP MFA.
+Do not use this unsafe `LOCAL_TEST` configuration, synthetic credentials or
+unprotected archive method for real identities.
+
 ## Secure HTTPS loopback configuration for the next login test
 
 OpenClub now permits **matching HTTPS issuer and HTTPS callback** in
