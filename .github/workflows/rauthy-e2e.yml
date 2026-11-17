@@ -107,7 +107,7 @@ jobs:
           set -euo pipefail
           overlay=(docker compose -f compose.yaml -f compose.rauthy.eval.yaml)
           # Capture only a hash of the public JWKS; do not print any credentials.
-          jwks_before="$(curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/certs | jq -S -c . | sha256sum | cut -d' ' -f1)"
+          jwks_before="$(curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/oidc/certs | jq -S -c . | sha256sum | cut -d' ' -f1)"
           "${overlay[@]}" restart rauthy >/dev/null
           ready=false
           for attempt in {1..60}; do
@@ -119,7 +119,7 @@ jobs:
             sleep 2
           done
           [[ "$ready" == true ]] || { echo 'Rauthy failed to restart' >&2; exit 1; }
-          jwks_after="$(curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/certs | jq -S -c . | sha256sum | cut -d' ' -f1)"
+          jwks_after="$(curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/oidc/certs | jq -S -c . | sha256sum | cut -d' ' -f1)"
           [[ "$jwks_before" == "$jwks_after" ]] || { echo 'Rauthy signing keys changed on restart' >&2; exit 1; }
           client_after="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
             -c /app/config-local-test.toml --kind client --id openclub-rauthy-https-ci --field secret --format raw)"
