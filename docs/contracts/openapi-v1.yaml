@@ -1,10 +1,11 @@
 openapi: 3.1.0
 info:
   title: OpenClub single-club management API — synthetic M1
-  version: 1.0.0
+  version: 1.1.0
   description: >
     Frozen contract for the implemented synthetic M1 HTTP surface, accepted by
-    the owner on 2026-11-17 (ADR-0007, #13). It contains exactly the operations
+    the owner on 2026-11-17 (ADR-0007, #13). 1.1.0 adds the per-club adult-age
+    setting (PATCH /v1/club/adult-age-policy and adultAgeYears in GET /v1/club, #17). It contains exactly the operations
     registered in Ktor and checked by `dev/verify-m1-openapi.py`. Authentication
     routes (/v1/auth) are documented separately in auth-api-proposal.yaml.
     Version 1.0.0 covers synthetic data only. It does not approve real member
@@ -107,6 +108,44 @@ paths:
       responses:
         '204':
           description: Policy updated
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/club/adult-age-policy:
+    patch:
+      tags: [Club]
+      operationId: setAdultAge
+      summary: Configure the club's adult age (since 1.1.0)
+      description: >
+        ADR-0007: the adult age is configurable per club, default 18, within
+        13–25. Same guards as the player-gender policy: verified active
+        identity-bound ADMIN with explicit MANAGE_PERMISSIONS, matching Origin
+        and session CSRF. Only a whole number is accepted. Lowering the age is
+        rejected with 409 while members who would become adults lack email or
+        phone; the response never identifies those members. Raising it never
+        conflicts. Not production privacy approval.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [adultAgeYears]
+              properties:
+                adultAgeYears: { type: integer, minimum: 13, maximum: 25 }
+      responses:
+        '204':
+          description: Adult age updated
         '400':
           $ref: '#/components/responses/Invalid'
         '401':
@@ -708,12 +747,17 @@ components:
     ClubReference:
       type: object
       additionalProperties: false
-      required: [id, name, slug, genderRequiredForPlayers]
+      required: [id, name, slug, genderRequiredForPlayers, adultAgeYears]
       properties:
         id: { type: string, format: uuid }
         name: { type: string, minLength: 1, maxLength: 200 }
         slug: { type: string, minLength: 3, maxLength: 60, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' }
         genderRequiredForPlayers: { type: boolean }
+        adultAgeYears:
+          type: integer
+          minimum: 13
+          maximum: 25
+          description: Age from which a member is an adult in this club (since 1.1.0).
     MemberReference:
       type: object
       additionalProperties: false

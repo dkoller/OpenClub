@@ -299,3 +299,11 @@ Authorization stays **inside the same SQL statement** as the read or write; the 
 Consolidating the copies exposed one that had drifted. The internal team roster query (`TeamMemberDirectory.list`) checked grants but not the actor's verified identity. The HTTP route already rejected revoked identities through separate preflight checks, so this was a defence-in-depth gap, not a reachable bypass. The roster query now requires a verified identity itself, and `TeamMemberDirectoryTest` covers revoking and restoring it.
 
 Behaviour changes are fail-closed only. Club-wide capability gates for member and club-settings writes now also require the installation's club row to exist, as team writes already did. That can only matter in an inconsistent database with no club.
+
+## Per-club adult age (2026-11-17, ADR-0007)
+
+`PATCH /api/v1/club/adult-age-policy` accepts only `{"adultAgeYears": <whole number 13–25>}`. It uses the same guards as the player-gender policy: a verified session, exact Origin and session CSRF, and an UPDATE that itself requires a live, identity-bound ADMIN with `MANAGE_PERMISSIONS` (`ActorSql.holdsClubCapability`).
+
+The V7 trigger rejects a lower threshold while members who would become adults lack email or phone. The API answers `409 {"code":"conflict"}` without naming them. Raising the threshold never conflicts.
+
+`GET /api/v1/club` exposes the threshold (`adultAgeYears`), not any person's data. Public names already use the club's threshold to decide between full names and first name plus initial.

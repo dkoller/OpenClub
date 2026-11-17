@@ -95,7 +95,7 @@ class SingleClubRoutesTest {
                 }
                 assertEquals(HttpStatusCode.OK, allowed.status)
                 assertEquals("no-store", allowed.headers[HttpHeaders.CacheControl])
-                assertEquals("""{"id":"$club","name":"Synthetic club","slug":"club-$club","genderRequiredForPlayers":false}""", allowed.bodyAsText())
+                assertEquals("""{"id":"$club","name":"Synthetic club","slug":"club-$club","genderRequiredForPlayers":false,"adultAgeYears":18}""", allowed.bodyAsText())
 
                 // Ordinary members can see local club metadata; unlinking denies access.
                 runBlocking {
@@ -107,7 +107,7 @@ class SingleClubRoutesTest {
                     header(HttpHeaders.Cookie, "openclub_dev_session=valid")
                 }
                 assertEquals(HttpStatusCode.OK, ordinary.status)
-                assertEquals("""{"id":"$club","name":"Synthetic club","slug":"club-$club","genderRequiredForPlayers":false}""", ordinary.bodyAsText())
+                assertEquals("""{"id":"$club","name":"Synthetic club","slug":"club-$club","genderRequiredForPlayers":false,"adultAgeYears":18}""", ordinary.bodyAsText())
                 runBlocking {
                     database.onDatabaseThread {
                         it.execute("UPDATE members SET account_id = NULL WHERE id = ?", member)
@@ -128,7 +128,7 @@ class SingleClubRoutesTest {
                 }
                 assertEquals(HttpStatusCode.OK, relinked.status)
                 assertEquals("no-store", relinked.headers[HttpHeaders.CacheControl])
-                assertEquals("""{"id":"$club","name":"Synthetic club","slug":"club-$club","genderRequiredForPlayers":false}""", relinked.bodyAsText())
+                assertEquals("""{"id":"$club","name":"Synthetic club","slug":"club-$club","genderRequiredForPlayers":false,"adultAgeYears":18}""", relinked.bodyAsText())
                 runBlocking {
                     database.onDatabaseThread {
                         it.execute("DELETE FROM account_identities WHERE account_id = ?", account)
@@ -273,6 +273,61 @@ class SingleClubRoutesTest {
                 assertEquals(HttpStatusCode.NoContent,
                     setPolicy("""{"genderRequiredForPlayers":false}""").status)
 
+                // ADR-0007: adult age configurable per club (13..25), same guards.
+                suspend fun setAdultAge(body: String, withCookie: Boolean = true,
+                    withCsrf: Boolean = true, requestOrigin: String = origin) =
+                    client.patch("/api/v1/club/adult-age-policy") {
+                        if (withCookie) header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                        if (withCsrf) header("X-CSRF-Token", csrf)
+                        header(HttpHeaders.Origin, requestOrigin)
+                        header(HttpHeaders.ContentType, "application/json")
+                        setBody(body)
+                    }
+                assertEquals(HttpStatusCode.Unauthorized,
+                    setAdultAge("""{"adultAgeYears":16}""", withCookie = false).status)
+                assertEquals(HttpStatusCode.Forbidden,
+                    setAdultAge("""{"adultAgeYears":16}""", withCsrf = false).status)
+                assertEquals(HttpStatusCode.Forbidden,
+                    setAdultAge("""{"adultAgeYears":16}""",
+                        requestOrigin = "https://invalid.example.invalid").status)
+                for (invalid in listOf("""{"adultAgeYears":12}""", """{"adultAgeYears":26}""",
+                    """{"adultAgeYears":"16"}""", """{"adultAgeYears":16.5}""", """{"adultAgeYears":null}""",
+                    """{"adultAgeYears":true}""", """{"adultAgeYears":16,"actorId":"forged"}""", """{}""")) {
+                    assertEquals(HttpStatusCode.BadRequest, setAdultAge(invalid).status, invalid)
+                }
+                // A 16-year-old member without contacts would become an adult at 16:
+                // V7 rejects the lower threshold without naming the member.
+                val teen = UUID.randomUUID()
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth)
+                            VALUES (?, 'Teen', 'Synthetic', CURRENT_DATE - INTERVAL '16 years 1 day')""", teen)
+                    }
+                }
+                try {
+                    val conflict = setAdultAge("""{"adultAgeYears":16}""")
+                    assertEquals(HttpStatusCode.Conflict, conflict.status)
+                    assertEquals("""{"code":"conflict"}""", conflict.bodyAsText())
+                    assertTrue(client.get("/api/v1/club") {
+                        header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                    }.bodyAsText().contains("\"adultAgeYears\":18"))
+                    // Raising the threshold never needs new contacts; lowering works once contacts exist.
+                    assertEquals(HttpStatusCode.NoContent, setAdultAge("""{"adultAgeYears":20}""").status)
+                    runBlocking {
+                        database.onDatabaseThread { db ->
+                            db.execute("""UPDATE members SET email = 'teen@example.invalid',
+                                phone = '+41000000001' WHERE id = ?""", teen)
+                        }
+                    }
+                    assertEquals(HttpStatusCode.NoContent, setAdultAge("""{"adultAgeYears":16}""").status)
+                    assertTrue(client.get("/api/v1/club") {
+                        header(HttpHeaders.Cookie, "openclub_dev_session=valid")
+                    }.bodyAsText().contains("\"adultAgeYears\":16"))
+                    assertEquals(HttpStatusCode.NoContent, setAdultAge("""{"adultAgeYears":18}""").status)
+                } finally {
+                    runBlocking { database.onDatabaseThread { it.execute("DELETE FROM members WHERE id = ?", teen) } }
+                }
+
                 val allowed = client.get("/api/v1/club") {
                     header(HttpHeaders.Cookie, "openclub_dev_session=valid")
                 }
@@ -293,6 +348,7 @@ class SingleClubRoutesTest {
                 assertEquals(HttpStatusCode.Forbidden, rename("""{"name":"Denied"}""").status)
                 assertEquals(HttpStatusCode.Forbidden,
                     setPolicy("""{"genderRequiredForPlayers":true}""").status)
+                assertEquals(HttpStatusCode.Forbidden, setAdultAge("""{"adultAgeYears":20}""").status)
                 org.junit.jupiter.api.Assertions.assertTrue(client.get("/api/v1/club") {
                     header(HttpHeaders.Cookie, "openclub_dev_session=valid")
                 }.bodyAsText().contains("New Club"))

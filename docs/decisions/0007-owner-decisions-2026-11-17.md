@@ -33,3 +33,4 @@ The M1 code work was largely complete, but several gates needed decisions only t
 ## Implementation notes
 
 - **Decision 2 implemented (2026-11-17):** `docs/contracts/openapi-v1.yaml` (version `1.0.0`, exactly the 21 implemented operations) and `docs/contracts/openapi-m2-draft.yaml` (unapproved M2 proposals) replace the former `openapi-draft.yaml`. `dev/verify-m1-openapi.py` enforces an exact operation match, the frozen version, and the NOT IMPLEMENTED markers in the M2 draft.
+- **Decision 3 implemented (2026-11-17):** `PATCH /api/v1/club/adult-age-policy` (whole number 13–25; same ADMIN + MANAGE_PERMISSIONS, Origin and CSRF guards as the player-gender policy; 409 when members who would become adults lack contacts) and `adultAgeYears` in `GET /api/v1/club`. There is a four-language settings field, and the member form shows the club's threshold. Contract `1.1.0`.

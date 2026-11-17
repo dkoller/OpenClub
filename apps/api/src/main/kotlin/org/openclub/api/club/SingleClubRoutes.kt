@@ -34,11 +34,12 @@ internal fun Application.installSingleClubRoutes(
                 val club = database.onDatabaseThread { db ->
                     val id = MemberAccess(db).authorizedClubId(session.accountId)
                     id?.let {
-                        db.fetchOne("SELECT name, slug, gender_required_for_players FROM clubs WHERE id = ?", it)?.let { row ->
+                        db.fetchOne("SELECT name, slug, gender_required_for_players, adult_age_years FROM clubs WHERE id = ?", it)?.let { row ->
                             ClubProfile(it,
                                 requireNotNull(row.get("name", String::class.java)),
                                 requireNotNull(row.get("slug", String::class.java)),
-                                requireNotNull(row.get("gender_required_for_players", Boolean::class.java)))
+                                requireNotNull(row.get("gender_required_for_players", Boolean::class.java)),
+                                requireNotNull(row.get("adult_age_years", Int::class.java)))
                         }
                     }
                 }
@@ -51,6 +52,7 @@ internal fun Application.installSingleClubRoutes(
                         put("name", club.name)
                         put("slug", club.slug)
                         put("genderRequiredForPlayers", club.genderRequiredForPlayers)
+                        put("adultAgeYears", club.adultAgeYears)
                     }.toString(), ContentType.Application.Json)
                 }
             } catch (cancelled: CancellationException) {
@@ -68,4 +70,5 @@ private data class ClubProfile(
     val name: String,
     val slug: String,
     val genderRequiredForPlayers: Boolean,
+    val adultAgeYears: Int,
 )
