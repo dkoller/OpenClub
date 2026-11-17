@@ -50,6 +50,11 @@ test('Rauthy registers email OTP and verifies password plus delivered OTP before
     page.getByRole('button', { name: 'Register New OTP' }).click(),
   ]);
   expect(otpRegistration.status(), 'Rauthy must accept OTP enrollment').toBe(201);
+  await expect.poll(async () => {
+    const inboxResponse = await context.request.get(`${inbox}/api/v1/messages`);
+    if (!inboxResponse.ok()) return -1;
+    return (await inboxResponse.json()).total ?? 0;
+  }, { timeout: 15000 }).toBeGreaterThan(0);
   let code = null;
   await expect.poll(async () => {
     code = await mailCode(context.request);
