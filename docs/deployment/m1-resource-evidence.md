@@ -39,8 +39,11 @@ COMPOSE_PROJECT_NAME=openclub-m1-demo \
 The script refuses an implicit project name, requires running Compose
 `postgres`, `api` and `web` service labels belonging to that project,
 requires a PostgreSQL named volume, and prints three sampled Docker
-CPU/memory readings. It does **not** restart containers, inspect data
-or credentials, provision hosts, create backups or publish artifacts.
+CPU/memory readings **and, where available, read-only host-level Linux
+memory/swap and current-filesystem snapshots**. This helps distinguish Docker
+container consumption from immediate host overhead. It does **not** restart
+containers, inspect data or credentials, provision hosts, create backups or
+publish artifacts.
 The CI Compose smoke runs it against its own synthetic stack.
 
 **Important limitations:** Docker stats reports container usage at each
@@ -49,7 +52,10 @@ daemon/kernel/host, resource pressure during cold starts, or a proof that the
 entire deployment fits within 4 GB. The host's identity provider, reverse
 proxy, OS, disk and backups also consume resources. Repeat under documented
 cold-start and full four-language browser workflow load; separately record
-host-level peak memory, swap, disk capacity and available headroom. A
+host-level **peak** memory/swap, disk capacity for actual PostgreSQL and provider
+volume mounts (which may differ from the shell's working directory), and
+available headroom. Include the identity provider even if hosted on a separate
+VM. A
 successful CI sample alone must **not** be described as 4 GB acceptance.
 
 ## 3. Reproduce acceptance on the actual host
