@@ -1,6 +1,6 @@
 # Optional Rauthy evaluation (synthetic data only)
 
-**Status:** Experimental provider compatibility, not a complete login integration or production hosting recipe. [ADR-0006](../decisions/0006-oidc-provider-choice.md) requires **both Rauthy and Keycloak** to stay supported. Keep using the existing [Keycloak development and browser tests](keycloak-local.md) for established end-to-end acceptance.
+**Status (2026-11-17):** Synthetic real-HTTPS password, WebAuthn, email OTP and administrator-assisted lost-passkey recovery are accepted in disposable CI through #297; this is **not** a production hosting recipe or human-approved incident drill. [ADR-0006](../decisions/0006-oidc-provider-choice.md) requires **both Rauthy and Keycloak** to stay supported. Keep using the existing [Keycloak development and browser tests](keycloak-local.md) for established end-to-end acceptance.
 
 ## Inspect a lightweight provider
 
