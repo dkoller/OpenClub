@@ -260,7 +260,8 @@ must not list provider users. The isolated operator key then identifies the
 **exact synthetic account** and revokes only its named missing passkey via
 Rauthy's administrator endpoint. A fresh password sign-in must subsequently
 establish a signed OpenClub session, while club APIs still reject the
-unlinked user. This is a privileged recovery operation, never automatic
+unlinked user. The recovered user must also register a new WebAuthn credential
+on a separate virtual authenticator; the original authenticator is not reused. This is a privileged recovery operation, never automatic
 fallback from an unavailable second factor. The existing email OTP test uses
 another identity and must not be conflated with this recovered user.
 
