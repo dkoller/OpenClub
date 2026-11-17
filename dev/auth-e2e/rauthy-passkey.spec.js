@@ -69,7 +69,14 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     expect(signedCredentials.some(c => c.signCount > 0),
       'The new virtual credential must sign an actual Rauthy login assertion').toBe(true);
     await expect(page.getByRole('status')).toHaveText('This account is not yet a club member.');
+    expect((await context.request.get('/api/v1/auth/me')).status()).toBe(200);
     expect((await context.request.get('/api/v1/club')).status()).toBe(403);
+
+    // Passkey authentication must not leave an app session after logout.
+    // Verify Ktor's actual cookie-backed session, not just the React UI.
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page.getByRole('status')).toHaveText('Please sign in.');
+    expect((await context.request.get('/api/v1/auth/me')).status()).toBe(401);
   } finally {
     await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId }).catch(() => {});
     await cdp.detach().catch(() => {});
