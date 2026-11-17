@@ -1,0 +1,39 @@
+name: M1 registered API contract drift
+on:
+  pull_request:
+    paths:
+      - 'docs/contracts/openapi-draft.yaml'
+      - 'dev/verify-m1-openapi.py'
+      - 'apps/api/src/main/kotlin/org/openclub/api/Main.kt'
+      - 'apps/api/src/main/kotlin/org/openclub/api/club/*Routes.kt'
+      - 'apps/api/src/main/kotlin/org/openclub/api/members/*Routes.kt'
+      - 'apps/api/src/main/kotlin/org/openclub/api/teams/*Routes.kt'
+      - '.github/workflows/m1-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/contracts/openapi-draft.yaml'
+      - 'dev/verify-m1-openapi.py'
+      - 'apps/api/src/main/kotlin/org/openclub/api/Main.kt'
+      - 'apps/api/src/main/kotlin/org/openclub/api/club/*Routes.kt'
+      - 'apps/api/src/main/kotlin/org/openclub/api/members/*Routes.kt'
+      - 'apps/api/src/main/kotlin/org/openclub/api/teams/*Routes.kt'
+      - '.github/workflows/m1-contract.yml'
+permissions:
+  contents: read
+concurrency:
+  group: m1-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned YAML parser
+        run: python -m pip install PyYAML==6.0.2
+      - name: Compare registered synthetic M1 routes and draft
+        run: python dev/verify-m1-openapi.py

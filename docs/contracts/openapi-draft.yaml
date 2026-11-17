@@ -347,9 +347,10 @@ paths:
         and transactionally revokes all team assignments and capability grants.
         Archived members disappear from active directory and team workflows,
         but private records remain in database/backups. Not erasure or deletion.
-        Before HTTP exposure, approve R03 retention, actor audit, field policies,
-        exact configured Origin, session-bound CSRF, lifecycle authorization and
-        indistinguishable non-visible member IDs. No request body or actor ID.
+        This synthetic M1 HTTP operation is implemented with verified session,
+        current member-write grant, exact Origin and session-bound CSRF.
+        R03 retention, real-data audit/erasure and full lifecycle policy still
+        require independent M2 approval. No request body or actor ID.
       parameters:
         - name: memberId
           in: path

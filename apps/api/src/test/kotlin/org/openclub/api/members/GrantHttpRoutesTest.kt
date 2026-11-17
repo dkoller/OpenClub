@@ -167,6 +167,38 @@ class GrantHttpRoutesTest {
                 assertFalse(client.get("/api/v1/grants?memberId=$target") {
                     header(HttpHeaders.Cookie, managerCookie)
                 }.bodyAsText().contains("MANAGE_TEAMS"))
+                // The cookie remains valid, but a database-revoked permission
+                // manager must immediately lose both read and write access.
+                runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.execute("DELETE FROM club_capability_grants WHERE member_id = ? " +
+                            "AND capability = 'MANAGE_PERMISSIONS'", manager)
+                    }
+                }
+                assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/grants?memberId=$target") {
+                    header(HttpHeaders.Cookie, managerCookie)
+                }.status)
+                assertEquals(HttpStatusCode.Forbidden, client.post("/api/v1/grants") {
+                    header(HttpHeaders.Cookie, managerCookie)
+                    header(HttpHeaders.Origin, origin)
+                    header("X-CSRF-Token", csrf)
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody(clubBody)
+                }.status)
+                assertEquals(HttpStatusCode.Forbidden, client.delete("/api/v1/grants") {
+                    header(HttpHeaders.Cookie, managerCookie)
+                    header(HttpHeaders.Origin, origin)
+                    header("X-CSRF-Token", csrf)
+                    header(HttpHeaders.ContentType, "application/json")
+                    setBody(clubBody)
+                }.status)
+                assertEquals(0, runBlocking {
+                    database.onDatabaseThread { db ->
+                        db.fetchOne("SELECT COUNT(*) FROM club_capability_grants " +
+                            "WHERE member_id = ? AND capability = 'VIEW_MEMBER_DIRECTORY'", target)
+                            ?.get(0, Int::class.java)
+                    }
+                })
             }
         } finally {
             runBlocking {
