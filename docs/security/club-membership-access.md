@@ -1,5 +1,7 @@
 # Installation-local club lookup and explicit capability guards
 
+**M1 same-session role authorization regression (2026-11-17):** PostgreSQL-backed role HTTP acceptance explicitly removes and restores an administrator's `MANAGE_PERMISSIONS` grant without replacing the browser session: the revoked manager is denied; restored rights work; then deleting its verified OIDC identity denies both reads and writes even though the grant remains. The role stays unchanged. This tests defense in depth, not full M2 production security acceptance.
+
 **Current-vs-historical boundary (2026-11-17):** This document records how authorization primitives were originally implemented as internal-only database services. **Member, team, role and grant HTTP routes and DE/EN/FR/IT React workflows have since been implemented and exercised in synthetic Keycloak/Chromium CI** (see [roadmap](../roadmap.md) and [R04 contract review](../contracts/contract-review.md)). Statements in the historical implementation subsections below saying that no such route or UI exists describe their earlier delivery stage; they are **not current blocker claims**. Current routes still require real identity, explicit grants, CSRF/Origin and backend authorization. Private-data contracts and M2 human/legal approval remain outstanding.
 
 **Current implementation:** `org.openclub.api.members.MemberAccess`. The former `ClubMembershipAccess(personId, clubId)` multi-tenant API is retired in the single-club reset.
