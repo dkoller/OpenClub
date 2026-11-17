@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Language } from './language'
-import { ADULT_AGE_MAX, ADULT_AGE_MIN, parseAdultAge, saveAdultAge } from './policy'
+import { ADULT_AGE_MAX, ADULT_AGE_MIN, parseAdultAge, saveAdultAge, saveClubName,
+  saveGenderPolicy as requestGenderPolicy } from './policy'
 
 const words = {
   de: { title: 'Vereinsname bearbeiten', label: 'Vereinsname', save: 'Speichern', error: 'Vereinsname konnte nicht gespeichert werden.', policyTitle: 'Spieler-Geschlecht', required: 'Geschlecht für Spieler verlangen', savePolicy: 'Regel speichern', conflict: 'Aktive Spieler ohne Geschlechtsangabe verhindern diese Regel.', policyError: 'Regel konnte nicht gespeichert werden.', ageTitle: 'Volljährigkeit', ageLabel: 'Erwachsen ab Alter (13–25)', saveAge: 'Alter speichern', ageConflict: 'Mitglieder, die dadurch erwachsen würden, haben noch keine E-Mail und Telefonnummer.', ageError: 'Alter konnte nicht gespeichert werden.' },
@@ -37,14 +38,9 @@ export function ClubSettings({ language, name, csrfToken, onChanged,
     setBusy(true)
     setError(false)
     try {
-      const response = await fetch('/api/v1/club', {
-        method: 'PATCH',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        body: JSON.stringify({ name: updated }),
-      })
-      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
-      if (!response.ok) throw new Error('Update rejected')
+      const outcome = await saveClubName(updated, csrfToken)
+      if (outcome === 'unauthenticated' || outcome === 'forbidden') { setDenied(true); return }
+      if (outcome !== 'ok') throw new Error('Update rejected')
       onChanged(updated)
     } catch {
       setError(true)
@@ -58,15 +54,10 @@ export function ClubSettings({ language, name, csrfToken, onChanged,
     setBusy(true)
     setPolicyError(null)
     try {
-      const response = await fetch('/api/v1/club/player-gender-policy', {
-        method: 'PATCH',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        body: JSON.stringify({ genderRequiredForPlayers: requiresGender }),
-      })
-      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
-      if (response.status === 409) { setPolicyError('conflict'); return }
-      if (!response.ok) throw new Error('Policy rejected')
+      const outcome = await requestGenderPolicy(requiresGender, csrfToken)
+      if (outcome === 'unauthenticated' || outcome === 'forbidden') { setDenied(true); return }
+      if (outcome === 'conflict') { setPolicyError('conflict'); return }
+      if (outcome !== 'ok') throw new Error('Policy rejected')
       onPolicyChanged(requiresGender)
     } catch {
       setPolicyError('error')

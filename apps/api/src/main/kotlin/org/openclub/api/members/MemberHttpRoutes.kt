@@ -5,7 +5,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -13,7 +12,6 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
-import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.*
 import org.jooq.exception.DataAccessException
@@ -23,6 +21,8 @@ import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import java.time.LocalDate
 import java.util.UUID
+import org.openclub.api.receiveJsonObject
+import org.openclub.api.requiredString
 
 /** Member administration is always session-linked and capability-checked server-side. */
 internal fun Application.installMemberHttpRoutes(
@@ -225,30 +225,10 @@ private suspend fun ApplicationCall.requireWrite(actor: ActiveSession, origin: S
     return true
 }
 
-private suspend fun ApplicationCall.readObject(required: Set<String>, optional: Set<String>): JsonObject {
-    require(request.headers.getAll(HttpHeaders.ContentType)?.singleOrNull()?.let {
-        ContentType.parse(it).withoutParameters() == ContentType.Application.Json
-    } == true)
-    val channel = receiveChannel()
-    val bytes = ByteArray(4097)
-    var size = 0
-    while (size < bytes.size) {
-        val count = channel.readAvailable(bytes, size, bytes.size - size)
-        if (count == -1) break
-        size += count
-    }
-    require(size <= 4096)
-    val fields = Json.parseToJsonElement(bytes.copyOf(size).toString(Charsets.UTF_8)) as? JsonObject
-        ?: throw IllegalArgumentException("Invalid JSON object")
-    require(fields.keys.containsAll(required) && fields.keys.all { it in required || it in optional })
-    return fields
-}
+private suspend fun ApplicationCall.readObject(required: Set<String>, optional: Set<String>): JsonObject =
+    receiveJsonObject(required, optional)
 
-private fun JsonObject.string(key: String): String {
-    val value = this[key] as? JsonPrimitive ?: throw IllegalArgumentException("Missing field")
-    require(value.isString)
-    return value.content
-}
+private fun JsonObject.string(key: String): String = requiredString(key)
 
 private fun JsonObject.optionalString(key: String): String? = this[key]?.let {
     if (it is JsonNull) null else {

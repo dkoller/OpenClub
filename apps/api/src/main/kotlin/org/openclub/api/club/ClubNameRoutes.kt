@@ -4,21 +4,19 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
-import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.routing
-import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
+import org.openclub.api.receiveJsonObject
+import org.openclub.api.requiredString
 
 /** A narrow synthetic-M1 settings write; neither role nor actor is supplied by the caller. */
 internal fun Application.installClubNameRoutes(
@@ -43,25 +41,7 @@ internal fun Application.installClubNameRoutes(
                         HttpStatusCode.Forbidden)
                     return@patch
                 }
-                require(call.request.headers.getAll(HttpHeaders.ContentType)?.singleOrNull()?.let {
-                    ContentType.parse(it).withoutParameters() == ContentType.Application.Json
-                } == true)
-                val channel = call.receiveChannel()
-                val bytes = ByteArray(4097)
-                var size = 0
-                while (size < bytes.size) {
-                    val count = channel.readAvailable(bytes, size, bytes.size - size)
-                    if (count == -1) break
-                    size += count
-                }
-                require(size in 1..4096)
-                val fields = Json.parseToJsonElement(bytes.copyOf(size).toString(Charsets.UTF_8)) as? JsonObject
-                    ?: throw IllegalArgumentException("Invalid JSON")
-                require(fields.keys == setOf("name"))
-                val name = (fields["name"] as? JsonPrimitive)?.let {
-                    require(it.isString)
-                    it.content.trim()
-                } ?: throw IllegalArgumentException("Missing name")
+                val name = call.receiveJsonObject(required = setOf("name")).requiredString("name").trim()
                 require(name.length in 1..200 && name.none { it.isISOControl() })
                 // The update and live authorization are one statement, so grant revocation
                 // cannot be bypassed by a stale UI state or a forged actor identifier.

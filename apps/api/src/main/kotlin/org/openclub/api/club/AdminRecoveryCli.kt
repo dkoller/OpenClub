@@ -10,20 +10,29 @@ import java.util.UUID
  */
 fun main() {
     val env = System.getenv()
+    val input = recoveryInput(env)
+    requireNotNull(DatabaseRuntime.openIfConfigured(env)) { "DB_URL required" }.use { database ->
+        runBlocking { database.onDatabaseThread { AdminRecovery(it).rebind(input) } }
+    }
+    println("Sole administrator account rebound; previous account sessions revoked")
+}
+
+/**
+ * Validates the operator environment before any database connection: the explicit
+ * confirmation phrase and four canonical, non-blank IDs. Whether they describe a valid
+ * sole-admin rebinding is decided afterwards by [AdminRecovery] inside one transaction.
+ */
+internal fun recoveryInput(env: Map<String, String>): AdminRecovery.Input {
     require(env["OPENCLUB_RECOVERY_CONFIRM"] == "rebind-sole-admin") {
         "Explicit OPENCLUB_RECOVERY_CONFIRM=rebind-sole-admin required"
     }
     fun uuid(key: String): UUID =
-        UUID.fromString(requireNotNull(env[key]?.takeIf(String::isNotBlank)) { "$key required" })
+        canonicalUuid(requireNotNull(env[key]?.takeIf(String::isNotBlank)) { "$key required" }, key)
 
-    val input = AdminRecovery.Input(
+    return AdminRecovery.Input(
         clubId = uuid("OPENCLUB_RECOVERY_CLUB_ID"),
         adminMemberId = uuid("OPENCLUB_RECOVERY_MEMBER_ID"),
         oldAccountId = uuid("OPENCLUB_RECOVERY_OLD_ACCOUNT_ID"),
         replacementAccountId = uuid("OPENCLUB_RECOVERY_NEW_ACCOUNT_ID"),
     )
-    requireNotNull(DatabaseRuntime.openIfConfigured(env)) { "DB_URL required" }.use { database ->
-        runBlocking { database.onDatabaseThread { AdminRecovery(it).rebind(input) } }
-    }
-    println("Sole administrator account rebound; previous account sessions revoked")
 }

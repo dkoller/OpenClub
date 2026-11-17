@@ -5,14 +5,12 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
-import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.*
 import org.openclub.api.auth.ActiveSession
@@ -20,6 +18,8 @@ import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import java.util.UUID
+import org.openclub.api.receiveJsonObject
+import org.openclub.api.requiredString
 
 /** Explicit ADMIN + MANAGE_PERMISSIONS only; no role or account identity accepted from callers. */
 internal fun Application.installGrantHttpRoutes(
@@ -123,31 +123,9 @@ private suspend fun ApplicationCall.mutateGrant(
     }
 }
 
-private suspend fun ApplicationCall.readGrantBody(): JsonObject {
-    require(request.headers.getAll(HttpHeaders.ContentType)?.singleOrNull()?.let {
-        ContentType.parse(it).withoutParameters() == ContentType.Application.Json
-    } == true)
-    val channel = receiveChannel()
-    val bytes = ByteArray(4097)
-    var size = 0
-    while (size < bytes.size) {
-        val count = channel.readAvailable(bytes, size, bytes.size - size)
-        if (count == -1) break
-        size += count
-    }
-    require(size <= 4096)
-    val fields = Json.parseToJsonElement(bytes.copyOf(size).toString(Charsets.UTF_8)) as? JsonObject
-        ?: throw IllegalArgumentException("Invalid grant JSON")
-    require(fields.keys.containsAll(setOf("memberId", "capability", "scope")) &&
-        fields.keys.all { it in setOf("memberId", "capability", "scope", "teamId") })
-    return fields
-}
+private suspend fun ApplicationCall.readGrantBody(): JsonObject = receiveJsonObject(
+    required = setOf("memberId", "capability", "scope"), optional = setOf("teamId"))
 
-private fun JsonObject.requiredString(key: String): String {
-    val value = this[key] as? JsonPrimitive ?: throw IllegalArgumentException("Missing field")
-    require(value.isString)
-    return value.content
-}
 
 private suspend fun ApplicationCall.grantActor(
     sessions: BrowserSessionOperations,

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
-
-type Member = { id: string; firstName: string; lastName: string }
-type Page = { items: Member[]; nextCursor?: string }
+import { fetchMemberPage, type Member } from './members'
+import { changeAssignment, readRoster } from './teams'
 
 const words = {
   de: { roster: 'Teammitglieder', search: 'Mitglied suchen', find: 'Suchen', add: 'Zuweisen', remove: 'Entfernen', empty: 'Keine Zuweisungen.', more: 'Weitere Mitglieder', error: 'Teamzuweisung fehlgeschlagen.', retry: 'Erneut versuchen', loading: 'Teammitglieder werden geladen…' },
@@ -29,24 +28,15 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
   const [revision, setRevision] = useState(0)
   const candidateRequest = useRef<AbortController | null>(null)
   const rosterRequest = useRef<AbortController | null>(null)
-  const endpoint = '/api/v1/teams/' + encodeURIComponent(teamId) + '/members'
 
   const load = useCallback(async (next?: string) => {
     rosterRequest.current?.abort()
     const controller = new AbortController()
     rosterRequest.current = controller
     try {
-      const args = new URLSearchParams({ limit: '20' })
-      if (next) args.set('cursor', next)
-      const response = await fetch(endpoint + '?' + args, {
-        credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
-      })
+      const page = await readRoster(teamId, next, controller.signal)
       if (controller.signal.aborted) return
-      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
-      if (!response.ok) throw new Error('Unavailable')
-      const page: Page = await response.json()
-      if (controller.signal.aborted) return
-      if (!Array.isArray(page.items)) throw new Error('Invalid roster')
+      if (page === 'denied') { setDenied(true); return }
       setMembers(previous => next ? [...(previous ?? []), ...page.items] : page.items)
       setCursor(page.nextCursor)
       setError(false)
@@ -58,7 +48,7 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
     } finally {
       if (rosterRequest.current === controller) rosterRequest.current = null
     }
-  }, [endpoint])
+  }, [teamId])
 
   useEffect(() => {
     void load()
@@ -75,16 +65,9 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
     setCandidates([])
     setSelected('')
     try {
-      const args = new URLSearchParams({ q: search, limit: '20' })
-      const response = await fetch('/api/v1/members?' + args, {
-        credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
-      })
+      const page = await fetchMemberPage(search, undefined, controller.signal)
       if (controller.signal.aborted) return
-      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
-      if (!response.ok) throw new Error('Member search unavailable')
-      const page: Page = await response.json()
-      if (controller.signal.aborted) return
-      if (!Array.isArray(page.items)) throw new Error('Invalid search')
+      if (page === 'denied') { setDenied(true); return }
       setCandidates(page.items)
       setSelected(page.items[0]?.id ?? '')
     } catch {
@@ -98,13 +81,7 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
     setBusy(true)
     setError(false)
     try {
-      const response = await fetch(endpoint + '/' + encodeURIComponent(memberId), {
-        method,
-        credentials: 'same-origin',
-        headers: { 'X-CSRF-Token': csrfToken },
-      })
-      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
-      if (!response.ok) throw new Error('Assignment rejected')
+      if (await changeAssignment(teamId, memberId, method, csrfToken) === 'denied') { setDenied(true); return }
       setMembers(null)
       setRevision(value => value + 1)
       onChanged()

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { capabilities, capabilityChoices, capabilityForScope, fetchGrants, grantChange } from './grants'
+import { capabilities, capabilityChoices, capabilityForScope, fetchGrants, grantChange, probeGrantAccess } from './grants'
 
 describe('grant scope rules', () => {
   it('offers only team capabilities at team scope', () => {
@@ -31,5 +31,14 @@ describe('grant reads', () => {
     const items = [{ capability: 'VIEW_TEAMS', scope: 'TEAM', teamId: 't1' }]
     const request = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ items }) })
     expect(await fetchGrants('m1', undefined, request)).toEqual({ items })
+  })
+})
+
+describe('grant access probe', () => {
+  it('distinguishes allowed, denied and unavailable', async () => {
+    expect(await probeGrantAccess(vi.fn().mockResolvedValue({ ok: true, status: 200 }))).toBe('allowed')
+    expect(await probeGrantAccess(vi.fn().mockResolvedValue({ ok: false, status: 403 }))).toBe('denied')
+    expect(await probeGrantAccess(vi.fn().mockResolvedValue({ ok: false, status: 401 }))).toBe('denied')
+    await expect(probeGrantAccess(vi.fn().mockResolvedValue({ ok: false, status: 503 }))).rejects.toThrow()
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { isAdultAge, parseAdultAge, saveAdultAge } from './policy'
+import { isAdultAge, parseAdultAge, saveAdultAge, saveClubName, saveGenderPolicy } from './policy'
 
 describe('adult age bounds', () => {
   it('accepts only whole numbers from 13 to 25', () => {
@@ -33,5 +33,23 @@ describe('saveAdultAge', () => {
       expect(await saveAdultAge(16, csrf, vi.fn().mockResolvedValue({ ok: false, status }))).toBe(result)
     }
     expect(await saveAdultAge(16, csrf, vi.fn().mockRejectedValue(new Error('offline')))).toBe('error')
+  })
+})
+
+describe('club settings writes', () => {
+  const csrf = 'x'.repeat(43)
+
+  it('patches the club name and the player-gender policy with CSRF', async () => {
+    const request = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    expect(await saveClubName('New Club', csrf, request)).toBe('ok')
+    expect(await saveGenderPolicy(true, csrf, request)).toBe('ok')
+    expect(request.mock.calls[0]).toEqual(['/api/v1/club', expect.objectContaining({ method: 'PATCH', body: '{"name":"New Club"}' })])
+    expect(request.mock.calls[1]).toEqual(['/api/v1/club/player-gender-policy',
+      expect.objectContaining({ method: 'PATCH', body: '{"genderRequiredForPlayers":true}' })])
+  })
+
+  it('surfaces the policy conflict distinctly from denial', async () => {
+    expect(await saveGenderPolicy(true, csrf, vi.fn().mockResolvedValue({ ok: false, status: 409 }))).toBe('conflict')
+    expect(await saveGenderPolicy(true, csrf, vi.fn().mockResolvedValue({ ok: false, status: 403 }))).toBe('forbidden')
   })
 })

@@ -7,14 +7,10 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
-import io.ktor.server.request.receiveChannel
 import io.ktor.server.routing.post
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.patch
-import io.ktor.utils.io.readAvailable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import org.jooq.exception.DataAccessException
 import org.jooq.impl.DSL
 import io.ktor.server.routing.get
@@ -29,6 +25,8 @@ import org.openclub.api.database.DatabaseRuntime
 import java.util.UUID
 import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
+import org.openclub.api.receiveJsonObject
+import org.openclub.api.requiredString
 
 /** Team names/counts are private, and are never returned without a verified team grant. */
 internal fun Application.installTeamHttpRoutes(
@@ -221,22 +219,5 @@ internal fun Application.installTeamHttpRoutes(
 }
 
 /** Single strict name-only body shared by team create and rename. */
-private suspend fun ApplicationCall.readTeamName(): String {
-    require(request.headers.getAll(HttpHeaders.ContentType)?.singleOrNull()?.let {
-        ContentType.parse(it).withoutParameters() == ContentType.Application.Json
-    } == true)
-    val channel = receiveChannel()
-    val bytes = ByteArray(4097)
-    var size = 0
-    while (size < bytes.size) {
-        val count = channel.readAvailable(bytes, size, bytes.size - size)
-        if (count == -1) break
-        size += count
-    }
-    require(size <= 4096)
-    val fields = Json.parseToJsonElement(bytes.copyOf(size).toString(Charsets.UTF_8)) as? JsonObject
-        ?: throw IllegalArgumentException("Invalid team JSON")
-    require(fields.keys == setOf("name"))
-    return (fields["name"] as? JsonPrimitive)?.let { require(it.isString); it.content }
-        ?: throw IllegalArgumentException("Missing team name")
-}
+private suspend fun ApplicationCall.readTeamName(): String =
+    receiveJsonObject(required = setOf("name")).requiredString("name")

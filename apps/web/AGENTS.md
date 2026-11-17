@@ -10,5 +10,5 @@ Read root `AGENTS.md` and ADR-0001 first.
 - Never trust the client to enforce club permissions: the backend is authoritative.
 - Handle loading, error and empty states when user-facing behavior requires them.
 - Test critical interactions and avoid snapshots that only duplicate implementation details.
-- Keep request, validation and denial handling for admin panels in plain modules that take `fetch` as a parameter (`api.ts`, `auth.ts`, `members.ts`, `grants.ts`) and unit-test them with Vitest. There is no DOM test environment: rendered interactions are covered by the Playwright browser suites in `dev/auth-e2e`.
+- Keep request, validation and denial handling for admin panels in plain modules that take `fetch` as a parameter (`api.ts`, `auth.ts`, `members.ts`, `grants.ts`, `roles.ts`, `teams.ts`, `policy.ts`, `publicMembers.ts`). Components should not call `fetch` directly; use `sendJson`/`writeJson`/`readItems` from `api.ts` and unit-test them with Vitest. There is no DOM test environment: rendered interactions are covered by the Playwright browser suites in `dev/auth-e2e`.
 - Do not add CSS/UI dependencies for trivial layout or controls.

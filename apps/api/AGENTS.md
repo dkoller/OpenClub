@@ -4,6 +4,8 @@ Read root `AGENTS.md` and ADR-0001 first.
 
 - Kotlin + Ktor; PostgreSQL; **jOOQ is mandatory** for database access; use Flyway migrations.
 - Use jOOQ's **plain-SQL API with `?` bind parameters**; feature code does not use generated classes (see the ADR-0001 2026-11-17 amendment). Never interpolate request input into SQL.
+- Read JSON request bodies only through `receiveJsonObject` (`JsonRequestBodies.kt`): it enforces content type, the 4 KiB limit, an object body and the exact allowed key set. All violations map to 400. Keep its database-free tests in `JsonRequestBodiesTest`.
+- Keep operator CLI input checks in functions that take the environment as a map (`bootstrapInput`, `recoveryInput`) so they are tested without a database.
 - Use `members/ActorSql.kt` for the actor-authorization predicate (active member + current verified identity + capability) instead of copying it into new queries.
 - Do not introduce Hibernate/JPA or Exposed as an alternative persistence layer.
 - Keep jOOQ code and generated database records out of public API DTOs.

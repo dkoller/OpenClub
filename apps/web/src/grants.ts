@@ -24,3 +24,12 @@ export function grantChange(capability: Capability, scope: Scope, teamId: string
 export function fetchGrants(memberId: string, signal?: AbortSignal, request: typeof fetch = fetch) {
   return readItems<Grant>('/api/v1/grants?memberId=' + encodeURIComponent(memberId), signal, request)
 }
+
+/** Probes grant-management access with a nil member ID; 'denied' for 401/403, throws on other failures. */
+export async function probeGrantAccess(request: typeof fetch = fetch): Promise<'allowed' | 'denied'> {
+  const response = await request('/api/v1/grants?memberId=00000000-0000-0000-0000-000000000000',
+    { credentials: 'same-origin', cache: 'no-store' })
+  if (response.status === 401 || response.status === 403) return 'denied'
+  if (!response.ok) throw new Error('Grant access unavailable')
+  return 'allowed'
+}
