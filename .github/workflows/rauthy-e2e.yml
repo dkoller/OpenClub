@@ -119,7 +119,7 @@ jobs:
           echo "OPENCLUB_RAUTHY_OTP_PASSWORD=$otp_password" >> "$GITHUB_ENV"
           # This disposable admin credential is scoped to user read/delete.
           # Extract only from the encrypted provider-local bootstrap container.
-          recovery_key="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \\
+          recovery_key="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
             -c /app/config-local-test.toml --kind api-key --id recovery-ci --field token --format raw)"
           [[ "$recovery_key" == recovery-ci\$* && "${#recovery_key}" -ge 76 ]] ||
             { echo 'Synthetic recovery API key unavailable' >&2; exit 1; }
