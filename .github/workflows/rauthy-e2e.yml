@@ -75,17 +75,6 @@ jobs:
             echo 'Disposable Rauthy not ready' >&2
             exit 1
           fi
-      - name: Trust only the disposable Rauthy HTTPS certificate for the JVM
-        shell: bash
-        run: |
-          set -euo pipefail
-          # The application TLS client is not insecure: import only this
-          # generated loopback certificate into a fresh throwaway truststore.
-          openssl s_client -connect localhost:8443 -servername localhost </dev/null 2>/dev/null |
-            openssl x509 -out "$RUNNER_TEMP/rauthy-local.pem"
-          keytool -importcert -noprompt -alias rauthy-local -file "$RUNNER_TEMP/rauthy-local.pem" \
-            -keystore "$RUNNER_TEMP/rauthy-local.p12" -storepass disposable-local-truststore
-          echo "JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStore=$RUNNER_TEMP/rauthy-local.p12 -Djavax.net.ssl.trustStorePassword=disposable-local-truststore" >> "$GITHUB_ENV"
       - name: Obtain synthetic confidential client and user credentials
         shell: bash
         run: |
@@ -101,6 +90,44 @@ jobs:
           echo "::add-mask::$user_password"
           echo "OPENCLUB_OIDC_CLIENT_SECRET=$client_secret" >> "$GITHUB_ENV"
           echo "OPENCLUB_RAUTHY_E2E_USER_PASSWORD=$user_password" >> "$GITHUB_ENV"
+      - name: Verify provider restart preserves signing keys and login credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          overlay=(docker compose -f compose.yaml -f compose.rauthy.eval.yaml)
+          # Capture only a hash of the public JWKS; do not print any credentials.
+          jwks_before="$(curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/oidc/certs | jq -S -c . | sha256sum | cut -d' ' -f1)"
+          "${overlay[@]}" restart rauthy >/dev/null
+          ready=false
+          for attempt in {1..60}; do
+            if curl --fail --silent --insecure --max-time 3 \
+              https://localhost:8443/.well-known/openid-configuration -o /dev/null 2>/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          [[ "$ready" == true ]] || { echo 'Rauthy failed to restart' >&2; exit 1; }
+          jwks_after="$(curl --fail --silent --insecure --max-time 5 https://localhost:8443/auth/v1/oidc/certs | jq -S -c . | sha256sum | cut -d' ' -f1)"
+          [[ "$jwks_before" == "$jwks_after" ]] || { echo 'Rauthy signing keys changed on restart' >&2; exit 1; }
+          client_after="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+            -c /app/config-local-test.toml --kind client --id openclub-rauthy-https-ci --field secret --format raw)"
+          user_after="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+            -c /app/config-local-test.toml --kind user --id openclub-rauthy-ci@example.invalid --field password --format raw)"
+          [[ "$client_after" == "$OPENCLUB_OIDC_CLIENT_SECRET" && "$user_after" == "$OPENCLUB_RAUTHY_E2E_USER_PASSWORD" ]] ||
+            { echo 'Synthetic Rauthy credentials changed on restart' >&2; exit 1; }
+          echo 'Rauthy keys and credentials persisted across restart; browser acceptance follows.'
+      - name: Trust only the disposable Rauthy HTTPS certificate for the JVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The application TLS client is not insecure: import only this
+          # generated loopback certificate into a fresh throwaway truststore.
+          openssl s_client -connect localhost:8443 -servername localhost </dev/null 2>/dev/null |
+            openssl x509 -out "$RUNNER_TEMP/rauthy-local.pem"
+          keytool -importcert -noprompt -alias rauthy-local -file "$RUNNER_TEMP/rauthy-local.pem" \
+            -keystore "$RUNNER_TEMP/rauthy-local.p12" -storepass disposable-local-truststore
+          echo "JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStore=$RUNNER_TEMP/rauthy-local.p12 -Djavax.net.ssl.trustStorePassword=disposable-local-truststore" >> "$GITHUB_ENV"
       - name: Build and start Ktor with real TLS-verified Rauthy OIDC
         shell: bash
         working-directory: apps/api

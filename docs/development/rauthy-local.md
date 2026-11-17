@@ -82,6 +82,19 @@ remain open under #279.
 The existing Keycloak dev overlay and all Keycloak browser checks remain
 supported, are neither removed nor replaced, and must continue passing.
 
+## Restart persistence before real HTTPS browser login
+
+The Rauthy Chromium workflow now restarts the disposable provider **after**
+bootstrap and credential retrieval but **before** Kotlin startup and all
+password/passkey browser tests. It compares the SHA-256 digest of public JWKS
+before and after restart and verifies that the synthetic confidential-client
+secret and synthetic user's generated password remain identical. The checks
+fail closed and never print or archive those secret values. This adds a
+real-browser interoperability check *after* provider restart, rather than only
+a metadata-only Compose restart smoke. The restart keeps the existing local
+named volume; it is **not** a proof of independent backup restore, active
+session continuity across an outage, or production key rotation.
+
 ## Secure HTTPS loopback configuration for the next login test
 
 OpenClub now permits **matching HTTPS issuer and HTTPS callback** in
