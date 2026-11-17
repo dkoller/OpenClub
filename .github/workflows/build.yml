@@ -85,6 +85,8 @@ jobs:
                 # No generated Kotlin/TS clients consume them yet, so do not
                 # rebuild API and web for contract-only documentation PRs.
                 docs/contracts/*) ;;
+                # Rauthy-only browser spec changes are covered by rauthy-e2e.yml.
+                dev/auth-e2e/rauthy-*.spec.js) ;;
                 docs/*|README.md|.gitignore|AGENTS.md|apps/api/AGENTS.md|apps/web/AGENTS.md|.github/pull_request_template.md|.github/workflows/pr-size.yml) ;;
                 apps/api/*)
                   api=true
