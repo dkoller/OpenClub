@@ -2,6 +2,8 @@
 
 **Decision:** 2026-11-15. **Current operations status 2026-11-17 (through merged #298):** One-club synthetic pre-production application with local Compose, optional Caddy HTTPS/OIDC reference configuration, and browser/API CI. **No operator-hosted external TLS/OIDC demo or live-member-data authorization exists.**
 
+**M1 synthetic deployment evidence:** [Resource sampling and external acceptance checklist](m1-resource-evidence.md) distinguishes read-only three-sample CI resource observations from host-level peak usage, 4 GB sizing and the still-unperformed real external HTTPS/OIDC/browser demonstration. The external read-only probe supports either Keycloak issuer-relative discovery or Rauthy origin-root discovery on 404, always with valid TLS and exact issuer verification. No hosting, live-data or production approval is implied.
+
 Each club runs an independent application process (API + web), PostgreSQL database, application configuration and backups. The same MIT-licensed source can serve any club; never share a PostgreSQL database or schema, session cookie secret, OIDC client configuration or member records across installations.
 
 ## Start for development
