@@ -2,10 +2,27 @@
 # DO NOT use LOCAL_TEST or self-signed TLS for public/production deployments.
 # Existing compose.auth.dev.yaml Keycloak integration stays supported unchanged.
 services:
+  mailpit:
+    image: axllent/mailpit:v1.27.9
+    ports:
+      - "127.0.0.1:8025:8025"
+    restart: "no"
   rauthy:
+    depends_on:
+      - mailpit
     image: ghcr.io/sebadob/rauthy:0.37.2
     environment:
       LOCAL_TEST: "true"
+      # Disposable local SMTP only; never use plaintext SMTP externally.
+      SMTP_URL: mailpit
+      SMTP_PORT: "1025"
+      SMTP_TLS_MODE: danger-insecure
+      SMTP_FROM: "OpenClub Test <noreply@example.invalid>"
+      OTP_ENABLE: "true"
+      OTP_EMAIL_ENABLE: "true"
+      OTP_RENEW_EXP: "0"
+      # Accelerated real Rauthy rotation only in the disposable test overlay.
+      JWK_AUTOROTATE_CRON: "0 * * * * * *"
       BOOTSTRAP_DIR: /app/bootstrap
       # Synthetic virtual authenticator tests require discoverable credentials.
       # Never mandate resident keys on real hardware by copying this overlay.
