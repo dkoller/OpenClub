@@ -149,13 +149,26 @@ if [[ "$remaining_auth" != 0 ]]; then
   echo "Restore left active sessions or unfinished OIDC login transactions" >&2
   exit 1
 fi
-# A recovered database is only useful if OpenClub can boot against it.
-# This starts the real API using the restored Flyway history, not a mock check.
-docker compose -p "$restore_project" up -d --build --wait --wait-timeout 180 api
+# A recovered database is only useful if the real API/web become ready
+# against its restored Flyway history (liveness alone does not check PostgreSQL).
+docker compose -p "$restore_project" up -d --build --wait --wait-timeout 180 api web
 api_health="$(docker compose -p "$restore_project" exec -T api \
   wget -q -O - http://127.0.0.1:8080/health)"
 if [[ "$api_health" != '{"status":"ok"}' ]]; then
   echo "API did not start successfully against the restored database" >&2
   exit 1
 fi
-echo "Synthetic backup, restore, data integrity and API startup verified."
+api_ready="$(docker compose -p "$restore_project" exec -T api \
+  wget -q -O - http://127.0.0.1:8080/ready)"
+if [[ "$api_ready" != '{"status":"ready"}' ]]; then
+  echo "Recovered API/database did not become ready" >&2
+  exit 1
+fi
+# The browser-facing proxy is part of the recoverable user workflow.
+web_ready="$(docker compose -p "$restore_project" exec -T web \
+  wget -q -O - http://127.0.0.1/api/ready)"
+if [[ "$web_ready" != '{"status":"ready"}' ]]; then
+  echo "Recovered web proxy did not reach the ready API" >&2
+  exit 1
+fi
+echo "Synthetic backup, restore, data integrity, API readiness and web proxy verified."
