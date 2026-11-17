@@ -15,8 +15,13 @@ async function mailCode(request) {
     const details = await request.get(`${inbox}/api/v1/message/${encodeURIComponent(entry.ID)}`);
     if (!details.ok()) continue;
     const message = await details.json();
-    const code = `${message.Text ?? ''} ${message.HTML ?? ''}`.match(/\b\d{6}\b/)?.[0];
-    if (code) return code;
+    const body = `${message.Text ?? ''} ${(message.HTML ?? '').replace(/<[^>]+>/g, ' ')}`
+      .replace(/&nbsp;|&#160;/gi, ' ').replace(/\\s+/g, ' ');
+    // Rauthy may format six digits in groups (e.g. 123 456). Match near
+    // the OTP label first and normalize separators before submission.
+    const match = body.match(/(?:otp|code|one.time password)\\D{0,80}?(\\d(?:[ -]?\\d){5})(?!\\d)/i)
+      ?? body.match(/(?<!\\d)(\\d(?:[ -]?\\d){5})(?!\\d)/);
+    if (match) return match[1].replace(/\\D/g, '');
   }
   return null;
 }
