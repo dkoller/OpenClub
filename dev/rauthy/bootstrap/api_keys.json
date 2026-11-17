@@ -1,0 +1,16 @@
+[
+  {
+    "name": "recovery-ci",
+    "exp": null,
+    "secret": "generate",
+    "access": [
+      {
+        "group": "Users",
+        "access_rights": [
+          "read",
+          "delete"
+        ]
+      }
+    ]
+  }
+]
