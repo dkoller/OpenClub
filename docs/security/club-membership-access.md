@@ -56,6 +56,10 @@ The actor cannot modify their **own grants**, preventing self-escalation and acc
 
 This is a **backend-only security foundation**. No role-change HTTP endpoint, admin UI or audit ledger exists. Full authorization, exact Origin/CSRF, reviewable API contract, privacy and concurrent unlink/archive/delete guards are still needed before exposing member role management. Direct privileged SQL bypasses these service invariants and must remain operator-restricted.
 
+## Historical implementation milestones (not current HTTP availability)
+
+The sections below preserve the incremental internal-service design and its original security constraints. Statements such as “No Ktor route”, “no HTTP route” and “club settings are not yet editable through HTTP” refer to the date of those individual implementation slices. **Current synthetic member creation, name-only PATCH, archive, club-name PATCH and player-gender settings have secured HTTP/DE/EN/FR/IT UI flows.** Full private-details replacement, adult-age policy changes, retention and real-data approval remain outstanding; see [R04 contract review](../contracts/contract-review.md), [roadmap](../roadmap.md) and [#12](https://github.com/dkoller/OpenClub/issues/12).
+
 ## Accountless member creation foundation (#18)
 
 `MemberCreation.create(verifiedSessionAccountId, input)` is an **internal-only** jOOQ operation that creates an installation-local member with a generated UUID and **no linked account**. It authorizes the acting account using an explicit, current club-wide `EDIT_MEMBERS` grant **inside the INSERT ... SELECT**; unlinked or ungranted accounts insert nothing. No club ID, OIDC account, identity binding, role or capability can be supplied through the input. Duplicate names are permitted because they are not a trustworthy identity key.
