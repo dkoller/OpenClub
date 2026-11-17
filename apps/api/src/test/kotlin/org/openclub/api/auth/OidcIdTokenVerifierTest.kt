@@ -158,6 +158,37 @@ class OidcIdTokenVerifierTest {
     }
 
     @Test
+    fun rotatedIssuerKeyVerifiesOnlyAfterTrustedRefresh() {
+        // OpenClub pins the issuer and refreshes its JWKS when an unfamiliar kid
+        // appears. Neither a key header nor an alternate issuer can select trust.
+        val replacement = RSAKeyGenerator(2048).keyID("rotated").generate()
+        var refreshes = 0
+        val keys = OidcSigningKeys(JWKSet(key.toPublicJWK()), {
+            refreshes++
+            JWKSet(listOf(key.toPublicJWK(), replacement.toPublicJWK()))
+        })
+        val current = signed()
+        val rotated = signed(signingKey = replacement)
+
+        assertEquals(VerifiedOidcIdentity(issuer, "provider-subject"),
+            OidcIdTokenVerifier(settings(), keys.forToken(current)).verify(current, nonce))
+        assertEquals(VerifiedOidcIdentity(issuer, "provider-subject"),
+            OidcIdTokenVerifier(settings(), keys.forToken(rotated)).verify(rotated, nonce))
+        assertEquals(1, refreshes)
+        assertThrows(Exception::class.java) {
+            OidcIdTokenVerifier(settings(), keys.forToken(rotated))
+                .verify(signed(claims(tokenIssuer = "https://untrusted.example"), signingKey = replacement), nonce)
+        }
+    }
+
+    private fun settings() = OidcSettings(
+        URI(issuer),
+        URI("$issuer/protocol/openid-connect/auth"),
+        clientId,
+        URI("https://app.example/api/v1/auth/callback"),
+    )
+
+    @Test
     fun rejectsEmptyTrustedKeySet() {
         assertThrows(IllegalArgumentException::class.java) {
             OidcIdTokenVerifier(

@@ -252,6 +252,36 @@ jobs:
             exit 1
           fi
           pnpm exec playwright test --config rauthy.playwright.config.js
+      - name: Verify provider outage cannot create an OpenClub session
+        shell: bash
+        run: |
+          set -euo pipefail
+          overlay=(docker compose -f compose.yaml -f compose.rauthy.eval.yaml)
+          "${overlay[@]}" stop rauthy >/dev/null
+          # The OpenClub process must remain healthy despite the absent
+          # issuer. New authentication cannot complete without the provider.
+          curl --fail --silent --show-error --max-time 3 http://localhost:8080/health -o /dev/null
+          if curl --silent --insecure --max-time 2 \
+            https://localhost:8443/.well-known/openid-configuration -o /dev/null; then
+            echo 'Rauthy is unexpectedly available after stop' >&2
+            exit 1
+          fi
+          origin=https://localhost:5443
+          status="$(curl --silent --insecure --max-time 3 -o /dev/null -w '%{http_code}' "$origin/api/v1/auth/me")"
+          [[ "$status" == 401 ]] || { echo 'Unauthenticated session created during outage' >&2; exit 1; }
+          # A login may generate a redirect transaction even while the issuer
+          # is offline; that must never by itself produce a valid app session.
+          headers="$(curl --silent --insecure --max-time 3 -D - -o /dev/null "$origin/api/v1/auth/login")"
+          redirect="$(printf '%s\n' "$headers" | tr -d '\r' | sed -n -E 's/^[Ll]ocation: (.*)$/\1/p' | head -n 1)"
+          [[ "$headers" == *" 302 "* && "$redirect" == https://localhost:8443/auth/v1/* ]] ||
+            { echo 'Unexpected OIDC authorization redirect during outage' >&2; exit 1; }
+          if curl --silent --insecure --max-time 2 "$redirect" -o /dev/null; then
+            echo 'Unexpectedly reached stopped identity provider' >&2
+            exit 1
+          fi
+          status="$(curl --silent --insecure --max-time 3 -o /dev/null -w '%{http_code}' "$origin/api/v1/auth/me")"
+          [[ "$status" == 401 ]] || { echo 'Offline issuer granted an OpenClub session' >&2; exit 1; }
+          echo 'During issuer outage the app stays healthy and rejects new sessions.'
       # Never upload browser traces, storage states, API logs, certificates or
       # Rauthy first-boot logs: they may contain authentication material.
       - name: Clean up local HTTPS proxy and disposable identity stack
