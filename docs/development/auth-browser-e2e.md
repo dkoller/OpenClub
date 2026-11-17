@@ -1,5 +1,7 @@
 # Real Keycloak browser authentication test
 
+**Additional M1 keyboard/locale acceptance (2026-11-17):** The existing synthetic Keycloak/Chromium administrator journey now checks keyboard-only member search in DE/EN/FR/IT (localized accessible name, Tab focus order and Enter submission) and keyboard cancellation of the named per-member archive confirmation. This is focused browser evidence, not a full WCAG or assistive-technology audit; no real member data is used.
+
 This R05 test uses the session-endpoint implementation merged in PR #65:
 `GET /api/v1/auth/me` and Origin/CSRF-protected JSON `POST /api/v1/auth/logout`.
 The test intentionally fails on missing endpoints; it never skips them or mocks
