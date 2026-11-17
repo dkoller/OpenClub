@@ -8,13 +8,17 @@ async function mailCode(request) {
   const res = await request.get(`${inbox}/api/v1/messages`);
   if (!res.ok()) return null;
   const list = await res.json();
-  if (!list.messages?.some(message => JSON.stringify(message.To).includes(email))) return null;
-  const newest = list.messages.find(message => message.To?.some(to => to.Address === email));
-  if (!newest) return null;
-  const details = await request.get(`${inbox}/api/v1/message/${encodeURIComponent(newest.ID)}`);
-  if (!details.ok()) return null;
-  const message = await details.json();
-  return (message.Text ?? '').match(/\b\d{6}\b/)?.[0] ?? null;
+  // Mailpit may store the provider's OTP email as HTML rather than plain
+  // text; inspect both without logging either representation.
+  for (const entry of list.messages ?? []) {
+    if (!JSON.stringify(entry.To ?? '').includes(email)) continue;
+    const details = await request.get(`${inbox}/api/v1/message/${encodeURIComponent(entry.ID)}`);
+    if (!details.ok()) continue;
+    const message = await details.json();
+    const code = `${message.Text ?? ''} ${message.HTML ?? ''}`.match(/\b\d{6}\b/)?.[0];
+    if (code) return code;
+  }
+  return null;
 }
 
 test('Rauthy registers email OTP and verifies password plus delivered OTP before OpenClub session', async ({ page, context }) => {
