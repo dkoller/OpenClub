@@ -22,10 +22,8 @@ internal class MemberRoles(private val database: DSLContext) {
             val actor = db.fetchOne(
                 """SELECT m.id FROM members m
                    JOIN club_capability_grants g ON g.member_id = m.id
-                   WHERE m.account_id = ? AND m.role = 'ADMIN' AND m.archived_at IS NULL
-                     AND g.capability = 'MANAGE_PERMISSIONS'
-                     AND EXISTS (SELECT 1 FROM account_identities ai
-                                 WHERE ai.account_id = m.account_id)""",
+                   WHERE m.account_id = ? AND m.role = 'ADMIN' AND ${ActorSql.activeVerified("m")}
+                     AND g.capability = 'MANAGE_PERMISSIONS'""",
                 actorAccountId,
             )?.get("id", UUID::class.java) ?: return@transactionResult Change.DENIED
             // Even a permission manager cannot demote or promote themself.
@@ -42,18 +40,14 @@ internal class MemberRoles(private val database: DSLContext) {
                 val managers = db.fetchValue(
                     """SELECT COUNT(*) FROM members m
                        JOIN club_capability_grants g ON g.member_id = m.id
-                       WHERE m.role = 'ADMIN' AND m.archived_at IS NULL
-                         AND g.capability = 'MANAGE_PERMISSIONS'
-                         AND EXISTS (SELECT 1 FROM account_identities ai
-                                     WHERE ai.account_id = m.account_id)""",
+                       WHERE m.role = 'ADMIN' AND ${ActorSql.activeVerified("m")}
+                         AND g.capability = 'MANAGE_PERMISSIONS'""",
                 )?.toString()?.toLongOrNull() ?: error("Cannot count permission managers")
                 val targetManagesPermissions = db.fetchOne(
                     """SELECT 1 FROM club_capability_grants g
                        JOIN members m ON m.id = g.member_id
-                       WHERE g.member_id = ? AND m.archived_at IS NULL
-                         AND g.capability = 'MANAGE_PERMISSIONS'
-                         AND EXISTS (SELECT 1 FROM account_identities ai
-                                     WHERE ai.account_id = m.account_id)""",
+                       WHERE g.member_id = ? AND ${ActorSql.activeVerified("m")}
+                         AND g.capability = 'MANAGE_PERMISSIONS'""",
                     targetMemberId,
                 ) != null
                 if (admins <= 1 || (targetManagesPermissions && managers <= 1)) {

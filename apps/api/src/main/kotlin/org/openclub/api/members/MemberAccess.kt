@@ -13,9 +13,7 @@ internal class MemberAccess(private val database: DSLContext) {
     fun authorizedClubId(accountId: UUID): UUID? =
         database.fetchOne(
             """SELECT c.id FROM clubs c
-               JOIN members m ON m.account_id = ? AND m.archived_at IS NULL
-                   AND EXISTS (SELECT 1 FROM account_identities identity
-                               WHERE identity.account_id = m.account_id)""",
+               JOIN members m ON m.account_id = ? AND ${ActorSql.activeVerified("m")}""",
             accountId,
         )?.get("id", UUID::class.java)
 }

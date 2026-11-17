@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
-
-type Member = { id: string; firstName: string; lastName: string }
-type Page = { items: Member[]; nextCursor?: string }
+import { writeJson } from './api'
+import { fetchMemberPage, memberCreateBody, type Member } from './members'
 
 const strings = {
   de: { heading: 'Mitglieder verwalten', search: 'Name suchen', find: 'Suchen', loading: 'Mitglieder werden geladen…', denied: 'Keine Berechtigung zur Mitgliederverwaltung.', unavailable: 'Mitgliederverwaltung nicht verfügbar.', retry: 'Erneut versuchen', first: 'Vorname', last: 'Nachname', dob: 'Geburtsdatum', email: 'E-Mail', phone: 'Telefon', create: 'Mitglied hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', archive: 'Archivieren', more: 'Weitere Mitglieder', saved: 'Mitglied aktualisiert.', empty: 'Keine Mitglieder gefunden.', problem: 'Aktion fehlgeschlagen.', player: 'Spieler', gender: 'Geschlecht (Freitext)', policy: 'Für Spieler in diesem Verein erforderlich.', adultContacts: 'Für Erwachsene sind E-Mail und Telefonnummer erforderlich; für Minderjährige sind beide freiwillig.', confirmArchive: 'Mitglied wirklich archivieren?', confirm: 'Archivierung bestätigen' },
@@ -42,17 +41,9 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
     setLoadingPage(true)
     setFailedPage(null)
     try {
-      const args = new URLSearchParams({ q, limit: '20' })
-      if (next) args.set('cursor', next)
-      const response = await fetch('/api/v1/members?' + args, {
-        credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
-      })
+      const page = await fetchMemberPage(q, next, controller.signal)
       if (controller.signal.aborted) return
-      if ((response.status === 401 || response.status === 403)) { setDenied(true); return }
-      if (!response.ok) throw new Error('Search failed')
-      const page: Page = await response.json()
-      if (controller.signal.aborted) return
-      if (!Array.isArray(page.items)) throw new Error('Invalid directory')
+      if (page === 'denied') { setDenied(true); return }
       setItems(previous => next ? [...(previous ?? []), ...page.items] : page.items)
       setCursor(page.nextCursor)
       setFailedPage(null)
@@ -75,18 +66,12 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
     return () => activeLoad.current?.abort()
   }, []) // Refresh after each write, search or language change below.
 
-  async function mutation(path: string, method: string, body?: object) {
+  async function mutation(path: string, method: 'POST' | 'PATCH', body?: object) {
     setBusy(true)
     setFailure(null)
     try {
-      const response = await fetch(path, {
-        method,
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        ...(body ? { body: JSON.stringify(body) } : {}),
-      })
-      if (!response.ok) {
-        if ((response.status === 401 || response.status === 403)) setDenied(true)
+      if (await writeJson(path, method, csrfToken, body) === 'denied') {
+        setDenied(true)
         throw new Error('Request rejected')
       }
       setEditing(null)
@@ -165,11 +150,9 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
       {cursor && <button type="button" disabled={busy || loadingPage || !!failure} onClick={() => { void load(query, cursor) }}>{t.more}</button>}
       <form onSubmit={event => {
         event.preventDefault()
-        void mutation('/api/v1/members', 'POST', {
-          firstName: first, lastName: last, dateOfBirth: dob,
-          ...(email ? { email } : {}), ...(phone ? { phone } : {}),
-          isPlayer, ...(isPlayer && gender.trim() ? { gender: gender.trim() } : {}),
-        })
+        void mutation('/api/v1/members', 'POST', memberCreateBody({
+          firstName: first, lastName: last, dateOfBirth: dob, email, phone, isPlayer, gender,
+        }))
       }}>
         <label>{t.first}<input value={first} required maxLength={200} onChange={e => setFirst(e.target.value)} /></label>
         <label>{t.last}<input value={last} required maxLength={200} onChange={e => setLast(e.target.value)} /></label>

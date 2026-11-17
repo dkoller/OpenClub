@@ -84,3 +84,15 @@ Exposed, Hibernate/JPA and other ORM approaches were considered in general terms
 ## Implementation status (2026-11-14; historical decision retained)
 
 The implementation now uses a **GitHub Actions PostgreSQL service** for integration tests (see `.github/workflows/build.yml` and `apps/api/src/test`). **Testcontainers has not been adopted**; it is an optional future alternative, not a prerequisite for the current build. The repo also includes a Gradle wrapper, pnpm lockfile, a Compose smoke workflow and a draft (not yet approved) OpenAPI contract. See [roadmap](../roadmap.md) for current status. Keep this implementation note aligned with CI if database test infrastructure changes.
+
+## Amendment: plain-SQL jOOQ access (2026-11-17, accepted by the repository owner)
+
+**Context.** Every backend query on `main` uses jOOQ's plain-SQL API (`DSLContext.execute`/`fetch`/`fetchOne` with `?` bind parameters). The `generateJooq` task runs in CI against the migrated PostgreSQL service, but no feature code references the generated classes. That is deliberate in practice: the API Docker image and `docker compose up --build` compile the backend **without a database**, so feature code that depended on generated sources would break the one-command build.
+
+**Decision.** For M1, OpenClub keeps jOOQ (still the only persistence layer; no ORM) and uses its **plain-SQL API with bind parameters** as the accepted database access style. The "type-safe SQL" rationale above is therefore only partly realised, and this is now recorded rather than implied.
+
+- Never concatenate request input into SQL. Interpolate only compile-time fragments, such as the shared actor-authorization predicate in `apps/api/src/main/kotlin/org/openclub/api/members/ActorSql.kt`, which validates its aliases and embeds only enum names.
+- Every query must be exercised by a PostgreSQL-backed test. That is the compensating control for the missing compile-time schema checking.
+- CI keeps running `./gradlew test generateJooq`, which still checks that the migrated schema can be introspected. Generated sources stay in `build/` and are not checked in.
+
+**Revisit when** the schema stabilises after R04/M2, or before a large data-access change. Moving to typed queries requires generation that needs no live database at image build time (for example checked-in generated sources or a migration-driven generator), plus a migration plan. Record that as a new ADR or amendment.

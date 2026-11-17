@@ -2,6 +2,7 @@ package org.openclub.api.members
 
 import org.jooq.DSLContext
 import java.util.UUID
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 
 /**
  * Internal-only reactivation of an archived, unlinked ordinary member.
@@ -14,14 +15,7 @@ internal class MemberReactivation(private val database: DSLContext) {
             """UPDATE members SET archived_at = NULL
                WHERE id = ? AND archived_at IS NOT NULL
                  AND role = 'MEMBER' AND account_id IS NULL
-                 AND EXISTS (
-                   SELECT 1 FROM members actor
-                   JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND g.capability = 'EDIT_MEMBERS'
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id)
-                 )""",
+                 AND ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}""",
             memberId, actorAccountId,
         ) == 1
 }

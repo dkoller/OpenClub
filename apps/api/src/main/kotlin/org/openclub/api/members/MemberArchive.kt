@@ -21,10 +21,8 @@ internal class MemberArchive(private val database: DSLContext) {
             val authorized = db.fetchOne(
                 """SELECT 1 FROM members actor
                    JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
                      AND g.capability = 'EDIT_MEMBERS'
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id)
                    FOR SHARE OF actor, g""",
                 actorAccountId,
             ) != null

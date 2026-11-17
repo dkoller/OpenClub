@@ -3,6 +3,7 @@ package org.openclub.api.members
 import org.jooq.DSLContext
 import java.time.LocalDate
 import java.util.UUID
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 
 /**
  * Member field updates: session-derived actor, explicit EDIT_MEMBERS grant and
@@ -29,14 +30,7 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         val last = MemberFieldValidation.name(lastName)
         return database.execute(
             """UPDATE members SET first_name = ?, last_name = ?
-               WHERE id = ? AND archived_at IS NULL AND EXISTS (
-                   SELECT 1 FROM members actor
-                   JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND g.capability = 'EDIT_MEMBERS'
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id)
-               )""",
+               WHERE id = ? AND archived_at IS NULL AND ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}""",
             first, last, memberId, actorAccountId,
         ) == 1
     }
@@ -52,14 +46,7 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         return database.execute(
             """UPDATE members SET first_name = ?, last_name = ?, date_of_birth = ?,
                   email = ?, phone = ?, gender = ?, is_player = ?
-               WHERE id = ? AND archived_at IS NULL AND EXISTS (
-                   SELECT 1 FROM members actor
-                   JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
-                     AND g.capability = 'EDIT_MEMBERS'
-                     AND EXISTS (SELECT 1 FROM account_identities identity
-                                 WHERE identity.account_id = actor.account_id)
-               )""",
+               WHERE id = ? AND archived_at IS NULL AND ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}""",
             first, last, birthDate, email, phone, gender,
             input.isPlayer, memberId, actorAccountId,
         ) == 1

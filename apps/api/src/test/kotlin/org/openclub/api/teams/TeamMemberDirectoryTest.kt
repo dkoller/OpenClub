@@ -35,6 +35,11 @@ class TeamMemberDirectoryTest {
                     club, "roster-" + club)
                 db.execute("INSERT INTO accounts (id) VALUES (?), (?)", account, outsider)
                 db.execute(
+                    """INSERT INTO account_identities (id, account_id, issuer, subject)
+                       VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), account, "roster-" + account,
+                )
+                db.execute(
                     """INSERT INTO members (id, account_id, first_name, last_name,
                          date_of_birth, email, phone)
                        VALUES (?, ?, 'Viewer', 'Synthetic', DATE '1990-01-01',
@@ -99,6 +104,17 @@ class TeamMemberDirectoryTest {
                 db.execute(
                     "INSERT INTO club_capability_grants VALUES (?, 'VIEW_TEAMS')",
                     viewer,
+                )
+                assertEquals(listOf(targetB), roster.list(account, otherTeam)
+                    .members.map { it.id })
+                // The roster query itself requires a current verified identity,
+                // not only the separate route-level capability checks.
+                db.execute("DELETE FROM account_identities WHERE account_id = ?", account)
+                assertTrue(roster.list(account, otherTeam).members.isEmpty())
+                db.execute(
+                    """INSERT INTO account_identities (id, account_id, issuer, subject)
+                       VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                    UUID.randomUUID(), account, "roster-" + account,
                 )
                 assertEquals(listOf(targetB), roster.list(account, otherTeam)
                     .members.map { it.id })

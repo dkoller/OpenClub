@@ -2,6 +2,7 @@ package org.openclub.api.teams
 
 import org.jooq.DSLContext
 import java.util.UUID
+import org.openclub.api.members.ActorSql
 
 /**
  * Internal-only team roster. Both directory visibility and exact-team viewing
@@ -29,7 +30,7 @@ internal class TeamMemberDirectory(private val database: DSLContext) {
                    SELECT 1 FROM members actor
                    JOIN club_capability_grants dir_grant ON dir_grant.member_id = actor.id
                      AND dir_grant.capability = 'VIEW_MEMBER_DIRECTORY'
-                   WHERE actor.account_id = ? AND actor.archived_at IS NULL
+                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
                      AND (
                        EXISTS (SELECT 1 FROM club_capability_grants g
                                WHERE g.member_id = actor.id
