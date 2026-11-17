@@ -27,6 +27,8 @@
 
 ## Current sources of truth
 
+For live delivery gates, start with the [short current roadmap](../roadmap.md) and open issues. Detailed dated implementation notes and the original R01–R22 planning tables are preserved in the [roadmap archive](../history/roadmap-2026-11-17.md). Historical pages should link to the current acceptance gate rather than accumulate a second live status ledger.
+
 - [Roadmap and live issues](../roadmap.md): priorities and actual task status, not the historical [first-milestone sketch](../concepts/ai/first-milestone.md).
 - [ADR-0001](../decisions/0001-stack-selection.md) and [ADR-0005](../decisions/0005-single-club-installation.md): accepted stack and **current one-club-per-installation** member/account boundaries. [ADR-0002](../decisions/0002-identity-and-membership-model.md) is **superseded**, retained only as historical context; do not implement its multi-club/global-person assumptions.
 - [CI workflow](../../.github/workflows/build.yml): currently PostgreSQL service-based tests, **not** Testcontainers.
