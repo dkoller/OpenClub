@@ -20,16 +20,21 @@ test('Rauthy email OTP requires a delivered code before OpenClub login', async (
   await page.getByRole('button', { name: 'Authenticate', exact: true }).click();
 
   // Rauthy must deliver the enrollment code through the actual SMTP sink.
-  const code = await expect.poll(async () => {
+  let code = null;
+  for (let attempt = 0; attempt < 30 && !code; attempt++) {
     const res = await request.get('http://localhost:8025/api/v1/messages');
-    if (!res.ok()) return null;
-    const messages = (await res.json()).messages ?? [];
-    const match = messages.find(m => JSON.stringify(m.To ?? m.to ?? '').includes(email));
-    if (!match) return null;
-    const detail = await request.get(`http://localhost:8025/api/v1/message/${match.ID}`);
-    const text = JSON.stringify(await detail.json());
-    return text.match(/\b\d{6}\b/)?.[0] ?? null;
-  }, { timeout: 15000 }).not.toBeNull();
+    if (res.ok()) {
+      const messages = (await res.json()).messages ?? [];
+      const match = messages.find(m => JSON.stringify(m.To ?? m.to ?? '').includes(email));
+      if (match) {
+        const detail = await request.get(`http://localhost:8025/api/v1/message/${match.ID}`);
+        const text = JSON.stringify(await detail.json());
+        code = text.match(/\\b\\d{6}\\b/)?.[0] ?? null;
+      }
+    }
+    if (!code) await page.waitForTimeout(500);
+  }
+  expect(code, 'Rauthy must send an OTP to the isolated SMTP sink').not.toBeNull();
 
   // Keep the actual enrollment UI and OTP separate from the test logs.
   await page.locator('input[inputmode="numeric"]').fill(code);
