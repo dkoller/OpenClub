@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
 test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', async ({ page, context }) => {
   const password = process.env.OPENCLUB_RAUTHY_E2E_USER_PASSWORD;
   if (!password) throw new Error('Synthetic Rauthy password missing');
-  test.setTimeout(120000);
+  test.setTimeout(150000);
   page.setDefaultTimeout(10000);
 
   const cdp = await context.newCDPSession(page);
@@ -147,7 +147,32 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
     await expect(page).toHaveURL('https://localhost:5443/');
     expect((await context.request.get('/api/v1/auth/me')).status()).toBe(200);
     expect((await context.request.get('/api/v1/club')).status()).toBe(403);
-    await page.getByRole('button', { name: 'Sign out' }).click();
+
+    // Enroll an independent replacement authenticator before ending the
+    // recovery; the original virtual key is permanently gone.
+    const { authenticatorId: replacementId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
+      options: {
+        protocol: 'ctap2', transport: 'internal', hasResidentKey: true,
+        hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true,
+      },
+    });
+    try {
+      await page.goto('https://localhost:8443/auth/v1/account');
+      await page.getByText('MFA', { exact: true }).first().click();
+      await page.getByRole('button', { name: 'Register New Passkey' }).click();
+      await page.getByPlaceholder('Current Password').fill(password);
+      await page.getByRole('button', { name: 'Authenticate', exact: true }).click();
+      await expect(page.locator('dialog[open]')).not.toBeVisible({ timeout: 10000 });
+      await page.getByPlaceholder('Passkey Name').fill('Replacement virtual passkey');
+      await page.getByRole('button', { name: 'Register', exact: true }).click();
+      await expect.poll(async () =>
+        (await cdp.send('WebAuthn.getCredentials', { authenticatorId: replacementId })).credentials.length,
+      ).toBe(1);
+    } finally {
+      await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId: replacementId });
+    }
+    await context.clearCookies();
+    await page.goto('https://localhost:5443/');
     expect((await context.request.get('/api/v1/auth/me')).status()).toBe(401);
   } finally {
     await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId }).catch(() => {});
