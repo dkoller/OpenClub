@@ -8,4 +8,4 @@ An authenticated, *verified* ADMIN with a live club-wide `MANAGE_PERMISSIONS` gr
 - Failed authentication `401`; insufficient rights/unsafe mutations `403`; invalid type, scope or JSON `400`; unexpected failures `503`. Responses use `Cache-Control: no-store`.
 - DE/EN/FR/IT browser UI searches authorized members, reads current grants, and supports scoped grant/revoke. Member identities must already be registered; this endpoint creates no accounts, teams or users.
 
-Open for M2: approved permission/access matrix for real data, independent security review and operator recovery approval, retention/erasure/audit, production TLS/secrets/backups. The R04 contract remains a working draft outside the narrow M1 synthetic implementation.
+Open for M2: approved permission/access matrix for real data, independent security review and operator recovery approval, retention/erasure/audit, production TLS/secrets/backups. The grant routes are part of the frozen synthetic M1 contract ([`openapi-v1.yaml`](openapi-v1.yaml), 1.1.0; [ADR-0007](../decisions/0007-owner-decisions-2026-11-17.md)); real-data and private-field contract work remains M2-only.
