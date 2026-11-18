@@ -11,16 +11,34 @@ import java.util.UUID
 /**
  * Retention rules approved by the owner on 2026-11-18 (ADR-0008, decisions 7 and 14), applied in bounded
  * batches: audit events are deleted after 12 months, and an account that is not linked to any member and
- * has not signed in for 2 years is deleted together with its identity bindings and sessions.
- * Archived-member erasure is a separate, explicit operation and is not done here.
+ * has not signed in for 2 years is deleted together with its identity bindings and sessions, and an archived
+ * member is erased 24 months after archiving. Erasing earlier on request is [MemberErasure].
  */
 internal object RetentionCleanup {
-    internal data class Counts(val auditEvents: Int, val orphanAccounts: Int)
+    internal data class Counts(val auditEvents: Int, val orphanAccounts: Int, val erasedMembers: Int)
 
     fun pruneBatch(db: DSLContext, batchSize: Int = 100): Counts {
         require(batchSize in 1..1000)
-        return Counts(pruneAuditEvents(db, batchSize), pruneOrphanAccounts(db, batchSize))
+        return Counts(pruneAuditEvents(db, batchSize), pruneOrphanAccounts(db, batchSize), eraseArchivedMembers(db, batchSize))
     }
+
+    /**
+     * Archived members are erased 24 months after archiving (owner-approved default). Deleting the row is the
+     * whole erasure: archiving already removed grants and assignments, and the `MEMBER_ERASED` event is written
+     * in the same statement, so an event exists exactly when a member was deleted. There is no legal-hold
+     * switch yet; the controller must decide on one before real member data.
+     */
+    private fun eraseArchivedMembers(db: DSLContext, batchSize: Int): Int = db.execute(
+        """WITH batch AS MATERIALIZED (
+            SELECT id FROM members
+            WHERE archived_at < CURRENT_TIMESTAMP - INTERVAL '24 months'
+            ORDER BY archived_at LIMIT ? FOR UPDATE SKIP LOCKED
+        ), deleted AS (
+            DELETE FROM members WHERE id IN (SELECT id FROM batch) RETURNING id
+        )
+        INSERT INTO audit_events (event_type, target_member_id) SELECT 'MEMBER_ERASED', id FROM deleted""",
+        batchSize,
+    )
 
     /** MATERIALIZED so the batch is chosen once and the limit holds (see AuthRecordCleanup). */
     private fun pruneAuditEvents(db: DSLContext, batchSize: Int): Int = db.execute(
@@ -62,7 +80,7 @@ internal object RetentionCleanup {
             try {
                 for (batch in 1..10) {
                     val counts = database.onDatabaseThread { pruneBatch(it) }
-                    if (counts.auditEvents < 100 && counts.orphanAccounts < 100) break
+                    if (counts.auditEvents < 100 && counts.orphanAccounts < 100 && counts.erasedMembers < 100) break
                 }
             } catch (cancel: CancellationException) {
                 throw cancel
