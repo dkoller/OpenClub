@@ -26,6 +26,8 @@ Not proposed and requiring a separate decision: guardian relationships, photogra
 
 ## 3. Proposed retention
 
+**Implemented (V13):** the audit-event 12-month and orphan-account 2-year rules run as hourly bounded batches ([retention cleanup](../security/retention-cleanup.md)). Archived-member erasure, backups and logs are not part of that job.
+
 All durations are **proposals**. Defaults reflect what the code does today or the smallest period that keeps the club workable.
 
 | Data | Proposed default | Basis / note |
@@ -35,7 +37,7 @@ All durations are **proposals**. Defaults reflect what the code does today or th
 | Active member record | Kept while the person is an active member | Purpose: club administration. |
 | Archived member record | **24 months** after archiving, then erased (section 4), unless the controller records a legal hold | The club may need membership history for disputes and fees. The controller picks the real period; 24 months is a placeholder. |
 | Erase on request | Within **30 days** of a verified request, unless a statutory duty to keep the data applies | The controller names the exceptions and the responsible person. |
-| Account without a linked member | Deleted after **90 days** without a login | Reduces orphaned identifiers. Needs a cleanup job. |
+| Account without a linked member | Deleted after **2 years** without a login (proposed 90 days; **changed by the owner on 2026-11-18**) | Reduces orphaned identifiers. |
 | Database backups | Rolling **30 days**; erasure reaches backups by expiry, never by editing a backup | Operator decision; encrypted, off-site storage is an M2 operator task (#27). |
 | Audit events (section 5) | **12 months** | Contains no names, birth dates or contacts. |
 | Application logs | No personal data in logs (already a guardrail); 14 days | Operator decision. |
@@ -69,7 +71,7 @@ The draft approved in ADR-0008 contains only member replacement and reactivation
 | 7 | Request deadline | 30 days | Controller |
 | 8 | Backup retention | 30 days rolling | Operator and controller |
 | 9 | Audit retention | 12 months, no personal data in events | Owner |
-| 10 | Orphan accounts | Delete after 90 days without login | Owner |
+| 10 | Orphan accounts | Delete after 90 days without login; **owner changed it to 2 years** (ADR-0008, decision 14) | Owner |
 
 ## 8. If approved: implementation order (not started)
 

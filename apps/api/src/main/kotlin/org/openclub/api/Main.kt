@@ -2,6 +2,7 @@ package org.openclub.api
 
 import org.openclub.api.auth.*
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.database.RetentionCleanup
 import org.openclub.api.club.installSingleClubRoutes
 import org.openclub.api.club.installClubNameRoutes
 import org.openclub.api.club.installClubPlayerPolicyRoutes
@@ -38,6 +39,7 @@ fun main() {
     }
     val database = DatabaseRuntime.openIfConfigured(environment)
     var cleanup: Job? = null
+    var retention: Job? = null
     try {
         // Fail startup rather than exposing partially working auth routes.
         // Discovery runs before starting Netty, not on a request event loop.
@@ -53,6 +55,11 @@ fun main() {
                 AuthRecordCleanup.run(requireNotNull(database))
             }
         }
+        if (database != null) {
+            retention = CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+                RetentionCleanup.run(database)
+            }
+        }
         val port = environment["PORT"]?.toIntOrNull() ?: 8080
         embeddedServer(Netty, port = port, host = "0.0.0.0") {
             module(login, authConfig?.cookies,
@@ -61,7 +68,7 @@ fun main() {
                 database = database)
         }.start(wait = true)
     } finally {
-        runBlocking { cleanup?.cancelAndJoin() }
+        runBlocking { cleanup?.cancelAndJoin(); retention?.cancelAndJoin() }
         database?.close()
     }
 }
