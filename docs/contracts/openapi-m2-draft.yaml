@@ -13,15 +13,15 @@ info:
     frozen separately in openapi-v1.yaml (version 1.0.0). Components are copied
     from that contract so this file validates on its own.
 
-    PROPOSED EXTENSION (2026-11-18, awaiting owner approval of its text; ADR-0008
-    addendum 2, decision 12): the operations getLocalMemberDetails,
+    EXTENSION APPROVED BY THE OWNER (2026-11-18, ADR-0008 addendum 4, decisions
+    15 and 16): the operations getLocalMemberDetails,
     eraseArchivedLocalMember, createLocalMemberInvitation,
     revokeLocalMemberInvitation, acceptInvitation and unlinkLocalMemberAccount.
     They implement the owner-approved privacy defaults (docs/discovery/
     privacy-proposal-2026-11-18.md) and the invitation design (docs/security/
-    invitation-linking-design.md). No code is merged for any of them until the
-    owner approves this text in a pull request. Guardians signing in for minors
-    are NOT part of this extension (docs/security/guardian-design.md).
+    invitation-linking-design.md). When an operation is implemented it moves
+    into openapi-v1.yaml, which becomes version 1.2.0. Guardians signing in for
+    minors are NOT part of this extension (docs/security/guardian-design.md).
 servers:
   - url: /api
 security:

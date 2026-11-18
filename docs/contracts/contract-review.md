@@ -10,7 +10,7 @@
 
 Selected PostgreSQL/Ktor tests additionally assert privacy-minimized member and public response keys and the safe error envelope.
 
-The M2 draft was extended on 2026-11-18 with six proposed operations (restricted detail read, erase, invitation create, revoke and accept, and account unlink), all marked NOT IMPLEMENTED and awaiting the owner's approval of their text; `dev/verify-m1-openapi.py` pins the exact set, the marker, the CSRF header and the 401/503 contract of every draft operation.
+The M2 draft was extended on 2026-11-18 with six proposed operations (restricted detail read, erase, invitation create, revoke and accept, and account unlink), all marked NOT IMPLEMENTED and approved by the owner on 2026-11-18 (ADR-0008 addendum 4; they join the frozen surface as 1.2.0 when implemented); `dev/verify-m1-openapi.py` pins the exact set, the marker, the CSRF header and the 401/503 contract of every draft operation.
 
 [M1 operation-to-test coverage](m1-route-test-coverage.md) maps each of the 22 operations to the HTTP, input, escalation, revocation and concurrency tests that exercise it and lists the known evidence gaps (route-level 503, runtime schema validation).
 

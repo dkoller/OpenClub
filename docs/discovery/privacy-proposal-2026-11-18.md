@@ -56,7 +56,7 @@ All durations are **proposals**. Defaults reflect what the code does today or th
 
 ## 6. What the approved M2 draft does not cover
 
-The draft approved in ADR-0008 contains only member replacement and reactivation. Implementing this proposal also needs **new operations that are in no contract yet**: reading a member's contact and birth-date fields, archive-then-erase, export, and an audit read if wanted. They require a draft extension and the owner's approval before any code, and they remain M2 (real data), not part of the frozen M1 surface. **Drafted 2026-11-18** in [`openapi-m2-draft.yaml`](../contracts/openapi-m2-draft.yaml) as proposals awaiting the owner's approval: the restricted detail read (`getLocalMemberDetails`, with a `CONTACT_READ` audit event for team managers) and archive-then-erase (`eraseArchivedLocalMember`). Export stays an operator command; an HTTP export is not drafted.
+The draft approved in ADR-0008 contains only member replacement and reactivation. Implementing this proposal also needs **new operations that are in no contract yet**: reading a member's contact and birth-date fields, archive-then-erase, export, and an audit read if wanted. They require a draft extension and the owner's approval before any code, and they remain M2 (real data), not part of the frozen M1 surface. **Drafted 2026-11-18** in [`openapi-m2-draft.yaml`](../contracts/openapi-m2-draft.yaml) as proposals, **approved by the owner on 2026-11-18** (ADR-0008 addendum 4): the restricted detail read (`getLocalMemberDetails`, with a `CONTACT_READ` audit event for team managers) and archive-then-erase (`eraseArchivedLocalMember`). Export stays an operator command; an HTTP export is not drafted.
 
 ## 7. Decisions needed
 
