@@ -1,8 +1,8 @@
 # R04 — OpenAPI contract review and approval gate
 
-## Current contract status — 2026-11-17 (frozen 1.1.0)
+## Current contract status — 2026-11-17 (frozen 1.2.0)
 
-**Frozen:** [`openapi-v1.yaml`](openapi-v1.yaml) is the owner-accepted **OpenAPI 1.x** contract for the synthetic M1 HTTP surface ([ADR-0007](../decisions/0007-owner-decisions-2026-11-17.md), [#13](https://github.com/dkoller/OpenClub/issues/13)). 1.0.0 froze 21 operations; **1.1.0** adds the per-club adult-age setting (#17). It contains exactly the **22 registered** club, member, team, role, grant and public-name operations. `dev/verify-m1-openapi.py` (run by `.github/workflows/m1-contract.yml`) fails if:
+**Frozen:** [`openapi-v1.yaml`](openapi-v1.yaml) is the owner-accepted **OpenAPI 1.x** contract for the synthetic M1 HTTP surface ([ADR-0007](../decisions/0007-owner-decisions-2026-11-17.md), [#13](https://github.com/dkoller/OpenClub/issues/13)). 1.0.0 froze 21 operations; **1.1.0** adds the per-club adult-age setting (#17); **1.2.0** adds the invitation, revoke, accept and unlink operations (ADR-0008, decisions 15 and 16). It contains exactly the **26 registered** club, member, team, role, grant and public-name operations. `dev/verify-m1-openapi.py` (run by `.github/workflows/m1-contract.yml`) fails if:
 
 - an implemented Ktor route is undocumented, or a documented operation is not implemented;
 - the version changes without a new approval;
@@ -12,7 +12,7 @@ Selected PostgreSQL/Ktor tests additionally assert privacy-minimized member and 
 
 The M2 draft was extended on 2026-11-18 with six proposed operations (restricted detail read, erase, invitation create, revoke and accept, and account unlink), all marked NOT IMPLEMENTED and approved by the owner on 2026-11-18 (ADR-0008 addendum 4; they join the frozen surface as 1.2.0 when implemented); `dev/verify-m1-openapi.py` pins the exact set, the marker, the CSRF header and the 401/503 contract of every draft operation.
 
-[M1 operation-to-test coverage](m1-route-test-coverage.md) maps each of the 22 operations to the HTTP, input, escalation, revocation and concurrency tests that exercise it and lists the known evidence gaps (route-level 503, runtime schema validation).
+[M1 operation-to-test coverage](m1-route-test-coverage.md) maps each of the 26 operations to the HTTP, input, escalation, revocation and concurrency tests that exercise it and lists the known evidence gaps (route-level 503, runtime schema validation).
 
 **Separate M2 proposals:** [`openapi-m2-draft.yaml`](openapi-m2-draft.yaml) (`0.0.0-draft`; **approved by the owner as a draft on 2026-11-18**, [ADR-0008](../decisions/0008-owner-decisions-2026-11-18.md), which does not authorize real data or any implementation) holds the operations that are **NOT IMPLEMENTED**: full confidential member replacement (`PUT /v1/members/{memberId}`) and HTTP reactivation. Internal database reactivation is not a user-facing route. These need the M2 privacy decisions, audit (#26) and security review. ADR-0007 already fixes that contacts are readable only by explicitly granted roles and that the adult age is configurable per club.
 
