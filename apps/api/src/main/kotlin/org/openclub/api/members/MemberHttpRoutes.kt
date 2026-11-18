@@ -37,15 +37,24 @@ internal fun Application.installMemberHttpRoutes(
                 call.response.headers.append(HttpHeaders.CacheControl, "no-store")
                 try {
                     val actor = call.requireActor(sessions, cookies) ?: return@get
-                    val q = call.request.queryParameters["q"] ?: ""
-                    require(q.trim().length <= 100 && (q.isEmpty() || q.isNotBlank()))
-                    val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: run {
-                        require(call.request.queryParameters["limit"] == null)
-                        20
+                    if (!call.requireCapability(database, actor, ClubCapabilityAccess.Capability.VIEW_MEMBER_DIRECTORY)) {
+                        return@get
                     }
-                    require(limit in 1..50)
-                    val after = call.request.queryParameters["cursor"]?.let {
-                        MemberPageCursor.decode(actor.accountId, q.trim(), it)
+                    val (q, limit, after) = try {
+                        val q = call.request.queryParameters["q"] ?: ""
+                        require(q.trim().length <= 100 && (q.isEmpty() || q.isNotBlank()))
+                        val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: run {
+                            require(call.request.queryParameters["limit"] == null)
+                            20
+                        }
+                        require(limit in 1..50)
+                        val after = call.request.queryParameters["cursor"]?.let {
+                            MemberPageCursor.decode(actor.accountId, q.trim(), it)
+                        }
+                        MemberQuery(q, limit, after)
+                    } catch (_: IllegalArgumentException) {
+                        call.error(HttpStatusCode.BadRequest, "invalid")
+                        return@get
                     }
                     val page = database.onDatabaseThread { db ->
                         if (!ClubCapabilityAccess(db).has(actor.accountId,
@@ -67,8 +76,6 @@ internal fun Application.installMemberHttpRoutes(
                     call.respondText(response.toString(), ContentType.Application.Json)
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: IllegalArgumentException) {
-                    call.error(HttpStatusCode.BadRequest, "invalid")
                 } catch (_: Exception) {
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
@@ -78,18 +85,15 @@ internal fun Application.installMemberHttpRoutes(
                 try {
                     val actor = call.requireActor(sessions, cookies) ?: return@post
                     if (!call.requireWrite(actor, origin)) return@post
-                    val fields = call.readObject(setOf("firstName", "lastName", "dateOfBirth"),
-                        setOf("email", "phone", "gender", "isPlayer"))
-                    val input = MemberCreation.Input(
-                        firstName = fields.string("firstName"),
-                        lastName = fields.string("lastName"),
-                        dateOfBirth = runCatching { LocalDate.parse(fields.string("dateOfBirth")) }
-                            .getOrElse { throw IllegalArgumentException("Invalid date") },
-                        email = fields.optionalString("email"),
-                        phone = fields.optionalString("phone"),
-                        gender = fields.optionalString("gender"),
-                        isPlayer = fields["isPlayer"]?.jsonPrimitive?.boolean ?: false,
-                    )
+                    if (!call.requireCapability(database, actor, ClubCapabilityAccess.Capability.EDIT_MEMBERS)) {
+                        return@post
+                    }
+                    val input = try {
+                        call.readNewMember()
+                    } catch (_: IllegalArgumentException) {
+                        call.error(HttpStatusCode.BadRequest, "invalid")
+                        return@post
+                    }
                     val id = database.onDatabaseThread { MemberCreation(it).create(actor.accountId, input) }
                     if (id == null) call.error(HttpStatusCode.Forbidden, "forbidden")
                     else {
@@ -99,8 +103,6 @@ internal fun Application.installMemberHttpRoutes(
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: IllegalArgumentException) {
-                    call.error(HttpStatusCode.BadRequest, "invalid")
                 } catch (_: DataAccessException) {
                     // Database field constraints remain authoritative; never echo stored values.
                     call.error(HttpStatusCode.BadRequest, "invalid")
@@ -112,7 +114,15 @@ internal fun Application.installMemberHttpRoutes(
                 call.response.headers.append(HttpHeaders.CacheControl, "no-store")
                 try {
                     val actor = call.requireActor(sessions, cookies) ?: return@get
-                    val id = UUID.fromString(call.parameters["memberId"])
+                    if (!call.requireCapability(database, actor, ClubCapabilityAccess.Capability.VIEW_MEMBER_DIRECTORY)) {
+                        return@get
+                    }
+                    val id = try {
+                        UUID.fromString(call.parameters["memberId"])
+                    } catch (_: IllegalArgumentException) {
+                        call.error(HttpStatusCode.BadRequest, "invalid")
+                        return@get
+                    }
                     val detail = database.onDatabaseThread { db ->
                         if (!ClubCapabilityAccess(db).has(actor.accountId,
                                 ClubCapabilityAccess.Capability.VIEW_MEMBER_DIRECTORY)) {
@@ -143,8 +153,6 @@ internal fun Application.installMemberHttpRoutes(
                     )
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: IllegalArgumentException) {
-                    call.error(HttpStatusCode.BadRequest, "invalid")
                 } catch (_: Exception) {
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
@@ -154,13 +162,22 @@ internal fun Application.installMemberHttpRoutes(
                 try {
                     val actor = call.requireActor(sessions, cookies) ?: return@patch
                     if (!call.requireWrite(actor, origin)) return@patch
-                    val id = UUID.fromString(call.parameters["memberId"])
-                    val fields = call.readObject(setOf("firstName", "lastName"), emptySet())
+                    if (!call.requireCapability(database, actor, ClubCapabilityAccess.Capability.EDIT_MEMBERS)) {
+                        return@patch
+                    }
+                    val (id, firstName, lastName) = try {
+                        val id = UUID.fromString(call.parameters["memberId"])
+                        val fields = call.readObject(setOf("firstName", "lastName"), emptySet())
+                        Triple(id, MemberFieldValidation.name(fields.string("firstName")),
+                            MemberFieldValidation.name(fields.string("lastName")))
+                    } catch (_: IllegalArgumentException) {
+                        call.error(HttpStatusCode.BadRequest, "invalid")
+                        return@patch
+                    }
                     val result = database.onDatabaseThread { db ->
                         if (!ClubCapabilityAccess(db).has(actor.accountId,
                                 ClubCapabilityAccess.Capability.EDIT_MEMBERS)) null
-                        else MemberDetailsUpdate(db).updateNames(actor.accountId, id,
-                            fields.string("firstName"), fields.string("lastName"))
+                        else MemberDetailsUpdate(db).updateNames(actor.accountId, id, firstName, lastName)
                     }
                     when (result) {
                         null -> call.error(HttpStatusCode.Forbidden, "forbidden")
@@ -169,8 +186,6 @@ internal fun Application.installMemberHttpRoutes(
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: IllegalArgumentException) {
-                    call.error(HttpStatusCode.BadRequest, "invalid")
                 } catch (_: Exception) {
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
@@ -180,7 +195,15 @@ internal fun Application.installMemberHttpRoutes(
                 try {
                     val actor = call.requireActor(sessions, cookies) ?: return@post
                     if (!call.requireWrite(actor, origin)) return@post
-                    val id = UUID.fromString(call.parameters["memberId"])
+                    if (!call.requireCapability(database, actor, ClubCapabilityAccess.Capability.EDIT_MEMBERS)) {
+                        return@post
+                    }
+                    val id = try {
+                        UUID.fromString(call.parameters["memberId"])
+                    } catch (_: IllegalArgumentException) {
+                        call.error(HttpStatusCode.BadRequest, "invalid")
+                        return@post
+                    }
                     val result = database.onDatabaseThread { db ->
                         if (!ClubCapabilityAccess(db).has(actor.accountId,
                                 ClubCapabilityAccess.Capability.EDIT_MEMBERS)) null
@@ -197,8 +220,6 @@ internal fun Application.installMemberHttpRoutes(
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: IllegalArgumentException) {
-                    call.error(HttpStatusCode.BadRequest, "invalid")
                 } catch (_: Exception) {
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
@@ -225,6 +246,36 @@ private suspend fun ApplicationCall.requireWrite(actor: ActiveSession, origin: S
     return true
 }
 
+/** Checked before any request input is validated, so callers without the grant always get 403. */
+private suspend fun ApplicationCall.requireCapability(
+    database: DatabaseRuntime,
+    actor: ActiveSession,
+    capability: ClubCapabilityAccess.Capability,
+): Boolean {
+    val allowed = database.onDatabaseThread { ClubCapabilityAccess(it).has(actor.accountId, capability) }
+    if (!allowed) error(HttpStatusCode.Forbidden, "forbidden")
+    return allowed
+}
+
+private data class MemberQuery(val q: String, val limit: Int, val after: MemberDirectory.After?)
+
+/** Parses and validates a new member; every violation throws [IllegalArgumentException] (400). */
+private suspend fun ApplicationCall.readNewMember(): MemberCreation.Input {
+    val fields = readObject(setOf("firstName", "lastName", "dateOfBirth"),
+        setOf("email", "phone", "gender", "isPlayer"))
+    return MemberCreation.Input(
+        firstName = MemberFieldValidation.name(fields.string("firstName")),
+        lastName = MemberFieldValidation.name(fields.string("lastName")),
+        dateOfBirth = MemberFieldValidation.birthDate(
+            runCatching { LocalDate.parse(fields.string("dateOfBirth")) }
+                .getOrElse { throw IllegalArgumentException("Invalid date") }),
+        email = MemberFieldValidation.email(fields.optionalString("email")),
+        phone = MemberFieldValidation.phone(fields.optionalString("phone")),
+        gender = MemberFieldValidation.gender(fields.optionalString("gender")),
+        isPlayer = fields.optionalBoolean("isPlayer") ?: false,
+    )
+}
+
 private suspend fun ApplicationCall.readObject(required: Set<String>, optional: Set<String>): JsonObject =
     receiveJsonObject(required, optional)
 
@@ -235,6 +286,12 @@ private fun JsonObject.optionalString(key: String): String? = this[key]?.let {
         require(it is JsonPrimitive && it.isString)
         it.content
     }
+}
+
+/** A JSON boolean only; strings, numbers and null are rejected instead of failing later. */
+private fun JsonObject.optionalBoolean(key: String): Boolean? = this[key]?.let {
+    require(it is JsonPrimitive && !it.isString)
+    it.booleanOrNull ?: throw IllegalArgumentException("Expected a boolean")
 }
 
 private suspend fun ApplicationCall.error(status: HttpStatusCode, code: String) {
