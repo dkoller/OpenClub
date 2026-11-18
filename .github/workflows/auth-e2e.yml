@@ -136,13 +136,13 @@ jobs:
           set -euo pipefail
           # An earlier step installs the same pinned browser/dependencies in
           # parallel with backend startup. No tests run until it completed.
-          for attempt in {1..300}; do
+          for attempt in {1..420}; do
             [[ -f "$RUNNER_TEMP/openclub-browser-setup.status" ]] && break
             sleep 1
           done
           if [[ "$(cat "$RUNNER_TEMP/openclub-browser-setup.status" 2>/dev/null || true)" != success ]]; then
             echo "Chromium install failed or timed out" >&2
-            tail -n 25 "$RUNNER_TEMP/openclub-browser-setup.log" >&2 || true
+            tail -n 60 "$RUNNER_TEMP/openclub-browser-setup.log" >&2 || true
             exit 1
           fi
           pnpm test
