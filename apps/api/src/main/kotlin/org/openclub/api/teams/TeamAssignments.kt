@@ -79,6 +79,9 @@ internal class TeamAssignments(private val database: DSLContext) {
             )
         }
 
-    private fun validName(name: String): String =
-        name.trim().also { require(it.length in 1..200) { "Invalid team name" } }
+    companion object {
+        /** Trimmed 1..200 characters; also applied at the HTTP boundary so bad names are a 400. */
+        fun validName(name: String): String =
+            name.trim().also { require(it.length in 1..200) { "Invalid team name" } }
+    }
 }
