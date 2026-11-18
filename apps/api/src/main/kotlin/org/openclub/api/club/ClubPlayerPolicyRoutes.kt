@@ -17,6 +17,7 @@ import org.jooq.exception.DataAccessException
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.database.rejectedTheData
 import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.receiveJsonObject
@@ -105,8 +106,13 @@ private suspend fun ApplicationCall.updateClubPolicy(
         else respondText("""{"code":"forbidden"}""", ContentType.Application.Json, HttpStatusCode.Forbidden)
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: DataAccessException) {
-        respondText("""{"code":"conflict"}""", ContentType.Application.Json, HttpStatusCode.Conflict)
+    } catch (failure: DataAccessException) {
+        if (failure.rejectedTheData()) {
+            respondText("""{"code":"conflict"}""", ContentType.Application.Json, HttpStatusCode.Conflict)
+        } else {
+            respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
+                HttpStatusCode.ServiceUnavailable)
+        }
     } catch (_: Exception) {
         respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
             HttpStatusCode.ServiceUnavailable)

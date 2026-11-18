@@ -19,6 +19,7 @@ import org.openclub.api.auth.ActiveSession
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.database.rejectedTheData
 import java.time.LocalDate
 import java.util.UUID
 import org.openclub.api.receiveJsonObject
@@ -103,9 +104,11 @@ internal fun Application.installMemberHttpRoutes(
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: DataAccessException) {
-                    // Database field constraints remain authoritative; never echo stored values.
-                    call.error(HttpStatusCode.BadRequest, "invalid")
+                } catch (failure: DataAccessException) {
+                    // Database field constraints and rules remain authoritative; never echo stored values.
+                    // A connection loss or timeout is a server fault, not a rejected request.
+                    if (failure.rejectedTheData()) call.error(HttpStatusCode.BadRequest, "invalid")
+                    else call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 } catch (_: Exception) {
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
