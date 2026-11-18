@@ -158,6 +158,10 @@ The SQL-authorized services and `UPDATE` statements still re-check the grant ato
 
 The auth routes (`/api/v1/auth/login`, `/callback`, `/me`, `/logout`) and the anonymous `GET /api/v1/public/members` were checked with malformed input and needed no change: a garbage, oversized or duplicated session cookie is always `401`, a malformed callback is `400` before the backend is called, `logout` accepts only an empty JSON object, and the anonymous list ignores query parameters and accepts only `GET`.
 
+## Independent review (#24)
+
+The repository owner reports that secureIt AG performed an independent security review on 2026-11-18 and that it found nothing worth fixing ([ADR-0008](../decisions/0008-owner-decisions-2026-11-18.md), decision 5). The report is not in the repository and was not read by the agent; the scope was not provided and is not recorded. This is a statement by the owner, not evidence the agent has verified.
+
 ## Revoked verified identity on every private route (#24, synthetic M1)
 
 `PrivateRoutesRevocationTest` drives all 21 private club, member, role, grant, team and roster routes with one ADMIN holding every club grant. It first proves that the holder is authorized on each route (no 401/403/5xx), then deletes the account's verified OIDC identity while the session cookie stays valid and the grants stay in place. Every route must then answer `403` with `Cache-Control: no-store` and no member data, and the target member, grants and member list must be unchanged. A mutation check (skipping the identity deletion) makes the denial test fail, so it is not vacuous. A route-level test for a database that cannot answer (503) is still open: the unit-level mapping is covered by `DatabaseErrorsTest`.
