@@ -9,6 +9,7 @@ import org.jooq.exception.DataAccessException
 import org.jooq.impl.DSL
 import org.openclub.api.database.AdvisoryLocks
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -135,7 +136,14 @@ class AdminRecoveryTest {
                 assertThrows(IllegalStateException::class.java) { recovery.rebind(input) }
                 assertEquals(replacement, linked())
                 assertEquals(2, db.fetchCount(DSL.table("members")))
+                // Exactly one audit event, from the one successful recovery; failed attempts wrote none.
+                val recovered = db.fetch(
+                    "SELECT event_type, actor_account_id FROM audit_events WHERE target_member_id = ?", admin)
+                assertEquals(1, recovered.size)
+                assertEquals("ADMIN_RECOVERED", recovered[0].get(0))
+                assertNull(recovered[0].get(1), "an operator command has no browser-session actor")
             } finally {
+                db.execute("DELETE FROM audit_events WHERE target_member_id = ?", admin)
                 db.execute("DELETE FROM auth_sessions WHERE account_id IN (?, ?)", old, replacement)
                 db.execute("DELETE FROM members WHERE id IN (?, ?, ?)", admin, otherMember, secondAdmin)
                 db.execute("DELETE FROM accounts WHERE id IN (?, ?, ?, ?)", old, replacement, unverified, occupied)

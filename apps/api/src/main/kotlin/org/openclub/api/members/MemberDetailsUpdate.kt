@@ -29,9 +29,13 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         val first = MemberFieldValidation.name(firstName)
         val last = MemberFieldValidation.name(lastName)
         return database.execute(
-            """UPDATE members SET first_name = ?, last_name = ?
-               WHERE id = ? AND archived_at IS NULL AND ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}""",
-            first, last, memberId, actorAccountId,
+            """WITH updated AS (
+                 UPDATE members SET first_name = ?, last_name = ?
+                 WHERE id = ? AND archived_at IS NULL AND ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}
+                 RETURNING id)
+               INSERT INTO audit_events (event_type, actor_account_id, target_member_id)
+               SELECT 'MEMBER_UPDATED', ?, id FROM updated""",
+            first, last, memberId, actorAccountId, actorAccountId,
         ) == 1
     }
 
@@ -44,11 +48,15 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         val gender = MemberFieldValidation.gender(input.gender)
 
         return database.execute(
-            """UPDATE members SET first_name = ?, last_name = ?, date_of_birth = ?,
-                  email = ?, phone = ?, gender = ?, is_player = ?
-               WHERE id = ? AND archived_at IS NULL AND ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}""",
+            """WITH updated AS (
+                 UPDATE members SET first_name = ?, last_name = ?, date_of_birth = ?,
+                    email = ?, phone = ?, gender = ?, is_player = ?
+                 WHERE id = ? AND archived_at IS NULL AND ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}
+                 RETURNING id)
+               INSERT INTO audit_events (event_type, actor_account_id, target_member_id)
+               SELECT 'MEMBER_UPDATED', ?, id FROM updated""",
             first, last, birthDate, email, phone, gender,
-            input.isPlayer, memberId, actorAccountId,
+            input.isPlayer, memberId, actorAccountId, actorAccountId,
         ) == 1
     }
 }

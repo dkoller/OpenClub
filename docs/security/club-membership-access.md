@@ -158,6 +158,10 @@ The SQL-authorized services and `UPDATE` statements still re-check the grant ato
 
 The auth routes (`/api/v1/auth/login`, `/callback`, `/me`, `/logout`) and the anonymous `GET /api/v1/public/members` were checked with malformed input and needed no change: a garbage, oversized or duplicated session cookie is always `401`, a malformed callback is `400` before the backend is called, `logout` accepts only an empty JSON object, and the anonymous list ignores query parameters and accepts only `GET`.
 
+## Audit trail (V12; privacy proposal section 5)
+
+`audit_events` records who changed what, as identifiers only: event type, acting account UUID (empty for operator commands), target member UUID, and for grants the capability, scope and team, for roles the new role. It has no name, birth-date, contact or free-text column (tested). Events are written **in the same statement or transaction as the change**: member creation and updates use a data-modifying CTE, and archive, role changes, grants and administrator recovery write as the last step of their existing transaction. Denied, repeated (idempotent) and failed changes write nothing. A role change or an archive implies the cleanup of the target's grants, which has no separate event. The table is append-only (an `UPDATE` is rejected), has no foreign keys so it outlives deleted members, accounts and teams, and its UUIDs are pseudonymous identifiers, not anonymous data. Not built yet: the 12-month retention job, contact-read, export, erasure, reactivation and invitation events, and any way to read the trail other than SQL. First-club bootstrap is not audited.
+
 ## Independent review (#24)
 
 The repository owner reports that secureIt AG performed an independent security review on 2026-11-18 and that it found nothing worth fixing ([ADR-0008](../decisions/0008-owner-decisions-2026-11-18.md), decision 5). The report is not in the repository and was not read by the agent; the scope was not provided and is not recorded. This is a statement by the owner, not evidence the agent has verified.

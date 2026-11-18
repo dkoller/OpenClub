@@ -3,6 +3,7 @@ package org.openclub.api.members
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.openclub.api.database.AdvisoryLocks
+import org.openclub.api.database.AuditEvents
 import java.util.UUID
 
 /**
@@ -64,6 +65,8 @@ internal class MemberRoles(private val database: DSLContext) {
                    WHERE member_id = ? AND capability = 'MANAGE_PERMISSIONS'""",
                 targetMemberId,
             )
+            // The cleanup of the target's permission-manager grant is implied by this event.
+            AuditEvents.record(db, AuditEvents.Type.ROLE_CHANGED, actorAccountId, targetMemberId, newRole = role.name)
             Change.UPDATED
         }
 }

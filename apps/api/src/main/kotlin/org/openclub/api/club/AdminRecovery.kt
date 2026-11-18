@@ -3,6 +3,7 @@ package org.openclub.api.club
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.openclub.api.database.AdvisoryLocks
+import org.openclub.api.database.AuditEvents
 import java.util.UUID
 
 /**
@@ -61,6 +62,8 @@ internal class AdminRecovery(private val database: DSLContext) {
                    WHERE id = ? AND account_id = ? AND role = 'ADMIN'""",
                 input.replacementAccountId, input.adminMemberId, input.oldAccountId,
             ) == 1) { "Administrator link changed during recovery" }
+            // Operator command: no browser-session actor.
+            AuditEvents.record(db, AuditEvents.Type.ADMIN_RECOVERED, null, input.adminMemberId)
             // Revoke existing sessions on both accounts. A replacement account may
             // already be signed in as an unlinked user and must reauthenticate
             // after receiving administrator privileges.

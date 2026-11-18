@@ -3,6 +3,7 @@ package org.openclub.api.members
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.openclub.api.database.AdvisoryLocks
+import org.openclub.api.database.AuditEvents
 import java.util.UUID
 
 /**
@@ -97,6 +98,12 @@ internal class CapabilityGrants(private val database: DSLContext) {
                     """DELETE FROM team_capability_grants
                        WHERE team_id = ? AND member_id = ? AND capability = ?""",
                     teamId, memberId, capability.name,
+                )
+            }
+            if (changed > 0) {
+                AuditEvents.record(
+                    db, if (granting) AuditEvents.Type.GRANT_ADDED else AuditEvents.Type.GRANT_REVOKED,
+                    actorAccountId, memberId, capability = capability.name, scope = scope.name, teamId = teamId,
                 )
             }
             when {
