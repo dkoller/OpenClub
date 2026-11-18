@@ -26,6 +26,8 @@ Not proposed and requiring a separate decision: guardian relationships, photogra
 
 ## 3. Proposed retention
 
+**Implemented (V13):** the audit-event 12-month and orphan-account 90-day rules run as hourly bounded batches ([retention cleanup](../security/retention-cleanup.md)). Archived-member erasure, backups and logs are not part of that job.
+
 All durations are **proposals**. Defaults reflect what the code does today or the smallest period that keeps the club workable.
 
 | Data | Proposed default | Basis / note |

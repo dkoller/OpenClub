@@ -31,3 +31,15 @@ After the two drafts were merged, the owner said: **"Approve all defaults, start
 | 9 | Audit table | The owner asked the agent to start with the audit table (privacy proposal, section 8, step 2). It is implemented in Flyway V12 and wired into the existing member, role, grant and recovery operations; see [club-membership-access.md](../security/club-membership-access.md). |
 
 **Not changed by this addendum:** no real data is authorized; the controller's decisions, a new contract version for contact reads, export, erasure and invitations, and the remaining implementation steps (archive-then-erase, export, contact reads, retention jobs, invitations) are still to be approved and built one pull request at a time.
+
+## Addendum 2 — later on 2026-11-18: invitations in the M1 demo, guardians, contract draft
+
+Asked one set of questions at a time, the owner answered as follows. The agent's wording of consequences may be corrected by the owner.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 10 | Invitations in the hosted M1 demo ([invitation design](../security/invitation-linking-design.md), decision 1) | **Included.** The M1 synthetic demo must show a second synthetic user accepting an invitation. This changes the earlier statement that M1 rests on administrator-managed accountless members. M1 acceptance still waits on the operator and provider (ADR-0007, 1a and 1c). |
+| 11 | Who signs in themselves (decision 5) | **A guardian signs in for a minor.** The privacy proposal excludes guardian relationships until a separate requirement and privacy review, so a **guardian design is drafted and reviewed before any code** that lets someone act for a minor. Adult members signing in themselves (the design as written) is not blocked by this. |
+| 12 | Contract extension (decision 7) | **The agent may draft an unversioned extension of the M2 draft and build against it.** The owner approves the contract text in the pull request; the agent merges code for an operation only after that approval is recorded there. The frozen 1.1.0 M1 surface changes only with a new owner-approved version. |
+| 13 | Retention jobs | Implemented (V13, `RetentionCleanup`): audit events older than 12 months and accounts with no linked member and no login for 90 days are deleted in bounded hourly batches. These are the approved defaults of decision 7; the controller's approval is still required before real data. |
+

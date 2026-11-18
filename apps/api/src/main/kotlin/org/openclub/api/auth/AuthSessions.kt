@@ -32,6 +32,8 @@ internal class AuthSessions(
 ) {
     fun create(accountId: UUID): IssuedSession {
         val issued = newSecrets()
+        // A new session is a login: record it for the account-retention rule (V13).
+        database.execute("UPDATE accounts SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?", accountId)
         database.execute(
             """INSERT INTO auth_sessions
                (session_hash, account_id, csrf_token, idle_expires_at, absolute_expires_at)
