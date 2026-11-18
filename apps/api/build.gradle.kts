@@ -69,6 +69,13 @@ tasks.register<JavaExec>("bootstrapFirstClub") {
     mainClass.set("org.openclub.api.club.BootstrapCliKt")
 }
 
+tasks.register<JavaExec>("showAuditTrail") {
+    group = "application"
+    description = "Read-only operator command: print the audit trail (newest first), optionally filtered."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("org.openclub.api.database.AuditTrailCliKt")
+}
+
 tasks.register<JavaExec>("recoverSoleAdmin") {
     group = "application"
     description = "Restricted operator-only rebind of the sole administrator after login loss."

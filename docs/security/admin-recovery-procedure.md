@@ -41,6 +41,8 @@ Use named, individual accounts, MFA and least-privilege, time-bounded infrastruc
 
 ## Evidence and retention
 
+The database records every recovery as an `ADMIN_RECOVERED` audit event (identifiers only, no actor because it is an operator command). The executor can attach the output of `showAuditTrail` for the incident window to the case record, as described in [single-club operations](../deployment/single-club.md#reading-the-audit-trail-operator-only-read-only).
+
 Maintain one restricted record per incident using [the private case template](admin-recovery-case-template.md). It must include unique case ID; requester, verifier, approver, executor, witness (as **private register references**); timestamps; pre-existing-channel verification result; scoped action; exact-account/credential fingerprints; backup verification; before/after access checks; observed failures; member notification; and the final resolution. Keep a tamper-evident history in the club's approved private record system (append-only/versioned log with access logging or signed and independently archived records). **Do not create a mutable plaintext audit file in this repository** or treat GitHub CI and application logs as the approval ledger.
 
 Keep only the minimum data needed to demonstrate authorization. The controller must decide restricted access, retention duration, correction/deletion rules and secure disposal under [privacy issue #12](https://github.com/dkoller/OpenClub/issues/12) before real data. Share case evidence only with authorized club officers and incident responders.

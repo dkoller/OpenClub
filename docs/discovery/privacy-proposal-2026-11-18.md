@@ -52,7 +52,7 @@ All durations are **proposals**. Defaults reflect what the code does today or th
 
 ## 5. Proposed audit events
 
-**Implemented so far (V12): member created, updated and archived; role changes; grant added and revoked; sole-administrator recovery.** The remaining events arrive with their operations. Recorded in the proposal: member created, updated, archived, reactivated, erased and exported; role changes; grant changes; each contact read by a team manager; invitations created, accepted and revoked (#20); sole-administrator recovery. Each event holds the event type, the acting account ID, the target member UUID, a timestamp and no names, birth dates or contacts. Events are written in the same transaction as the change. Operators read them with a command; there is no audit HTTP API in this proposal.
+**Implemented so far (V12, V14): member created, updated and archived; role changes; grant added and revoked; sole-administrator recovery; first-club bootstrap. Operators read the trail with the read-only `showAuditTrail` command, and events older than 12 months are deleted.** The remaining events arrive with their operations. Recorded in the proposal: member created, updated, archived, reactivated, erased and exported; role changes; grant changes; each contact read by a team manager; invitations created, accepted and revoked (#20); sole-administrator recovery. Each event holds the event type, the acting account ID, the target member UUID, a timestamp and no names, birth dates or contacts. Events are written in the same transaction as the change. Operators read them with a command; there is no audit HTTP API in this proposal.
 
 ## 6. What the approved M2 draft does not cover
 

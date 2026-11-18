@@ -7,6 +7,7 @@ import org.jooq.SQLDialect
 import org.jooq.exception.DataAccessException
 import org.jooq.impl.DSL
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -54,6 +55,13 @@ class FirstClubBootstrapTest {
                     account,
                 ))
                 assertThrows(IllegalStateException::class.java) { bootstrap.create(input) }
+                // Exactly one audit event, from the one successful bootstrap: operator action, no actor.
+                val adminMember = requireNotNull(db.fetchValue("SELECT id FROM members WHERE account_id = ?", account))
+                val events = db.fetch(
+                    "SELECT event_type, actor_account_id FROM audit_events WHERE target_member_id = ?", adminMember)
+                assertEquals(1, events.size)
+                assertEquals("CLUB_BOOTSTRAPPED", events[0].get(0))
+                assertNull(events[0].get(1), "an operator command has no browser-session actor")
                 assertThrows(DataAccessException::class.java) {
                     db.execute(
                         "INSERT INTO clubs (id, name, slug) VALUES (?, 'Second', ?)",
@@ -78,6 +86,7 @@ class FirstClubBootstrapTest {
                 ))
                 assertTrue(created != null)
             } finally {
+                db.execute("DELETE FROM audit_events WHERE target_member_id IN (SELECT id FROM members WHERE account_id = ?)", account)
                 db.execute("DELETE FROM members WHERE account_id = ?", account)
                 if (created != null) db.execute("DELETE FROM clubs WHERE id = ?", created)
                 db.execute("DELETE FROM accounts WHERE id IN (?, ?)", account, other)

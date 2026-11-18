@@ -68,6 +68,10 @@ Run `./gradlew recoverSoleAdmin` from `apps/api` (Windows: `gradlew.bat recoverS
 
 Afterward, require the replacement administrator to sign in again and verify that the new session can access the club and that the old account cannot access club resources, record the outcome in the private incident log, and rotate/revoke the old provider identity if compromised. Do not delete the previous OIDC account or the existing club/member record as a shortcut. If there is no existing administrator member, more than one administrator, no trusted replacement identity, or a database inconsistency, this narrow recovery procedure intentionally refuses to act. Any broader manual repair requires a separate reviewed decision and backup. **This is not privacy/legal approval or readiness for real personal data.**
 
+## Reading the audit trail (operator-only, read-only)
+
+From `apps/api`, run `./gradlew showAuditTrail` (Windows: `gradlew.bat showAuditTrail`) with the same `DB_URL`, `DB_USER` and `DB_PASSWORD` as the API. It prints the audit trail newest first as tab-separated lines: id, UTC time, event, acting account, target member, capability, scope, team and new role. Empty cells show `-`. The trail holds identifiers only, never names or contacts, and the command writes nothing. Optional filters, all validated before any connection: `OPENCLUB_AUDIT_SINCE` (an ISO instant such as `2026-11-18T10:00:00Z`, or a date, read as UTC), `OPENCLUB_AUDIT_MEMBER` (a canonical member UUID) and `OPENCLUB_AUDIT_LIMIT` (1 to 5000, default 200). Attach the output for the incident window to a [recovery case](../security/admin-recovery-case-template.md) rather than copying identifiers into tickets. The 12-month retention rule deletes older events ([retention cleanup](../security/retention-cleanup.md)).
+
 ## Fresh database only — schema reset
 
 Merged PR #79 replaces the previous Flyway V1–V4 chain with a fresh `V1__single_club.sql`. It intentionally does **not** migrate legacy database volumes. Existing Flyway history must fail rather than silently merge/delete old tenant data.

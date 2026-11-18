@@ -3,6 +3,7 @@ package org.openclub.api.club
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.openclub.api.database.AdvisoryLocks
+import org.openclub.api.database.AuditEvents
 import java.time.LocalDate
 import java.util.UUID
 
@@ -66,6 +67,8 @@ internal class FirstClubBootstrap(private val database: DSLContext) {
                           (?, 'VIEW_TEAMS'), (?, 'MANAGE_TEAMS')""",
                 adminMemberId, adminMemberId, adminMemberId, adminMemberId, adminMemberId,
             )
+            // Operator command: no browser-session actor. The target is the first administrator.
+            AuditEvents.record(db, AuditEvents.Type.CLUB_BOOTSTRAPPED, null, adminMemberId)
             clubId
         }
     }
