@@ -11,6 +11,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.patch
 import kotlinx.serialization.json.Json
+import org.jooq.DSLContext
 import org.jooq.exception.DataAccessException
 import org.jooq.impl.DSL
 import io.ktor.server.routing.get
@@ -93,7 +94,18 @@ internal fun Application.installTeamHttpRoutes(
                         HttpStatusCode.Forbidden)
                     return@post
                 }
-                val name = call.readTeamName()
+                if (!database.onDatabaseThread { it.canManageTeams(actor.accountId) }) {
+                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                        HttpStatusCode.Forbidden)
+                    return@post
+                }
+                val name = try {
+                    TeamAssignments.validName(call.readTeamName())
+                } catch (_: IllegalArgumentException) {
+                    call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
+                        HttpStatusCode.BadRequest)
+                    return@post
+                }
                 val id = database.onDatabaseThread { TeamAssignments(it).create(actor.accountId, name) }
                 if (id == null) {
                     call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
@@ -105,9 +117,6 @@ internal fun Application.installTeamHttpRoutes(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: IllegalArgumentException) {
-                call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                    HttpStatusCode.BadRequest)
             } catch (_: DataAccessException) {
                 call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
                     HttpStatusCode.Conflict)
@@ -131,27 +140,26 @@ internal fun Application.installTeamHttpRoutes(
                         HttpStatusCode.Forbidden)
                     return@patch
                 }
-                val teamId = UUID.fromString(call.parameters["teamId"])
-                val name = call.readTeamName()
-                val outcome = database.onDatabaseThread { db ->
-                    val authorized = db.fetchOne(
-                        "SELECT 1 WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_TEAMS)}",
-                        actor.accountId,
-                    ) != null
-                    if (!authorized) null else TeamAssignments(db).rename(actor.accountId, teamId, name)
-                }
-                when (outcome) {
-                    null -> call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                if (!database.onDatabaseThread { it.canManageTeams(actor.accountId) }) {
+                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
                         HttpStatusCode.Forbidden)
-                    false -> call.respondText("""{"code":"not_found"}""", ContentType.Application.Json,
+                    return@patch
+                }
+                val (teamId, name) = try {
+                    UUID.fromString(call.parameters["teamId"]) to TeamAssignments.validName(call.readTeamName())
+                } catch (_: IllegalArgumentException) {
+                    call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
+                        HttpStatusCode.BadRequest)
+                    return@patch
+                }
+                if (database.onDatabaseThread { TeamAssignments(it).rename(actor.accountId, teamId, name) }) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respondText("""{"code":"not_found"}""", ContentType.Application.Json,
                         HttpStatusCode.NotFound)
-                    true -> call.respond(HttpStatusCode.NoContent)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: IllegalArgumentException) {
-                call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                    HttpStatusCode.BadRequest)
             } catch (_: DataAccessException) {
                 call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
                     HttpStatusCode.Conflict)
@@ -175,41 +183,47 @@ internal fun Application.installTeamHttpRoutes(
                         HttpStatusCode.Forbidden)
                     return@delete
                 }
-                val teamId = UUID.fromString(call.parameters["teamId"])
-                val expectedName = call.readTeamName()
+                if (!database.onDatabaseThread { it.canManageTeams(actor.accountId) }) {
+                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                        HttpStatusCode.Forbidden)
+                    return@delete
+                }
+                val (teamId, expectedName) = try {
+                    UUID.fromString(call.parameters["teamId"]) to call.readTeamName()
+                } catch (_: IllegalArgumentException) {
+                    call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
+                        HttpStatusCode.BadRequest)
+                    return@delete
+                }
                 val outcome = database.onDatabaseThread { db ->
                     db.transactionResult { configuration ->
                         val tx = DSL.using(configuration)
-                        val authorized = tx.fetchOne(
-                            "SELECT 1 WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_TEAMS)}",
-                            actor.accountId,
-                        ) != null
-                        if (!authorized) null else {
+                        if (!tx.canManageTeams(actor.accountId)) TeamDelete.FORBIDDEN else {
                             // Hold the target row until deletion so a concurrent rename
                             // cannot invalidate the human's exact-name confirmation.
                             val name = tx.fetchOne(
                                 "SELECT name FROM teams WHERE id = ? FOR UPDATE", teamId,
                             )?.get(0, String::class.java)
                             when {
-                                name == null -> false
-                                name != expectedName -> throw IllegalArgumentException("Team name changed")
-                                else -> TeamAssignments(tx).remove(actor.accountId, teamId)
+                                name == null -> TeamDelete.NOT_FOUND
+                                name != expectedName -> TeamDelete.NAME_CHANGED
+                                TeamAssignments(tx).remove(actor.accountId, teamId) -> TeamDelete.DELETED
+                                else -> TeamDelete.NOT_FOUND
                             }
                         }
                     }
                 }
                 when (outcome) {
-                    null -> call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                    TeamDelete.FORBIDDEN -> call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
                         HttpStatusCode.Forbidden)
-                    false -> call.respondText("""{"code":"not_found"}""", ContentType.Application.Json,
+                    TeamDelete.NOT_FOUND -> call.respondText("""{"code":"not_found"}""", ContentType.Application.Json,
                         HttpStatusCode.NotFound)
-                    true -> call.respond(HttpStatusCode.NoContent)
+                    TeamDelete.NAME_CHANGED -> call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
+                        HttpStatusCode.BadRequest)
+                    TeamDelete.DELETED -> call.respond(HttpStatusCode.NoContent)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: IllegalArgumentException) {
-                call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                    HttpStatusCode.BadRequest)
             } catch (_: Exception) {
                 call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
                     HttpStatusCode.ServiceUnavailable)
@@ -218,6 +232,12 @@ internal fun Application.installTeamHttpRoutes(
     }
 }
 
-/** Single strict name-only body shared by team create and rename. */
+private enum class TeamDelete { FORBIDDEN, NOT_FOUND, NAME_CHANGED, DELETED }
+
+/** Club-wide MANAGE_TEAMS; a cheap check that runs before request input is validated. */
+private fun DSLContext.canManageTeams(accountId: UUID): Boolean =
+    fetchOne("SELECT 1 WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_TEAMS)}", accountId) != null
+
+/** Single strict name-only body shared by team create, rename and delete confirmation. */
 private suspend fun ApplicationCall.readTeamName(): String =
     receiveJsonObject(required = setOf("name")).requiredString("name")

@@ -31,6 +31,16 @@ This is not approval of public member IDs, broader confidential fields, permissi
 
 A verified user with a live **club-wide** `MANAGE_TEAMS` grant can delete an existing team using `DELETE /api/v1/teams/{teamId}`. The request must carry exact Origin and session CSRF, and a strict bounded `{"name":"Exact Team Name"}` confirmation. The server locks the team row and compares the name before invoking the existing SQL-authorized deletion service. A mismatched name or malformed body returns `400`; missing auth `401`; insufficient grant `403`; absent team `404`; unexpected failure `503`; success `204`. Team-scoped grants **never** authorize deletion. This irreversibly removes the team and its assignments/team-specific grants through database foreign-key cascades, **not** the member records. DE/EN/FR/IT browser controls require typing the exact name and clearly warn about assignment removal. Backup, audit and retention obligations for real data remain M2 blockers.
 
+## Check order and denial behavior (synthetic M1)
+
+Callers without the required grant always get `403`, never `400`, so a denied caller learns nothing about the expected input. After authentication (`401`) and, for writes, the Origin/CSRF check (`403`):
+
+- **Team create, rename, delete:** the club-wide `MANAGE_TEAMS` grant is checked first (`403`). Only then are the path id and body validated (`400`; the name is trimmed and must be 1-200 characters, and delete needs the exact current name, so a stale name is `400`). A rename or delete of a nonexistent team is `404`. The SQL-authorized service then re-checks atomically.
+- **Assign and unassign:** holding `MANAGE_TEAMS` club-wide or on at least one team is checked first (`403`), then the ids are validated (`400`), then the exact team is checked (`403`). A team manager therefore gets `403` for another team, and an unknown team is also `403` (it cannot be told apart from a forbidden one). Assigning an unknown or archived member is `409`; unassigning someone who is not on the team is `404`.
+- **Roster:** the club-wide `VIEW_MEMBER_DIRECTORY` grant is checked first (`403`), then the path id, `limit` and `cursor` are validated (`400`), then the exact team `VIEW_TEAMS` / `MANAGE_TEAMS` grant (`403`, also for an unknown team).
+
+An unexpected exception from the database or service is `503`, not `400`.
+
 ## Transient team-directory refresh recovery (synthetic M1)
 
 The team administration screen clears a previous team-list error whenever a subsequent authorized list read succeeds, including when a second successful team creation triggers a fresh read. The disposable Keycloak/Chromium journey injects a synthetic failed list refresh after one create, then proves that a later successful create recovers the rendered teams without a misleading stale error. This does not modify API contracts, permissions or M2 release gates.

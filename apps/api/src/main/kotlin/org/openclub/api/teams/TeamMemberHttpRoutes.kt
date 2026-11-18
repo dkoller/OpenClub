@@ -19,7 +19,9 @@ import org.openclub.api.auth.ActiveSession
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.members.MemberDirectory
 import org.openclub.api.members.MemberPageCursor
 import java.util.UUID
@@ -36,18 +38,33 @@ internal fun Application.installTeamMemberHttpRoutes(
             call.response.headers.append(HttpHeaders.CacheControl, "no-store")
             try {
                 val actor = call.actor(sessions, cookies) ?: return@get
-                val teamId = UUID.fromString(call.parameters["teamId"])
-                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: run {
-                    require(call.request.queryParameters["limit"] == null)
-                    20
+                // The directory grant is required for every roster, so check it before validating input.
+                if (!database.onDatabaseThread {
+                        ClubCapabilityAccess(it).has(actor.accountId,
+                            ClubCapabilityAccess.Capability.VIEW_MEMBER_DIRECTORY)
+                    }) {
+                    call.rejected(HttpStatusCode.Forbidden, "forbidden")
+                    return@get
                 }
-                require(limit in 1..50)
-                // Reuse the encrypted per-account cursor, scoped to this exact team.
-                val scope = "team:$teamId"
-                val after = call.request.queryParameters["cursor"]?.let {
-                    val decoded = MemberPageCursor.decode(actor.accountId, scope, it)
-                    TeamMemberDirectory.After(decoded.lastName, decoded.firstName, decoded.id)
+                val query = try {
+                    val teamId = UUID.fromString(call.parameters["teamId"])
+                    val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: run {
+                        require(call.request.queryParameters["limit"] == null)
+                        20
+                    }
+                    require(limit in 1..50)
+                    // Reuse the encrypted per-account cursor, scoped to this exact team.
+                    val scope = "team:$teamId"
+                    val after = call.request.queryParameters["cursor"]?.let {
+                        val decoded = MemberPageCursor.decode(actor.accountId, scope, it)
+                        TeamMemberDirectory.After(decoded.lastName, decoded.firstName, decoded.id)
+                    }
+                    RosterQuery(teamId, limit, scope, after)
+                } catch (_: IllegalArgumentException) {
+                    call.rejected(HttpStatusCode.BadRequest, "invalid")
+                    return@get
                 }
+                val (teamId, limit, scope, after) = query
                 val page = database.onDatabaseThread { db ->
                     val access = ClubCapabilityAccess(db)
                     if (!access.has(actor.accountId, ClubCapabilityAccess.Capability.VIEW_MEMBER_DIRECTORY) ||
@@ -74,8 +91,6 @@ internal fun Application.installTeamMemberHttpRoutes(
                 call.respondText(response.toString(), ContentType.Application.Json)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: IllegalArgumentException) {
-                call.rejected(HttpStatusCode.BadRequest, "invalid")
             } catch (_: Exception) {
                 call.rejected(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
@@ -104,8 +119,23 @@ private suspend fun ApplicationCall.changeAssignment(
             rejected(HttpStatusCode.Forbidden, "forbidden")
             return
         }
-        val teamId = UUID.fromString(parameters["teamId"])
-        val memberId = UUID.fromString(parameters["memberId"])
+        // Holding MANAGE_TEAMS on at least one team (or club-wide) is required for any assignment,
+        // so callers without it get 403 before their path parameters are validated.
+        val mayManageSomeTeam = database.onDatabaseThread { db ->
+            db.fetchOne(
+                "SELECT ${ActorSql.holdsTeamCapability(null, Capability.MANAGE_TEAMS)}", actor.accountId,
+            )?.get(0, Boolean::class.java) == true
+        }
+        if (!mayManageSomeTeam) {
+            rejected(HttpStatusCode.Forbidden, "forbidden")
+            return
+        }
+        val (teamId, memberId) = try {
+            UUID.fromString(parameters["teamId"]) to UUID.fromString(parameters["memberId"])
+        } catch (_: IllegalArgumentException) {
+            rejected(HttpStatusCode.BadRequest, "invalid")
+            return
+        }
         val changed = database.onDatabaseThread { db ->
             val access = ClubCapabilityAccess(db)
             if (!access.hasForTeam(actor.accountId, teamId, ClubCapabilityAccess.Capability.MANAGE_TEAMS)) null
@@ -123,12 +153,17 @@ private suspend fun ApplicationCall.changeAssignment(
         }
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: IllegalArgumentException) {
-        rejected(HttpStatusCode.BadRequest, "invalid")
     } catch (_: Exception) {
         rejected(HttpStatusCode.ServiceUnavailable, "unavailable")
     }
 }
+
+private data class RosterQuery(
+    val teamId: UUID,
+    val limit: Int,
+    val scope: String,
+    val after: TeamMemberDirectory.After?,
+)
 
 private suspend fun ApplicationCall.actor(
     sessions: BrowserSessionOperations,
