@@ -13,22 +13,30 @@ import org.jooq.DSLContext
 internal object AuthRecordCleanup {
     internal data class Counts(val logins: Int, val sessions: Int)
 
+    /**
+     * The batch is selected in a MATERIALIZED CTE so it is evaluated exactly once. As a plain
+     * `IN (SELECT ... LIMIT ? FOR UPDATE SKIP LOCKED)` the planner may re-run the subquery per
+     * target row (nested-loop semi join), and rows this statement already deleted are then
+     * skipped, so each re-run selects the next expired row and the limit is not honored.
+     */
     fun pruneBatch(db: DSLContext, batchSize: Int = 100): Counts {
         require(batchSize in 1..1000)
         val logins = db.execute(
-            """DELETE FROM oidc_login_transactions WHERE state_hash IN (
+            """WITH batch AS MATERIALIZED (
                 SELECT state_hash FROM oidc_login_transactions
                 WHERE expires_at <= CURRENT_TIMESTAMP ORDER BY expires_at
                 LIMIT ? FOR UPDATE SKIP LOCKED
-            )""",
+            )
+            DELETE FROM oidc_login_transactions WHERE state_hash IN (SELECT state_hash FROM batch)""",
             batchSize,
         )
         val sessions = db.execute(
-            """DELETE FROM auth_sessions WHERE session_hash IN (
+            """WITH batch AS MATERIALIZED (
                 SELECT session_hash FROM auth_sessions
                 WHERE idle_expires_at <= CURRENT_TIMESTAMP
                 ORDER BY idle_expires_at LIMIT ? FOR UPDATE SKIP LOCKED
-            )""",
+            )
+            DELETE FROM auth_sessions WHERE session_hash IN (SELECT session_hash FROM batch)""",
             batchSize,
         )
         return Counts(logins, sessions)
