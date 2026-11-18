@@ -16,9 +16,15 @@ import kotlinx.serialization.json.put
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
-import java.util.UUID
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
+import java.util.UUID
+
+private sealed interface RoleRead {
+    data object Denied : RoleRead
+    data object Invalid : RoleRead
+    data class Found(val role: String) : RoleRead
+}
 
 /** Minimal synthetic-M1 role boundary: privileged inspection and serialized changes only. */
 internal fun Application.installMemberRoleHttpRoutes(
@@ -37,24 +43,26 @@ internal fun Application.installMemberRoleHttpRoutes(
                         HttpStatusCode.Unauthorized)
                     return@get
                 }
-                val id = UUID.fromString(call.parameters["memberId"])
-                val role = database.onDatabaseThread { db ->
+                // Authorization is decided before the path is validated, so callers without
+                // MANAGE_PERMISSIONS learn nothing about expected input.
+                val id = runCatching { UUID.fromString(call.parameters["memberId"]) }.getOrNull()
+                val read = database.onDatabaseThread { db ->
                     if (!ClubCapabilityAccess(db).has(actor.accountId,
-                            ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS)) null
+                            ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS)) RoleRead.Denied
+                    else if (id == null) RoleRead.Invalid
                     else db.fetchOne("SELECT role FROM members WHERE id = ? AND archived_at IS NULL", id)
-                        ?.get("role", String::class.java)
+                        ?.get("role", String::class.java)?.let { RoleRead.Found(it) } ?: RoleRead.Denied
                 }
-                if (role == null) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                when (read) {
+                    RoleRead.Denied -> call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
                         HttpStatusCode.Forbidden)
-                } else {
-                    call.respondText(buildJsonObject { put("role", role) }.toString(), ContentType.Application.Json)
+                    RoleRead.Invalid -> call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
+                        HttpStatusCode.BadRequest)
+                    is RoleRead.Found -> call.respondText(buildJsonObject { put("role", read.role) }.toString(),
+                        ContentType.Application.Json)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: IllegalArgumentException) {
-                call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                    HttpStatusCode.BadRequest)
             } catch (_: Exception) {
                 call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
                     HttpStatusCode.ServiceUnavailable)
@@ -75,9 +83,25 @@ internal fun Application.installMemberRoleHttpRoutes(
                         HttpStatusCode.Forbidden)
                     return@patch
                 }
-                val id = UUID.fromString(call.parameters["memberId"])
-                val role = MemberRoles.Role.valueOf(
-                    call.receiveJsonObject(required = setOf("role")).requiredString("role"))
+                // Advisory pre-check so unauthorized callers get 403 for malformed input too; the
+                // service below repeats the check atomically under its lock and stays authoritative.
+                val permitted = database.onDatabaseThread { db ->
+                    ClubCapabilityAccess(db).has(actor.accountId,
+                        ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS)
+                }
+                if (!permitted) {
+                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                        HttpStatusCode.Forbidden)
+                    return@patch
+                }
+                val (id, role) = try {
+                    UUID.fromString(call.parameters["memberId"]) to MemberRoles.Role.valueOf(
+                        call.receiveJsonObject(required = setOf("role")).requiredString("role"))
+                } catch (_: IllegalArgumentException) {
+                    call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
+                        HttpStatusCode.BadRequest)
+                    return@patch
+                }
                 val outcome = database.onDatabaseThread { db ->
                     MemberRoles(db).change(actor.accountId, id, role)
                 }
@@ -87,9 +111,6 @@ internal fun Application.installMemberRoleHttpRoutes(
                 } else call.respond(HttpStatusCode.NoContent)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: IllegalArgumentException) {
-                call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                    HttpStatusCode.BadRequest)
             } catch (_: Exception) {
                 call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
                     HttpStatusCode.ServiceUnavailable)
