@@ -33,7 +33,7 @@ internal fun Application.installGrantHttpRoutes(
             call.response.headers.append(HttpHeaders.CacheControl, "no-store")
             try {
                 val actor = call.grantActor(sessions, cookies) ?: return@get
-                val memberId = UUID.fromString(call.request.queryParameters["memberId"])
+                val memberId = UUID.fromString(requireNotNull(call.request.queryParameters["memberId"]))
                 val grants = database.onDatabaseThread { db ->
                     if (!ClubCapabilityAccess(db).has(actor.accountId,
                             ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS)) null
