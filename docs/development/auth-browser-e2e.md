@@ -29,6 +29,37 @@ Compose PostgreSQL instance, never through a production HTTP endpoint.
 This provides real-session revocation evidence beyond mocked 403 responses
 without approving use of real personal data.
 
+Two further real-database steps close the denied-role and cross-team gap (#25),
+again without injected responses. First, the administrator's club grants are all
+removed while the Keycloak session stays signed in: an `ADMIN` role alone must
+grant nothing, so the member list shows its denied alert, the teams and
+permission regions disappear, member, team and grant reads return HTTP 403, the
+role search and club-name save are hidden by their first denied request, while
+`GET /api/v1/club` and the anonymous directory keep working. Each reload waits
+for the real 403 response before asserting, so no check passes before the page
+has settled. Second, a single team-scoped `VIEW_TEAMS` grant must show exactly
+that team in the browser and in `GET /api/v1/teams`, and the roster of every
+other team must answer 403. The step records the administrator's original club
+grants first, restores them in a `finally` block, and reloads to confirm access
+returns. This is targeted denied-role and cross-team browser evidence, not a
+full assistive-technology audit.
+
+Two further steps cover invalid input and machine-checkable accessibility (#25).
+Invalid input: typing into a name field stops at its 200-character `maxLength`;
+a malformed email is blocked by the browser's own validation before any request;
+a future birth date and a whitespace-only member name pass the browser but the
+server answers `400` and the member panel shows its announced `Action failed.`
+alert with no member created; a duplicate (case- and padding-insensitive) or
+whitespace-only team name is rejected with the `Could not create team.` alert and
+an unchanged team list; the adult-age field leaves Save disabled for values below,
+above or between whole numbers in the 13-25 range. Accessibility: one `main`
+landmark and one `h1`; every private panel is a named region; the document `lang`
+attribute follows the selected language; every visible control has an accessible
+name in English and French; and every `aria-describedby`/`aria-labelledby`
+reference resolves to an existing element. These are structural checks only.
+Screen-reader behaviour, focus order and contrast beyond the keyboard-only member
+search and archive cancel (#303) still need a manual audit and remain open.
+
 The member-management browser journey also seeds 25 fictional members into the
 disposable PostgreSQL fixture, loads the first 20 through the real authorized
 search API, and simulates a network failure only for the next page. The UI

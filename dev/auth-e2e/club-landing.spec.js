@@ -637,11 +637,11 @@ test('verified login gains club access only after restricted operator bootstrap'
     if (process.env.OPENCLUB_E2E_DISPOSABLE !== 'true') {
       throw new Error('This fixture requires disposable synthetic data');
     }
-    execFileSync('docker', [
+    return String(execFileSync('docker', [
       'compose', '-f', 'compose.yaml', '-f', 'compose.auth.dev.yaml',
-      'exec', '-T', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1',
+      'exec', '-T', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1', '-t', '-A',
       '-U', 'openclub', '-d', 'openclub', '-c', sql,
-    ], { cwd: fileURLToPath(new URL('../../', import.meta.url)), stdio: 'pipe' });
+    ], { cwd: fileURLToPath(new URL('../../', import.meta.url)), stdio: 'pipe' })).trim();
   };
   const fixtureGrant = (verb, capability = 'EDIT_MEMBERS') => {
     if (!['EDIT_MEMBERS', 'VIEW_MEMBER_DIRECTORY'].includes(capability)) {
@@ -806,6 +806,183 @@ test('verified login gains club access only after restricted operator bootstrap'
   await rolesAfterReload.getByRole('button', { name: 'Search' }).click();
   await expect(rolesAfterReload).toHaveCount(0);
   await page.unroute('**/api/v1/members?**');
+
+  // Invalid input in the real browser (#25): the browser's own constraints stop what they can,
+  // and what only the server can judge is rejected with a visible, announced error and no write.
+  const memberForm = page.getByRole('region', { name: 'Manage members' });
+  const membersNamed = (lastName) => context.request
+    .get('/api/v1/members?q=' + lastName).then(response => response.json()).then(body => body.items.length);
+  const addMemberResponse = () => page.waitForResponse(response =>
+    response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/v1/members');
+  // Typing is capped by maxLength, so an oversized name cannot even be entered.
+  const firstNameInput = memberForm.getByLabel('First name');
+  await firstNameInput.pressSequentially('a'.repeat(250));
+  expect((await firstNameInput.inputValue()).length).toBe(200);
+  await firstNameInput.fill('');
+  // A malformed email is blocked by the browser before any request is sent.
+  await memberForm.getByLabel('First name').fill('Invalid');
+  await memberForm.getByLabel('Last name').fill('EmailShape');
+  await memberForm.getByLabel('Date of birth').fill('1990-01-01');
+  await memberForm.getByLabel('Email').fill('not-an-email');
+  await memberForm.getByLabel('Phone').fill('+41000000001');
+  expect(await memberForm.getByLabel('Email').evaluate(input => input.validity.typeMismatch)).toBe(true);
+  expect(await memberForm.getByLabel('Email')
+    .evaluate(input => input.form.checkValidity())).toBe(false);
+  // A birth date in the future and a whitespace-only name pass the browser but not the server.
+  const futureBirthDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+  for (const [label, first, last, dob] of [
+    ['future birth date', 'Future', 'FutureBirth', futureBirthDate],
+    ['whitespace-only first name', '   ', 'BlankFirstName', '2016-01-01'],
+  ]) {
+    await memberForm.getByLabel('First name').fill(first);
+    await memberForm.getByLabel('Last name').fill(last);
+    await memberForm.getByLabel('Date of birth').fill(dob);
+    await memberForm.getByLabel('Email').fill('');
+    await memberForm.getByLabel('Phone').fill('');
+    const rejected = addMemberResponse();
+    await memberForm.getByRole('button', { name: 'Add member' }).click();
+    expect((await rejected).status(), label).toBe(400);
+    await expect(memberForm.getByRole('alert'), label).toContainText('Action failed.');
+    expect(await membersNamed(last), label).toBe(0);
+  }
+  // Duplicate (ignoring case and padding) and whitespace-only team names are rejected the same way.
+  const teamsForm = page.getByRole('region', { name: 'Teams', exact: true });
+  const teamsBeforeInvalid = (await (await context.request.get('/api/v1/teams')).json()).items;
+  for (const [label, name] of [
+    ['duplicate team name', '  ' + teamsBeforeInvalid[0].name.toUpperCase() + ' '],
+    ['whitespace-only team name', '    '],
+  ]) {
+    await teamsForm.getByLabel('Team name').fill(name);
+    const rejected = page.waitForResponse(response => response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/v1/teams');
+    await teamsForm.getByRole('button', { name: 'Add team' }).click();
+    expect((await rejected).status(), label).toBeGreaterThanOrEqual(400);
+    await expect(teamsForm.getByRole('alert'), label).toContainText('Could not create team.');
+    expect((await (await context.request.get('/api/v1/teams')).json()).items.length, label)
+      .toBe(teamsBeforeInvalid.length);
+  }
+  // The adult age accepts only whole numbers inside its range; anything else leaves Save disabled.
+  const adultAgeInput = page.getByRole('region', { name: 'Edit club name' }).getByLabel('Adult from age', { exact: false });
+  const saveAgeButton = page.getByRole('region', { name: 'Edit club name' })
+    .locator('form').filter({ has: page.getByLabel('Adult from age') }).getByRole('button');
+  for (const [value, flag] of [['12', 'rangeUnderflow'], ['26', 'rangeOverflow'], ['18.5', 'stepMismatch']]) {
+    await adultAgeInput.fill(value);
+    expect(await adultAgeInput.evaluate((input, name) => input.validity[name], flag), value).toBe(true);
+    await expect(saveAgeButton, value).toBeDisabled();
+  }
+  await page.reload();
+  await expect(page.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
+
+  // Assistive technology (#25): structure, names and references that screen readers rely on. This
+  // checks what is machine-checkable; it is not a substitute for a manual screen-reader audit.
+  await expect(page.getByRole('main')).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  for (const name of ['Edit club name', 'Manage permissions', 'Manage club roles', 'Manage members']) {
+    await expect(page.getByRole('region', { name }), name).toBeVisible();
+  }
+  for (const name of ['Teams', 'Members']) {
+    await expect(page.getByRole('region', { name, exact: true }), name).toBeVisible();
+  }
+  // The document language follows the selected language (screen readers pick pronunciation from it).
+  for (const [code, label] of [['de', 'Deutsch'], ['fr', 'Français'], ['it', 'Italiano'], ['en', 'English']]) {
+    await page.locator('#language').selectOption(code);
+    await expect(page.locator('html'), label).toHaveAttribute('lang', code);
+  }
+  // Every control a user can operate has an accessible name, in English and in another language.
+  for (const code of ['en', 'fr']) {
+    await page.locator('#language').selectOption(code);
+    const unnamedControls = await page.locator('main input:not([type=hidden]), main select, main textarea, main button')
+      .evaluateAll(elements => elements.filter(element => {
+        if (element.offsetParent === null) return false;
+        const labelled = element.labels && element.labels.length > 0;
+        const named = element.getAttribute('aria-label') || element.getAttribute('aria-labelledby') ||
+          element.getAttribute('title');
+        const text = element.tagName === 'BUTTON' ? element.textContent.trim() : '';
+        return !(labelled || named || text);
+      }).map(element => element.outerHTML.slice(0, 120)));
+    expect(unnamedControls, 'controls without an accessible name (' + code + ')').toEqual([]);
+  }
+  await page.locator('#language').selectOption('en');
+  // aria-describedby and aria-labelledby must point at elements that exist.
+  const danglingReferences = await page.locator('[aria-describedby], [aria-labelledby]').evaluateAll(elements =>
+    elements.flatMap(element => ['aria-describedby', 'aria-labelledby'].flatMap(attribute =>
+      (element.getAttribute(attribute) || '').split(/\s+/).filter(Boolean)
+        .filter(id => !document.getElementById(id)).map(id => attribute + ' -> ' + id))));
+  expect(danglingReferences).toEqual([]);
+
+  // Real database authorization, no injected responses (#25): an ADMIN whose club grants are all
+  // removed, then a member who may see exactly one team through a team-scoped grant.
+  const adminMemberSql = "(SELECT id FROM members WHERE account_id = '" + accountId + "')";
+  const originalGrants = fixtureSql(
+    'SELECT capability FROM club_capability_grants WHERE member_id = ' + adminMemberSql)
+    .split('\n').filter(Boolean);
+  expect(originalGrants).toEqual(expect.arrayContaining(
+    ['MANAGE_PERMISSIONS', 'EDIT_MEMBERS', 'VIEW_MEMBER_DIRECTORY']));
+  for (const capability of originalGrants) expect(capability).toMatch(/^[A-Z_]+$/);
+  // The step below deletes this member's team grants again, so it must start with none.
+  expect(fixtureSql('SELECT COUNT(*) FROM team_capability_grants WHERE member_id = ' + adminMemberSql))
+    .toBe('0');
+  const allTeams = (await (await context.request.get('/api/v1/teams')).json()).items;
+  expect(allTeams.length).toBeGreaterThan(1);
+  const [visibleTeam, ...hiddenTeams] = allTeams;
+  expect(visibleTeam.id).toMatch(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i);
+  const answered = (path, status) => page.waitForResponse(response =>
+    new URL(response.url()).pathname === path && response.status() === status, { timeout: 20000 });
+  try {
+    // ADMIN role alone grants nothing: every private region fails closed on a real 403.
+    fixtureSql('DELETE FROM club_capability_grants WHERE member_id = ' + adminMemberSql);
+    const denied = [answered('/api/v1/members', 403), answered('/api/v1/teams', 403),
+      answered('/api/v1/grants', 403)];
+    await page.reload();
+    await Promise.all(denied);
+    await expect(page.getByRole('region', { name: 'Manage members' }).getByRole('alert'))
+      .toContainText('No permission to manage members.');
+    await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Teams', exact: true })).toHaveCount(0);
+    for (const path of ['/api/v1/members', '/api/v1/teams', '/api/v1/grants?memberId=00000000-0000-0000-0000-000000000000']) {
+      expect((await context.request.get(path)).status()).toBe(403);
+    }
+    // Membership alone still shows the club and the approved anonymous directory.
+    expect((await context.request.get('/api/v1/club')).status()).toBe(200);
+    await expect(page.getByRole('region', { name: 'Members', exact: true })
+      .getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
+    // Editors that render before any request are hidden by their first denied write or search.
+    const roles = page.getByRole('region', { name: 'Manage club roles' });
+    await roles.getByLabel('Find member').fill('Mara');
+    await roles.getByRole('button', { name: 'Search' }).click();
+    await expect(roles).toHaveCount(0);
+    const clubName = page.getByRole('region', { name: 'Edit club name' });
+    const deniedRename = page.waitForResponse(response => response.request().method() === 'PATCH' &&
+      new URL(response.url()).pathname === '/api/v1/club');
+    await clubName.getByRole('button', { name: 'Save', exact: true }).click();
+    expect((await deniedRename).status()).toBe(403);
+    await expect(clubName).toHaveCount(0);
+
+    // Cross-team boundary: a grant for one team shows that team and no other.
+    fixtureSql("INSERT INTO team_capability_grants (team_id, member_id, capability) VALUES ('" +
+      visibleTeam.id + "', " + adminMemberSql + ", 'VIEW_TEAMS')");
+    const listed = answered('/api/v1/teams', 200);
+    await page.reload();
+    await listed;
+    const teamsRegion = page.getByRole('region', { name: 'Teams', exact: true });
+    await expect(teamsRegion.getByRole('listitem').filter({ hasText: visibleTeam.name })).toHaveCount(1);
+    for (const hidden of hiddenTeams) {
+      await expect(teamsRegion.getByRole('listitem').filter({ hasText: hidden.name })).toHaveCount(0);
+      expect((await context.request.get('/api/v1/teams/' + hidden.id + '/members')).status()).toBe(403);
+    }
+    expect((await (await context.request.get('/api/v1/teams')).json()).items.map(team => team.id))
+      .toEqual([visibleTeam.id]);
+  } finally {
+    fixtureSql('DELETE FROM team_capability_grants WHERE member_id = ' + adminMemberSql);
+    fixtureSql('DELETE FROM club_capability_grants WHERE member_id = ' + adminMemberSql);
+    for (const capability of originalGrants) {
+      fixtureSql("INSERT INTO club_capability_grants (member_id, capability) SELECT id, '" + capability +
+        "' FROM members WHERE account_id = '" + accountId + "' ON CONFLICT DO NOTHING");
+    }
+  }
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Manage permissions' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Edit club name' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   // Other accessible status elements (such as transient team loading) may
