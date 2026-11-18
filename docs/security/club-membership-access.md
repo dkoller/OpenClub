@@ -158,6 +158,10 @@ The SQL-authorized services and `UPDATE` statements still re-check the grant ato
 
 The auth routes (`/api/v1/auth/login`, `/callback`, `/me`, `/logout`) and the anonymous `GET /api/v1/public/members` were checked with malformed input and needed no change: a garbage, oversized or duplicated session cookie is always `401`, a malformed callback is `400` before the backend is called, `logout` accepts only an empty JSON object, and the anonymous list ignores query parameters and accepts only `GET`.
 
+## Revoked verified identity on every private route (#24, synthetic M1)
+
+`PrivateRoutesRevocationTest` drives all 21 private club, member, role, grant, team and roster routes with one ADMIN holding every club grant. It first proves that the holder is authorized on each route (no 401/403/5xx), then deletes the account's verified OIDC identity while the session cookie stays valid and the grants stay in place. Every route must then answer `403` with `Cache-Control: no-store` and no member data, and the target member, grants and member list must be unchanged. A mutation check (skipping the identity deletion) makes the denial test fail, so it is not vacuous. A route-level test for a database that cannot answer (503) is still open: the unit-level mapping is covered by `DatabaseErrorsTest`.
+
 ## Authorized club identity on the browser landing (2026-11-16)
 
 The session-linked `GET /api/v1/club` returns only the installation-local `id`, `name` and `slug` of the singleton club to an active linked member, regardless of ADMIN or MEMBER role. Anonymous, unlinked and archived accounts remain denied. The React landing validates these fields and displays the escaped club name only for a ready authorized session; it never accepts a caller-supplied club or uses this access check to authorize edits. The response remains `Cache-Control: no-store`. Club settings mutation and M2 real-data approval are not implemented by this change.
