@@ -1,6 +1,6 @@
 # R05 — Browser auth HTTP contract
 
-**Status:** Opt-in HTTP routes implemented; no public release approved. [OpenAPI proposal](auth-api-proposal.yaml); parent [R05/#14](https://github.com/dkoller/OpenClub/issues/14). This standalone auth contract is separate from the [frozen M1 contract](openapi-v1.yaml) (version 1.0.0, ADR-0007) and the [M2 proposals draft](openapi-m2-draft.yaml).
+**Status:** Opt-in HTTP routes implemented; no public release approved. [OpenAPI proposal](auth-api-proposal.yaml); parent [R05/#14](https://github.com/dkoller/OpenClub/issues/14). This standalone auth contract is separate from the [frozen M1 contract](openapi-v1.yaml) (frozen as 1.0.0, now 1.1.0; ADR-0007) and the [M2 proposals draft](openapi-m2-draft.yaml).
 
 ## Integration boundary
 

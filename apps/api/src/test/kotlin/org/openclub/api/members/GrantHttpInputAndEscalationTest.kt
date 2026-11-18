@@ -239,11 +239,17 @@ class GrantHttpInputAndEscalationTest {
         c.read(HttpStatusCode.BadRequest, "manager without memberId", "")
         c.read(HttpStatusCode.BadRequest, "manager with malformed memberId", "?memberId=nope")
         c.read(HttpStatusCode.BadRequest, "manager with empty memberId", "?memberId=")
+        c.read(HttpStatusCode.BadRequest, "manager with repeated memberId",
+            "?memberId=$plainMember&memberId=$archived")
+        c.read(HttpStatusCode.BadRequest, "manager with repeated identical memberId",
+            "?memberId=$plainMember&memberId=$plainMember")
         // Callers without MANAGE_PERMISSIONS get 403 for bad and good queries alike, never 400.
         for (handle in listOf("adminnogrant", "coach")) {
             c.read(HttpStatusCode.Forbidden, "$handle without memberId", "", handle)
             c.read(HttpStatusCode.Forbidden, "$handle with malformed memberId", "?memberId=nope", handle)
             c.read(HttpStatusCode.Forbidden, "$handle with valid memberId", "?memberId=$plainMember", handle)
+            c.read(HttpStatusCode.Forbidden, "$handle with repeated memberId",
+                "?memberId=$plainMember&memberId=$archived", handle)
         }
         c.read(HttpStatusCode.Unauthorized, "unknown session", "?memberId=$plainMember", "ghost")
         // Reads do not distinguish "no grants" from "no such member": both are an empty 200.

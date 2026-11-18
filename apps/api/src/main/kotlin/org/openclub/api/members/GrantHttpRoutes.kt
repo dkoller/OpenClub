@@ -35,7 +35,7 @@ internal fun Application.installGrantHttpRoutes(
                 val actor = call.grantActor(sessions, cookies) ?: return@get
                 // Authorization is decided before the query is validated, so a caller without
                 // MANAGE_PERMISSIONS learns nothing about expected input.
-                val memberId = call.request.queryParameters["memberId"]
+                val memberId = call.request.queryParameters.getAll("memberId")?.singleOrNull()
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                 val read = database.onDatabaseThread { db ->
                     if (!ClubCapabilityAccess(db).has(actor.accountId,
@@ -128,6 +128,8 @@ private suspend fun ApplicationCall.mutateGrant(
             grantError(HttpStatusCode.BadRequest, "invalid")
             return
         }
+        // receiveGrantChange() mirrors the service's require() checks, so an exception from the
+        // service is an invariant violation and correctly falls through to the 503 below.
         val outcome = database.onDatabaseThread { db ->
             val grants = CapabilityGrants(db)
             if (granting) grants.grant(actor.accountId, change.memberId, change.capability, change.scope, change.teamId)
