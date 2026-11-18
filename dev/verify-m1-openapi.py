@@ -22,6 +22,7 @@ ROUTE_SOURCES = {
     "club/ClubPlayerPolicyRoutes.kt": "installClubPlayerPolicyRoutes",
     "members/MemberHttpRoutes.kt": "installMemberHttpRoutes",
     "members/MemberRoleHttpRoutes.kt": "installMemberRoleHttpRoutes",
+    "members/MemberInvitationHttpRoutes.kt": "installMemberInvitationHttpRoutes",
     "members/GrantHttpRoutes.kt": "installGrantHttpRoutes",
     "teams/TeamHttpRoutes.kt": "installTeamHttpRoutes",
     "teams/TeamMemberHttpRoutes.kt": "installTeamMemberHttpRoutes",
@@ -53,6 +54,10 @@ DELETE /v1/teams/{teamId}/members/{memberId}
 GET /v1/grants
 POST /v1/grants
 DELETE /v1/grants
+POST /v1/members/{memberId}/invitation
+DELETE /v1/members/{memberId}/invitation
+POST /v1/invitations/accept
+DELETE /v1/members/{memberId}/account-link
 """.strip().splitlines())
 
 # A single direct-route pattern avoids interpreting JSON builder put() as an
@@ -89,16 +94,12 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.1.0"
+FROZEN_VERSION = "1.2.0"
 M2_PROPOSALS = (
     "PUT /v1/members/{memberId}",
     "POST /v1/members/{memberId}/reactivate",
     "GET /v1/members/{memberId}/details",
     "POST /v1/members/{memberId}/erase",
-    "POST /v1/members/{memberId}/invitation",
-    "DELETE /v1/members/{memberId}/invitation",
-    "POST /v1/invitations/accept",
-    "DELETE /v1/members/{memberId}/account-link",
 )
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
 
@@ -129,7 +130,7 @@ def verify_contract(spec):
         if not operation:
             fail(f"Missing implemented operation in OpenAPI: {entry}")
         responses = operation.get("responses", {})
-        success = "201" if entry in {"POST /v1/members", "POST /v1/teams"} else (
+        success = "201" if entry in {"POST /v1/members", "POST /v1/teams", "POST /v1/members/{memberId}/invitation"} else (
             "200" if method == "GET" else "204"
         )
         if success not in responses or "503" not in responses:

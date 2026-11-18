@@ -135,6 +135,9 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Post, "/api/v1/teams/$team/members/$target"),
         Route(HttpMethod.Delete, "/api/v1/teams/$team/members/$target"),
         Route(HttpMethod.Delete, "/api/v1/teams/$team"),
+        Route(HttpMethod.Post, "/api/v1/members/$target/invitation"),
+        Route(HttpMethod.Delete, "/api/v1/members/$target/invitation"),
+        Route(HttpMethod.Delete, "/api/v1/members/$target/account-link"),
         // Last: an archived target is hidden from the role and grant routes by design.
         Route(HttpMethod.Post, "/api/v1/members/$target/archive"),
     )
