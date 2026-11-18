@@ -42,8 +42,23 @@ that team in the browser and in `GET /api/v1/teams`, and the roster of every
 other team must answer 403. The step records the administrator's original club
 grants first, restores them in a `finally` block, and reloads to confirm access
 returns. This is targeted denied-role and cross-team browser evidence, not a
-full assistive-technology audit; screen-reader and focus-order coverage beyond
-the keyboard-only member search and archive cancel (#303) remains open.
+full assistive-technology audit.
+
+Two further steps cover invalid input and machine-checkable accessibility (#25).
+Invalid input: typing into a name field stops at its 200-character `maxLength`;
+a malformed email is blocked by the browser's own validation before any request;
+a future birth date and a whitespace-only member name pass the browser but the
+server answers `400` and the member panel shows its announced `Action failed.`
+alert with no member created; a duplicate (case- and padding-insensitive) or
+whitespace-only team name is rejected with the `Could not create team.` alert and
+an unchanged team list; the adult-age field leaves Save disabled for values below,
+above or between whole numbers in the 13-25 range. Accessibility: one `main`
+landmark and one `h1`; every private panel is a named region; the document `lang`
+attribute follows the selected language; every visible control has an accessible
+name in English and French; and every `aria-describedby`/`aria-labelledby`
+reference resolves to an existing element. These are structural checks only.
+Screen-reader behaviour, focus order and contrast beyond the keyboard-only member
+search and archive cancel (#303) still need a manual audit and remain open.
 
 The member-management browser journey also seeds 25 fictional members into the
 disposable PostgreSQL fixture, loads the first 20 through the real authorized

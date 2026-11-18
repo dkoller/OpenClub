@@ -807,6 +807,109 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(rolesAfterReload).toHaveCount(0);
   await page.unroute('**/api/v1/members?**');
 
+  // Invalid input in the real browser (#25): the browser's own constraints stop what they can,
+  // and what only the server can judge is rejected with a visible, announced error and no write.
+  const memberForm = page.getByRole('region', { name: 'Manage members' });
+  const membersNamed = (lastName) => context.request
+    .get('/api/v1/members?q=' + lastName).then(response => response.json()).then(body => body.items.length);
+  const addMemberResponse = () => page.waitForResponse(response =>
+    response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/v1/members');
+  // Typing is capped by maxLength, so an oversized name cannot even be entered.
+  const firstNameInput = memberForm.getByLabel('First name');
+  await firstNameInput.pressSequentially('a'.repeat(250));
+  expect((await firstNameInput.inputValue()).length).toBe(200);
+  await firstNameInput.fill('');
+  // A malformed email is blocked by the browser before any request is sent.
+  await memberForm.getByLabel('First name').fill('Invalid');
+  await memberForm.getByLabel('Last name').fill('EmailShape');
+  await memberForm.getByLabel('Date of birth').fill('1990-01-01');
+  await memberForm.getByLabel('Email').fill('not-an-email');
+  await memberForm.getByLabel('Phone').fill('+41000000001');
+  expect(await memberForm.getByLabel('Email').evaluate(input => input.validity.typeMismatch)).toBe(true);
+  expect(await memberForm.getByLabel('Email')
+    .evaluate(input => input.form.checkValidity())).toBe(false);
+  // A birth date in the future and a whitespace-only name pass the browser but not the server.
+  const futureBirthDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+  for (const [label, first, last, dob] of [
+    ['future birth date', 'Future', 'FutureBirth', futureBirthDate],
+    ['whitespace-only first name', '   ', 'BlankFirstName', '2016-01-01'],
+  ]) {
+    await memberForm.getByLabel('First name').fill(first);
+    await memberForm.getByLabel('Last name').fill(last);
+    await memberForm.getByLabel('Date of birth').fill(dob);
+    await memberForm.getByLabel('Email').fill('');
+    await memberForm.getByLabel('Phone').fill('');
+    const rejected = addMemberResponse();
+    await memberForm.getByRole('button', { name: 'Add member' }).click();
+    expect((await rejected).status(), label).toBe(400);
+    await expect(memberForm.getByRole('alert'), label).toContainText('Action failed.');
+    expect(await membersNamed(last), label).toBe(0);
+  }
+  // Duplicate (ignoring case and padding) and whitespace-only team names are rejected the same way.
+  const teamsForm = page.getByRole('region', { name: 'Teams', exact: true });
+  const teamsBeforeInvalid = (await (await context.request.get('/api/v1/teams')).json()).items;
+  for (const [label, name] of [
+    ['duplicate team name', '  ' + teamsBeforeInvalid[0].name.toUpperCase() + ' '],
+    ['whitespace-only team name', '    '],
+  ]) {
+    await teamsForm.getByLabel('Team name').fill(name);
+    const rejected = page.waitForResponse(response => response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/v1/teams');
+    await teamsForm.getByRole('button', { name: 'Add team' }).click();
+    expect((await rejected).status(), label).toBeGreaterThanOrEqual(400);
+    await expect(teamsForm.getByRole('alert'), label).toContainText('Could not create team.');
+    expect((await (await context.request.get('/api/v1/teams')).json()).items.length, label)
+      .toBe(teamsBeforeInvalid.length);
+  }
+  // The adult age accepts only whole numbers inside its range; anything else leaves Save disabled.
+  const adultAgeInput = page.getByRole('region', { name: 'Edit club name' }).getByLabel('Adult from age', { exact: false });
+  const saveAgeButton = page.getByRole('region', { name: 'Edit club name' })
+    .locator('form').filter({ has: page.getByLabel('Adult from age') }).getByRole('button');
+  for (const [value, flag] of [['12', 'rangeUnderflow'], ['26', 'rangeOverflow'], ['18.5', 'stepMismatch']]) {
+    await adultAgeInput.fill(value);
+    expect(await adultAgeInput.evaluate((input, name) => input.validity[name], flag), value).toBe(true);
+    await expect(saveAgeButton, value).toBeDisabled();
+  }
+  await page.reload();
+  await expect(page.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
+
+  // Assistive technology (#25): structure, names and references that screen readers rely on. This
+  // checks what is machine-checkable; it is not a substitute for a manual screen-reader audit.
+  await expect(page.getByRole('main')).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  for (const name of ['Edit club name', 'Manage permissions', 'Manage club roles', 'Manage members']) {
+    await expect(page.getByRole('region', { name }), name).toBeVisible();
+  }
+  for (const name of ['Teams', 'Members']) {
+    await expect(page.getByRole('region', { name, exact: true }), name).toBeVisible();
+  }
+  // The document language follows the selected language (screen readers pick pronunciation from it).
+  for (const [code, label] of [['de', 'Deutsch'], ['fr', 'Français'], ['it', 'Italiano'], ['en', 'English']]) {
+    await page.locator('#language').selectOption(code);
+    await expect(page.locator('html'), label).toHaveAttribute('lang', code);
+  }
+  // Every control a user can operate has an accessible name, in English and in another language.
+  for (const code of ['en', 'fr']) {
+    await page.locator('#language').selectOption(code);
+    const unnamedControls = await page.locator('main input:not([type=hidden]), main select, main textarea, main button')
+      .evaluateAll(elements => elements.filter(element => {
+        if (element.offsetParent === null) return false;
+        const labelled = element.labels && element.labels.length > 0;
+        const named = element.getAttribute('aria-label') || element.getAttribute('aria-labelledby') ||
+          element.getAttribute('title');
+        const text = element.tagName === 'BUTTON' ? element.textContent.trim() : '';
+        return !(labelled || named || text);
+      }).map(element => element.outerHTML.slice(0, 120)));
+    expect(unnamedControls, 'controls without an accessible name (' + code + ')').toEqual([]);
+  }
+  await page.locator('#language').selectOption('en');
+  // aria-describedby and aria-labelledby must point at elements that exist.
+  const danglingReferences = await page.locator('[aria-describedby], [aria-labelledby]').evaluateAll(elements =>
+    elements.flatMap(element => ['aria-describedby', 'aria-labelledby'].flatMap(attribute =>
+      (element.getAttribute(attribute) || '').split(/\s+/).filter(Boolean)
+        .filter(id => !document.getElementById(id)).map(id => attribute + ' -> ' + id))));
+  expect(danglingReferences).toEqual([]);
+
   // Real database authorization, no injected responses (#25): an ADMIN whose club grants are all
   // removed, then a member who may see exactly one team through a team-scoped grant.
   const adminMemberSql = "(SELECT id FROM members WHERE account_id = '" + accountId + "')";
