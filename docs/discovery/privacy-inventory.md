@@ -1,6 +1,6 @@
 # R03 — Single-club privacy inventory and approval gates
 
-**Status:** Working privacy assessment, **not legal approval or permission to use real data**. Tracked by [#12](https://github.com/dkoller/OpenClub/issues/12). The applicable jurisdiction and responsible club operator must be identified before any pilot processes real personal data.
+**Status:** (A concrete proposal for the open rows below is in [privacy proposal 2026-11-18](privacy-proposal-2026-11-18.md); it is not approved.) Working privacy assessment, **not legal approval or permission to use real data**. Tracked by [#12](https://github.com/dkoller/OpenClub/issues/12). The applicable jurisdiction and responsible club operator must be identified before any pilot processes real personal data.
 
 OpenClub deploys **one club per independent installation and PostgreSQL database**. It has no global person directory, no cross-installation login or data sharing, and no tenant selector. The old `persons`, `person_identities` and `memberships` model was removed in pre-production PR #79. Real member records have never been approved for import or use.
 

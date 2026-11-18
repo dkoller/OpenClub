@@ -3,8 +3,10 @@ info:
   title: OpenClub single-club management API — M2 proposals (draft)
   version: 0.0.0-draft
   description: >
-    UNAPPROVED DRAFT of operations proposed for M2 (real member data). None of
-    these operations is implemented or exposed. They depend on the owner's
+    DRAFT of operations proposed for M2 (real member data), approved by the
+    owner as a draft on 2026-11-18 (ADR-0008); version stays 0.0.0-draft until
+    implementation. None of these operations is implemented or exposed, and the
+    approval does not authorize real data. They depend on the owner's
     privacy decisions (#12, ADR-0007: contacts readable only by explicitly
     granted roles; adult age configurable per club), audit (#26) and security
     review before any HTTP exposure. The implemented synthetic M1 surface is
