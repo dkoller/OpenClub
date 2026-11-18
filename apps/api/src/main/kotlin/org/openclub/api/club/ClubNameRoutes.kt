@@ -41,8 +41,22 @@ internal fun Application.installClubNameRoutes(
                         HttpStatusCode.Forbidden)
                     return@patch
                 }
-                val name = call.receiveJsonObject(required = setOf("name")).requiredString("name").trim()
-                require(name.length in 1..200 && name.none { it.isISOControl() })
+                // Checked before the body is validated, so callers without the grant always get 403.
+                // The UPDATE below repeats the check atomically.
+                if (database.onDatabaseThread { it.holdsClubAdminGrant(actor.accountId) }.not()) {
+                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
+                        HttpStatusCode.Forbidden)
+                    return@patch
+                }
+                val name = try {
+                    call.receiveJsonObject(required = setOf("name")).requiredString("name").trim().also {
+                        require(it.length in 1..200 && it.none { char -> char.isISOControl() })
+                    }
+                } catch (_: IllegalArgumentException) {
+                    call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
+                        HttpStatusCode.BadRequest)
+                    return@patch
+                }
                 // The update and live authorization are one statement, so grant revocation
                 // cannot be bypassed by a stale UI state or a forged actor identifier.
                 val changed = database.onDatabaseThread { db ->
@@ -57,9 +71,6 @@ internal fun Application.installClubNameRoutes(
                     HttpStatusCode.Forbidden)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: IllegalArgumentException) {
-                call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                    HttpStatusCode.BadRequest)
             } catch (_: Exception) {
                 call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
                     HttpStatusCode.ServiceUnavailable)
@@ -67,3 +78,10 @@ internal fun Application.installClubNameRoutes(
         }
     }
 }
+
+/** Live, identity-bound ADMIN with MANAGE_PERMISSIONS: the grant every club settings write needs. */
+internal fun org.jooq.DSLContext.holdsClubAdminGrant(accountId: java.util.UUID): Boolean =
+    fetchOne(
+        "SELECT 1 WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_PERMISSIONS, requireAdmin = true)}",
+        accountId,
+    ) != null

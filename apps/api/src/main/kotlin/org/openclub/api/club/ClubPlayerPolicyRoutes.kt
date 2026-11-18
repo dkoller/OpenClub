@@ -81,8 +81,19 @@ private suspend fun ApplicationCall.updateClubPolicy(
                 HttpStatusCode.Forbidden)
             return
         }
-        val fields = receiveJsonObject(required = setOf(field))
-        val value = parse(fields[field] as? JsonPrimitive ?: throw IllegalArgumentException("Missing policy"))
+        // Checked before the body is validated, so callers without the grant always get 403.
+        // The UPDATE below repeats the check atomically.
+        if (!database.onDatabaseThread { it.holdsClubAdminGrant(actor.accountId) }) {
+            respondText("""{"code":"forbidden"}""", ContentType.Application.Json, HttpStatusCode.Forbidden)
+            return
+        }
+        val value = try {
+            val fields = receiveJsonObject(required = setOf(field))
+            parse(fields[field] as? JsonPrimitive ?: throw IllegalArgumentException("Missing policy"))
+        } catch (_: IllegalArgumentException) {
+            respondText("""{"code":"invalid"}""", ContentType.Application.Json, HttpStatusCode.BadRequest)
+            return
+        }
         val updated = database.onDatabaseThread { db ->
             db.execute(
                 """UPDATE clubs SET $column = ?
@@ -94,8 +105,6 @@ private suspend fun ApplicationCall.updateClubPolicy(
         else respondText("""{"code":"forbidden"}""", ContentType.Application.Json, HttpStatusCode.Forbidden)
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: IllegalArgumentException) {
-        respondText("""{"code":"invalid"}""", ContentType.Application.Json, HttpStatusCode.BadRequest)
     } catch (_: DataAccessException) {
         respondText("""{"code":"conflict"}""", ContentType.Application.Json, HttpStatusCode.Conflict)
     } catch (_: Exception) {
