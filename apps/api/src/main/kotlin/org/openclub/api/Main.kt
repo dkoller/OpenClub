@@ -9,6 +9,7 @@ import org.openclub.api.club.installClubPlayerPolicyRoutes
 import org.openclub.api.members.PublicMemberNames
 import org.openclub.api.members.installMemberHttpRoutes
 import org.openclub.api.members.installGrantHttpRoutes
+import org.openclub.api.members.installMemberInvitationHttpRoutes
 import org.openclub.api.members.installMemberRoleHttpRoutes
 import org.openclub.api.teams.installTeamHttpRoutes
 import org.openclub.api.teams.installTeamMemberHttpRoutes
@@ -136,5 +137,6 @@ internal fun Application.module(
         installTeamMemberHttpRoutes(sessions, requireNotNull(cookiePolicy), database, requireNotNull(publicOrigin))
         installGrantHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installMemberRoleHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
+        installMemberInvitationHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, authAdmission)
     }
 }

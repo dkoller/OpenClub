@@ -1,11 +1,13 @@
 openapi: 3.1.0
 info:
   title: OpenClub single-club management API — synthetic M1
-  version: 1.1.0
+  version: 1.2.0
   description: >
     Frozen contract for the implemented synthetic M1 HTTP surface, accepted by
     the owner on 2026-11-17 (ADR-0007, #13). 1.1.0 adds the per-club adult-age
-    setting (PATCH /v1/club/adult-age-policy and adultAgeYears in GET /v1/club, #17). It contains exactly the operations
+    setting (PATCH /v1/club/adult-age-policy and adultAgeYears in GET /v1/club, #17). 1.2.0 adds invitations
+    and account unlinking (owner-approved 2026-11-18, ADR-0008 addendum 4): create and revoke an invitation,
+    accept an invitation, and unlink a member's account. It contains exactly the operations
     registered in Ktor and checked by `dev/verify-m1-openapi.py`. Authentication
     routes (/v1/auth) are documented separately in auth-api-proposal.yaml.
     Version 1.0.0 covers synthetic data only. It does not approve real member
@@ -725,6 +727,141 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
+  /v1/members/{memberId}/invitation:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Members]
+      operationId: createLocalMemberInvitation
+      summary: Invite an adult member to sign in themselves (since 1.2.0)
+      description: >
+        Creates the single open invitation for an ACTIVE, unlinked ordinary member, under a live
+        club-wide EDIT_MEMBERS grant. The response carries the one-time secret; only its hash is
+        stored, so it can never be read again. The administrator hands the resulting link
+        (https://HOST/invite#SECRET, the secret in the URL fragment so it stays out of server logs)
+        to the person outside OpenClub; the system sends no email. Life is 7 days. 409 when the
+        member already has an open invitation (revoke it first) or is already linked. Never created
+        for administrators or archived members. Audited as INVITATION_CREATED.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '201':
+          description: Invitation created; the secret is shown once
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Invitation' }
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [Members]
+      operationId: revokeLocalMemberInvitation
+      summary: Revoke a member's open invitation (since 1.2.0)
+      description: >
+        Revokes the member's open invitation under a live club-wide EDIT_MEMBERS grant. Idempotent
+        as to the outcome (no open invitation afterwards); 404 when the member does not exist.
+        Audited as INVITATION_REVOKED when an invitation was actually revoked.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204':
+          description: No open invitation remains
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/invitations/accept:
+    post:
+      tags: [Members]
+      operationId: acceptInvitation
+      summary: Accept an invitation as a signed-in person (since 1.2.0)
+      description: >
+        Links the caller's verified account to the invited member. Needs both proofs: the secret in
+        the body and a verified OIDC session (with exact Origin and CSRF); no capability is required
+        and none is granted: the linked member keeps role MEMBER and no grants. In one transaction
+        the server checks that the invitation is open, unexpired and unrevoked, that the member is
+        still active, unlinked and a plain MEMBER, and that the caller's account has no member. Every
+        failure, whatever the reason (unknown, used, expired, revoked, ineligible member, account
+        already linked), is the same 400 with code `invalid`, so nothing about members or
+        invitations is revealed. Rate limited like the authentication routes. Audited as
+        INVITATION_ACCEPTED.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InvitationSecret' }
+      responses:
+        '204':
+          description: The caller's account is now linked to the invited member
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          description: Too many acceptance attempts (shared budget, like the authentication routes); retry after the interval in Retry-After
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/members/{memberId}/account-link:
+    delete:
+      tags: [Members]
+      operationId: unlinkLocalMemberAccount
+      summary: Unlink a member's sign-in account (since 1.2.0)
+      description: >
+        Removes the link between a member and their account, needed before archiving and for a lost
+        provider login. Requires a live club-wide MANAGE_PERMISSIONS grant held by an ADMIN with a
+        current verified identity, because it changes who can sign in. Deletes that account's browser
+        sessions, clears the member's capability grants (as archiving does), and refuses with 409
+        the last eligible permission manager, reusing the existing advisory lock. Administrators are
+        unlinked only by the operator recovery procedure; the response never reveals the account.
+        Audited as ACCOUNT_UNLINKED.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204':
+          description: The member is no longer linked to an account
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
 components:
   parameters:
     CsrfToken:
@@ -881,6 +1018,28 @@ components:
           enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS]
         scope: { type: string, enum: [CLUB, TEAM] }
         teamId: { type: string, format: uuid }
+    Invitation:
+      type: object
+      additionalProperties: false
+      required: [secret, expiresAt]
+      properties:
+        secret:
+          type: string
+          minLength: 43
+          maxLength: 128
+          pattern: '^[A-Za-z0-9_-]+$'
+          description: 256 random bits, base64url. Returned once; only its hash is stored.
+        expiresAt: { type: string, format: date-time }
+    InvitationSecret:
+      type: object
+      additionalProperties: false
+      required: [secret]
+      properties:
+        secret:
+          type: string
+          minLength: 43
+          maxLength: 128
+          pattern: '^[A-Za-z0-9_-]+$'
     Error:
       type: object
       additionalProperties: false
