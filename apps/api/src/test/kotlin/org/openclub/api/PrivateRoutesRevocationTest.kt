@@ -95,7 +95,8 @@ class PrivateRoutesRevocationTest {
         val db = database ?: return
         runBlocking {
             db.onDatabaseThread { tx: DSLContext ->
-                tx.execute("DELETE FROM teams WHERE id = ?", team)
+                // Also the team the authorized pass created through POST /teams: other suites count teams.
+                tx.execute("DELETE FROM teams WHERE id = ? OR name LIKE 'Revocation%'", team)
                 tx.execute("DELETE FROM members WHERE first_name = 'Denied' AND last_name = 'Person'")
                 tx.execute("DELETE FROM members WHERE id IN (?, ?)", holder, target)
                 tx.execute("DELETE FROM accounts WHERE id = ?", holderAccount)
@@ -182,6 +183,7 @@ class PrivateRoutesRevocationTest {
                 tx.execute("UPDATE members SET archived_at = NULL, role = 'MEMBER' WHERE id = ?", target)
                 tx.execute("DELETE FROM club_capability_grants WHERE member_id = ?", target)
                 tx.execute("DELETE FROM member_team_assignments WHERE member_id = ?", target)
+                tx.execute("DELETE FROM teams WHERE id <> ? AND name LIKE 'Revocation%'", team)
                 tx.execute("INSERT INTO teams (id, name) VALUES (?, ?) ON CONFLICT DO NOTHING", team,
                     "Revocation team again")
                 tx.execute("DELETE FROM account_identities WHERE account_id = ?", holderAccount)
