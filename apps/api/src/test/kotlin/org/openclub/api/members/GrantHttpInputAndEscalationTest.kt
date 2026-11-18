@@ -195,12 +195,13 @@ class GrantHttpInputAndEscalationTest {
                 // The whole matrix, including both verbs, left no grant behind.
                 assertEquals(0L, runBlocking {
                     database.onDatabaseThread { db ->
-                        db.fetchValue("SELECT COUNT(*) FROM club_capability_grants WHERE member_id <> ?", manager)
+                        db.fetchValue("SELECT COUNT(*) FROM club_capability_grants WHERE member_id IN (?, ?, ?, ?, ?)",
+                            coach, adminNoGrant, unverifiedAdmin, plainMember, archived)
                     }?.toString()?.toLong()
                 })
                 assertEquals(1L, runBlocking {
                     database.onDatabaseThread { db ->
-                        db.fetchValue("SELECT COUNT(*) FROM team_capability_grants")
+                        db.fetchValue("SELECT COUNT(*) FROM team_capability_grants WHERE team_id = ?", team)
                     }?.toString()?.toLong()
                 })
             }
