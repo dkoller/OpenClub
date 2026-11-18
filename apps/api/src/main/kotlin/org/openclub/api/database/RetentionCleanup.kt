@@ -9,9 +9,9 @@ import org.jooq.impl.DSL
 import java.util.UUID
 
 /**
- * Retention rules approved as product defaults on 2026-11-18 (ADR-0008, decision 7), applied in bounded
+ * Retention rules approved by the owner on 2026-11-18 (ADR-0008, decisions 7 and 14), applied in bounded
  * batches: audit events are deleted after 12 months, and an account that is not linked to any member and
- * has not signed in for 90 days is deleted together with its identity bindings and sessions.
+ * has not signed in for 2 years is deleted together with its identity bindings and sessions.
  * Archived-member erasure is a separate, explicit operation and is not done here.
  */
 internal object RetentionCleanup {
@@ -43,7 +43,7 @@ internal object RetentionCleanup {
         val tx = DSL.using(configuration)
         val candidates = tx.fetch(
             """SELECT a.id FROM accounts a
-               WHERE a.last_login_at < CURRENT_TIMESTAMP - INTERVAL '90 days'
+               WHERE a.last_login_at < CURRENT_TIMESTAMP - INTERVAL '2 years'
                  AND NOT EXISTS (SELECT 1 FROM members m WHERE m.account_id = a.id)
                ORDER BY a.last_login_at LIMIT ? FOR UPDATE OF a SKIP LOCKED""",
             batchSize,

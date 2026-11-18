@@ -15,7 +15,7 @@ import org.junit.jupiter.api.TestInstance
 import org.openclub.api.auth.AuthSessions
 import java.util.UUID
 
-/** Retention rules approved on 2026-11-18 (ADR-0008): audit events 12 months, orphan accounts 90 days. */
+/** Retention rules approved on 2026-11-18 (ADR-0008): audit events 12 months, orphan accounts 2 years. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RetentionCleanupTest {
     private var source: HikariDataSource? = null
@@ -92,12 +92,12 @@ class RetentionCleanupTest {
 
     @Test
     fun onlyOldAccountsWithoutAMemberAreDeletedWithTheirIdentitiesAndSessions() {
-        val old = account(daysSinceLogin = 91, identity = true)
-        val recent = account(daysSinceLogin = 89, identity = true)
-        val linkedOld = account(daysSinceLogin = 400, linkedToMember = true, identity = true)
+        val old = account(daysSinceLogin = 760, identity = true)   // beyond 2 years in any calendar
+        val recent = account(daysSinceLogin = 700, identity = true) // inside 2 years in any calendar
+        val linkedOld = account(daysSinceLogin = 1500, linkedToMember = true, identity = true)
         val oldWithSession = account(daysSinceLogin = 0)
         AuthSessions(db).create(oldWithSession)
-        db.execute("UPDATE accounts SET last_login_at = now() - interval '120 days' WHERE id = ?", oldWithSession)
+        db.execute("UPDATE accounts SET last_login_at = now() - interval '800 days' WHERE id = ?", oldWithSession)
         assertEquals(1, db.fetchCount(DSL.table("auth_sessions"), DSL.field("account_id").eq(oldWithSession)))
 
         RetentionCleanup.pruneBatch(db)
@@ -106,7 +106,7 @@ class RetentionCleanupTest {
         assertFalse(exists(oldWithSession), "its leftover session is deleted with it")
         assertEquals(0, db.fetchCount(DSL.table("auth_sessions"), DSL.field("account_id").eq(oldWithSession)))
         assertEquals(0, db.fetchCount(DSL.table("account_identities"), DSL.field("account_id").eq(old)))
-        assertTrue(exists(recent), "an account inside 90 days stays")
+        assertTrue(exists(recent), "an account inside 2 years stays")
         assertTrue(exists(linkedOld), "an account linked to a member is never deleted, however old")
         assertEquals(linkedOld, db.fetchValue("SELECT account_id FROM members WHERE id = ?", members.last()),
             "the member keeps its link")
@@ -114,7 +114,7 @@ class RetentionCleanupTest {
 
     @Test
     fun anAccountLockedByAnotherTransactionIsSkippedNotDeleted() {
-        val account = account(daysSinceLogin = 200)
+        val account = account(daysSinceLogin = 800)
         requireNotNull(source).connection.use { other ->
             other.autoCommit = false
             other.createStatement().use { it.execute("SELECT 1 FROM accounts WHERE id = '$account' FOR UPDATE") }
@@ -128,7 +128,7 @@ class RetentionCleanupTest {
 
     @Test
     fun signingInRecordsTheLastLogin() {
-        val id = account(daysSinceLogin = 80)
+        val id = account(daysSinceLogin = 760)
         AuthSessions(db).create(id)
         val ageSeconds = db.fetchValue("SELECT extract(epoch FROM now() - last_login_at) FROM accounts WHERE id = ?", id)
             .toString().toDouble()
