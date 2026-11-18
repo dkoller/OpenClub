@@ -74,4 +74,58 @@ class AuthRecordCleanupTest {
             }
         }
     }
+
+    @Test
+    fun batchLimitHoldsWhenManyRecordsAreExpired() {
+        val url = System.getenv("DB_URL")
+        assumeTrue(!url.isNullOrBlank(), "Requires PostgreSQL via DB_URL")
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = url
+            username = requireNotNull(System.getenv("DB_USER"))
+            password = requireNotNull(System.getenv("DB_PASSWORD"))
+            maximumPoolSize = 2
+        }).use { source ->
+            Flyway.configure().dataSource(source).load().migrate()
+            val db = DSL.using(source, SQLDialect.POSTGRES)
+            val prefix = UUID.randomUUID().toString().replace("-", "")
+            val hashes = (1..6).map { i -> (prefix + i.toString().padStart(32, '0')) }
+            val person = UUID.randomUUID()
+            // Other tests may leave expired rows; only the batch arithmetic below is asserted.
+            db.execute("DELETE FROM oidc_login_transactions WHERE expires_at <= CURRENT_TIMESTAMP")
+            db.execute("DELETE FROM auth_sessions WHERE idle_expires_at <= CURRENT_TIMESTAMP")
+            db.execute("INSERT INTO accounts (id, display_name) VALUES (?, ?)", person, "Cleanup batch person")
+            try {
+                for (i in 0..5) {
+                    db.execute(
+                        """INSERT INTO oidc_login_transactions
+                            (state_hash, browser_hash, nonce, code_verifier, expires_at)
+                            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP + (? * INTERVAL '1 minute'))""",
+                        hashes[i], hashes[i], "n".repeat(43), "v".repeat(43), if (i == 5) 5 else -(10 - i),
+                    )
+                    db.execute(
+                        """INSERT INTO auth_sessions
+                            (session_hash, account_id, csrf_token, idle_expires_at, absolute_expires_at)
+                            VALUES (?, ?, ?, CURRENT_TIMESTAMP + (? * INTERVAL '1 minute'),
+                                CURRENT_TIMESTAMP + INTERVAL '12 hours')""",
+                        hashes[i], person, "c".repeat(43), if (i == 5) 5 else -(10 - i),
+                    )
+                }
+                // Five expired rows per table: a batch of 2 must remove exactly 2, never the backlog.
+                assertEquals(AuthRecordCleanup.Counts(2, 2), AuthRecordCleanup.pruneBatch(db, 2))
+                assertEquals(AuthRecordCleanup.Counts(2, 2), AuthRecordCleanup.pruneBatch(db, 2))
+                assertEquals(AuthRecordCleanup.Counts(1, 1), AuthRecordCleanup.pruneBatch(db, 2))
+                assertEquals(AuthRecordCleanup.Counts(0, 0), AuthRecordCleanup.pruneBatch(db, 2))
+                assertEquals(1L, db.fetchValue(
+                    "SELECT COUNT(*) FROM oidc_login_transactions WHERE state_hash = ?", hashes[5],
+                ))
+                assertEquals(1L, db.fetchValue(
+                    "SELECT COUNT(*) FROM auth_sessions WHERE session_hash = ?", hashes[5],
+                ))
+            } finally {
+                db.execute("DELETE FROM oidc_login_transactions WHERE state_hash IN (?, ?, ?, ?, ?, ?)",
+                    *hashes.toTypedArray())
+                db.execute("DELETE FROM accounts WHERE id = ?", person)
+            }
+        }
+    }
 }
