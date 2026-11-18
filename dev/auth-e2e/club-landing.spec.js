@@ -744,8 +744,9 @@ test('verified login gains club access only after restricted operator bootstrap'
     { timeout: 20000 });
     await page.reload();
     await probe;
-    await expect(page.getByRole('status')).toHaveText('Signed in and authorized for this club.',
-      { timeout: 20000 });
+    // Other regions (team member lists) also use role=status, so match the text, not the role.
+    await expect(page.getByText('Signed in and authorized for this club.', { exact: true }))
+      .toBeVisible({ timeout: 20000 });
   };
 
   // A genuine capability denial must not be turned into a retryable grant editor.
