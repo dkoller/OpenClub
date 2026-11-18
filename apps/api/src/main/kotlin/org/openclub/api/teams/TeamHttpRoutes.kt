@@ -23,6 +23,7 @@ import kotlinx.serialization.json.put
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.database.rejectedTheData
 import java.util.UUID
 import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
@@ -117,9 +118,14 @@ internal fun Application.installTeamHttpRoutes(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: DataAccessException) {
-                call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
-                    HttpStatusCode.Conflict)
+            } catch (failure: DataAccessException) {
+                if (failure.rejectedTheData()) {
+                    call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
+                        HttpStatusCode.Conflict)
+                } else {
+                    call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
+                        HttpStatusCode.ServiceUnavailable)
+                }
             } catch (_: Exception) {
                 call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
                     HttpStatusCode.ServiceUnavailable)
@@ -160,9 +166,14 @@ internal fun Application.installTeamHttpRoutes(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: DataAccessException) {
-                call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
-                    HttpStatusCode.Conflict)
+            } catch (failure: DataAccessException) {
+                if (failure.rejectedTheData()) {
+                    call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
+                        HttpStatusCode.Conflict)
+                } else {
+                    call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
+                        HttpStatusCode.ServiceUnavailable)
+                }
             } catch (_: Exception) {
                 call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
                     HttpStatusCode.ServiceUnavailable)
