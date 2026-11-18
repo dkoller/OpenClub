@@ -1,6 +1,6 @@
 # R03 privacy, retention and lifecycle — proposal for owner decision (2026-11-18)
 
-**Status: PROPOSAL. Nothing here is approved, none of it is legal advice, and none of it authorizes real member data.** The owner asked for a concrete draft ([ADR-0008](../decisions/0008-owner-decisions-2026-11-18.md), decision 1) for [#12](https://github.com/dkoller/OpenClub/issues/12). It fills the rows still marked "Open" in the [privacy inventory](privacy-inventory.md) with **proposed defaults**. The accountable club representative (the controller) decides jurisdiction, lawful basis, notices and every duration; the owner decides the product defaults. Where the owner has already decided, the decision is cited ([ADR-0007](../decisions/0007-owner-decisions-2026-11-17.md)).
+**Status: the owner approved every proposed default on 2026-11-18 ([ADR-0008 addendum](../decisions/0008-owner-decisions-2026-11-18.md), decision 7), except the two rows that have no default (jurisdiction and lawful basis), which are for the controller. The controller's approval is still required, none of this is legal advice, and none of it authorizes real member data.** The owner asked for a concrete draft ([ADR-0008](../decisions/0008-owner-decisions-2026-11-18.md), decision 1) for [#12](https://github.com/dkoller/OpenClub/issues/12). It fills the rows still marked "Open" in the [privacy inventory](privacy-inventory.md) with **proposed defaults**. The accountable club representative (the controller) decides jurisdiction, lawful basis, notices and every duration; the owner decides the product defaults. Where the owner has already decided, the decision is cited ([ADR-0007](../decisions/0007-owner-decisions-2026-11-17.md)).
 
 How to use it: for each row, approve the proposed default or write a different value in #12. The agent then updates this file, the inventory and the contract notes, and only after that implements anything (#26).
 
@@ -50,7 +50,7 @@ All durations are **proposals**. Defaults reflect what the code does today or th
 
 ## 5. Proposed audit events
 
-Recorded: member created, updated, archived, reactivated, erased and exported; role changes; grant changes; each contact read by a team manager; invitations created, accepted and revoked (#20); sole-administrator recovery. Each event holds the event type, the acting account ID, the target member UUID, a timestamp and no names, birth dates or contacts. Events are written in the same transaction as the change. Operators read them with a command; there is no audit HTTP API in this proposal.
+**Implemented so far (V12): member created, updated and archived; role changes; grant added and revoked; sole-administrator recovery.** The remaining events arrive with their operations. Recorded in the proposal: member created, updated, archived, reactivated, erased and exported; role changes; grant changes; each contact read by a team manager; invitations created, accepted and revoked (#20); sole-administrator recovery. Each event holds the event type, the acting account ID, the target member UUID, a timestamp and no names, birth dates or contacts. Events are written in the same transaction as the change. Operators read them with a command; there is no audit HTTP API in this proposal.
 
 ## 6. What the approved M2 draft does not cover
 

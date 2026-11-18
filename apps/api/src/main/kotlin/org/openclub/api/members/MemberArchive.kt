@@ -3,6 +3,7 @@ package org.openclub.api.members
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.openclub.api.database.AdvisoryLocks
+import org.openclub.api.database.AuditEvents
 import java.util.UUID
 
 /**
@@ -48,6 +49,7 @@ internal class MemberArchive(private val database: DSLContext) {
                      AND archived_at IS NULL""",
                 targetMemberId,
             ) == 1) { "Member changed while archival locks were held" }
+            AuditEvents.record(db, AuditEvents.Type.MEMBER_ARCHIVED, actorAccountId, targetMemberId)
             true
         }
 }

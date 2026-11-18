@@ -19,3 +19,15 @@
 - **M1 is still blocked** on the hosted demo: operator and OIDC provider are not chosen ([ADR-0007](0007-owner-decisions-2026-11-17.md), decisions 1a and 1c).
 - **Not started:** any implementation of the M2 draft operations or of invitations. The proposals need the owner's approval of the values and design first.
 - **Still open for M2:** controller, jurisdiction and lawful basis, retention values, notices, minors' safeguards, export/erasure/audit (#26), backups, a witnessed recovery drill and operator sign-offs.
+
+## Addendum — later on 2026-11-18: approval of the proposed defaults
+
+After the two drafts were merged, the owner said: **"Approve all defaults, start the audit table."** The agent records the scope of that approval as follows; the owner may correct it.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 7 | [Privacy proposal](../discovery/privacy-proposal-2026-11-18.md), section 7 | The owner **approves the proposed default** for every row that has one: contact visibility (3), minors' contacts (4), archived retention of 24 months then erase (5), erase as hard delete after archive (6), 30-day request deadline (7), 30-day rolling backups (8), 12-month audit retention with no personal data in events (9) and deleting accounts without a login after 90 days (10). **Not approved, because the proposal gives no default and they are facts or legal questions for the controller:** jurisdiction, controller, processors and hosting location (1), and lawful basis and notices (2). The values above are the owner's product defaults; the controller's approval is still required before any real member data. |
+| 8 | [Invitation design](../security/invitation-linking-design.md), "Decisions needed" | The owner **approves the proposed default** for invitation life of 7 days (2), who may invite, revoke and unlink (3), administrator confirmation after acceptance for minors only (4) and hand-over of the link by the administrator with no system email (6). **Still undecided, because they carry no default:** whether invitations belong in the hosted M1 demo or only the pilot (1), minors signing in themselves versus a guardian (5), and approval of a new contract version for the four operations (7). No invitation code is written before (7). |
+| 9 | Audit table | The owner asked the agent to start with the audit table (privacy proposal, section 8, step 2). It is implemented in Flyway V12 and wired into the existing member, role, grant and recovery operations; see [club-membership-access.md](../security/club-membership-access.md). |
+
+**Not changed by this addendum:** no real data is authorized; the controller's decisions, a new contract version for contact reads, export, erasure and invitations, and the remaining implementation steps (archive-then-erase, export, contact reads, retention jobs, invitations) are still to be approved and built one pull request at a time.

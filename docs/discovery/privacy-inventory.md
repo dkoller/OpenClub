@@ -12,6 +12,7 @@ OpenClub deploys **one club per independent installation and PostgreSQL database
 | `accounts` | Local account UUID, placeholder display label, creation timestamp | Technical OIDC principal | Not a member directory; deletion requires session and identity cleanup |
 | `account_identities` | OIDC issuer, case-sensitive subject, local account link, timestamps | Bind a **verified** identity, not match by email | High-value identifiers; never in member summaries or ordinary logs |
 | `members` | Local member UUID, optional account link, names, DOB, email, phone, gender, player flag, interim ADMIN/MEMBER role, creation timestamp | Member administration, age/player rule checks | Full fields are private; basic name directory itself needs approval; export/correction/retention unresolved |
+| `audit_events` | Event type, acting account UUID (empty for operator commands), target member UUID, capability, scope, team UUID, new role, timestamp | Accountability for member, role and grant changes | Identifiers only: no names, birth dates, contacts or free text; append-only; no foreign keys, so it outlives deleted members; proposed 12-month retention, job not built |
 | `auth_sessions` | Session-handle hash, account link, CSRF token, created/used/expiry times | Authenticated browser sessions | No plaintext handle in database; short retention and expiry cleanup |
 | `oidc_login_transactions` | Hashed state/browser binding, nonce, PKCE verifier, expiry | Short-lived login completion | Security-only; expiry cleanup, no public exposure |
 

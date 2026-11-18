@@ -29,13 +29,18 @@ internal class MemberCreation(private val database: DSLContext) {
         val gender = MemberFieldValidation.gender(input.gender)
 
         val newId = UUID.randomUUID()
+        // One statement: the audit event exists exactly when the member was inserted.
         val created = database.execute(
-            """INSERT INTO members
-               (id, first_name, last_name, date_of_birth, email, phone, gender, is_player)
-               SELECT ?, ?, ?, ?, ?, ?, ?, ?
-               WHERE ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}""",
+            """WITH inserted AS (
+                 INSERT INTO members
+                 (id, first_name, last_name, date_of_birth, email, phone, gender, is_player)
+                 SELECT ?, ?, ?, ?, ?, ?, ?, ?
+                 WHERE ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}
+                 RETURNING id)
+               INSERT INTO audit_events (event_type, actor_account_id, target_member_id)
+               SELECT 'MEMBER_CREATED', ?, id FROM inserted""",
             newId, firstName, lastName, birthDate,
-            email, phone, gender, input.isPlayer, actorAccountId,
+            email, phone, gender, input.isPlayer, actorAccountId, actorAccountId,
         )
         return if (created == 1) newId else null
     }
