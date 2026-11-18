@@ -1,0 +1,218 @@
+package org.openclub.api
+
+import io.ktor.client.request.header
+import io.ktor.client.request.request
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.testing.ApplicationTestBuilder
+import io.ktor.server.testing.testApplication
+import kotlinx.coroutines.runBlocking
+import org.jooq.DSLContext
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Order
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.TestMethodOrder
+import org.openclub.api.auth.ActiveSession
+import org.openclub.api.auth.AuthCookiePolicy
+import org.openclub.api.auth.BrowserSessionOperations
+import org.openclub.api.auth.LogoutResult
+import org.openclub.api.database.DatabaseRuntime
+import java.util.UUID
+
+/**
+ * Every private route, one holder with every club grant (#24):
+ *  1. the fixture really is authorized on each route (so the denials below are not vacuous),
+ *  2. once the verified identity is revoked, a still-valid session is denied (403) everywhere,
+ */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation::class)
+class PrivateRoutesRevocationTest {
+    private var database: DatabaseRuntime? = null
+    private val holderAccount = UUID.randomUUID()
+    private val holder = UUID.randomUUID()
+    private val target = UUID.randomUUID()
+    private val team = UUID.randomUUID()
+    private val club = UUID.randomUUID()
+    private val origin = "http://localhost:5173"
+    private val csrf = "x".repeat(43)
+    private val cookies = AuthCookiePolicy.localDevelopment()
+    private val sessions = object : BrowserSessionOperations {
+        override suspend fun read(handle: String?): ActiveSession? =
+            if (handle == "holder") ActiveSession(holderAccount, csrf) else null
+        override suspend fun logout(handle: String?, csrfToken: String?) = LogoutResult.UNAUTHENTICATED
+    }
+
+    @BeforeAll
+    fun createFixture() {
+        val env = System.getenv()
+        assumeTrue(!env["DB_URL"].isNullOrBlank(), "Requires PostgreSQL")
+        val db = requireNotNull(DatabaseRuntime.openIfConfigured(env))
+        database = db
+        try {
+            runBlocking {
+                db.onDatabaseThread { tx ->
+                    fun member(id: UUID, account: UUID?, role: String) {
+                        if (account != null) {
+                            tx.execute("INSERT INTO accounts (id) VALUES (?)", account)
+                            tx.execute(
+                                """INSERT INTO account_identities (id, account_id, issuer, subject)
+                                   VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
+                                UUID.randomUUID(), account, UUID.randomUUID().toString())
+                        }
+                        tx.execute(
+                            """INSERT INTO members (id, account_id, first_name, last_name, date_of_birth,
+                               email, phone, role) VALUES (?, ?, 'Synthetic', 'Person', DATE '1990-01-01',
+                               'person@example.invalid', '+41000000000', ?)""", id, account, role)
+                    }
+                    tx.execute("INSERT INTO clubs (id, name, slug) VALUES (?, ?, ?)",
+                        club, "Revocation matrix club", "revocation-matrix-$club")
+                    member(holder, holderAccount, "ADMIN")
+                    member(target, null, "MEMBER")
+                    tx.execute("INSERT INTO teams (id, name) VALUES (?, ?)", team,
+                        "Revocation team ${UUID.randomUUID().toString().take(8)}")
+                    for (capability in listOf("VIEW_MEMBER_DIRECTORY", "EDIT_MEMBERS", "MANAGE_PERMISSIONS",
+                        "VIEW_TEAMS", "MANAGE_TEAMS")) {
+                        tx.execute("INSERT INTO club_capability_grants VALUES (?, ?)", holder, capability)
+                    }
+                }
+            }
+        } catch (failure: Throwable) {
+            dropFixture()
+            throw failure
+        }
+    }
+
+    @AfterAll
+    fun dropFixture() {
+        val db = database ?: return
+        runBlocking {
+            db.onDatabaseThread { tx: DSLContext ->
+                tx.execute("DELETE FROM teams WHERE id = ?", team)
+                tx.execute("DELETE FROM members WHERE first_name = 'Denied' AND last_name = 'Person'")
+                tx.execute("DELETE FROM members WHERE id IN (?, ?)", holder, target)
+                tx.execute("DELETE FROM accounts WHERE id = ?", holderAccount)
+                tx.execute("DELETE FROM clubs WHERE id = ?", club)
+            }
+        }
+        db.close()
+        database = null
+    }
+
+    private class Route(val method: HttpMethod, val path: String, val body: String? = null,
+                        val allowedWhenAuthorized: Set<Int> = setOf(200, 201, 204, 409))
+
+    /** Every private route; none is expected to change data. Bodies are valid but harmless. */
+    private fun routes(): List<Route> = listOf(
+        Route(HttpMethod.Get, "/api/v1/club"),
+        Route(HttpMethod.Patch, "/api/v1/club", """{"name":"Revocation matrix club"}"""),
+        Route(HttpMethod.Patch, "/api/v1/club/player-gender-policy", """{"genderRequiredForPlayers":false}"""),
+        Route(HttpMethod.Patch, "/api/v1/club/adult-age-policy", """{"adultAgeYears":18}"""),
+        Route(HttpMethod.Get, "/api/v1/members"),
+        Route(HttpMethod.Get, "/api/v1/members/$target"),
+        Route(HttpMethod.Patch, "/api/v1/members/$target", """{"firstName":"Synthetic"}"""),
+        Route(HttpMethod.Post, "/api/v1/members",
+            """{"firstName":"Denied","lastName":"Person","dateOfBirth":"2013-01-01"}"""),
+        Route(HttpMethod.Get, "/api/v1/members/$target/role"),
+        Route(HttpMethod.Patch, "/api/v1/members/$target/role", """{"role":"MEMBER"}"""),
+        Route(HttpMethod.Get, "/api/v1/grants?memberId=$target"),
+        Route(HttpMethod.Post, "/api/v1/grants",
+            """{"memberId":"$target","capability":"VIEW_MEMBER_DIRECTORY","scope":"CLUB"}"""),
+        Route(HttpMethod.Delete, "/api/v1/grants",
+            """{"memberId":"$target","capability":"VIEW_MEMBER_DIRECTORY","scope":"CLUB"}"""),
+        Route(HttpMethod.Get, "/api/v1/teams"),
+        Route(HttpMethod.Post, "/api/v1/teams", """{"name":"Revocation matrix team"}"""),
+        Route(HttpMethod.Patch, "/api/v1/teams/$team", """{"name":"Revocation matrix renamed"}"""),
+        Route(HttpMethod.Get, "/api/v1/teams/$team/members"),
+        Route(HttpMethod.Post, "/api/v1/teams/$team/members/$target"),
+        Route(HttpMethod.Delete, "/api/v1/teams/$team/members/$target"),
+        Route(HttpMethod.Delete, "/api/v1/teams/$team"),
+        // Last: an archived target is hidden from the role and grant routes by design.
+        Route(HttpMethod.Post, "/api/v1/members/$target/archive"),
+    )
+
+    private suspend fun ApplicationTestBuilder.send(route: Route) = client.request(route.path) {
+        method = route.method
+        header(HttpHeaders.Cookie, "${cookies.sessionName}=holder")
+        if (route.method != HttpMethod.Get) {
+            header(HttpHeaders.Origin, origin)
+            header("X-CSRF-Token", csrf)
+        }
+        if (route.body != null) {
+            header(HttpHeaders.ContentType, "application/json")
+            setBody(route.body)
+        }
+    }
+
+    private fun app(db: DatabaseRuntime, block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
+        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = db) }
+        block()
+    }
+
+    /** Denial, not absence: while the identity and grants exist, no route may answer 401/403/5xx. */
+    @Test
+    @Order(1)
+    fun theHolderIsAuthorizedOnEveryRouteBeforeRevocation() = app(requireNotNull(database)) {
+        val failures = mutableListOf<String>()
+        for (route in routes()) {
+            val status = send(route).status.value
+            // 404 is acceptable only for a target another step already removed (the team delete is last).
+            if (status in setOf(401, 403, 503) || status >= 500) {
+                failures += "${route.method} ${route.path}: unexpected $status before revocation"
+            }
+        }
+        assertTrue(failures.isEmpty(), failures.joinToString("\n", "\n"))
+    }
+
+    @Test
+    @Order(2)
+    fun aValidSessionWithARevokedIdentityIsDeniedOnEveryRoute() {
+        val db = requireNotNull(database)
+        runBlocking {
+            db.onDatabaseThread { tx ->
+                // Undo what the authorized pass did, so every denial below has a real target.
+                tx.execute("DELETE FROM members WHERE first_name = 'Denied' AND last_name = 'Person'")
+                tx.execute("UPDATE members SET archived_at = NULL, role = 'MEMBER' WHERE id = ?", target)
+                tx.execute("DELETE FROM club_capability_grants WHERE member_id = ?", target)
+                tx.execute("DELETE FROM member_team_assignments WHERE member_id = ?", target)
+                tx.execute("INSERT INTO teams (id, name) VALUES (?, ?) ON CONFLICT DO NOTHING", team,
+                    "Revocation team again")
+                tx.execute("DELETE FROM account_identities WHERE account_id = ?", holderAccount)
+            }
+        }
+        app(db) {
+            val failures = mutableListOf<String>()
+            for (route in routes()) {
+                val response = send(route)
+                val text = response.bodyAsText()
+                val name = "${route.method} ${route.path}"
+                if (response.status != HttpStatusCode.Forbidden) {
+                    failures += "$name: expected 403 but was ${response.status}"
+                }
+                if (response.headers[HttpHeaders.CacheControl] != "no-store") failures += "$name: missing no-store"
+                if (text.contains("person@example.invalid") || text.contains("Synthetic")) {
+                    failures += "$name: leaked member data"
+                }
+            }
+            assertTrue(failures.isEmpty(), failures.joinToString("\n", "\n"))
+        }
+        // Nothing the revoked session attempted may have changed data.
+        runBlocking {
+            db.onDatabaseThread { tx ->
+                assertEquals(1L, tx.fetchValue("SELECT COUNT(*) FROM members WHERE id = ? AND archived_at IS NULL " +
+                    "AND role = 'MEMBER'", target)?.toString()?.toLong(), "target member changed")
+                assertEquals(0L, tx.fetchValue("SELECT COUNT(*) FROM club_capability_grants WHERE member_id = ?",
+                    target)?.toString()?.toLong(), "grant written")
+                assertEquals(0L, tx.fetchValue("SELECT COUNT(*) FROM members WHERE first_name = 'Denied'")
+                    ?.toString()?.toLong(), "member created")
+            }
+        }
+    }
+}
