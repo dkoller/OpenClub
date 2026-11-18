@@ -9,7 +9,7 @@ import java.util.UUID
  * change committed. Events hold identifiers only: never names, birth dates, contacts or free text.
  */
 internal object AuditEvents {
-    enum class Type { MEMBER_CREATED, MEMBER_UPDATED, MEMBER_ARCHIVED, ROLE_CHANGED, GRANT_ADDED, GRANT_REVOKED, ADMIN_RECOVERED, CLUB_BOOTSTRAPPED, MEMBER_ERASED }
+    enum class Type { MEMBER_CREATED, MEMBER_UPDATED, MEMBER_ARCHIVED, ROLE_CHANGED, GRANT_ADDED, GRANT_REVOKED, ADMIN_RECOVERED, CLUB_BOOTSTRAPPED, MEMBER_ERASED, MEMBER_EXPORTED }
 
     /** Records one event; [actorAccountId] is null for operator commands. */
     fun record(
