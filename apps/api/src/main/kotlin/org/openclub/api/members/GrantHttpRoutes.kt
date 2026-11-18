@@ -17,9 +17,9 @@ import org.openclub.api.auth.ActiveSession
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
-import java.util.UUID
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
+import java.util.UUID
 
 /** Explicit ADMIN + MANAGE_PERMISSIONS only; no role or account identity accepted from callers. */
 internal fun Application.installGrantHttpRoutes(
@@ -33,12 +33,16 @@ internal fun Application.installGrantHttpRoutes(
             call.response.headers.append(HttpHeaders.CacheControl, "no-store")
             try {
                 val actor = call.grantActor(sessions, cookies) ?: return@get
-                val memberId = UUID.fromString(call.request.queryParameters["memberId"])
-                val grants = database.onDatabaseThread { db ->
+                // Authorization is decided before the query is validated, so a caller without
+                // MANAGE_PERMISSIONS learns nothing about expected input.
+                val memberId = call.request.queryParameters.getAll("memberId")?.singleOrNull()
+                    ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                val read = database.onDatabaseThread { db ->
                     if (!ClubCapabilityAccess(db).has(actor.accountId,
-                            ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS)) null
+                            ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS)) GrantRead.Denied
+                    else if (memberId == null) GrantRead.Invalid
                     else if (db.fetchOne("SELECT 1 FROM members WHERE id = ?", memberId) == null) {
-                        emptyList<Pair<String, String?>>()
+                        GrantRead.Items(emptyList())
                     } else {
                         val club = db.fetch(
                             "SELECT capability FROM club_capability_grants WHERE member_id = ? ORDER BY capability",
@@ -49,12 +53,19 @@ internal fun Application.installGrantHttpRoutes(
                                WHERE member_id = ? ORDER BY capability, team_id""", memberId,
                         ).map { requireNotNull(it.get(0, String::class.java)) to
                             requireNotNull(it.get(1, UUID::class.java)).toString() }
-                        club + teams
+                        GrantRead.Items(club + teams)
                     }
                 }
-                if (grants == null) {
-                    call.grantError(HttpStatusCode.Forbidden, "forbidden")
-                    return@get
+                val grants = when (read) {
+                    GrantRead.Denied -> {
+                        call.grantError(HttpStatusCode.Forbidden, "forbidden")
+                        return@get
+                    }
+                    GrantRead.Invalid -> {
+                        call.grantError(HttpStatusCode.BadRequest, "invalid")
+                        return@get
+                    }
+                    is GrantRead.Items -> read.grants
                 }
                 val response = buildJsonObject {
                     put("items", buildJsonArray {
@@ -68,8 +79,6 @@ internal fun Application.installGrantHttpRoutes(
                 call.respondText(response.toString(), ContentType.Application.Json)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: IllegalArgumentException) {
-                call.grantError(HttpStatusCode.BadRequest, "invalid")
             } catch (_: Exception) {
                 call.grantError(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
@@ -81,6 +90,12 @@ internal fun Application.installGrantHttpRoutes(
             call.mutateGrant(sessions, cookies, origin, database, granting = false)
         }
     }
+}
+
+private sealed interface GrantRead {
+    data object Denied : GrantRead
+    data object Invalid : GrantRead
+    data class Items(val grants: List<Pair<String, String?>>) : GrantRead
 }
 
 private suspend fun ApplicationCall.mutateGrant(
@@ -98,34 +113,57 @@ private suspend fun ApplicationCall.mutateGrant(
             grantError(HttpStatusCode.Forbidden, "forbidden")
             return
         }
-        val fields = readGrantBody()
-        val memberId = UUID.fromString(fields.requiredString("memberId"))
-        val capability = ClubCapabilityAccess.Capability.valueOf(fields.requiredString("capability"))
-        val scope = CapabilityGrants.Scope.valueOf(fields.requiredString("scope"))
-        val teamId = fields["teamId"]?.let { UUID.fromString(fields.requiredString("teamId")) }
-        require((scope == CapabilityGrants.Scope.TEAM) == (teamId != null))
-        require(scope != CapabilityGrants.Scope.TEAM ||
-            capability == ClubCapabilityAccess.Capability.VIEW_TEAMS ||
-            capability == ClubCapabilityAccess.Capability.MANAGE_TEAMS)
+        // Advisory pre-check so unauthorized callers get 403 for malformed bodies too; the
+        // service below repeats the check atomically under its lock and stays authoritative.
+        val permitted = database.onDatabaseThread { db ->
+            ClubCapabilityAccess(db).has(actor.accountId, ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS)
+        }
+        if (!permitted) {
+            grantError(HttpStatusCode.Forbidden, "forbidden")
+            return
+        }
+        val change = try {
+            receiveGrantChange()
+        } catch (_: IllegalArgumentException) {
+            grantError(HttpStatusCode.BadRequest, "invalid")
+            return
+        }
+        // receiveGrantChange() mirrors the service's require() checks, so an exception from the
+        // service is an invariant violation and correctly falls through to the 503 below.
         val outcome = database.onDatabaseThread { db ->
             val grants = CapabilityGrants(db)
-            if (granting) grants.grant(actor.accountId, memberId, capability, scope, teamId)
-            else grants.revoke(actor.accountId, memberId, capability, scope, teamId)
+            if (granting) grants.grant(actor.accountId, change.memberId, change.capability, change.scope, change.teamId)
+            else grants.revoke(actor.accountId, change.memberId, change.capability, change.scope, change.teamId)
         }
         if (outcome == CapabilityGrants.Change.DENIED) grantError(HttpStatusCode.Forbidden, "forbidden")
         else respond(HttpStatusCode.NoContent)
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: IllegalArgumentException) {
-        grantError(HttpStatusCode.BadRequest, "invalid")
     } catch (_: Exception) {
         grantError(HttpStatusCode.ServiceUnavailable, "unavailable")
     }
 }
 
-private suspend fun ApplicationCall.readGrantBody(): JsonObject = receiveJsonObject(
-    required = setOf("memberId", "capability", "scope"), optional = setOf("teamId"))
+private class GrantChange(
+    val memberId: UUID,
+    val capability: ClubCapabilityAccess.Capability,
+    val scope: CapabilityGrants.Scope,
+    val teamId: UUID?,
+)
 
+/** Reads and validates the body. Every violation throws [IllegalArgumentException] (mapped to 400). */
+private suspend fun ApplicationCall.receiveGrantChange(): GrantChange {
+    val fields = receiveJsonObject(
+        required = setOf("memberId", "capability", "scope"), optional = setOf("teamId"))
+    val capability = ClubCapabilityAccess.Capability.valueOf(fields.requiredString("capability"))
+    val scope = CapabilityGrants.Scope.valueOf(fields.requiredString("scope"))
+    val teamId = fields["teamId"]?.let { UUID.fromString(fields.requiredString("teamId")) }
+    require((scope == CapabilityGrants.Scope.TEAM) == (teamId != null))
+    require(scope != CapabilityGrants.Scope.TEAM ||
+        capability == ClubCapabilityAccess.Capability.VIEW_TEAMS ||
+        capability == ClubCapabilityAccess.Capability.MANAGE_TEAMS)
+    return GrantChange(UUID.fromString(fields.requiredString("memberId")), capability, scope, teamId)
+}
 
 private suspend fun ApplicationCall.grantActor(
     sessions: BrowserSessionOperations,
