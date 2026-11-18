@@ -60,6 +60,8 @@ pnpm exec playwright install --with-deps chromium
 pnpm test
 ```
 
+CI installs Chromium with `dev/auth-e2e/install-chromium.sh` instead: it bounds each `apt` connection (20 s, 5 retries) and retries the whole install up to three times, because the Ubuntu mirror occasionally stalls mid-download. Use the commands above locally.
+
 Keep `OPENCLUB_E2E_USER_PASSWORD` in the test process environment. Never use real
 identities. The bootstrap browser test is explicitly gated by `OPENCLUB_E2E_DISPOSABLE=true`
 and must **never** run against an installation with data worth retaining.

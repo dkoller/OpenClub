@@ -80,9 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           nohup bash -c '
-            cd dev/auth-e2e
-            if pnpm install --frozen-lockfile &&
-               pnpm exec playwright install --with-deps chromium; then
+            if bash dev/auth-e2e/install-chromium.sh; then
               echo success > "$1"
             else
               echo failed > "$1"
@@ -344,7 +342,7 @@ jobs:
           set -euo pipefail
           # An earlier step installs the same pinned browser/dependencies in
           # parallel with backend startup. No tests run until it completed.
-          for attempt in {1..180}; do
+          for attempt in {1..300}; do
             [[ -f "$RUNNER_TEMP/openclub-browser-setup.status" ]] && break
             sleep 1
           done
