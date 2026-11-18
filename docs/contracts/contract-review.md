@@ -10,6 +10,8 @@
 
 Selected PostgreSQL/Ktor tests additionally assert privacy-minimized member and public response keys and the safe error envelope.
 
+[M1 operation-to-test coverage](m1-route-test-coverage.md) maps each of the 22 operations to the HTTP, input, escalation, revocation and concurrency tests that exercise it and lists the known evidence gaps (route-level 503, runtime schema validation).
+
 **Separate M2 proposals:** [`openapi-m2-draft.yaml`](openapi-m2-draft.yaml) (`0.0.0-draft`) holds the operations that are **NOT IMPLEMENTED**: full confidential member replacement (`PUT /v1/members/{memberId}`) and HTTP reactivation. Internal database reactivation is not a user-facing route. These need the M2 privacy decisions, audit (#26) and security review. ADR-0007 already fixes that contacts are readable only by explicitly granted roles and that the adult age is configurable per club.
 
 **What 1.x does not mean:** approval of real member data, private-field reads or writes, export or erasure, or complete runtime payload conformance. A change to the M1 surface needs a new, owner-approved contract version. A real-data deployment also requires [M2 authorization](../roadmap.md#delivery-gates).

@@ -119,6 +119,9 @@ For this disposable local rehearsal, remove the file with `rm -- "$DUMP_PATH"`
 after verification and **only** after confirming that it is the intended temporary
 synthetic backup. Do not delete a production backup using this command.
 
+For upgrading to a newer release and rolling back to this backup, see
+[upgrade and rollback](upgrade-and-rollback.md).
+
 This does not establish a backup schedule, encrypted off-site retention,
 production recovery time objective, or an audited real-data restore. Those remain
 open under [R18/#27](https://github.com/dkoller/OpenClub/issues/27).

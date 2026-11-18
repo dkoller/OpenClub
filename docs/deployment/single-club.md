@@ -221,6 +221,12 @@ The project targets no mandatory paid services, not a promise that permanent pub
 
 Do not check off hosted proof because local CI succeeds. Do not import or process real member data in the synthetic demo.
 
+## Upgrading and rolling back
+
+See the [upgrade and rollback runbook](upgrade-and-rollback.md): backup, preflight queries for data that
+blocks a migration, the upgrade itself, failure handling, and rollback by restoring the pre-upgrade backup.
+It is covered by synthetic migration tests, not by a witnessed production drill.
+
 ## Next engineering gates
 
 - [#74](https://github.com/dkoller/OpenClub/issues/74): architecture and schema foundation completed in merged PR #79.
