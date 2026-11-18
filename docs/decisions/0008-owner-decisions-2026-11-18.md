@@ -44,3 +44,6 @@ Asked one set of questions at a time, the owner answered as follows. The agent's
 | 13 | Retention jobs | Implemented (V13, `RetentionCleanup`): audit events older than 12 months and accounts with no linked member and no login for **2 years** (changed from 90 days by decision 14) are deleted in bounded hourly batches. The controller's approval is still required before real data. |
 | 14 | Orphan-account retention | The owner said: **"Not a 90 day inactivity rule, make it 2 years."** The rule for accounts with no linked member is therefore **2 years without a login**, replacing the 90-day default the owner approved in decision 7 (row 10). The earlier text is kept as the historical record. |
 
+## Addendum 3 — contract extension drafted (awaiting approval)
+
+Following decision 12, the agent drafted the extension in [`openapi-m2-draft.yaml`](../contracts/openapi-m2-draft.yaml): `getLocalMemberDetails`, `eraseArchivedLocalMember`, `createLocalMemberInvitation`, `revokeLocalMemberInvitation`, `acceptInvitation` and `unlinkLocalMemberAccount`, all marked NOT IMPLEMENTED. **It is a proposal: no code for any of these operations is merged until the owner approves the text in the pull request and the approval is recorded here.** A guardian design for review is in [guardian-design.md](../security/guardian-design.md); guardians are not part of this extension.

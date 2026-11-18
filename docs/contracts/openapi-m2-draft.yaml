@@ -12,6 +12,16 @@ info:
     review before any HTTP exposure. The implemented synthetic M1 surface is
     frozen separately in openapi-v1.yaml (version 1.0.0). Components are copied
     from that contract so this file validates on its own.
+
+    PROPOSED EXTENSION (2026-11-18, awaiting owner approval of its text; ADR-0008
+    addendum 2, decision 12): the operations getLocalMemberDetails,
+    eraseArchivedLocalMember, createLocalMemberInvitation,
+    revokeLocalMemberInvitation, acceptInvitation and unlinkLocalMemberAccount.
+    They implement the owner-approved privacy defaults (docs/discovery/
+    privacy-proposal-2026-11-18.md) and the invitation design (docs/security/
+    invitation-linking-design.md). No code is merged for any of them until the
+    owner approves this text in a pull request. Guardians signing in for minors
+    are NOT part of this extension (docs/security/guardian-design.md).
 servers:
   - url: /api
 security:
@@ -87,6 +97,204 @@ paths:
       responses:
         '204':
           description: Member reactivated without restoring old privileges
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/members/{memberId}/details:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Members]
+      operationId: getLocalMemberDetails
+      summary: Proposed restricted member detail read with private fields (NOT IMPLEMENTED)
+      description: >
+        Reads private fields under the owner-approved access defaults. Which fields appear depends
+        on the caller's current rights, and a field the caller may not read is ABSENT from the
+        response, never null: a null means "readable and not set". A holder of a live club-wide
+        EDIT_MEMBERS grant (with a current verified identity) receives every field and may also read
+        an ARCHIVED member, solely so the record can be exported, reactivated or erased. A holder of
+        MANAGE_TEAMS for a team the member belongs to receives only email, phone and isPlayer, and
+        only for members of that team. Every other caller gets 403. Authorization is decided before
+        the path is validated. Each contact read by a team manager writes a CONTACT_READ audit event
+        (identifiers only). Responses are never cacheable (Cache-Control: no-store).
+      responses:
+        '200':
+          description: The fields the caller may read
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MemberDetails' }
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/members/{memberId}/erase:
+    post:
+      tags: [Members]
+      operationId: eraseArchivedLocalMember
+      summary: Proposed permanent erasure of an archived member (NOT IMPLEMENTED)
+      description: >
+        Hard-deletes one ARCHIVED member (the existing MemberErasure service). Requires a live
+        club-wide EDIT_MEMBERS grant with a current verified identity and exact Origin and session
+        CSRF. The caller repeats the member's full name as a typed confirmation. Every refusal is
+        the same 403 so a caller learns nothing about members they may not erase: an active, linked
+        or administrator member, an unknown ID, a wrong typed name, a missing grant, a revoked
+        identity. Irreversible; backups keep the member until they expire. Audited as MEMBER_ERASED.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ErasureConfirmation' }
+      responses:
+        '204':
+          description: Member erased
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/members/{memberId}/invitation:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Members]
+      operationId: createLocalMemberInvitation
+      summary: Proposed invitation for a member to sign in themselves (NOT IMPLEMENTED)
+      description: >
+        Creates the single open invitation for an ACTIVE, unlinked ordinary member, under a live
+        club-wide EDIT_MEMBERS grant. The response carries the one-time secret; only its hash is
+        stored, so it can never be read again. The administrator hands the resulting link
+        (https://HOST/invite#SECRET, the secret in the URL fragment so it stays out of server logs)
+        to the person outside OpenClub; the system sends no email. Life is 7 days. 409 when the
+        member already has an open invitation (revoke it first) or is already linked. Never created
+        for administrators or archived members. Audited as INVITATION_CREATED.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '201':
+          description: Invitation created; the secret is shown once
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Invitation' }
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [Members]
+      operationId: revokeLocalMemberInvitation
+      summary: Proposed revocation of a member's open invitation (NOT IMPLEMENTED)
+      description: >
+        Revokes the member's open invitation under a live club-wide EDIT_MEMBERS grant. Idempotent
+        as to the outcome (no open invitation afterwards); 404 when the member does not exist.
+        Audited as INVITATION_REVOKED when an invitation was actually revoked.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204':
+          description: No open invitation remains
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/invitations/accept:
+    post:
+      tags: [Members]
+      operationId: acceptInvitation
+      summary: Proposed acceptance of an invitation by a signed-in person (NOT IMPLEMENTED)
+      description: >
+        Links the caller's verified account to the invited member. Needs both proofs: the secret in
+        the body and a verified OIDC session (with exact Origin and CSRF); no capability is required
+        and none is granted: the linked member keeps role MEMBER and no grants. In one transaction
+        the server checks that the invitation is open, unexpired and unrevoked, that the member is
+        still active, unlinked and a plain MEMBER, and that the caller's account has no member. Every
+        failure, whatever the reason (unknown, used, expired, revoked, ineligible member, account
+        already linked), is the same 400 with code `invalid`, so nothing about members or
+        invitations is revealed. Rate limited like the authentication routes. Audited as
+        INVITATION_ACCEPTED.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InvitationSecret' }
+      responses:
+        '204':
+          description: The caller's account is now linked to the invited member
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/members/{memberId}/account-link:
+    delete:
+      tags: [Members]
+      operationId: unlinkLocalMemberAccount
+      summary: Proposed unlinking of a member's sign-in account (NOT IMPLEMENTED)
+      description: >
+        Removes the link between a member and their account, needed before archiving and for a lost
+        provider login. Requires a live club-wide MANAGE_PERMISSIONS grant held by an ADMIN with a
+        current verified identity, because it changes who can sign in. Deletes that account's browser
+        sessions, clears the member's capability grants (as archiving does), and refuses with 409
+        the last eligible permission manager, reusing the existing advisory lock. Administrators are
+        unlinked only by the operator recovery procedure; the response never reveals the account.
+        Audited as ACCOUNT_UNLINKED.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204':
+          description: The member is no longer linked to an account
         '400':
           $ref: '#/components/responses/Invalid'
         '401':
@@ -250,6 +458,65 @@ components:
           enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS]
         scope: { type: string, enum: [CLUB, TEAM] }
         teamId: { type: string, format: uuid }
+    MemberDetails:
+      type: object
+      additionalProperties: false
+      required: [id, firstName, lastName]
+      description: >
+        Only the fields the caller may read are present. null means readable and not set; an absent
+        key means not permitted. Team managers see only email, phone and isPlayer.
+      properties:
+        id: { type: string, format: uuid }
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
+        dateOfBirth: { type: [string, 'null'], format: date }
+        email: { type: [string, 'null'], format: email, maxLength: 320 }
+        phone: { type: [string, 'null'], minLength: 1, maxLength: 40 }
+        gender: { type: [string, 'null'], minLength: 1, maxLength: 200 }
+        isPlayer: { type: boolean }
+        archivedAt: { type: [string, 'null'], format: date-time }
+        hasLinkedLogin:
+          type: boolean
+          description: Whether a sign-in account is linked; never the account or its identifiers.
+        invitation:
+          type: object
+          additionalProperties: false
+          required: [status]
+          properties:
+            status: { type: string, enum: [NONE, OPEN] }
+            expiresAt: { type: string, format: date-time }
+    ErasureConfirmation:
+      type: object
+      additionalProperties: false
+      required: [confirmation]
+      properties:
+        confirmation:
+          type: string
+          minLength: 1
+          maxLength: 402
+          description: The member's full name, first name then last name, exactly as stored.
+    Invitation:
+      type: object
+      additionalProperties: false
+      required: [secret, expiresAt]
+      properties:
+        secret:
+          type: string
+          minLength: 43
+          maxLength: 128
+          pattern: '^[A-Za-z0-9_-]+$'
+          description: 256 random bits, base64url. Returned once; only its hash is stored.
+        expiresAt: { type: string, format: date-time }
+    InvitationSecret:
+      type: object
+      additionalProperties: false
+      required: [secret]
+      properties:
+        secret:
+          type: string
+          minLength: 43
+          maxLength: 128
+          pattern: '^[A-Za-z0-9_-]+$'
     Error:
       type: object
       additionalProperties: false

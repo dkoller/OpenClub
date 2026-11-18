@@ -39,6 +39,7 @@ Each independent installation owns its club's member data: no shared database, c
 - [Membership and privacy-related product decisions](docs/decisions/0004-member-policy.md)
 - [Internal team roster privacy and authorization boundary](docs/security/team-roster-visibility.md)
 - [Numbered roadmap, GitHub issues and completed milestones](docs/roadmap.md)
+- [Owner decisions of 2026-11-18](docs/decisions/0008-owner-decisions-2026-11-18.md), with the [privacy proposal](docs/discovery/privacy-proposal-2026-11-18.md), the [invitation design](docs/security/invitation-linking-design.md) and the [guardian design](docs/security/guardian-design.md)
 - [Single-club deployment and safe fresh-database setup](docs/deployment/single-club.md)
 - [Opt-in synthetic HTTPS/OIDC demo reference](docs/deployment/single-club.md#opt-in-public-https-reference-deployment-synthetic-data-only) (requires an operator-provided host, DNS and HTTPS identity provider; not deployed by this repository)
 - [Original milestone concept](docs/concepts/ai/first-milestone.md)

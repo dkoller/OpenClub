@@ -46,6 +46,8 @@
 
 ## Proposed contract and schema (needs a new approved version)
 
+The four operations below are now drafted, as proposals marked NOT IMPLEMENTED, in [`openapi-m2-draft.yaml`](../contracts/openapi-m2-draft.yaml) (`createLocalMemberInvitation`, `revokeLocalMemberInvitation`, `acceptInvitation`, `unlinkLocalMemberAccount`); the owner approves that text in the pull request before any code. The draft shows the member's invitation status through the proposed detail read (`getLocalMemberDetails`) so the frozen 1.1.0 member routes stay unchanged.
+
 - New operations, which would extend the contract as a version bump: `POST /v1/members/{memberId}/invitation` (create, returns the link once), `DELETE /v1/members/{memberId}/invitation` (revoke), `POST /v1/invitations/accept`, `DELETE /v1/members/{memberId}/account-link` (unlink). Member detail would gain a `linked` flag and the invitation status for editors.
 - Flyway V12: an `invitations` table with member reference, secret hash, creator, created, expires, used and revoked times, and a partial unique index allowing one open invitation per member. Raw lengths bounded like the other tables.
 - Audit events (see the [privacy proposal](../discovery/privacy-proposal-2026-11-18.md), section 5): invitation created, accepted, revoked; account unlinked.
