@@ -637,11 +637,11 @@ test('verified login gains club access only after restricted operator bootstrap'
     if (process.env.OPENCLUB_E2E_DISPOSABLE !== 'true') {
       throw new Error('This fixture requires disposable synthetic data');
     }
-    execFileSync('docker', [
+    return String(execFileSync('docker', [
       'compose', '-f', 'compose.yaml', '-f', 'compose.auth.dev.yaml',
-      'exec', '-T', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1',
+      'exec', '-T', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1', '-t', '-A',
       '-U', 'openclub', '-d', 'openclub', '-c', sql,
-    ], { cwd: fileURLToPath(new URL('../../', import.meta.url)), stdio: 'pipe' });
+    ], { cwd: fileURLToPath(new URL('../../', import.meta.url)), stdio: 'pipe' })).trim();
   };
   const fixtureGrant = (verb, capability = 'EDIT_MEMBERS') => {
     if (!['EDIT_MEMBERS', 'VIEW_MEMBER_DIRECTORY'].includes(capability)) {
@@ -806,6 +806,80 @@ test('verified login gains club access only after restricted operator bootstrap'
   await rolesAfterReload.getByRole('button', { name: 'Search' }).click();
   await expect(rolesAfterReload).toHaveCount(0);
   await page.unroute('**/api/v1/members?**');
+
+  // Real database authorization, no injected responses (#25): an ADMIN whose club grants are all
+  // removed, then a member who may see exactly one team through a team-scoped grant.
+  const adminMemberSql = "(SELECT id FROM members WHERE account_id = '" + accountId + "')";
+  const originalGrants = fixtureSql(
+    'SELECT capability FROM club_capability_grants WHERE member_id = ' + adminMemberSql)
+    .split('\n').filter(Boolean);
+  expect(originalGrants).toEqual(expect.arrayContaining(
+    ['MANAGE_PERMISSIONS', 'EDIT_MEMBERS', 'VIEW_MEMBER_DIRECTORY']));
+  for (const capability of originalGrants) expect(capability).toMatch(/^[A-Z_]+$/);
+  // The step below deletes this member's team grants again, so it must start with none.
+  expect(fixtureSql('SELECT COUNT(*) FROM team_capability_grants WHERE member_id = ' + adminMemberSql))
+    .toBe('0');
+  const allTeams = (await (await context.request.get('/api/v1/teams')).json()).items;
+  expect(allTeams.length).toBeGreaterThan(1);
+  const [visibleTeam, ...hiddenTeams] = allTeams;
+  expect(visibleTeam.id).toMatch(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i);
+  const answered = (path, status) => page.waitForResponse(response =>
+    new URL(response.url()).pathname === path && response.status() === status, { timeout: 20000 });
+  try {
+    // ADMIN role alone grants nothing: every private region fails closed on a real 403.
+    fixtureSql('DELETE FROM club_capability_grants WHERE member_id = ' + adminMemberSql);
+    const denied = [answered('/api/v1/members', 403), answered('/api/v1/teams', 403),
+      answered('/api/v1/grants', 403)];
+    await page.reload();
+    await Promise.all(denied);
+    await expect(page.getByRole('region', { name: 'Manage members' }).getByRole('alert'))
+      .toContainText('No permission to manage members.');
+    await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Teams', exact: true })).toHaveCount(0);
+    for (const path of ['/api/v1/members', '/api/v1/teams', '/api/v1/grants?memberId=00000000-0000-0000-0000-000000000000']) {
+      expect((await context.request.get(path)).status()).toBe(403);
+    }
+    // Membership alone still shows the club and the approved anonymous directory.
+    expect((await context.request.get('/api/v1/club')).status()).toBe(200);
+    await expect(page.getByRole('region', { name: 'Members', exact: true })
+      .getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
+    // Editors that render before any request are hidden by their first denied write or search.
+    const roles = page.getByRole('region', { name: 'Manage club roles' });
+    await roles.getByLabel('Find member').fill('Mara');
+    await roles.getByRole('button', { name: 'Search' }).click();
+    await expect(roles).toHaveCount(0);
+    const clubName = page.getByRole('region', { name: 'Edit club name' });
+    const deniedRename = page.waitForResponse(response => response.request().method() === 'PATCH' &&
+      new URL(response.url()).pathname === '/api/v1/club');
+    await clubName.getByRole('button', { name: 'Save', exact: true }).click();
+    expect((await deniedRename).status()).toBe(403);
+    await expect(clubName).toHaveCount(0);
+
+    // Cross-team boundary: a grant for one team shows that team and no other.
+    fixtureSql("INSERT INTO team_capability_grants (team_id, member_id, capability) VALUES ('" +
+      visibleTeam.id + "', " + adminMemberSql + ", 'VIEW_TEAMS')");
+    const listed = answered('/api/v1/teams', 200);
+    await page.reload();
+    await listed;
+    const teamsRegion = page.getByRole('region', { name: 'Teams', exact: true });
+    await expect(teamsRegion.getByRole('listitem').filter({ hasText: visibleTeam.name })).toHaveCount(1);
+    for (const hidden of hiddenTeams) {
+      await expect(teamsRegion.getByRole('listitem').filter({ hasText: hidden.name })).toHaveCount(0);
+      expect((await context.request.get('/api/v1/teams/' + hidden.id + '/members')).status()).toBe(403);
+    }
+    expect((await (await context.request.get('/api/v1/teams')).json()).items.map(team => team.id))
+      .toEqual([visibleTeam.id]);
+  } finally {
+    fixtureSql('DELETE FROM team_capability_grants WHERE member_id = ' + adminMemberSql);
+    fixtureSql('DELETE FROM club_capability_grants WHERE member_id = ' + adminMemberSql);
+    for (const capability of originalGrants) {
+      fixtureSql("INSERT INTO club_capability_grants (member_id, capability) SELECT id, '" + capability +
+        "' FROM members WHERE account_id = '" + accountId + "' ON CONFLICT DO NOTHING");
+    }
+  }
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Manage permissions' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Edit club name' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   // Other accessible status elements (such as transient team loading) may
