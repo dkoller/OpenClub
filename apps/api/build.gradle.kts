@@ -76,6 +76,13 @@ tasks.register<JavaExec>("showAuditTrail") {
     mainClass.set("org.openclub.api.database.AuditTrailCliKt")
 }
 
+tasks.register<JavaExec>("eraseMember") {
+    group = "application"
+    description = "Restricted operator-only permanent erasure of one archived member after a verified request."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("org.openclub.api.members.MemberErasureCliKt")
+}
+
 tasks.register<JavaExec>("recoverSoleAdmin") {
     group = "application"
     description = "Restricted operator-only rebind of the sole administrator after login loss."

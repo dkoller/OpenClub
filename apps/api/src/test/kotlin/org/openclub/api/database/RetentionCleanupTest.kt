@@ -127,6 +127,41 @@ class RetentionCleanupTest {
     }
 
     @Test
+    fun archivedMembersAreErasedTwentyFourMonthsAfterArchivingWithAnAuditEvent() {
+        fun archived(monthsAgo: Int): UUID {
+            val id = UUID.randomUUID()
+            members += id
+            db.execute(
+                """INSERT INTO members (id, first_name, last_name, date_of_birth, archived_at)
+                   VALUES (?, 'Retention', 'Archived', DATE '2012-01-01', now() - make_interval(months => ?, days => 1))""",
+                id, monthsAgo)
+            return id
+        }
+        val old = List(3) { archived(24) }       // 24 months and a day: past retention
+        val recent = archived(23)
+        val active = UUID.randomUUID().also {
+            members += it
+            db.execute("INSERT INTO members (id, first_name, last_name, date_of_birth) VALUES (?, 'Retention', 'Active', DATE '2012-01-01')", it)
+        }
+        fun present(id: UUID) = db.fetchCount(DSL.table("members"), DSL.field("id").eq(id)) == 1
+
+        assertEquals(2, RetentionCleanup.pruneBatch(db, batchSize = 2).erasedMembers, "the batch limit holds")
+        assertEquals(1, RetentionCleanup.pruneBatch(db, batchSize = 2).erasedMembers)
+        assertEquals(0, RetentionCleanup.pruneBatch(db, batchSize = 2).erasedMembers)
+        assertTrue(old.none(::present), "every member archived over 24 months ago is erased")
+        assertTrue(present(recent), "an archive inside 24 months stays")
+        assertTrue(present(active), "an active member is never touched")
+        for (id in old) {
+            val events = db.fetch("SELECT actor_account_id FROM audit_events WHERE event_type = 'MEMBER_ERASED' AND target_member_id = ?", id)
+            assertEquals(1, events.size, "one event per erased member")
+            assertNull(events[0].get(0), "the retention job is not a browser-session actor")
+        }
+        assertEquals(0, db.fetchCount(DSL.table("audit_events"),
+            DSL.field("event_type").eq("MEMBER_ERASED").and(DSL.field("target_member_id").`in`(listOf(recent, active)))))
+        db.execute("DELETE FROM audit_events WHERE target_member_id = ANY(?::uuid[])", old.toTypedArray())
+    }
+
+    @Test
     fun signingInRecordsTheLastLogin() {
         val id = account(daysSinceLogin = 760)
         AuthSessions(db).create(id)

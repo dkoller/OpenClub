@@ -72,6 +72,18 @@ Afterward, require the replacement administrator to sign in again and verify tha
 
 From `apps/api`, run `./gradlew showAuditTrail` (Windows: `gradlew.bat showAuditTrail`) with the same `DB_URL`, `DB_USER` and `DB_PASSWORD` as the API. It prints the audit trail newest first as tab-separated lines: id, UTC time, event, acting account, target member, capability, scope, team and new role. Empty cells show `-`. The trail holds identifiers only, never names or contacts, and the command writes nothing. Optional filters, all validated before any connection: `OPENCLUB_AUDIT_SINCE` (an ISO instant such as `2026-11-18T10:00:00Z`, or a date, read as UTC), `OPENCLUB_AUDIT_MEMBER` (a canonical member UUID) and `OPENCLUB_AUDIT_LIMIT` (1 to 5000, default 200). Attach the output for the incident window to a [recovery case](../security/admin-recovery-case-template.md) rather than copying identifiers into tickets. The 12-month retention rule deletes older events ([retention cleanup](../security/retention-cleanup.md)).
 
+## Erasing a member (operator-only, permanent)
+
+Erasure permanently deletes one **archived** member (owner-approved default: hard delete after archive). It is irreversible and has no undo; there is no export-before-erase command yet.
+
+1. **Verify first, outside the repository.** Record the verified request, the requester's identity check and the controller's decision in the private register (not in committed files, tickets or command arguments). Respond within the controller's deadline (proposed default: 30 days) unless a statutory duty to keep the data applies.
+2. **Archive the member** in the administration screen. Archiving clears team assignments and grants. Linked members and administrators cannot be archived, so they cannot be erased: there is no member unlink operation yet (it comes with invitations).
+3. **Run** `./gradlew eraseMember` from `apps/api` (Windows: `gradlew.bat eraseMember`) with `DB_URL`, `DB_USER`, `DB_PASSWORD` and three variables: `OPENCLUB_ERASE_CONFIRM=erase-archived-member`, `OPENCLUB_ERASE_MEMBER_ID` (the member's canonical UUID) and `OPENCLUB_ERASE_NAME` (the member's full name exactly as stored, first name then surname, which guards against the wrong record). All three are validated before any connection. Every refusal prints the same generic message.
+4. **Check** that the command reported success; an identifier-only `MEMBER_ERASED` event is in the audit trail (`showAuditTrail`), kept for the 12-month audit retention. Record the outcome in the private register.
+5. **Backups.** Erasure does not edit backups; the member remains in older backups until they expire (proposed default: 30 days rolling). **After any restore, re-run the erasures recorded since that backup was taken** before the system is used again.
+
+Archived members are also erased automatically **24 months after archiving** by the hourly retention job ([retention cleanup](../security/retention-cleanup.md)). There is **no legal-hold switch yet**: the controller must decide on one before any real member data.
+
 ## Fresh database only — schema reset
 
 Merged PR #79 replaces the previous Flyway V1–V4 chain with a fresh `V1__single_club.sql`. It intentionally does **not** migrate legacy database volumes. Existing Flyway history must fail rather than silently merge/delete old tenant data.
