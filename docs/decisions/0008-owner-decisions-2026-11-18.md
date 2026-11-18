@@ -44,3 +44,19 @@ Asked one set of questions at a time, the owner answered as follows. The agent's
 | 13 | Retention jobs | Implemented (V13, `RetentionCleanup`): audit events older than 12 months and accounts with no linked member and no login for **2 years** (changed from 90 days by decision 14) are deleted in bounded hourly batches. The controller's approval is still required before real data. |
 | 14 | Orphan-account retention | The owner said: **"Not a 90 day inactivity rule, make it 2 years."** The rule for accounts with no linked member is therefore **2 years without a login**, replacing the 90-day default the owner approved in decision 7 (row 10). The earlier text is kept as the historical record. |
 
+## Addendum 3 — contract extension drafted (awaiting approval)
+
+Following decision 12, the agent drafted the extension in [`openapi-m2-draft.yaml`](../contracts/openapi-m2-draft.yaml): `getLocalMemberDetails`, `eraseArchivedLocalMember`, `createLocalMemberInvitation`, `revokeLocalMemberInvitation`, `acceptInvitation` and `unlinkLocalMemberAccount`, all marked NOT IMPLEMENTED. **It is a proposal: no code for any of these operations is merged until the owner approves the text in the pull request and the approval is recorded here.** A guardian design for review is in [guardian-design.md](../security/guardian-design.md); guardians are not part of this extension.
+
+## Addendum 4 — contract text approved, guardian design privacy-reviewed
+
+The owner replied on pull request #338: **"Approved. And privacy review ok."** The agent records the scope as follows; the owner may correct it.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 15 | Contract extension text | The owner **approved the six operations as drafted** in [`openapi-m2-draft.yaml`](../contracts/openapi-m2-draft.yaml): `getLocalMemberDetails`, `eraseArchivedLocalMember`, `createLocalMemberInvitation`, `revokeLocalMemberInvitation`, `acceptInvitation` and `unlinkLocalMemberAccount`, including the details the agent listed: an unreadable field is absent and null means "readable and not set", 409 when an invitation is already open or the member is linked, one generic 400 `invalid` for every acceptance failure, and the new audit events (`CONTACT_READ`, `INVITATION_CREATED`, `INVITATION_ACCEPTED`, `INVITATION_REVOKED`, `ACCOUNT_UNLINKED`). Code for each operation may now be written and merged. This is a contract approval, not an approval of real data. |
+| 16 | Contract version | The agent proposed that operations leave the draft and join the frozen surface as **OpenAPI 1.2.0** when implemented, and the owner approved ("Approved") the message that contained this proposal. Each implementing pull request moves its operations from the draft into `openapi-v1.yaml`, bumps the version once per release of the surface, and updates the drift check. Reactivation and member replacement (`PUT`) stay in the draft: replacement still needs the detail read in use first. |
+| 17 | Guardian design | The owner's **privacy review of the [guardian design](../security/guardian-design.md) is OK**: its proposed defaults (decisions 1 to 6 in that document) stand as the owner's product decisions. **Not covered, because it is for the controller and counsel:** the lawful basis and notices for a guardian's access to a child's data (point 1 of its privacy list) and the other open privacy points the design assigns to them. A guardian contract extension (operations, schema) is still to be drafted and approved before any guardian code, as the design's order of work says. No real data is authorized. |
+
+**Consequences:** the invitation slice, unlink, the restricted detail read and erasure over HTTP are unblocked and are built one pull request at a time. Guardian operations still need their own contract draft.
+

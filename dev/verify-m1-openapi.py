@@ -90,7 +90,16 @@ def implemented_routes():
 
 
 FROZEN_VERSION = "1.1.0"
-M2_PROPOSALS = ("PUT /v1/members/{memberId}", "POST /v1/members/{memberId}/reactivate")
+M2_PROPOSALS = (
+    "PUT /v1/members/{memberId}",
+    "POST /v1/members/{memberId}/reactivate",
+    "GET /v1/members/{memberId}/details",
+    "POST /v1/members/{memberId}/erase",
+    "POST /v1/members/{memberId}/invitation",
+    "DELETE /v1/members/{memberId}/invitation",
+    "POST /v1/invitations/accept",
+    "DELETE /v1/members/{memberId}/account-link",
+)
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
 
 
@@ -149,11 +158,26 @@ def verify_m2_draft(draft):
     # and outside the frozen contract (the operations check above).
     if "draft" not in str(draft.get("info", {}).get("version", "")):
         fail("M2 proposals must stay in an unversioned draft")
+    documented = operations(draft)
+    if documented != set(M2_PROPOSALS):
+        fail(f"M2 draft operations differ from the reviewed proposal list: "
+             f"unlisted={sorted(documented - set(M2_PROPOSALS))} missing={sorted(set(M2_PROPOSALS) - documented)}")
+    ids = []
     for entry in M2_PROPOSALS:
         method, path = entry.split(" ", 1)
-        summary = draft["paths"][path][method.lower()].get("summary", "")
-        if "NOT IMPLEMENTED" not in summary:
+        operation = draft["paths"][path][method.lower()]
+        if "NOT IMPLEMENTED" not in operation.get("summary", ""):
             fail(f"Proposed private-data route lost its not-implemented marker: {entry}")
+        ids.append(operation.get("operationId"))
+        if method == "GET":
+            continue
+        parameters = draft["paths"][path].get("parameters", []) + operation.get("parameters", [])
+        if not any(p.get("$ref") == "#/components/parameters/CsrfToken" for p in parameters):
+            fail(f"Proposed write has no required CSRF header: {entry}")
+        if "503" not in operation.get("responses", {}) or "401" not in operation["responses"]:
+            fail(f"Proposed write lacks the 401/503 contract: {entry}")
+    if len(set(ids)) != len(ids) or None in ids:
+        fail("M2 draft operations need unique operationIds")
 
 
 def main():
