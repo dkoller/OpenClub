@@ -1030,8 +1030,8 @@ test('an administrator invites a member, a second synthetic user accepts, and un
 
   // A synthetic adult with no account, created directly so the journey stays about invitations.
   fixtureSql("DELETE FROM members WHERE last_name = 'Invitee' AND account_id IS NULL");
-  fixtureSql("INSERT INTO members (first_name, last_name, date_of_birth, email, phone) " +
-    "VALUES ('Ines', 'Invitee', DATE '1990-05-05', 'ines@example.invalid', '+41000000009')");
+  fixtureSql("INSERT INTO members (id, first_name, last_name, date_of_birth, email, phone) " +
+    "VALUES (gen_random_uuid(), 'Ines', 'Invitee', DATE '1990-05-05', 'ines@example.invalid', '+41000000009')");
   const invitee = await browser.newContext({ baseURL: 'http://localhost:5173' });
   try {
     await signIn(page, 'openclub-ci-user');
