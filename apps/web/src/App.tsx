@@ -7,6 +7,9 @@ import { TeamDirectory } from './TeamDirectory'
 import { GrantAdmin } from './GrantAdmin'
 import { ClubSettings } from './ClubSettings'
 import { RoleAdmin } from './RoleAdmin'
+import { InvitationAdmin } from './InvitationAdmin'
+import { AcceptInvitation } from './AcceptInvitation'
+import { secretFromHash } from './invitations'
 
 const translations = {
   de: { heading: 'Willkommen bei OpenClub', intro: 'Eine Installation für einen Verein.', loading: 'Anmeldung wird geprüft…', signedOut: 'Bitte anmelden.', notMember: 'Für dieses Konto besteht noch keine Vereinsmitgliedschaft.', ready: 'Angemeldet und für diesen Verein berechtigt.', unavailable: 'Dienst momentan nicht verfügbar.', retry: 'Erneut versuchen', login: 'Anmelden', logout: 'Abmelden', loggingOut: 'Abmeldung läuft…', error: 'Abmelden fehlgeschlagen.', language: 'Sprache' },
@@ -21,12 +24,24 @@ export function App() {
   const [error, setError] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [directoryRevision, setDirectoryRevision] = useState(0)
+  // An invitation link carries its secret in the fragment; keep it for the sign-in round trip, then drop it from the URL.
+  const [invite] = useState(() => {
+    const secret = secretFromHash(window.location.hash)
+    try {
+      if (secret) window.sessionStorage.setItem('openclub.invite', secret)
+      return secret ?? window.sessionStorage.getItem('openclub.invite') ?? ''
+    } catch { return secret ?? '' }
+  })
   const words = translations[language]
 
   useEffect(() => {
     let active = true
     void loadClubAccess().then(result => { if (active) setAccess(result) })
     return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    if (secretFromHash(window.location.hash)) window.history.replaceState(null, '', window.location.pathname + window.location.search)
   }, [])
 
   useEffect(() => {
@@ -78,6 +93,9 @@ export function App() {
       <PublicMembers language={language} revision={directoryRevision} />
       {access?.state === 'ready' && <GrantAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <RoleAdmin language={language} csrfToken={access.csrfToken} />}
+      {access?.state === 'ready' && <InvitationAdmin language={language} csrfToken={access.csrfToken} />}
+      {access?.state === 'not-member' && <AcceptInvitation language={language} csrfToken={access.csrfToken} initial={invite}
+        onAccepted={() => { try { window.sessionStorage.removeItem('openclub.invite') } catch { /* storage may be disabled */ } void retryAccess() }} />}
       {access?.state === 'ready' && <TeamDirectory language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <MemberAdmin language={language} csrfToken={access.csrfToken}
         genderRequiredForPlayers={access.genderRequiredForPlayers}
