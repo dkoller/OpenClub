@@ -736,6 +736,18 @@ test('verified login gains club access only after restricted operator bootstrap'
   }
   await page.reload();
 
+  // Reload and wait until the permission bootstrap has really answered, so the checks below never
+  // pass vacuously before the page has settled (the flaky timeout seen on PRs #324 and #328).
+  const reloadAndWaitForPermissionProbe = async () => {
+    const probe = page.waitForResponse(response =>
+      response.url().includes('/api/v1/grants?memberId=00000000-0000-0000-0000-000000000000'),
+    { timeout: 20000 });
+    await page.reload();
+    await probe;
+    await expect(page.getByRole('status')).toHaveText('Signed in and authorized for this club.',
+      { timeout: 20000 });
+  };
+
   // A genuine capability denial must not be turned into a retryable grant editor.
   await page.route('**/api/v1/grants?**', async route => {
     if (route.request().method() === 'GET' &&
@@ -745,7 +757,7 @@ test('verified login gains club access only after restricted operator bootstrap'
       await route.continue();
     }
   });
-  await page.reload();
+  await reloadAndWaitForPermissionProbe();
   await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
 
@@ -758,7 +770,7 @@ test('verified login gains club access only after restricted operator bootstrap'
       await route.continue();
     }
   });
-  await page.reload();
+  await reloadAndWaitForPermissionProbe();
   await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
 
@@ -767,6 +779,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     new URL(route.request().url()).searchParams.get('q') === 'Synthetic'
       ? route.fulfill({ status: 401, body: 'Unauthorized' }) : route.continue());
   const privateMembers = page.getByRole('region', { name: 'Manage members' });
+  await expect(privateMembers).toBeVisible({ timeout: 20000 });
   await privateMembers.getByLabel('Search names').fill('Synthetic');
   await privateMembers.getByRole('button', { name: 'Search' }).click();
   await expect(privateMembers.getByRole('alert')).toContainText('No permission to manage members.');
