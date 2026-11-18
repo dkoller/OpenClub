@@ -23,6 +23,8 @@ ROUTE_SOURCES = {
     "members/MemberHttpRoutes.kt": "installMemberHttpRoutes",
     "members/MemberRoleHttpRoutes.kt": "installMemberRoleHttpRoutes",
     "members/MemberInvitationHttpRoutes.kt": "installMemberInvitationHttpRoutes",
+    "members/MemberErasureHttpRoute.kt": "installMemberErasureHttpRoute",
+    "members/MemberDetailsHttpRoute.kt": "installMemberDetailsHttpRoute",
     "members/GrantHttpRoutes.kt": "installGrantHttpRoutes",
     "teams/TeamHttpRoutes.kt": "installTeamHttpRoutes",
     "teams/TeamMemberHttpRoutes.kt": "installTeamMemberHttpRoutes",
@@ -58,6 +60,8 @@ POST /v1/members/{memberId}/invitation
 DELETE /v1/members/{memberId}/invitation
 POST /v1/invitations/accept
 DELETE /v1/members/{memberId}/account-link
+GET /v1/members/{memberId}/details
+POST /v1/members/{memberId}/erase
 """.strip().splitlines())
 
 # A single direct-route pattern avoids interpreting JSON builder put() as an
@@ -94,12 +98,10 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.2.0"
+FROZEN_VERSION = "1.3.0"
 M2_PROPOSALS = (
     "PUT /v1/members/{memberId}",
     "POST /v1/members/{memberId}/reactivate",
-    "GET /v1/members/{memberId}/details",
-    "POST /v1/members/{memberId}/erase",
 )
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
 
