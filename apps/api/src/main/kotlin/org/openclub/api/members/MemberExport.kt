@@ -15,7 +15,7 @@ import java.util.UUID
 /**
  * Export of everything the installation stores about one member (privacy proposal section 4: JSON for a
  * verified access or portability request), produced by an operator. It contains the member's own stored
- * fields, their team assignments and their grants. It deliberately leaves out the login binding (issuer and
+ * fields, their team assignments, their invitation timestamps and their grants. It deliberately leaves out the login binding (issuer and
  * subject), sessions, other people's data and the audit trail, whose actor identifiers belong to other people;
  * whether a login is linked is reported only as a yes or no. The read and its `MEMBER_EXPORTED` audit event
  * happen in one transaction, so every export that produced data is audited. Active, archived and linked
@@ -40,6 +40,10 @@ internal class MemberExport(private val database: DSLContext) {
                 """SELECT g.team_id, t.name, g.capability FROM team_capability_grants g JOIN teams t ON t.id = g.team_id
                    WHERE g.member_id = ? ORDER BY t.name, g.capability""", memberId)
 
+            val invitations = db.fetch(
+                "SELECT created_at, expires_at, used_at, revoked_at FROM member_invitations WHERE member_id = ? ORDER BY created_at, id",
+                memberId)
+
             fun text(name: String) = member.get(name)?.toString()?.let(::JsonPrimitive) ?: JsonNull
             val result = buildJsonObject {
                 put("exportedAt", exportedAt.toString())
@@ -59,6 +63,15 @@ internal class MemberExport(private val database: DSLContext) {
                 })
                 put("teams", buildJsonArray {
                     teams.forEach { add(buildJsonObject { put("id", it.get(0).toString()); put("name", it.get(1).toString()) }) }
+                })
+                put("invitations", buildJsonArray {
+                    invitations.forEach {
+                        add(buildJsonObject {
+                            for ((i, name) in listOf("createdAt", "expiresAt", "usedAt", "revokedAt").withIndex()) {
+                                put(name, it.get(i)?.toString()?.let(::JsonPrimitive) ?: JsonNull)
+                            }
+                        })
+                    }
                 })
                 put("clubGrants", buildJsonArray { clubGrants.forEach { add(JsonPrimitive(it.get(0).toString())) } })
                 put("teamGrants", buildJsonArray {
