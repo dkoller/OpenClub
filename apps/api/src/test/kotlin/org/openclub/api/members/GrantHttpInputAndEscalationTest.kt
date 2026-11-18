@@ -228,6 +228,7 @@ class GrantHttpInputAndEscalationTest {
             grant(scope = "TEAM", capability = "MANAGE_PERMISSIONS", team = "\"$team\""))
         c.mutation(bad, "team-scoped EDIT_MEMBERS",
             grant(scope = "TEAM", capability = "EDIT_MEMBERS", team = "\"$team\""))
+        c.mutation(bad, "CLUB scope with null teamId", grant(team = "null"))
         c.mutation(bad, "oversized body", grant().dropLast(1) + ",\"x\":\"" + "a".repeat(5000) + "\"}")
         c.assertNoFailures()
     }
@@ -245,6 +246,8 @@ class GrantHttpInputAndEscalationTest {
             c.read(HttpStatusCode.Forbidden, "$handle with valid memberId", "?memberId=$plainMember", handle)
         }
         c.read(HttpStatusCode.Unauthorized, "unknown session", "?memberId=$plainMember", "ghost")
+        // Reads do not distinguish "no grants" from "no such member": both are an empty 200.
+        c.read(HttpStatusCode.OK, "manager reading an unknown member", "?memberId=${UUID.randomUUID()}")
         c.assertNoFailures()
     }
 
@@ -271,6 +274,21 @@ class GrantHttpInputAndEscalationTest {
         c.mutation(denied, "ADMIN without MANAGE_PERMISSIONS grant", allowedBody, "adminnogrant")
         c.mutation(denied, "team MANAGE_TEAMS holder", allowedBody, "coach")
         c.mutation(HttpStatusCode.Unauthorized, "unknown session", allowedBody, "ghost")
+        c.assertNoFailures()
+    }
+
+    /** Callers without MANAGE_PERMISSIONS must not learn the expected body shape: 403, never 400. */
+    @Test
+    fun malformedBodiesFromUnauthorizedCallersAre403() = app {
+        val c = Cases(this)
+        val denied = HttpStatusCode.Forbidden
+        for (handle in listOf("adminnogrant", "coach")) {
+            c.mutation(denied, "$handle empty body", "", handle)
+            c.mutation(denied, "$handle truncated JSON", "{\"memberId\":", handle)
+            c.mutation(denied, "$handle unknown capability", grant(capability = "ROOT"), handle)
+            c.mutation(denied, "$handle unknown key", grant().dropLast(1) + ",\"role\":\"ADMIN\"}", handle)
+            c.mutation(denied, "$handle text/plain", grant(), handle, contentType = "text/plain")
+        }
         c.assertNoFailures()
     }
 }

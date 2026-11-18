@@ -17,9 +17,9 @@ import org.openclub.api.auth.ActiveSession
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
-import java.util.UUID
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
+import java.util.UUID
 
 /** Explicit ADMIN + MANAGE_PERMISSIONS only; no role or account identity accepted from callers. */
 internal fun Application.installGrantHttpRoutes(
@@ -113,34 +113,55 @@ private suspend fun ApplicationCall.mutateGrant(
             grantError(HttpStatusCode.Forbidden, "forbidden")
             return
         }
-        val fields = readGrantBody()
-        val memberId = UUID.fromString(fields.requiredString("memberId"))
-        val capability = ClubCapabilityAccess.Capability.valueOf(fields.requiredString("capability"))
-        val scope = CapabilityGrants.Scope.valueOf(fields.requiredString("scope"))
-        val teamId = fields["teamId"]?.let { UUID.fromString(fields.requiredString("teamId")) }
-        require((scope == CapabilityGrants.Scope.TEAM) == (teamId != null))
-        require(scope != CapabilityGrants.Scope.TEAM ||
-            capability == ClubCapabilityAccess.Capability.VIEW_TEAMS ||
-            capability == ClubCapabilityAccess.Capability.MANAGE_TEAMS)
+        // Advisory pre-check so unauthorized callers get 403 for malformed bodies too; the
+        // service below repeats the check atomically under its lock and stays authoritative.
+        val permitted = database.onDatabaseThread { db ->
+            ClubCapabilityAccess(db).has(actor.accountId, ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS)
+        }
+        if (!permitted) {
+            grantError(HttpStatusCode.Forbidden, "forbidden")
+            return
+        }
+        val change = try {
+            receiveGrantChange()
+        } catch (_: IllegalArgumentException) {
+            grantError(HttpStatusCode.BadRequest, "invalid")
+            return
+        }
         val outcome = database.onDatabaseThread { db ->
             val grants = CapabilityGrants(db)
-            if (granting) grants.grant(actor.accountId, memberId, capability, scope, teamId)
-            else grants.revoke(actor.accountId, memberId, capability, scope, teamId)
+            if (granting) grants.grant(actor.accountId, change.memberId, change.capability, change.scope, change.teamId)
+            else grants.revoke(actor.accountId, change.memberId, change.capability, change.scope, change.teamId)
         }
         if (outcome == CapabilityGrants.Change.DENIED) grantError(HttpStatusCode.Forbidden, "forbidden")
         else respond(HttpStatusCode.NoContent)
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: IllegalArgumentException) {
-        grantError(HttpStatusCode.BadRequest, "invalid")
     } catch (_: Exception) {
         grantError(HttpStatusCode.ServiceUnavailable, "unavailable")
     }
 }
 
-private suspend fun ApplicationCall.readGrantBody(): JsonObject = receiveJsonObject(
-    required = setOf("memberId", "capability", "scope"), optional = setOf("teamId"))
+private class GrantChange(
+    val memberId: UUID,
+    val capability: ClubCapabilityAccess.Capability,
+    val scope: CapabilityGrants.Scope,
+    val teamId: UUID?,
+)
 
+/** Reads and validates the body. Every violation throws [IllegalArgumentException] (mapped to 400). */
+private suspend fun ApplicationCall.receiveGrantChange(): GrantChange {
+    val fields = receiveJsonObject(
+        required = setOf("memberId", "capability", "scope"), optional = setOf("teamId"))
+    val capability = ClubCapabilityAccess.Capability.valueOf(fields.requiredString("capability"))
+    val scope = CapabilityGrants.Scope.valueOf(fields.requiredString("scope"))
+    val teamId = fields["teamId"]?.let { UUID.fromString(fields.requiredString("teamId")) }
+    require((scope == CapabilityGrants.Scope.TEAM) == (teamId != null))
+    require(scope != CapabilityGrants.Scope.TEAM ||
+        capability == ClubCapabilityAccess.Capability.VIEW_TEAMS ||
+        capability == ClubCapabilityAccess.Capability.MANAGE_TEAMS)
+    return GrantChange(UUID.fromString(fields.requiredString("memberId")), capability, scope, teamId)
+}
 
 private suspend fun ApplicationCall.grantActor(
     sessions: BrowserSessionOperations,
