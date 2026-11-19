@@ -46,6 +46,7 @@ Each independent installation owns its club's member data: no shared database, c
 - [Membership and privacy-related product decisions](docs/decisions/0004-member-policy.md)
 - [Internal team roster privacy and authorization boundary](docs/security/team-roster-visibility.md)
 - [Numbered roadmap, GitHub issues and completed milestones](docs/roadmap.md)
+- Privacy drafts for real data (#12): [controller sign-off sheet](docs/privacy/controller-decisions.md), [processing record](docs/privacy/processing-record.md), [privacy notice (DE)](docs/privacy/datenschutzerklaerung-entwurf.md)
 - [Owner decisions of 2026-11-18](docs/decisions/0008-owner-decisions-2026-11-18.md), with the [privacy proposal](docs/discovery/privacy-proposal-2026-11-18.md), the [invitation design](docs/security/invitation-linking-design.md) and the [guardian design](docs/security/guardian-design.md)
 - [Single-club deployment and safe fresh-database setup](docs/deployment/single-club.md)
 - [Hosted demo on Infomaniak (runbook)](docs/deployment/infomaniak-demo.md) and the [M1 acceptance walkthrough](docs/deployment/m1-acceptance-walkthrough.md)
