@@ -9,6 +9,8 @@ import { ClubSettings } from './ClubSettings'
 import { RoleAdmin } from './RoleAdmin'
 import { InvitationAdmin } from './InvitationAdmin'
 import { ArchivedMembers } from './ArchivedMembers'
+import { GuardianAdmin } from './GuardianAdmin'
+import { MyDependents } from './MyDependents'
 import { AcceptInvitation } from './AcceptInvitation'
 import { secretFromHash } from './invitations'
 
@@ -95,6 +97,8 @@ export function App() {
       {access?.state === 'ready' && <GrantAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <RoleAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <InvitationAdmin language={language} csrfToken={access.csrfToken} />}
+      {access?.state === 'ready' && <GuardianAdmin language={language} csrfToken={access.csrfToken} />}
+      {access?.state === 'ready' && <MyDependents language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'not-member' && <AcceptInvitation language={language} csrfToken={access.csrfToken} initial={invite}
         onAccepted={() => { try { window.sessionStorage.removeItem('openclub.invite') } catch { /* storage may be disabled */ } void retryAccess() }} />}
       {access?.state === 'ready' && <TeamDirectory language={language} csrfToken={access.csrfToken} />}

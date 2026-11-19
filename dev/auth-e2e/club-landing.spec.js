@@ -334,6 +334,42 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(maraRow.getByRole('button', { name: 'Details', exact: true })).toHaveAttribute('aria-expanded', 'true');
   await maraDetails.getByRole('button', { name: 'Close' }).click();
   await expect(maraDetails).toHaveCount(0);
+
+  // Guardians (OpenAPI 1.6.0): the editor attests a guardianship, the guardian sees "My children", reads
+  // the minor and replaces only her contacts; removing the guardianship ends access at the next request.
+  const guardiansRegion = page.getByRole('region', { name: 'Guardians' });
+  await guardiansRegion.getByLabel('Find a minor').fill('Mara');
+  await guardiansRegion.getByRole('button', { name: 'Search' }).first().click();
+  await expect(guardiansRegion.getByText('No guardians recorded.')).toBeVisible();
+  await guardiansRegion.getByLabel('Find a guardian').fill('Synthetic Administrator');
+  await guardiansRegion.getByRole('button', { name: 'Search' }).nth(1).click();
+  await expect(guardiansRegion.getByRole('combobox', { name: 'Guardian' })).toContainText('Synthetic Administrator');
+  await guardiansRegion.getByRole('button', { name: 'Add as guardian' }).click();
+  await expect(guardiansRegion.getByText('Guardian added.')).toBeVisible();
+  await expect(guardiansRegion.getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
+  // Adding the same guardian twice is refused with the rule, not an error.
+  await guardiansRegion.getByRole('button', { name: 'Add as guardian' }).click();
+  await expect(guardiansRegion.getByText(/Not possible/)).toBeVisible();
+  await page.reload();
+  const children = page.getByRole('region', { name: 'My children' });
+  const maraChild = children.getByRole('listitem').filter({ hasText: 'Mara Demo' });
+  const dependentRead = page.waitForResponse(response => /\/api\/v1\/me\/dependents\/[^/]+$/.test(new URL(response.url()).pathname));
+  await maraChild.getByRole('button', { name: 'Open' }).click();
+  expect((await dependentRead).headers()['cache-control']).toBe('no-store');
+  await expect(maraChild.getByText('2015-01-01')).toBeVisible();
+  await maraChild.getByLabel('Email').fill('mara.parent@example.invalid');
+  await maraChild.getByRole('button', { name: 'Save contacts' }).click();
+  await expect(children.getByText('Contacts saved.')).toBeVisible();
+  await expect(maraChild.getByLabel('Email')).toHaveValue('mara.parent@example.invalid');
+  const guardianRegion = page.getByRole('region', { name: 'Guardians' });
+  await guardianRegion.getByLabel('Find a minor').fill('Mara');
+  await guardianRegion.getByRole('button', { name: 'Search' }).first().click();
+  await guardianRegion.getByRole('listitem').filter({ hasText: 'Synthetic Administrator' }).getByRole('button', { name: 'Remove' }).click();
+  await expect(guardianRegion.getByText('Guardian removed.')).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'My children' })).toHaveCount(0);
+  const mineAfter = await context.request.get('/api/v1/me/dependents');
+  expect((await mineAfter.json()).items).toEqual([]);
   await clubSettings.getByLabel('Require gender for players').check();
   await clubSettings.getByRole('button', { name: 'Save policy' }).click();
   await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).genderRequiredForPlayers).toBe(true);

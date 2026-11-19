@@ -267,7 +267,9 @@ class GuardianHttpTest {
         link(growing, "g1")
         sql { it.execute("UPDATE members SET date_of_birth = DATE '1990-01-01', email = 'g@example.invalid', phone = '+41000000002' WHERE id = ?", growing) }
         assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Get, "/api/v1/me/dependents/$growing", "g1").status)
-        assertEquals(0, send(HttpMethod.Get, "/api/v1/me/dependents", "g1").json()["items"]!!.jsonArray.size)
+        // g1 may be a guardian in other tests of this class, so check this member is gone, not that the list is empty.
+        assertFalse(send(HttpMethod.Get, "/api/v1/me/dependents", "g1").json()["items"]!!.jsonArray
+            .any { it.jsonObject["id"]!!.jsonPrimitive.content == growing.toString() }, "an adult is no longer a dependent")
 
         // Archive: the guardianship ends with the minor.
         val archived = minor("Archived")

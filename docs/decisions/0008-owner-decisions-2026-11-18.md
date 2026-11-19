@@ -97,3 +97,12 @@ Asked in the Claude Code session whether `GET /api/v1/members/archived` (name se
 | 27 | Erasure UI | Confirms decision 21: the *Archived members* panel offers **Reactivate only**; erasure stays an operator command in M1. |
 
 None of this authorizes real data.
+
+## Addendum 8 — guardian contract approved and built (2026-11-19)
+
+Asked in the Claude Code session to approve the six guardian operations drafted from the privacy-reviewed [guardian design](../security/guardian-design.md), the owner chose **"Approve, build it"**.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 28 | Guardian operations | Approved as drafted and implemented as OpenAPI **1.6.0**: editors (`EDIT_MEMBERS`) list, add (their attestation, at most two, active adults with a login) and remove a minor's guardians; a guardian lists their minors, reads one (names, birth date, email, phone, player flag, team names; audited) and replaces only email and phone. No capability is granted; access ends at the club's adult age, on archive, unlink, erasure or removal. |
+| 29 | Still open | Lawful basis and notices for a guardian's access to a child's data (controller and counsel). This approval covers synthetic data only. |

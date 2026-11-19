@@ -350,3 +350,14 @@ Behaviour changes are fail-closed only. Club-wide capability gates for member an
 The V7 trigger rejects a lower threshold while members who would become adults lack email or phone. The API answers `409 {"code":"conflict"}` without naming them. Raising the threshold never conflicts.
 
 `GET /api/v1/club` exposes the threshold (`adultAgeYears`), not any person's data. Public names already use the club's threshold to decide between full names and first name plus initial.
+
+## Guardians (OpenAPI 1.6.0)
+
+Built from the privacy-reviewed [guardian design](guardian-design.md) after the owner approved the contract text (ADR-0008 addendum 8). **V19** adds `member_guardianships` (minor, guardian), with triggers that accept only an active minor and an active adult guardian with a login, at most two per minor (the minor's row is locked so concurrent additions cannot exceed it), and that delete a guardianship in the same statement when either member is archived or the guardian's login is unlinked; erasure cascades. Audit events `GUARDIAN_LINKED`, `GUARDIAN_UNLINKED`, `DEPENDENT_READ` and `DEPENDENT_UPDATED` carry the guardian in a new identifier-only `related_member_id` column.
+
+- **Editors** (`EDIT_MEMBERS`, locked for the transaction) list a minor's guardians, add one by attesting the relationship (409 when not eligible, already recorded or two already exist; 404 for an unknown member or an adult) and remove one (idempotent). Being a guardian grants no capability.
+- **Guardians** reach only `/api/v1/me/dependents`: their list (an empty list for everyone else, never 403), one minor's names, birth date, email, phone, player flag and team names (audited), and a replacement of only email and phone. The relationship, the guardian's active verified adult member and the minor's age under the club's **current** adult age are checked in the same statement as every read and write, so a birthday, an archive, an unlink, a revoked identity or a removal ends access at the next request. Every refusal, including a malformed ID, is the same 403; the contact write checks the relationship before reading the body.
+- **UI:** *Guardians* (editors: find a minor, see guardians, find and add a guardian with the attestation text, remove) and *My children* (shown only to guardians: open a child, see birth date, player flag and teams, edit email and phone), in DE/EN/FR/IT.
+- **Tests:** `GuardianHttpTest` (order of answers, lifecycle and audit, guardian view, every way access ends), `PrivateRoutesRevocationTest` (editor routes) and the Keycloak journey (add, my children, edit contacts, duplicate refused, remove).
+- **Not settled:** the lawful basis and notices for a guardian's access to a child's data (controller and counsel). Synthetic data only.
+
