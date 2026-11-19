@@ -16,6 +16,7 @@ import { MySchedule } from './MySchedule'
 import { MyFees } from './MyFees'
 import { FeeAdmin } from './FeeAdmin'
 import { MemberListTransfer } from './MemberListTransfer'
+import { Announcements } from './Announcements'
 import { AcceptInvitation } from './AcceptInvitation'
 import { secretFromHash } from './invitations'
 
@@ -104,6 +105,7 @@ export function App() {
       {access?.state === 'ready' && <InvitationAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <GuardianAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <FeeAdmin language={language} csrfToken={access.csrfToken} />}
+      {access?.state === 'ready' && <Announcements language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <MySchedule language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <MyProfile language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <MyFees language={language} />}

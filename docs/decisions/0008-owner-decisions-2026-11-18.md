@@ -181,3 +181,11 @@ Shown the contract, the owner chose **"Skip duplicates"**.
 | --- | --- | --- |
 | 41 | Member list as CSV | Approved as OpenAPI **1.13.0**, for `EDIT_MEMBERS`. Export: the active members as a CSV file Excel opens directly (semicolon, UTF-8 with BOM, header in the UI language, formula-like cells neutralized), every listed member audited as `MEMBER_LISTED`, with the cross-site protection of the member export. Import: a CSV saved from Excel (header in DE/EN/FR/IT, dates as 31.12.2010 or 2010-12-31, at most 1,000 rows), always previewed first; the commit creates only new valid members in one transaction, audited as `MEMBER_CREATED`, and never changes an existing member. |
 | 42 | Duplicates and problems | A row matching an existing member (same first name, last name and birth date, ignoring case, archived members included) is skipped as "already exists". The agent also leaves rows with problems out (shown with the reason in the preview, counted before the confirmation), so one bad line does not block the others. |
+
+## Addendum 18 — announcements (2026-11-19)
+
+Shown the contract, the owner chose **"New permission"** for who posts club-wide.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 43 | Announcements | Approved as OpenAPI **1.14.0**. An announcement has a title (200), plain text (5,000, no formatting or images) and a show-until date (default 60 days, at most a year ahead), for the whole club or one team. Club-wide ones need the new club-wide capability `POST_ANNOUNCEMENTS` (granted explicitly; the first administrator gets it at bootstrap); team ones `MANAGE_TEAMS` for that team. Members see club-wide ones, their teams', their current minors' teams' and the teams they manage, newest first. The UI warns against private details in the text. Not audited (club content). The agent added the list of audiences a caller may post to, so the form offers only allowed choices. This completes addendum 16. |

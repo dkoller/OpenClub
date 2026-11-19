@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
   title: OpenClub single-club management API — synthetic M1
-  version: 1.13.0
+  version: 1.14.0
   description: >
     Frozen contract for the implemented synthetic M1 HTTP surface, accepted by
     the owner on 2026-11-17 (ADR-0007, #13). 1.1.0 adds the per-club adult-age
     setting (PATCH /v1/club/adult-age-policy and adultAgeYears in GET /v1/club, #17). 1.2.0 adds invitations
     and account unlinking (owner-approved 2026-11-18, ADR-0008 addendum 4): create and revoke an invitation,
-    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). 1.11.0 adds attendance: members and guardians answer YES, NO or MAYBE until an event starts, team viewers and managers see the answers by public display name, and every event carries the totals, owner-approved 2026-11-19 (ADR-0008 addendum 14). 1.12.0 adds membership fees: the club-wide MANAGE_FEES capability, fee periods and each member's fee and payment (tracking only), each member's own and children's fees (GET /v1/me/fees), and fees in the member export, owner-approved 2026-11-19 (ADR-0008 addendum 15). 1.13.0 adds the member list as CSV for editors: an audited export (GET /v1/members/export.csv) and an import that is previewed, creates only new valid members and skips duplicates (POST /v1/members/import), owner-approved 2026-11-19 (ADR-0008 addendum 17). It contains exactly the operations
+    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). 1.11.0 adds attendance: members and guardians answer YES, NO or MAYBE until an event starts, team viewers and managers see the answers by public display name, and every event carries the totals, owner-approved 2026-11-19 (ADR-0008 addendum 14). 1.12.0 adds membership fees: the club-wide MANAGE_FEES capability, fee periods and each member's fee and payment (tracking only), each member's own and children's fees (GET /v1/me/fees), and fees in the member export, owner-approved 2026-11-19 (ADR-0008 addendum 15). 1.13.0 adds the member list as CSV for editors: an audited export (GET /v1/members/export.csv) and an import that is previewed, creates only new valid members and skips duplicates (POST /v1/members/import), owner-approved 2026-11-19 (ADR-0008 addendum 17). 1.14.0 adds announcements: club-wide with the new POST_ANNOUNCEMENTS capability, per team with MANAGE_TEAMS, and each member's current announcements (GET /v1/me/announcements), owner-approved 2026-11-19 (ADR-0008 addendum 18). It contains exactly the operations
     registered in Ktor and checked by `dev/verify-m1-openapi.py`. Authentication
     routes (/v1/auth) are documented separately in auth-api-proposal.yaml.
     Version 1.0.0 covers synthetic data only. It does not approve real member
@@ -31,6 +31,7 @@ tags:
   - name: Profile
   - name: Events
   - name: Fees
+  - name: Announcements
 paths:
   /v1/club:
     get:
@@ -1985,6 +1986,143 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/me/announcements:
+    get:
+      tags: [Announcements]
+      operationId: listMyAnnouncements
+      summary: The signed-in member's current announcements (since 1.14.0)
+      description: >
+        For an active verified member (403 otherwise): announcements whose show-until date is
+        today or later, newest first (at most 100): club-wide ones, those of the teams the caller
+        is assigned to, of their current minors' teams (the rule of /v1/me/dependents) and of the
+        teams they manage. canManage says whether the caller may change one; audiences lists where
+        the caller may post (teamId null for the whole club). Never cacheable.
+      responses:
+        '200':
+          description: Announcements
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items, audiences]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, teamId, teamName, title, body, showUntil, createdAt, canManage]
+                      properties:
+                        id: { type: string, format: uuid }
+                        teamId: { type: [string, 'null'], format: uuid }
+                        teamName: { type: [string, 'null'] }
+                        title: { type: string }
+                        body: { type: string, description: Plain text with line breaks }
+                        showUntil: { type: string, format: date }
+                        createdAt: { type: string, format: date-time }
+                        canManage: { type: boolean }
+                  audiences:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [teamId, teamName]
+                      properties:
+                        teamId: { type: [string, 'null'], format: uuid }
+                        teamName: { type: [string, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/announcements:
+    post:
+      tags: [Announcements]
+      operationId: createAnnouncement
+      summary: Post an announcement to the club or one team (since 1.14.0)
+      description: >
+        Exact Origin and session CSRF. A caller holding neither POST_ANNOUNCEMENTS nor MANAGE_TEAMS
+        anywhere gets 403 before the body is read. teamId null posts club-wide and needs the
+        club-wide POST_ANNOUNCEMENTS; a team id needs MANAGE_TEAMS for that team (403 otherwise,
+        404 for an unknown team). Plain text only. Not audited (club content, not member data).
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title: { type: string, minLength: 1, maxLength: 200 }
+                body: { type: string, minLength: 1, maxLength: 5000 }
+                showUntil: { type: string, format: date, description: 'From today to one year ahead; default today + 60 days' }
+                teamId: { type: [string, 'null'], format: uuid }
+              required: [teamId, title, body]
+      responses:
+        '201':
+          description: The new announcement
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [id]
+                properties:
+                  id: { type: string, format: uuid }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/announcements/{announcementId}:
+    parameters:
+      - name: announcementId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [Announcements]
+      operationId: replaceAnnouncement
+      summary: Change an announcement's text and show-until date (since 1.14.0)
+      description: >
+        The same rights as posting to its audience, which cannot change. 403 without them, 404
+        for an unknown announcement.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title: { type: string, minLength: 1, maxLength: 200 }
+                body: { type: string, minLength: 1, maxLength: 5000 }
+                showUntil: { type: string, format: date, description: 'From today to one year ahead; default today + 60 days' }
+              required: [title, body]
+      responses:
+        '204': { description: Announcement changed }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      tags: [Announcements]
+      operationId: deleteAnnouncement
+      summary: Delete an announcement (since 1.14.0)
+      description: The same rights as posting to its audience; 403 without them, 404 for an unknown one.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204': { description: Announcement deleted }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
 components:
   parameters:
     CsrfToken:
@@ -2137,7 +2275,7 @@ components:
       properties:
         capability:
           type: string
-          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS, MANAGE_FEES]
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS, MANAGE_FEES, POST_ANNOUNCEMENTS]
         scope: { type: string, enum: [CLUB, TEAM] }
         teamId: { type: string, format: uuid }
     GrantPage:
@@ -2156,7 +2294,7 @@ components:
         memberId: { type: string, format: uuid }
         capability:
           type: string
-          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS, MANAGE_FEES]
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS, MANAGE_FEES, POST_ANNOUNCEMENTS]
         scope: { type: string, enum: [CLUB, TEAM] }
         teamId: { type: string, format: uuid }
     Invitation:

@@ -641,6 +641,20 @@ test('verified login gains club access only after restricted operator bootstrap'
   await transfer.getByRole('button', { name: 'Import 2 members' }).click();
   await expect(transfer.getByRole('status')).toHaveText('2 members imported.');
 
+  // Announcements (OpenAPI 1.14.0): the first administrator holds POST_ANNOUNCEMENTS from the bootstrap and posts to
+  // the whole club; the text keeps its line breaks and is never interpreted as HTML.
+  const news = page.getByRole('region', { name: 'Announcements' });
+  await expect(news.getByLabel('For')).toHaveValue('');
+  await news.getByLabel('Title').fill('Training starts again');
+  await news.getByLabel('Text', { exact: true }).fill('First line <b>not bold</b>\nSecond line');
+  await news.getByRole('button', { name: 'Post' }).click();
+  await expect(news.getByRole('status')).toHaveText('Posted.');
+  const posted = news.getByRole('article', { name: 'Training starts again' });
+  await expect(posted).toContainText('Whole club');
+  await expect(posted).toContainText('First line <b>not bold</b>');
+  await expect(posted.locator('b')).toHaveCount(0);
+  await expect(posted.locator('br')).toHaveCount(1);
+
   const permissionAdmin = page.getByRole('region', { name: 'Manage permissions' });
   // Superseded permission-member lookups must not replace newer selection/grants.
   let notifySlowGrant;
