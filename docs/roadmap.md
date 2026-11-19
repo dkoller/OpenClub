@@ -26,7 +26,7 @@ This is a **current delivery map**, not an implementation changelog. For the sou
 | Subject | Source |
 | --- | --- |
 | Current feature and acceptance status | [GitHub issues](https://github.com/dkoller/OpenClub/issues) |
-| Technical API contract | Frozen synthetic M1 [OpenAPI 1.2.0](contracts/openapi-v1.yaml) (ADR-0007), [M2 draft contract](contracts/openapi-m2-draft.yaml) (approved as a draft, with the extension for contact reads, erasure and invitations approved on 2026-11-18; invitation, revoke, accept and unlink are implemented as OpenAPI 1.2.0), [contract review](contracts/contract-review.md), [#13](https://github.com/dkoller/OpenClub/issues/13) |
+| Technical API contract | Frozen synthetic M1 [OpenAPI 1.3.0](contracts/openapi-v1.yaml) (ADR-0007), [M2 draft contract](contracts/openapi-m2-draft.yaml) (approved as a draft, with the extension for contact reads, erasure and invitations approved on 2026-11-18; invitation, revoke, accept and unlink are implemented as OpenAPI 1.2.0, the restricted detail read and erasure as 1.3.0; reactivation and replacement remain drafts), [contract review](contracts/contract-review.md), [#13](https://github.com/dkoller/OpenClub/issues/13) |
 | Single-club operations, HTTPS and resource measurements | [Deployment runbook](deployment/single-club.md), [M1 evidence checklist](deployment/m1-resource-evidence.md) |
 | OIDC and operator recovery | [Rauthy evaluation](development/rauthy-local.md), [Keycloak development](development/keycloak-local.md), [admin recovery procedure](security/admin-recovery-procedure.md) |
 | Contribution, PR-size limit and controlled development loop | [AGENTS.md](../AGENTS.md), [documentation maintenance](contributing/documentation.md) |

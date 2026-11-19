@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 import { fetchMemberPage, type Member } from './members'
 import { changeAssignment, readRoster } from './teams'
+import { MemberDetailsView } from './MemberDetailsView'
 
 const words = {
-  de: { roster: 'Teammitglieder', search: 'Mitglied suchen', find: 'Suchen', add: 'Zuweisen', remove: 'Entfernen', empty: 'Keine Zuweisungen.', more: 'Weitere Mitglieder', error: 'Teamzuweisung fehlgeschlagen.', retry: 'Erneut versuchen', loading: 'Teammitglieder werden geladen…' },
-  en: { roster: 'Team members', search: 'Find member', find: 'Search', add: 'Assign', remove: 'Remove', empty: 'No assignments.', more: 'More members', error: 'Team assignment failed.', retry: 'Try again', loading: 'Loading team members…' },
-  fr: { roster: 'Membres de l’équipe', search: 'Chercher un membre', find: 'Chercher', add: 'Affecter', remove: 'Retirer', empty: 'Aucune affectation.', more: 'Plus de membres', error: 'Affectation impossible.', retry: 'Réessayer', loading: 'Chargement des membres…' },
-  it: { roster: 'Membri della squadra', search: 'Cerca membro', find: 'Cerca', add: 'Assegna', remove: 'Rimuovi', empty: 'Nessuna assegnazione.', more: 'Altri membri', error: 'Assegnazione non riuscita.', retry: 'Riprova', loading: 'Caricamento membri…' },
+  de: { roster: 'Teammitglieder', search: 'Mitglied suchen', find: 'Suchen', add: 'Zuweisen', remove: 'Entfernen', contacts: 'Kontaktdaten', empty: 'Keine Zuweisungen.', more: 'Weitere Mitglieder', error: 'Teamzuweisung fehlgeschlagen.', retry: 'Erneut versuchen', loading: 'Teammitglieder werden geladen…' },
+  en: { roster: 'Team members', search: 'Find member', find: 'Search', add: 'Assign', remove: 'Remove', contacts: 'Contact details', empty: 'No assignments.', more: 'More members', error: 'Team assignment failed.', retry: 'Try again', loading: 'Loading team members…' },
+  fr: { roster: 'Membres de l’équipe', search: 'Chercher un membre', find: 'Chercher', add: 'Affecter', remove: 'Retirer', contacts: 'Coordonnées', empty: 'Aucune affectation.', more: 'Plus de membres', error: 'Affectation impossible.', retry: 'Réessayer', loading: 'Chargement des membres…' },
+  it: { roster: 'Membri della squadra', search: 'Cerca membro', find: 'Cerca', add: 'Assegna', remove: 'Rimuovi', contacts: 'Contatti', empty: 'Nessuna assegnazione.', more: 'Altri membri', error: 'Assegnazione non riuscita.', retry: 'Riprova', loading: 'Caricamento membri…' },
 } satisfies Record<Language, Record<string, string>>
 
 export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
@@ -25,6 +26,7 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
   const [error, setError] = useState(false)
   const [denied, setDenied] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [showing, setShowing] = useState<string | null>(null)
   const [revision, setRevision] = useState(0)
   const candidateRequest = useRef<AbortController | null>(null)
   const rosterRequest = useRef<AbortController | null>(null)
@@ -105,7 +107,11 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
           : <ul>{members.map(member => <li key={member.id}>{member.firstName} {member.lastName}{' '}
             <button type="button" disabled={busy} onClick={() => { void change(member.id, 'DELETE') }}>
               {t.remove}
-            </button>
+            </button>{' '}
+            <button type="button" aria-expanded={showing === member.id}
+              onClick={() => setShowing(showing === member.id ? null : member.id)}>{t.contacts}</button>
+            {showing === member.id &&
+              <MemberDetailsView memberId={member.id} language={language} onClose={() => setShowing(null)} />}
           </li>)}</ul>}
       {cursor && <button type="button" disabled={busy} onClick={() => { void load(cursor) }}>{t.more}</button>}
       <form onSubmit={event => { void findMember(event) }}>
