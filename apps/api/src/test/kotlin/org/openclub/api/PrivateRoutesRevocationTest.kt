@@ -150,6 +150,10 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Delete, "/api/v1/members/$target/invitation"),
         Route(HttpMethod.Delete, "/api/v1/members/$target/account-link"),
         Route(HttpMethod.Get, "/api/v1/members/$target/details"),
+        // Guardian editor routes; the target is an adult, so the authorized pass gets 404 (no guardians) and 204.
+        Route(HttpMethod.Get, "/api/v1/members/$target/guardians"),
+        Route(HttpMethod.Post, "/api/v1/members/$target/guardians", """{"guardianMemberId":"$holder"}"""),
+        Route(HttpMethod.Delete, "/api/v1/members/$target/guardians/$holder"),
         Route(HttpMethod.Post, "/api/v1/members/$erasable/erase", """{"confirmation":"Erasable Person"}"""),
         // Last: an archived target is hidden from the role and grant routes by design.
         Route(HttpMethod.Post, "/api/v1/members/$target/archive"),

@@ -169,7 +169,7 @@ class AuditEventsTest {
                WHERE table_schema = current_schema() AND table_name = 'audit_events'""")
             .map { it.get(0, String::class.java) }.toSet()
         assertEquals(setOf("id", "occurred_at", "event_type", "actor_account_id", "target_member_id", "capability",
-            "scope", "team_id", "new_role"), columns, "no name, birth date, contact or free-text column")
+            "scope", "team_id", "new_role", "related_member_id"), columns, "no name, birth date, contact or free-text column")
 
         val id = requireNotNull(MemberCreation(db).create(managerAccount, adult("Immutable")))
         created += id

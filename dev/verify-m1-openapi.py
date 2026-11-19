@@ -25,6 +25,7 @@ ROUTE_SOURCES = {
     "members/MemberInvitationHttpRoutes.kt": "installMemberInvitationHttpRoutes",
     "members/MemberErasureHttpRoute.kt": "installMemberErasureHttpRoute",
     "members/MemberDetailsHttpRoute.kt": "installMemberDetailsHttpRoute",
+    "members/GuardianHttpRoutes.kt": "installGuardianHttpRoutes",
     "members/GrantHttpRoutes.kt": "installGrantHttpRoutes",
     "teams/TeamHttpRoutes.kt": "installTeamHttpRoutes",
     "teams/TeamMemberHttpRoutes.kt": "installTeamMemberHttpRoutes",
@@ -65,6 +66,12 @@ POST /v1/members/{memberId}/erase
 PUT /v1/members/{memberId}
 POST /v1/members/{memberId}/reactivate
 GET /v1/members/archived
+GET /v1/members/{memberId}/guardians
+POST /v1/members/{memberId}/guardians
+DELETE /v1/members/{memberId}/guardians/{guardianMemberId}
+GET /v1/me/dependents
+GET /v1/me/dependents/{memberId}
+PUT /v1/me/dependents/{memberId}/contacts
 """.strip().splitlines())
 
 # A single direct-route pattern avoids interpreting JSON builder put() as an
@@ -101,16 +108,9 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.5.0"
-# Guardian proposals (docs/security/guardian-design.md), drafted 2026-11-19, not implemented.
-M2_PROPOSALS = (
-    "GET /v1/members/{memberId}/guardians",
-    "POST /v1/members/{memberId}/guardians",
-    "DELETE /v1/members/{memberId}/guardians/{guardianMemberId}",
-    "GET /v1/me/dependents",
-    "GET /v1/me/dependents/{memberId}",
-    "PUT /v1/me/dependents/{memberId}/contacts",
-)
+FROZEN_VERSION = "1.6.0"
+# Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
+M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
 
 
@@ -149,7 +149,9 @@ def verify_contract(spec):
             if operation.get("security") != []:
                 fail("Public display names must explicitly override session security")
             continue
-        if operation.get("security") == [] or not {"401", "403"} <= responses.keys():
+        # A guardian's own list answers an empty list to everyone else (never 403), so it reveals nothing.
+        denial = {"401"} if entry == "GET /v1/me/dependents" else {"401", "403"}
+        if operation.get("security") == [] or not denial <= responses.keys():
             fail(f"Private endpoint has incomplete authentication/denial contract: {entry}")
         if method not in {"POST", "PATCH", "DELETE"}:
             continue
