@@ -566,6 +566,34 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
   await page.unroute('**/api/v1/teams/*/members?**');
 
+  // Trainings and events (OpenAPI 1.10.0): a weekly training for Juniors in the browser's time zone; one copy is
+  // cancelled and one deleted. The administrator is in no team, so their own schedule stays empty.
+  const [firstDay, lastDay] = await page.evaluate(() => [2, 16].map(days => {
+    const day = new Date(Date.now() + days * 86400000);
+    return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+  }));
+  const juniors = teams.getByRole('listitem').filter({ hasText: 'Juniors — 1 Members' });
+  await juniors.getByRole('button', { name: 'Schedule', exact: true }).click();
+  const schedule = teams.getByRole('region', { name: 'Schedule Juniors' });
+  await expect(schedule.getByText('No events in the next eight weeks.')).toBeVisible();
+  await schedule.getByLabel('Title').fill('Juniors training');
+  await schedule.getByLabel('Date', { exact: true }).fill(firstDay);
+  await schedule.getByLabel('Place').fill('Hall 1');
+  await schedule.getByLabel('Repeat weekly until').fill(lastDay);
+  await schedule.getByRole('button', { name: 'Add event' }).click();
+  await expect(schedule.getByRole('status')).toHaveText('Event saved.');
+  const trainings = schedule.getByRole('listitem').filter({ hasText: 'Juniors training' });
+  await expect(trainings).toHaveCount(3);
+  await expect(trainings.first()).toContainText('18:00');
+  await trainings.first().getByRole('button', { name: 'Cancel event' }).click();
+  await expect(trainings.first()).toContainText('Cancelled');
+  await trainings.last().getByRole('button', { name: 'Delete', exact: true }).click();
+  await trainings.last().getByRole('button', { name: 'Confirm delete' }).click();
+  await expect(trainings).toHaveCount(2);
+  await juniors.getByRole('button', { name: 'Close schedule' }).click();
+  await expect(schedule).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'My schedule' }).getByText('No events in the next eight weeks.')).toBeVisible();
+
   const permissionAdmin = page.getByRole('region', { name: 'Manage permissions' });
   // Superseded permission-member lookups must not replace newer selection/grants.
   let notifySlowGrant;

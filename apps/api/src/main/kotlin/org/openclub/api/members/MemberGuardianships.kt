@@ -11,9 +11,24 @@ import org.openclub.api.database.rejectedTheData
 import java.time.LocalDate
 import java.util.UUID
 
-/** `<member>.date_of_birth` makes them an adult under the club's adult age. `c` is the clubs row. */
-private fun adult(member: String) = "$member.date_of_birth <= (CURRENT_DATE - make_interval(years => c.adult_age_years))::date"
-private fun minor(member: String) = "$member.date_of_birth > (CURRENT_DATE - make_interval(years => c.adult_age_years))::date"
+/**
+ * `<member>.date_of_birth` makes them an adult (or a minor) under the club's adult age. `c` is the clubs row.
+ * Shared with the schedules, which show a guardian their minors' events under exactly the same rule.
+ */
+internal object AgeSql {
+    private val alias = Regex("[a-z_]+")
+    fun adult(member: String): String {
+        require(alias.matches(member)) { "Invalid SQL alias" }
+        return "$member.date_of_birth <= (CURRENT_DATE - make_interval(years => c.adult_age_years))::date"
+    }
+    fun minor(member: String): String {
+        require(alias.matches(member)) { "Invalid SQL alias" }
+        return "$member.date_of_birth > (CURRENT_DATE - make_interval(years => c.adult_age_years))::date"
+    }
+}
+
+private fun adult(member: String) = AgeSql.adult(member)
+private fun minor(member: String) = AgeSql.minor(member)
 
 /**
  * Guardianships managed by editors (OpenAPI 1.6.0; design docs/security/guardian-design.md, approved 2026-11-19,

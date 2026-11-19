@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Language } from './language'
+import { TeamSchedule } from './TeamSchedule'
 import { TeamMembers } from './TeamMembers'
 import { createTeam as requestCreateTeam, deleteTeam as requestDeleteTeam, readTeams,
   renameTeam as requestRenameTeam, type Team } from './teams'
@@ -132,6 +133,7 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
               <button type="submit" disabled={creating || confirmation !== team.name}>{t.confirmDelete}</button>
               <button type="button" disabled={creating} onClick={() => setDeleting(null)}>{t.cancel}</button>
             </form>}
+            <TeamSchedule teamId={team.id} teamName={team.name} language={language} csrfToken={csrfToken} />
             <TeamMembers teamId={team.id} language={language} csrfToken={csrfToken}
               onChanged={() => setRevision(value => value + 1)} />
           </li>)}</ul>}
