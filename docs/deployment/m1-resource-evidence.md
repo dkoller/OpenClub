@@ -10,7 +10,7 @@ external HTTPS installation or a reliable 4 GB production footprint.
 
 ## 1. Obtain an approved synthetic host
 
-The owner chose **Infomaniak** with no backups for the synthetic demo ([ADR-0008 addendum 6](../decisions/0008-owner-decisions-2026-11-18.md)); follow the [Infomaniak runbook](infomaniak-demo.md) and record its results here.
+The owner chose **Infomaniak** with no backups for the synthetic demo ([ADR-0008 addendum 6](../decisions/0008-owner-decisions-2026-11-18.md)); the owner operates it (addendum 9). Follow the [Infomaniak runbook](infomaniak-demo.md), then the step-by-step [M1 acceptance walkthrough](m1-acceptance-walkthrough.md), and record its results table in #28.
 
 Record privately: operator, date, host/DNS name, provider selected
 (**Keycloak OR Rauthy**, not both for one OpenClub installation), architecture
@@ -88,7 +88,7 @@ prove backup recoverability.
 
 | Evidence | Actual observed result / link / date |
 | --- | --- |
-| Approved operator and synthetic-only host | **Pending** |
+| Approved operator and synthetic-only host | Operator: the owner (ADR-0008 addendum 9); host **pending** |
 | TLS issuer and browser checks (provider noted) | **Pending** |
 | External probe success, exact origin and date | **Pending** |
 | Member/team/grant, DE/EN/FR/IT walkthrough | **Pending** |
