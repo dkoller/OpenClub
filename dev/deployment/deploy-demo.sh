@@ -1,20 +1,17 @@
 #!/usr/bin/env bash
 # One-command deploy of the one-host SYNTHETIC demo on a fresh Ubuntu 24.04 VPS (Infomaniak runbook,
-# docs/deployment/infomaniak-demo.md). Run as root from the repository checkout:
+# docs/deployment/infomaniak-demo.md). Put the settings in /etc/openclub/demo.yaml (copy demo.example.yaml; or set
+# OPENCLUB_DEMO_CONFIG), then run as root from the repository checkout:
 #
-#   bash dev/deployment/deploy-demo.sh --synthetic-only club.example.ch id.example.ch you@example.ch [ENV_DIRECTORY]
+#   bash dev/deployment/deploy-demo.sh --synthetic-only
 #
 # It installs Docker and the host firewall, checks DNS, generates the secrets once, starts Rauthy, stores the
 # client secret Rauthy generated, starts everything and runs the read-only HTTPS probe. Rerunning it is safe:
 # existing secrets are reused, and it updates the running stack to the checked-out code.
 set -euo pipefail
 
-usage() {
-  echo "Usage: bash dev/deployment/deploy-demo.sh --synthetic-only CLUB_HOST ID_HOST ADMIN_EMAIL [/ABSOLUTE/ENV_DIRECTORY]" >&2
-  exit 2
-}
-[[ ($# -eq 4 || $# -eq 5) && "$1" == --synthetic-only ]] || usage
-club_host="$2" id_host="$3" admin_email="$4" env_dir="${5:-/opt/openclub-demo-env}"
+[[ $# -eq 1 && "$1" == --synthetic-only ]] ||
+  { echo "Usage: bash dev/deployment/deploy-demo.sh --synthetic-only   (settings: OPENCLUB_DEMO_CONFIG or /etc/openclub/demo.yaml)" >&2; exit 2; }
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
 step() { printf '\n==> %s\n' "$*"; }
@@ -27,8 +24,13 @@ step() { printf '\n==> %s\n' "$*"; }
 step "Base packages and automatic security updates"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
-apt-get install -y -q ca-certificates curl git jq openssl ufw unattended-upgrades
+apt-get install -y -q ca-certificates curl git jq openssl python3-yaml ufw unattended-upgrades
 systemctl enable --now unattended-upgrades
+
+step "Settings"
+python3 "$here/demo-config.py" check
+cfg() { python3 "$here/demo-config.py" get "$1"; }
+club_host="$(cfg clubHost)" id_host="$(cfg idHost)" admin_email="$(cfg adminEmail)" env_dir="$(cfg envDirectory)"
 
 if ! docker compose version >/dev/null 2>&1; then
   step "Docker Engine and Compose plugin (official Docker repository)"
@@ -66,19 +68,20 @@ done
 if [[ -e "$env_dir" ]]; then
   step "Reusing the existing secrets in $env_dir"
   for pair in "OPENCLUB_DEMO_HOST=$club_host" "OPENCLUB_ID_HOST=$id_host"; do
-    grep -qx "$pair" "$env_dir/.env" || { echo "$env_dir was generated for other hostnames ($pair expected)." >&2; exit 1; }
+    grep -qx "$pair" "$env_dir/.env" ||
+      { echo "$env_dir was generated for other hostnames than the config ($pair expected). Changing hostnames needs a fresh start; see the runbook." >&2; exit 1; }
   done
 else
   step "Generating the secrets in $env_dir"
-  bash "$here/generate-demo-env.sh" --synthetic-only "$club_host" "$id_host" "$admin_email" "$env_dir"
+  bash "$here/generate-demo-env.sh" --synthetic-only
 fi
-demo() { bash "$here/demo-compose.sh" "$env_dir" "$@"; }
+demo() { bash "$here/demo-compose.sh" "$@"; }
 demo config --quiet
 
 step "Starting Rauthy"
 demo up -d rauthy
 if grep -q '^OPENCLUB_OIDC_CLIENT_SECRET=pending-' "$env_dir/.env"; then
-  bash "$here/fetch-demo-client-secret.sh" --synthetic-only "$env_dir"
+  bash "$here/fetch-demo-client-secret.sh" --synthetic-only
 fi
 
 step "Building and starting the whole demo"
@@ -106,6 +109,10 @@ Demo is running: https://$club_host (identity provider https://$id_host).
 Next:
   1. Sign in to https://$id_host/auth/v1/admin as $admin_email (password: RAUTHY_ADMIN_PASSWORD in $env_dir/.env).
   2. Sign in to https://$club_host once, open https://$club_host/api/v1/auth/me and copy accountId.
-  3. bash dev/deployment/bootstrap-demo-club.sh --synthetic-only $env_dir <accountId> "Demo Club"
-  4. Optional fictional data: bash dev/deployment/seed-demo-data.sh --synthetic-only $env_dir
+  3. bash dev/deployment/bootstrap-demo-club.sh --synthetic-only <accountId>
+  4. Optional fictional data: bash dev/deployment/seed-demo-data.sh --synthetic-only
 NEXT
+if [[ -n "$(cfg emailSender)" ]] && ! grep -q '^RAUTHY_SMTP_HOST=' "$env_dir/.env"; then
+  echo "Email is set in the config but not configured yet: pipe the mailbox password into"
+  echo "  bash dev/deployment/configure-demo-email.sh --synthetic-only   and run this script again."
+fi

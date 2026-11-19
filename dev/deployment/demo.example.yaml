@@ -1,0 +1,21 @@
+# Settings of the one-host SYNTHETIC demo (docs/deployment/infomaniak-demo.md). Copy to /etc/openclub/demo.yaml
+# (or point OPENCLUB_DEMO_CONFIG at another path) and edit. No secrets belong here: the generated passwords and
+# keys live in the private env directory below, which the scripts create.
+
+# The app and the identity provider: two DNS names with A records pointing to this server.
+clubHost: club.example.ch
+idHost: id.example.ch
+
+# The Rauthy administrator (you). Also used as the Rauthy event email address.
+adminEmail: you@example.ch
+
+# Where the generated secrets are written once (owner-only). Optional; this is the default.
+envDirectory: /opt/openclub-demo-env
+
+# The club created by bootstrap-demo-club.sh. Optional; this is the default.
+clubName: Demo Club
+
+# Optional outgoing email for Rauthy through an Infomaniak mailbox. The mailbox password is never stored here:
+# configure-demo-email.sh reads it from standard input.
+# email:
+#   sender: noreply@example.ch

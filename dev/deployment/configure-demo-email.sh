@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Adds outgoing email for the demo's Rauthy to the env file created by generate-demo-env.sh, using an
-# Infomaniak mailbox (mail.infomaniak.com, port 465, implicit TLS, username = full address). The mailbox
-# password is read from standard input, never from the command line, and is never printed.
+# Infomaniak mailbox (mail.infomaniak.com, port 465, implicit TLS, username = full address). The sender is
+# email.sender in the demo config. The mailbox password is read from standard input, never from the command
+# line or the config, and is never printed.
 # Afterwards include compose.rauthy-email.demo.yaml (deploy-demo.sh does this automatically).
 set -euo pipefail
 
-usage() {
-  echo "Usage: printf '%s' \"\$MAILBOX_PASSWORD\" | bash dev/deployment/configure-demo-email.sh --synthetic-only /ABSOLUTE/ENV_DIRECTORY sender@your-domain.ch" >&2
-  exit 2
-}
-[[ $# -eq 3 && "$1" == --synthetic-only && "$2" == /* && -f "$2/.env" ]] || usage
-env_dir="$2" sender="$3"
-[[ "$sender" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]] || { echo "Sender must be an email address" >&2; exit 2; }
+[[ $# -eq 1 && "$1" == --synthetic-only ]] ||
+  { echo "Usage: printf '%s' \"\$MAILBOX_PASSWORD\" | bash dev/deployment/configure-demo-email.sh --synthetic-only" >&2; exit 2; }
+cfg() { python3 "$(dirname "$0")/demo-config.py" get "$1"; }
+env_dir="$(cfg envDirectory)" sender="$(cfg emailSender)"
+[[ -n "$sender" ]] || { echo "Set email.sender in the demo config first" >&2; exit 2; }
+[[ -f "$env_dir/.env" ]] || { echo "$env_dir/.env not found; run deploy-demo.sh first" >&2; exit 1; }
 [[ ! -t 0 ]] || { echo "Pipe the mailbox password on standard input; it is never taken as an argument." >&2; exit 2; }
 IFS= read -r password || [[ -n "$password" ]]
 [[ -n "$password" ]] || { echo "Empty mailbox password" >&2; exit 2; }

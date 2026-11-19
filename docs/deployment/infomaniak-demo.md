@@ -35,24 +35,46 @@ Create two A records (and AAAA if the VPS has IPv6) pointing to the VPS, for exa
 
 Both must resolve before the first start: Caddy requests public ACME certificates for both names.
 
-## 3. Deploy with one command
+## 3. Settings file
+
+All per-server settings live in one YAML file, **`/etc/openclub/demo.yaml`**; no script takes a hostname or path on
+the command line. Start from the commented template [`demo.example.yaml`](../../dev/deployment/demo.example.yaml):
+
+```yaml
+clubHost: club.example.ch        # the app
+idHost: id.example.ch            # Rauthy
+adminEmail: you@example.ch       # the Rauthy administrator
+envDirectory: /opt/openclub-demo-env   # optional; where the generated secrets go
+clubName: Demo Club              # optional; the club created by bootstrap-demo-club.sh
+# email:                         # optional; Rauthy email through an Infomaniak mailbox
+#   sender: noreply@example.ch
+```
+
+It holds **no secrets**: passwords and keys are generated into `envDirectory`. Every script validates it first
+(`python3 dev/deployment/demo-config.py check`), and an unknown key or invalid value stops it instead of falling back to
+a default. To keep the file elsewhere, set `OPENCLUB_DEMO_CONFIG=/path/to/demo.yaml` for every command.
+
+## 4. Deploy with one command
 
 As root on the VPS:
 
 ```sh
 apt-get update && apt-get -y install git
 git clone https://github.com/dkoller/OpenClub.git /opt/openclub && cd /opt/openclub
-bash dev/deployment/deploy-demo.sh --synthetic-only club.example.ch id.example.ch you@example.ch
+install -d -m 0755 /etc/openclub && cp dev/deployment/demo.example.yaml /etc/openclub/demo.yaml
+nano /etc/openclub/demo.yaml          # set clubHost, idHost, adminEmail (and optionally the rest)
+bash dev/deployment/deploy-demo.sh --synthetic-only
 ```
 
 [`deploy-demo.sh`](../../dev/deployment/deploy-demo.sh) does, in order:
 
-1. installs the base packages, automatic security updates (`unattended-upgrades`) and Docker Engine with the Compose
+1. validates the settings file, then installs the base packages, automatic security updates (`unattended-upgrades`) and Docker Engine with the Compose
    plugin from Docker's official repository;
 2. enables the host firewall (`ufw`) for SSH, 80 and 443 only;
 3. checks that both names resolve to this server's public IPv4 address, so Caddy does not burn ACME attempts;
 4. generates the secrets once with [`generate-demo-env.sh`](../../dev/deployment/generate-demo-env.sh) into
-   `/opt/openclub-demo-env` (owner-only `.env`, nothing printed; an existing directory is reused, never replaced);
+   `envDirectory` (owner-only `.env`, nothing printed; an existing directory is reused, never replaced, and must match
+   the hostnames in the settings file);
 5. starts Rauthy, which creates its administrator and the `openclub` client with its exact callback on the first
    start, and stores the client secret Rauthy generated in the env file
    ([`fetch-demo-client-secret.sh`](../../dev/deployment/fetch-demo-client-secret.sh), Rauthy's bootstrap accepts no
@@ -62,18 +84,19 @@ bash dev/deployment/deploy-demo.sh --synthetic-only club.example.ch id.example.c
 7. runs the read-only HTTPS and OIDC probe ([`verify-synthetic-https-demo.sh`](../../dev/verify-synthetic-https-demo.sh)).
 
 Rerunning the script is safe and is also how you update (see below). For any other Compose command use the wrapper,
-which picks the right files and env: `bash dev/deployment/demo-compose.sh /opt/openclub-demo-env ps` (or `logs`, `down`).
+which reads the settings file and picks the right files and env: `bash dev/deployment/demo-compose.sh ps` (or `logs api`,
+`restart web`, `down`).
 
-## 4. Email for Rauthy (Infomaniak mailbox)
+## 5. Email for Rauthy (Infomaniak mailbox)
 
 Rauthy sends password-reset and notification emails. Create a mailbox in the Infomaniak Manager (for example
-`noreply@example.ch`), then:
+`noreply@example.ch`), set it as `email.sender` in `/etc/openclub/demo.yaml`, then:
 
 ```sh
 read -rs MAILBOX_PASSWORD && printf '%s' "$MAILBOX_PASSWORD" |
-  bash dev/deployment/configure-demo-email.sh --synthetic-only /opt/openclub-demo-env noreply@example.ch
+  bash dev/deployment/configure-demo-email.sh --synthetic-only
 unset MAILBOX_PASSWORD
-bash dev/deployment/deploy-demo.sh --synthetic-only club.example.ch id.example.ch you@example.ch
+bash dev/deployment/deploy-demo.sh --synthetic-only
 ```
 
 This stores Infomaniak's documented submission settings (`mail.infomaniak.com`, port 465, implicit TLS, username = full
@@ -84,10 +107,10 @@ whole demo: check `demo-compose.sh … logs rauthy`, rerun `configure-demo-email
 again. Without this step everything works except outgoing email; the administrator then resets passwords in the
 Rauthy admin UI.
 
-## 5. First club and administrator
+## 6. First club and administrator
 
 1. Sign in to Rauthy at `https://id.example.ch/auth/v1/admin` with `RAUTHY_ADMIN_EMAIL` and `RAUTHY_ADMIN_PASSWORD` from
-   `/opt/openclub-demo-env/.env`, and create the synthetic user who will be the club administrator (or use the Rauthy
+   `.env` in your `envDirectory` (default `/opt/openclub-demo-env`), and create the synthetic user who will be the club administrator (or use the Rauthy
    administrator).
 2. Sign in to `https://club.example.ch` as that user. The page says the account is not yet a club member. Open
    `https://club.example.ch/api/v1/auth/me` and copy `accountId`.
@@ -95,15 +118,15 @@ Rauthy admin UI.
    run inside the API container with fictional administrator details:
 
    ```sh
-   bash dev/deployment/bootstrap-demo-club.sh --synthetic-only /opt/openclub-demo-env <accountId> "Demo Club"
+   bash dev/deployment/bootstrap-demo-club.sh --synthetic-only <accountId>     # club name: clubName in demo.yaml
    ```
 
 4. Reload the club page: the administrator sees the administration in DE/EN/FR/IT.
 
-## 6. Fictional demo data (optional)
+## 7. Fictional demo data (optional)
 
 ```sh
-bash dev/deployment/seed-demo-data.sh --synthetic-only /opt/openclub-demo-env
+bash dev/deployment/seed-demo-data.sh --synthetic-only
 ```
 
 Adds four teams (Juniors U12, Juniors U17, Women 1, Men 1) and 16 invented members across age groups (minors with
@@ -113,7 +136,7 @@ a freshly bootstrapped club, so it cannot run twice or touch an installation in 
 trail. Grants are left to the walkthrough: give permissions in the UI, then invite members (create their Rauthy
 accounts in the Rauthy admin UI first).
 
-## 7. Verify and record evidence
+## 8. Verify and record evidence
 
 The deploy script already ran the HTTPS probe. Measure resources with:
 
@@ -129,22 +152,27 @@ invitations, guardians, the four languages, restart and reboot, resources and co
 
 ```sh
 cd /opt/openclub && git pull
-bash dev/deployment/deploy-demo.sh --synthetic-only club.example.ch id.example.ch you@example.ch
+bash dev/deployment/deploy-demo.sh --synthetic-only
 ```
 
 Database migrations run when the API starts ([upgrade and rollback](upgrade-and-rollback.md)). Without backups a
 failed migration cannot be rolled back to the old data: for the synthetic demo the fallback is to start over with
-`bash dev/deployment/demo-compose.sh /opt/openclub-demo-env down -v`, which **destroys all demo data and the Rauthy
-accounts**; keep `/opt/openclub-demo-env` or delete it too for fresh secrets.
+`bash dev/deployment/demo-compose.sh down -v`, which **destroys all demo data and the Rauthy
+accounts**; keep `envDirectory` or delete it too for fresh secrets.
+
+**Changing the hostnames** in `demo.yaml` later needs that fresh start too: the Rauthy client and issuer are tied to the
+names. Run `demo-compose.sh down -v`, delete `envDirectory`, update DNS and the settings file, and deploy again; the
+script refuses to reuse secrets generated for other names.
 
 ## Troubleshooting
 
 - **DNS check fails:** the A records are missing or not yet propagated; `getent ahostsv4 club.example.ch` must show
   the VPS address. Wait, or fix the records.
-- **Start does not become healthy:** `bash dev/deployment/demo-compose.sh /opt/openclub-demo-env ps` and `… logs demo-https`
+- **Settings rejected:** `python3 dev/deployment/demo-config.py check` names the key; fix `/etc/openclub/demo.yaml`.
+- **Start does not become healthy:** `bash dev/deployment/demo-compose.sh ps` and `… logs demo-https`
   for certificate errors (ports 80/443 closed in the Infomaniak firewall?), `… logs api` for OIDC
   errors (the identity certificate not issued yet: rerun the deploy script after a minute).
-- **Rauthy keeps restarting after email setup:** wrong mailbox password or address; see section 4.
+- **Rauthy keeps restarting after email setup:** wrong mailbox password or address; see section 5.
 - **Sign-in to the club fails with an invalid client:** the client secret in `.env` does not match Rauthy's (for example
   after deleting only the Rauthy volume). Set `OPENCLUB_OIDC_CLIENT_SECRET=pending-` in `.env` and rerun the deploy
   script, which fetches it again.
