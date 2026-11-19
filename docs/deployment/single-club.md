@@ -120,6 +120,8 @@ required before M1 can be marked deployed.
 
 ## Opt-in public HTTPS reference deployment (synthetic data only)
 
+**One-host demo on Infomaniak (owner decision 2026-11-19):** the [Infomaniak runbook](infomaniak-demo.md) adds a production-configured Rauthy on the same host (`compose.rauthy.demo.yaml`, `dev/deployment/Caddyfile.rauthy`) and generates all secrets with `dev/deployment/generate-demo-env.sh`. It is the recommended path for the hosted M1 demo; the overlay below remains the reference for an external identity provider.
+
 `compose.https.demo.yaml` is an **optional** reference overlay for a host that an
 operator already controls. It is not used by the local development command,
 does not provision hosting/DNS, and does not constitute a deployed M1 demo.

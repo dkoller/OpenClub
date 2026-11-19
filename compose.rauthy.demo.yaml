@@ -1,0 +1,49 @@
+# One-host synthetic demo: adds a production-configured Rauthy (ADR-0006) behind the same Caddy as the
+# app. Use ONLY together with compose.https.demo.yaml, and only with an environment directory created by
+# dev/deployment/generate-demo-env.sh (see docs/deployment/infomaniak-demo.md). Synthetic data only.
+# Never use LOCAL_TEST or the evaluation fixtures from compose.rauthy.eval.yaml here.
+services:
+  rauthy:
+    image: ghcr.io/sebadob/rauthy:0.37.2
+    environment:
+      # TLS ends at Caddy; Rauthy serves plain HTTP inside the Compose network only.
+      LISTEN_SCHEME: http
+      PUB_URL: ${OPENCLUB_ID_HOST:?Set the identity provider hostname}
+      PROXY_MODE: "true"
+      # Caddy reaches Rauthy from the Compose bridge network (Docker private ranges).
+      TRUSTED_PROXIES: |
+        172.16.0.0/12
+        10.0.0.0/8
+        192.168.0.0/16
+      RP_ID: ${OPENCLUB_ID_HOST:?Set the identity provider hostname}
+      RP_ORIGIN: https://${OPENCLUB_ID_HOST:?Set the identity provider hostname}:443
+      ENC_KEYS: ${RAUTHY_ENC_KEYS:?Generate with dev/deployment/generate-demo-env.sh}
+      ENC_KEY_ACTIVE: ${RAUTHY_ENC_KEY_ACTIVE:?Generate with dev/deployment/generate-demo-env.sh}
+      HQL_NODE_ID: "1"
+      HQL_SECRET_RAFT: ${RAUTHY_HQL_SECRET_RAFT:?Generate with dev/deployment/generate-demo-env.sh}
+      HQL_SECRET_API: ${RAUTHY_HQL_SECRET_API:?Generate with dev/deployment/generate-demo-env.sh}
+      BOOTSTRAP_ADMIN_EMAIL: ${RAUTHY_ADMIN_EMAIL:?Set the Rauthy administrator email}
+      BOOTSTRAP_ADMIN_PASSWORD_PLAIN: ${RAUTHY_ADMIN_PASSWORD:?Generate with dev/deployment/generate-demo-env.sh}
+      BOOTSTRAP_DIR: /app/bootstrap
+      EVENT_EMAIL: ${RAUTHY_ADMIN_EMAIL:?Set the Rauthy administrator email}
+    volumes:
+      - rauthy_demo_data:/app/data
+      # Generated per host: the OpenClub client with its exact HTTPS callback and secret.
+      - ${OPENCLUB_DEMO_ENV_DIR:?Set the generated environment directory}/rauthy-bootstrap:/app/bootstrap:ro
+    restart: unless-stopped
+  api:
+    # The API verifies the issuer over public HTTPS. Route the issuer name to this host's Caddy so the
+    # check does not depend on hairpin NAT at the hosting provider.
+    extra_hosts:
+      - "${OPENCLUB_ID_HOST:?Set the identity provider hostname}:host-gateway"
+    depends_on:
+      rauthy:
+        condition: service_started
+  demo-https:
+    environment:
+      OPENCLUB_ID_HOST: ${OPENCLUB_ID_HOST:?Set the identity provider hostname}
+    volumes:
+      - ./dev/deployment/Caddyfile.rauthy:/etc/caddy/Caddyfile:ro
+
+volumes:
+  rauthy_demo_data:

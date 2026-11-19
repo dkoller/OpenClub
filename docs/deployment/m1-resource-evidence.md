@@ -10,6 +10,8 @@ external HTTPS installation or a reliable 4 GB production footprint.
 
 ## 1. Obtain an approved synthetic host
 
+The owner chose **Infomaniak** with no backups for the synthetic demo ([ADR-0008 addendum 6](../decisions/0008-owner-decisions-2026-11-18.md)); follow the [Infomaniak runbook](infomaniak-demo.md) and record its results here.
+
 Record privately: operator, date, host/DNS name, provider selected
 (**Keycloak OR Rauthy**, not both for one OpenClub installation), architecture
 and VM/container limits. Never include personal member records, admin/client
