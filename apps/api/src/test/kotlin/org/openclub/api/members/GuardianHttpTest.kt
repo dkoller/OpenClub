@@ -261,6 +261,49 @@ class GuardianHttpTest {
     }
 
     @Test
+    fun aCorrectedBirthDateAChangedAdultAgeOrARebindNeverReviveAGuardianship() = app {
+        // A birth date that makes the minor an adult ends the guardianship; correcting it back does not revive it.
+        val corrected = minor("Corrected")
+        link(corrected, "g2")
+        sql { it.execute("UPDATE members SET date_of_birth = DATE '1990-01-01', email = 'c@example.invalid', phone = '+41000000003' WHERE id = ?", corrected) }
+        sql { it.execute("UPDATE members SET date_of_birth = DATE '2015-03-04' WHERE id = ?", corrected) }
+        assertEquals(0, count("SELECT COUNT(*) FROM member_guardianships WHERE minor_member_id = ?", corrected))
+        assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Get, "/api/v1/me/dependents/$corrected", "g2").status)
+
+        // A 19-year-old guardian is a minor under a raised adult age: the guardianship ends for good.
+        val youngAccount = UUID.randomUUID().also { accounts["young"] = it }
+        val young = UUID.randomUUID().also { members += it; memberOf["young"] = it }
+        sql { tx ->
+            tx.execute("INSERT INTO accounts (id) VALUES (?)", youngAccount)
+            tx.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
+                          VALUES (?, ?, 'https://issuer.example.invalid', ?)""", UUID.randomUUID(), youngAccount, "guardian-$youngAccount")
+            tx.execute("""INSERT INTO members (id, account_id, first_name, last_name, date_of_birth, email, phone)
+                          VALUES (?, ?, 'Young', 'Adult', CURRENT_DATE - INTERVAL '19 years', 'y@example.invalid', '+41000000004')""",
+                young, youngAccount)
+        }
+        val sibling = minor("Sibling")
+        link(sibling, "young")
+        assertEquals(HttpStatusCode.OK, send(HttpMethod.Get, "/api/v1/me/dependents/$sibling", "young").status)
+        sql { it.execute("UPDATE clubs SET adult_age_years = 21 WHERE id = ?", club) }
+        try {
+            assertEquals(0, count("SELECT COUNT(*) FROM member_guardianships WHERE minor_member_id = ?", sibling))
+        } finally {
+            sql { it.execute("UPDATE clubs SET adult_age_years = 18 WHERE id = ?", club) }
+        }
+        assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Get, "/api/v1/me/dependents/$sibling", "young").status)
+
+        // An administrator recovery binds the record to another account: that person inherits no guardianship.
+        val rebound = minor("Rebound")
+        link(rebound, "young")
+        val other = UUID.randomUUID().also { accounts["young-other"] = it }
+        sql {
+            it.execute("INSERT INTO accounts (id) VALUES (?)", other)
+            it.execute("UPDATE members SET account_id = ? WHERE id = ?", other, young)
+        }
+        assertEquals(0, count("SELECT COUNT(*) FROM member_guardianships WHERE minor_member_id = ?", rebound))
+    }
+
+    @Test
     fun accessEndsAtTheAdultAgeOnArchiveOnUnlinkAndWithARevokedIdentity() = app {
         // Adulthood: the row may remain, but every read and write checks the age.
         val growing = minor("Growing")

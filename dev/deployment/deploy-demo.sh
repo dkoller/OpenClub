@@ -68,7 +68,7 @@ done
 if [[ -e "$env_dir" ]]; then
   step "Reusing the existing secrets in $env_dir"
   for pair in "OPENCLUB_DEMO_HOST=$club_host" "OPENCLUB_ID_HOST=$id_host"; do
-    grep -qx "$pair" "$env_dir/.env" ||
+    grep -qxF "$pair" "$env_dir/.env" ||
       { echo "$env_dir was generated for other hostnames than the config ($pair expected). Changing hostnames needs a fresh start; see the runbook." >&2; exit 1; }
   done
 else

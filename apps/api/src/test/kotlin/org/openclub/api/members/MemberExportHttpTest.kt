@@ -98,9 +98,11 @@ class MemberExportHttpTest {
         block()
     }
 
-    private suspend fun ApplicationTestBuilder.export(id: Any, handle: String?): HttpResponse = client.get("/api/v1/members/$id/export") {
-        if (handle != null) header(HttpHeaders.Cookie, "${cookies.sessionName}=$handle")
-    }
+    private suspend fun ApplicationTestBuilder.export(id: Any, handle: String?, site: String? = null): HttpResponse =
+        client.get("/api/v1/members/$id/export") {
+            if (handle != null) header(HttpHeaders.Cookie, "${cookies.sessionName}=$handle")
+            if (site != null) header("Sec-Fetch-Site", site)
+        }
 
     private fun exports(target: UUID) = count("SELECT COUNT(*) FROM audit_events WHERE event_type = 'MEMBER_EXPORTED' AND target_member_id = ?", target)
 
@@ -120,6 +122,25 @@ class MemberExportHttpTest {
         assertEquals(HttpStatusCode.BadRequest, export("not-a-uuid", "editor").status)
         assertEquals(HttpStatusCode.NotFound, export(UUID.randomUUID(), "editor").status)
         assertEquals(0, exports(target), "no refusal is audited as an export")
+    }
+
+    @Test
+    fun anotherSiteCannotMakeAnEditorsBrowserExportOrReadDetails() = app {
+        val target = UUID.randomUUID().also { members += it }
+        sql { it.execute("INSERT INTO members (id, first_name, last_name, date_of_birth) VALUES (?, 'Site', 'Check', DATE '2014-04-04')", target) }
+        for (site in listOf("cross-site", "same-site")) {
+            val refused = export(target, "editor", site)
+            assertEquals(HttpStatusCode.Forbidden, refused.status, site)
+            assertNull(refused.headers[HttpHeaders.ContentDisposition], site)
+            assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/members/$target/details") {
+                header(HttpHeaders.Cookie, "${cookies.sessionName}=editor"); header("Sec-Fetch-Site", site)
+            }.status, "details $site")
+        }
+        assertEquals(0, exports(target), "a refused cross-site request is not audited")
+        assertEquals(0, count("SELECT COUNT(*) FROM audit_events WHERE event_type = 'CONTACT_READ' AND target_member_id = ?", target))
+        // The app itself (same origin) and a typed or bookmarked address still work.
+        for (site in listOf("same-origin", "none")) assertEquals(HttpStatusCode.OK, export(target, "editor", site).status, site)
+        assertEquals(2, exports(target))
     }
 
     @Test
