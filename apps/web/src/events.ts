@@ -1,21 +1,28 @@
 /** Trainings and events (OpenAPI 1.10.0). */
 export type EventKind = 'TRAINING' | 'MATCH' | 'OTHER'
 
+export type AttendanceResponse = 'YES' | 'NO' | 'MAYBE'
+export type Counts = { yes: number; no: number; maybe: number }
 export type TeamEvent = {
   id: string; teamId: string; teamName: string; kind: EventKind; title: string
-  startsAt: string; endsAt: string; location: string | null; notes: string | null; cancelled: boolean
+  startsAt: string; endsAt: string; location: string | null; notes: string | null; cancelled: boolean; counts: Counts
 }
-export type MyEvent = TeamEvent & { for: { id: string; firstName: string }[] }
+export type MyEvent = TeamEvent & { for: { id: string; firstName: string; response: AttendanceResponse | null }[] }
 
 export type EventInput = {
   kind: EventKind; title: string; startsAt: string; endsAt: string; location: string; notes: string
 }
 
-const eventKeys = ['id', 'teamId', 'teamName', 'kind', 'title', 'startsAt', 'endsAt', 'location', 'notes', 'cancelled']
+const eventKeys = ['id', 'teamId', 'teamName', 'kind', 'title', 'startsAt', 'endsAt', 'location', 'notes', 'cancelled', 'counts']
 const text = (value: unknown) => typeof value === 'string'
 const textOrNull = (value: unknown) => value === null || typeof value === 'string'
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
+const count = (value: unknown) => typeof value === 'number' && Number.isInteger(value) && value >= 0
+const isResponse = (value: unknown) => value === null || value === 'YES' || value === 'NO' || value === 'MAYBE'
+function isCounts(value: unknown): value is Counts {
+  return record(value) && Object.keys(value).length === 3 && count(value.yes) && count(value.no) && count(value.maybe)
+}
 
 function isEvent(value: unknown, extra: string[]): value is TeamEvent {
   if (!record(value)) return false
@@ -25,12 +32,13 @@ function isEvent(value: unknown, extra: string[]): value is TeamEvent {
     (value.kind === 'TRAINING' || value.kind === 'MATCH' || value.kind === 'OTHER') && text(value.title) &&
     text(value.startsAt) && !Number.isNaN(Date.parse(value.startsAt as string)) &&
     text(value.endsAt) && !Number.isNaN(Date.parse(value.endsAt as string)) &&
-    textOrNull(value.location) && textOrNull(value.notes) && typeof value.cancelled === 'boolean'
+    textOrNull(value.location) && textOrNull(value.notes) && typeof value.cancelled === 'boolean' && isCounts(value.counts)
 }
 
 function isMyEvent(value: unknown): value is MyEvent {
   return isEvent(value, ['for']) && Array.isArray((value as MyEvent).for) && (value as MyEvent).for.every(person =>
-    record(person) && Object.keys(person).length === 2 && text(person.id) && text(person.firstName))
+    record(person) && Object.keys(person).length === 3 && text(person.id) && text(person.firstName) &&
+    isResponse(person.response))
 }
 
 async function readJson(path: string, request: typeof fetch): Promise<Record<string, unknown> | 'denied'> {
@@ -135,4 +143,52 @@ export function formatWhen(event: Pick<TeamEvent, 'startsAt' | 'endsAt'>, langua
   const end = sameDay ? time.format(to) : new Intl.DateTimeFormat(locale,
     { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(to)
   return `${day}, ${time.format(from)}–${end}`
+}
+
+/** The caller may answer until the event starts, and not for a cancelled event (the server decides; 409 otherwise). */
+export const answerable = (event: Pick<TeamEvent, 'startsAt' | 'cancelled'>, now = Date.now()) =>
+  !event.cancelled && Date.parse(event.startsAt) > now
+
+const attendancePath = (eventId: string, memberId: string) =>
+  '/api/v1/events/' + encodeURIComponent(eventId) + '/attendance/' + encodeURIComponent(memberId)
+
+export type AttendanceOutcome = 'ok' | 'closed' | 'denied'
+
+async function attendanceWrite(path: string, method: 'PUT' | 'DELETE', csrfToken: string, body: object | undefined,
+  request: typeof fetch): Promise<AttendanceOutcome> {
+  const response = await request(path, {
+    method, credentials: 'same-origin',
+    headers: { 'X-CSRF-Token': csrfToken, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  })
+  if (response.ok) return 'ok'
+  if (response.status === 409) return 'closed'
+  if (response.status === 401 || response.status === 403) return 'denied'
+  throw new Error('Request failed')
+}
+
+/** Answers for the member themselves or for one's child (OpenAPI 1.11.0). */
+export function answerAttendance(eventId: string, memberId: string, response: AttendanceResponse, csrfToken: string,
+  request: typeof fetch = fetch) {
+  return attendanceWrite(attendancePath(eventId, memberId), 'PUT', csrfToken, { response }, request)
+}
+
+export function clearAttendance(eventId: string, memberId: string, csrfToken: string, request: typeof fetch = fetch) {
+  return attendanceWrite(attendancePath(eventId, memberId), 'DELETE', csrfToken, undefined, request)
+}
+
+export type AttendanceList = { items: { displayName: string; response: AttendanceResponse | null }[]; counts: Counts }
+
+/** Every team member's answer for one event, for the team's viewers and managers. */
+export async function readAttendance(eventId: string, request: typeof fetch = fetch): Promise<AttendanceList | 'denied'> {
+  const response = await request('/api/v1/events/' + encodeURIComponent(eventId) + '/attendance',
+    { credentials: 'same-origin', cache: 'no-store' })
+  if (response.status === 401 || response.status === 403) return 'denied'
+  if (!response.ok) throw new Error('Attendance unavailable')
+  const body: unknown = await response.json()
+  if (!record(body) || Object.keys(body).length !== 2 || !Array.isArray(body.items) || !isCounts(body.counts) ||
+    !body.items.every(item => record(item) && Object.keys(item).length === 2 && text(item.displayName) && isResponse(item.response))) {
+    throw new Error('Invalid attendance')
+  }
+  return body as AttendanceList
 }

@@ -39,7 +39,8 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       Juniors U12 is visible; *Contact details* of a U12 member works; another team's member is not reachable.
 - [ ] C4 Still as `coach@…`: *Schedule* under Juniors U12, add a training with *Repeat weekly until* three weeks later:
       four dates appear. *Cancel event* on one (marked *Cancelled*), *Delete* and *Confirm delete* another. *My
-      schedule* (reload) lists the remaining U12 dates, because Peter is in that team.
+      schedule* (reload) lists the remaining U12 dates, because Peter is in that team; answer *Yes* for one. In the
+      team's *Schedule*, *Show answers* lists Peter Zürcher with *Yes* and the minors as first name plus initial.
 - [ ] C5 Revoke the grant: the coach loses the team at the next reload. *Unlink account* for Peter: the coach's session ends.
 
 ## D. Guardians
@@ -48,8 +49,8 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] D2 As administrator, *Guardians*: find Lea Brunner, add Sandra (the attestation text is shown). A third guardian is
       refused after a second one.
 - [ ] D3 As `parent@…` (reload): *My children* lists Lea; *Open* shows birth date, player flag and team; change her email;
-      it is saved. *My schedule* lists the U12 trainings from C4 marked *For Lea*. Nothing else about other members is
-      visible.
+      it is saved. *My schedule* lists the U12 trainings from C4 marked *For Lea*; answer *No* for Lea and see the totals
+      change, but no other member's answer. Nothing else about other members is visible.
 - [ ] D4 Remove Sandra as guardian: *My children* disappears for `parent@…` after a reload.
 
 ## E. Denial and sessions

@@ -153,6 +153,8 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Put, "/api/v1/events/${UUID(0, 1)}",
             """{"kind":"TRAINING","title":"Revocation matrix","startsAt":"2030-01-01T10:00:00Z","endsAt":"2030-01-01T11:00:00Z","cancelled":false}"""),
         Route(HttpMethod.Delete, "/api/v1/events/${UUID(0, 1)}"),
+        // An unknown event is 404 for the holder; answering is covered in TeamEventHttpTest (403 for unknown events).
+        Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/attendance"),
         Route(HttpMethod.Delete, "/api/v1/teams/$team"),
         Route(HttpMethod.Post, "/api/v1/members/$target/invitation"),
         Route(HttpMethod.Delete, "/api/v1/members/$target/invitation"),

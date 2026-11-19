@@ -1,19 +1,24 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createEvents, deleteEvent, formatWhen, instants, localParts, readMyEvents, readTeamEvents, replaceEvent } from './events'
+import {
+  answerable, answerAttendance, clearAttendance, createEvents, deleteEvent, formatWhen, instants, localParts, readAttendance,
+  readMyEvents, readTeamEvents, replaceEvent,
+} from './events'
 
 const event = {
   id: 'e1', teamId: 't1', teamName: 'U10', kind: 'TRAINING', title: 'Training', startsAt: '2026-11-26T17:00:00Z',
-  endsAt: '2026-11-26T18:30:00Z', location: 'Hall', notes: null, cancelled: false,
+  endsAt: '2026-11-26T18:30:00Z', location: 'Hall', notes: null, cancelled: false, counts: { yes: 2, no: 0, maybe: 1 },
 }
 const res = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
 
 describe('events client', () => {
   it('reads my events strictly', async () => {
-    const mine = { ...event, for: [{ id: 'k1', firstName: 'Kim' }] }
+    const mine = { ...event, for: [{ id: 'k1', firstName: 'Kim', response: 'YES' }] }
     expect(await readMyEvents(vi.fn().mockResolvedValue(res(200, { items: [mine], truncated: false }))))
       .toEqual({ items: [mine], truncated: false })
     expect(await readMyEvents(vi.fn().mockResolvedValue(res(403)))).toBe('denied')
-    for (const broken of [{ ...mine, extra: 1 }, { ...mine, for: [{ id: 'k1' }] }, { ...mine, kind: 'PARTY' },
+    for (const broken of [{ ...mine, extra: 1 }, { ...mine, for: [{ id: 'k1', firstName: 'Kim' }] }, { ...mine, kind: 'PARTY' },
+      { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'yes' }] }, { ...mine, counts: { yes: -1, no: 0, maybe: 0 } },
+      { ...mine, counts: undefined },
       { ...mine, startsAt: 'soon' }, event]) {
       await expect(readMyEvents(vi.fn().mockResolvedValue(res(200, { items: [broken], truncated: false })))).rejects.toThrow()
     }
@@ -56,5 +61,35 @@ describe('events client', () => {
     expect(instants('', '18:00', '19:00')).toBeNull()
     expect(localParts(times)).toEqual({ date: '2026-11-26', start: '18:00', end: '19:30' })
     expect(formatWhen(times, 'en')).toMatch(/26 Nov, 18:00–19:30$/)
+  })
+
+  it('answers, clears and lists attendance', async () => {
+    const put = vi.fn().mockResolvedValue(res(204))
+    expect(await answerAttendance('e/1', 'm 1', 'MAYBE', 'c', put)).toBe('ok')
+    expect(put.mock.calls[0][0]).toBe('/api/v1/events/e%2F1/attendance/m%201')
+    expect(put.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: '{"response":"MAYBE"}', headers: { 'X-CSRF-Token': 'c' } })
+    const del = vi.fn().mockResolvedValue(res(204))
+    expect(await clearAttendance('e1', 'm1', 'c', del)).toBe('ok')
+    expect(del.mock.calls[0][1]).toMatchObject({ method: 'DELETE' })
+    expect(del.mock.calls[0][1]).not.toHaveProperty('body')
+    expect(await answerAttendance('e1', 'm1', 'YES', 'c', vi.fn().mockResolvedValue(res(409)))).toBe('closed')
+    expect(await clearAttendance('e1', 'm1', 'c', vi.fn().mockResolvedValue(res(403)))).toBe('denied')
+    await expect(answerAttendance('e1', 'm1', 'NO', 'c', vi.fn().mockResolvedValue(res(500)))).rejects.toThrow()
+
+    const list = { items: [{ displayName: 'Kim K.', response: null }, { displayName: 'Ada Example', response: 'NO' }],
+      counts: { yes: 0, no: 1, maybe: 0 } }
+    expect(await readAttendance('e1', vi.fn().mockResolvedValue(res(200, list)))).toEqual(list)
+    expect(await readAttendance('e1', vi.fn().mockResolvedValue(res(403)))).toBe('denied')
+    for (const broken of [{ ...list, extra: 1 }, { ...list, items: [{ displayName: 'x', response: 'NO', id: 'm1' }] },
+      { ...list, items: [{ displayName: 'x', response: 'LATE' }] }]) {
+      await expect(readAttendance('e1', vi.fn().mockResolvedValue(res(200, broken)))).rejects.toThrow()
+    }
+  })
+
+  it('closes answers at the start and for cancelled events', () => {
+    const now = Date.parse('2026-11-26T16:00:00Z')
+    expect(answerable(event, now)).toBe(true)
+    expect(answerable({ ...event, cancelled: true }, now)).toBe(false)
+    expect(answerable(event, Date.parse('2026-11-26T17:00:00Z'))).toBe(false)
   })
 })

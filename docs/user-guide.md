@@ -103,7 +103,8 @@ team you add events: *Kind* (Training, Match or Event), *Title*, *Date*, *Start*
 *Notes*, then *Add event*. Fill *Repeat weekly until* to create the same event every week up to that date (at most
 52). *Edit* changes one date, *Cancel event* marks it cancelled (members still see it, marked *Cancelled*;
 *Reinstate* undoes this) and *Delete* followed by *Confirm delete* removes it. With `VIEW_TEAMS` you see the
-schedule without these buttons. Times are entered and shown in your device's time zone; weekly repeats keep the same
+schedule without these buttons. Each event shows the totals (*Answers: 5 Yes, 1 No, 2 Maybe*); *Show answers* lists
+every team member's answer, or *no answer*, by first and last name (minors by first name and initial). Times are entered and shown in your device's time zone; weekly repeats keep the same
 local time across the change to and from summer time.
 
 With `MANAGE_TEAMS` for a team you manage its assignments and can open *Contact details* of its **active** members
@@ -116,7 +117,8 @@ Once your invitation is accepted you are signed in as a club member. Without fur
 its public member list (adults by full name, minors by first name and surname initial, nothing private).
 
 **My schedule** lists the next eight weeks of trainings, matches and events of your teams, and of your children's
-teams if you are a guardian (marked *For* and the child's name).
+teams if you are a guardian (marked *For* and the child's name). Answer *Yes*, *No* or *Maybe* for each event until
+it starts; choosing your answer again clears it. You see the totals, but never other members' answers.
 
 **My profile** shows what the club stores about you: name, date of birth, gender (if recorded), whether you play,
 your role and your teams. Change your *Email* and *Phone* there and choose *Save contacts*; adults need both. Other
@@ -130,7 +132,8 @@ If the club recorded you as a guardian, *My children* appears after you sign in.
 - *Open* shows the child's date of birth, whether they play and their teams.
 - Change the child's *Email* and *Phone* and choose *Save contacts*. Clearing a field removes it. Nothing else about
   the child, and nothing about other members, can be seen or changed here.
-- *My schedule* also lists the trainings and events of the child's teams, marked *For* and the child's first name.
+- *My schedule* also lists the trainings and events of the child's teams, marked *For* and the child's first name,
+  and you answer for the child there.
 - If the child reaches the club's adult age, or the club removes you as guardian, the child disappears from the list
   and from your schedule.
 

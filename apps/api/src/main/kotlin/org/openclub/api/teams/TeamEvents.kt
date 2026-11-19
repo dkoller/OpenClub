@@ -3,6 +3,7 @@ package org.openclub.api.teams
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import org.jooq.DSLContext
 import org.jooq.Record
@@ -31,13 +32,13 @@ internal class TeamEvents(private val database: DSLContext) {
         val location: String?, val notes: String?,
     )
 
-    /** Someone an event in [mine] is for: the member themselves or one of their minors. */
-    data class For(val id: UUID, val firstName: String)
+    /** Someone an event in [mine] is for: the member themselves or one of their minors, with their answer. */
+    data class For(val id: UUID, val firstName: String, val response: EventAttendance.Response?)
 
     data class Event(
         val id: UUID, val teamId: UUID, val teamName: String, val kind: Kind, val title: String,
         val startsAt: OffsetDateTime, val endsAt: OffsetDateTime, val location: String?, val notes: String?,
-        val cancelled: Boolean, val forMembers: List<For> = emptyList(),
+        val cancelled: Boolean, val counts: EventAttendance.Counts, val forMembers: List<For> = emptyList(),
     )
 
     data class Page(val events: List<Event>, val truncated: Boolean)
@@ -74,7 +75,7 @@ internal class TeamEvents(private val database: DSLContext) {
         if (access.get("can_view", Boolean::class.java) != true) return Listing.Denied
         val rows = database.fetch(
             """SELECT e.id, e.team_id, team.name AS team_name, e.kind, e.title, e.starts_at, e.ends_at, e.location,
-                      e.notes, e.cancelled
+                      e.notes, e.cancelled, ${EventAttendance.COUNTS}
                FROM team_events e JOIN teams team ON team.id = e.team_id
                WHERE e.team_id = ? AND e.ends_at > ?::timestamptz AND e.starts_at < ?::timestamptz
                  AND ${ActorSql.holdsTeamCapability("team.id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)}
@@ -97,8 +98,10 @@ internal class TeamEvents(private val database: DSLContext) {
                       JOIN clubs c ON TRUE
                       WHERE ${AgeSql.adult("guardian")} AND minor.archived_at IS NULL AND ${AgeSql.minor("minor")})
                SELECT e.id, e.team_id, team.name AS team_name, e.kind, e.title, e.starts_at, e.ends_at, e.location,
-                      e.notes, e.cancelled,
-                      json_agg(json_build_object('id', p.id, 'firstName', p.first_name) ORDER BY p.first_name, p.id)::text AS for_members
+                      e.notes, e.cancelled, ${EventAttendance.COUNTS},
+                      json_agg(json_build_object('id', p.id, 'firstName', p.first_name,
+                          'response', (SELECT ea.response FROM event_attendance ea WHERE ea.event_id = e.id AND ea.member_id = p.id))
+                          ORDER BY p.first_name, p.id)::text AS for_members
                FROM team_events e
                JOIN teams team ON team.id = e.team_id
                JOIN member_team_assignments a ON a.team_id = e.team_id
@@ -109,7 +112,8 @@ internal class TeamEvents(private val database: DSLContext) {
         return page(rows.map { row ->
             val forMembers = Json.parseToJsonElement(row.get("for_members", String::class.java)).jsonArray.map {
                 val person = it.jsonObject
-                For(UUID.fromString(person.getValue("id").jsonPrimitive.content), person.getValue("firstName").jsonPrimitive.content)
+                For(UUID.fromString(person.getValue("id").jsonPrimitive.content), person.getValue("firstName").jsonPrimitive.content,
+                    person.getValue("response").jsonPrimitive.contentOrNull?.let(EventAttendance.Response::valueOf))
             }
             event(row).copy(forMembers = forMembers)
         })
@@ -175,6 +179,8 @@ internal class TeamEvents(private val database: DSLContext) {
         row.get("ends_at", OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC),
         row.get("location", String::class.java), row.get("notes", String::class.java),
         row.get("cancelled", Boolean::class.java),
+        EventAttendance.Counts(row.get("yes_count", Int::class.java), row.get("no_count", Int::class.java),
+            row.get("maybe_count", Int::class.java)),
     )
 
     companion object {

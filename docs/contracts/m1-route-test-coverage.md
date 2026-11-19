@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 45 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.10.0) to the tests that exercise it. The operation list and
+Maps each of the 48 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.11.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -61,12 +61,15 @@ How to read the columns of test types:
 | `POST /v1/teams/{teamId}/events` | 201, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (grant before body, input rules, weekly copies, other team 403, unknown team 403/404), `TeamEventsWeeklyTest` (local time across daylight saving, 52 limit), `PrivateRoutesRevocationTest` |
 | `PUT /v1/events/{eventId}` | 204, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (replace and cancel, boolean as string 400, viewer 403, other team 403, unknown 404), `PrivateRoutesRevocationTest` |
 | `DELETE /v1/events/{eventId}` | 204, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (other team 403, delete then 404, revoked grant 403), `PrivateRoutesRevocationTest` |
+| `GET /v1/events/{eventId}/attendance` | 200, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (viewer and manager lists by display name only, minors as initial, no IDs, other team 403, unknown 404, counts), `PrivateRoutesRevocationTest` |
+| `PUT /v1/events/{eventId}/attendance/{memberId}` | 204, 400, 401, 403, 409, 503 | `TeamEventHttpTest` (self and guardian for child; someone else's child, another team, unknown event, a manager for a player 403; lower case or a reason field 400; started or cancelled 409; changing an answer) |
+| `DELETE /v1/events/{eventId}/attendance/{memberId}` | 204, 400, 401, 403, 409, 503 | `TeamEventHttpTest` (clear twice, after the start 409; leaving the team removes answers) |
 | `GET /v1/members/{memberId}/export` | 200, 400, 401, 403, 404, 503 | `MemberExportHttpTest` (editors only, attachment headers, content incl. guardianships, no login binding, audit), `PrivateRoutesRevocationTest`, `MemberExportTest` |
 | `POST /v1/members/{memberId}/erase` | 204, 400, 401, 403, 503 | `MemberDetailsAndErasureHttpTest` (one generic 403 for every refusal), `PrivateRoutesRevocationTest`, `MemberErasureTest` |
 Browser coverage of the same operations is in `dev/auth-e2e/club-landing.spec.js` (real Keycloak and
 Chromium, synthetic data): member, team, grant, role and club-setting workflows in four languages, real
 database denial with grants removed, a team-scoped grant that shows one team, invalid-input handling and
-accessibility structure (#25). The anonymous and authentication routes outside the 45 operations are covered
+accessibility structure (#25). The anonymous and authentication routes outside the 48 operations are covered
 by `AuthAndPublicRoutesInputTest`, `SessionRoutesTest` and `BrowserLoginRoutesTest`.
 
 ## Known gaps in this evidence

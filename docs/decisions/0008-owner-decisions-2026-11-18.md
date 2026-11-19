@@ -151,3 +151,12 @@ Shown the contract below, the owner answered **"Approve"** (with weekly repeats)
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 37 | Trainings and events | Approved as OpenAPI **1.10.0**. An event belongs to one team: kind (training, match, other), title, start, end, place, notes, cancelled. `MANAGE_TEAMS` for the team (club-wide or team-scoped) creates (optionally weekly until a date, at most 52, keeping the local time in the caller's time zone), replaces (including cancel), and deletes. `VIEW_TEAMS` or `MANAGE_TEAMS` reads the team's schedule; every member reads their own teams' and their current minors' events (`GET /v1/me/events`, eight weeks by default). No personal data, not audited. Deleting a team deletes its events. |
+
+## Addendum 14 — attendance (2026-11-19)
+
+Shown the contract, the owner chose **"Approve + counts"** and, for who sees the full list, **"Managers + viewers"**.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 38 | Attendance | Approved as OpenAPI **1.11.0**. A member answers YES, NO or MAYBE for themselves, a guardian for their current minor, for events of a team that member is in, until the event starts and not for a cancelled event; no free-text reason, so no health details are stored. Answers go with the event, the member, or the member's team assignment. Not audited. |
+| 39 | Who sees answers | Holders of `VIEW_TEAMS` or `MANAGE_TEAMS` for the team see every answer. The agent shows them by public display name only (adults' full names, minors' first name and surname initial), because a `VIEW_TEAMS` holder may lack the directory grant needed for the roster. Everyone who sees an event also sees the totals (yes, no, maybe) without names. |
