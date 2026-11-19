@@ -79,7 +79,8 @@ class FeeHttpTest {
             tx.execute("INSERT INTO club_capability_grants (member_id, capability) VALUES (?, 'EDIT_MEMBERS')", memberOf.getValue("editor"))
             tx.execute("INSERT INTO members (id, first_name, last_name, date_of_birth) VALUES (?, 'Kiddo', 'Fees', DATE '2016-02-03')", kid)
             tx.execute("INSERT INTO member_guardianships (minor_member_id, guardian_member_id) VALUES (?, ?)", kid, memberOf.getValue("guardian"))
-            tx.execute("INSERT INTO members (id, first_name, last_name, date_of_birth, archived_at) VALUES (?, 'Gone', 'Fees', DATE '1970-01-01', now())", gone)
+            tx.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth, email, phone, archived_at)
+               VALUES (?, 'Gone', 'Fees', DATE '1970-01-01', 'g@example.invalid', '+41000000031', now())""", gone)
         }
     }
 
