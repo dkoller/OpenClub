@@ -1,0 +1,16 @@
+# Optional outgoing email for the one-host demo's Rauthy (password resets, notifications) through an
+# Infomaniak mailbox. Add this file only after dev/deployment/configure-demo-email.sh wrote the RAUTHY_SMTP_*
+# values: Rauthy exits at startup when it cannot reach the configured SMTP server, so a wrong mailbox or
+# password stops the identity provider (fix the values and start again). See docs/deployment/infomaniak-demo.md.
+services:
+  rauthy:
+    environment:
+      SMTP_URL: ${RAUTHY_SMTP_HOST:?Run dev/deployment/configure-demo-email.sh}
+      SMTP_PORT: ${RAUTHY_SMTP_PORT:?Run dev/deployment/configure-demo-email.sh}
+      # Implicit TLS on 465, as Infomaniak recommends for SMTPs.
+      SMTP_TLS_MODE: tls
+      SMTP_USERNAME: ${RAUTHY_SMTP_USERNAME:?Run dev/deployment/configure-demo-email.sh}
+      SMTP_PASSWORD: ${RAUTHY_SMTP_PASSWORD:?Run dev/deployment/configure-demo-email.sh}
+      # Infomaniak requires the sender to be the authenticated address.
+      SMTP_FROM: ${RAUTHY_SMTP_FROM:?Run dev/deployment/configure-demo-email.sh}
+      EMAIL_SUB_PREFIX: OpenClub demo

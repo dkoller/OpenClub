@@ -83,5 +83,6 @@ In the Claude Code session after pull request #343 the owner stated: **"The host
 | 22 | Hosting provider for the M1 demo | **Infomaniak** (Switzerland). The agent recommends VPS Lite 2 vCPU / 4 GB / 60 GB at CHF 7.20 per month (price checked 2026-11-19), inside the ≤ €10/month of ADR-0007; the invoiced amount is the evidence, not this estimate. Who operates the host is still open. |
 | 23 | Backups | **None for the synthetic demo for now.** Losing the server loses the fictional demo data. This does not change the M2 gates: real member data still needs backups, a witnessed restore and recovery sign-off (#12, #26, #180). |
 | 24 | Identity provider on the host | Not decided by the owner. The [Infomaniak runbook](../deployment/infomaniak-demo.md) uses **Rauthy** on the same VPS because it fits in 4 GB next to the API and PostgreSQL; Keycloak stays supported (ADR-0006) with an external or larger host. |
+| 25 | Demo email and tooling | Asked to bundle a one-command deploy, fictional demo data and email, the owner answered **"Go with email"**: Rauthy sends email through an Infomaniak mailbox (optional overlay, configured on the host; credentials never in the repository). |
 
 None of this authorizes real data.

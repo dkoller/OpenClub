@@ -120,8 +120,8 @@ jobs:
           jq -e --arg cb "https://$host/api/v1/auth/callback" \
             '.[0].redirect_uris == [$cb] and .[0].challenges == ["S256"] and .[0].secret == "generate"' \
             "$env_dir/rauthy-bootstrap/clients.json" > /dev/null
-          demo=(docker compose --env-file "$env_dir/.env" -p openclub-demo-ci
-            -f compose.yaml -f compose.https.demo.yaml -f compose.rauthy.demo.yaml)
+          export OPENCLUB_DEMO_PROJECT=openclub-demo-ci
+          demo=(bash dev/deployment/demo-compose.sh "$env_dir")
           "${demo[@]}" config --quiet
           "${demo[@]}" config --format json |
             jq -e --arg id "$id_host" '
@@ -166,12 +166,22 @@ jobs:
             (.token_endpoint | startswith("https://"))' "$RUNNER_TEMP/demo-discovery.json" > /dev/null ||
             { echo "Unexpected issuer metadata: $(jq -c '{issuer, authorization_endpoint}' "$RUNNER_TEMP/demo-discovery.json")" >&2; exit 1; }
           # The runbook's next step: copy the client secret Rauthy generated into the env file, unprinted.
-          OPENCLUB_DEMO_PROJECT=openclub-demo-ci bash dev/deployment/fetch-demo-client-secret.sh --synthetic-only "$env_dir"
+          bash dev/deployment/fetch-demo-client-secret.sh --synthetic-only "$env_dir"
           stored="$(sed -n 's/^OPENCLUB_OIDC_CLIENT_SECRET=//p' "$env_dir/.env")"
           [[ "${#stored}" -ge 32 && "$stored" != pending-* ]] || { echo 'Client secret was not stored' >&2; exit 1; }
           [[ "$(stat -c %a "$env_dir/.env")" == 600 ]] || { echo 'Env file lost owner-only permissions' >&2; exit 1; }
           "${demo[@]}" config --quiet
-          echo 'Demo kit validated: generated secrets, merged Compose, Caddy routes, production Rauthy issuer and client secret.'
+          # Email: the wrapper adds the email overlay once settings exist; the password comes from stdin.
+          printf '%s' 'ci-only-mailbox-password' |
+            bash dev/deployment/configure-demo-email.sh --synthetic-only "$env_dir" demo@example.invalid
+          "${demo[@]}" config --format json | jq -e '
+            .services.rauthy.environment.SMTP_URL == "mail.infomaniak.com" and
+            .services.rauthy.environment.SMTP_PORT == "465" and
+            .services.rauthy.environment.SMTP_TLS_MODE == "tls" and
+            .services.rauthy.environment.SMTP_USERNAME == "demo@example.invalid" and
+            (.services.rauthy.environment.SMTP_FROM | contains("<demo@example.invalid>")) and
+            .services.rauthy.environment.SMTP_PASSWORD == "ci-only-mailbox-password"' > /dev/null
+          echo 'Demo kit validated: generated secrets, merged Compose, Caddy routes, production Rauthy issuer, client secret and email overlay.'
       - name: Verify optional Rauthy OIDC discovery with isolated localhost TLS
         shell: bash
         run: |
@@ -439,6 +449,30 @@ jobs:
         env:
           OPENCLUB_RESTART_CI_CONFIRM: disposable-only
         run: bash dev/verify-synthetic-compose-restart.sh --synthetic-only
+      - name: Run the demo seed against the migrated schema (rolled back)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Real Flyway schema of this disposable stack. A fixture club and administrator, the seed itself,
+          # then checks, all in one transaction that is rolled back, so later steps see the same database.
+          [[ "$(docker compose exec -T postgres psql -t -A -U openclub -d openclub -c 'SELECT COUNT(*) FROM clubs')" == 0 ]] ||
+            { echo 'Seed check expects the disposable CI database without a club' >&2; exit 1; }
+          {
+            echo "BEGIN;"
+            echo "INSERT INTO clubs (id, name, slug) VALUES (gen_random_uuid(), 'Seed CI', 'seed-ci');"
+            echo "INSERT INTO accounts (id) VALUES ('00000000-0000-0000-0000-00000000c1a1');"
+            echo "INSERT INTO members (id, account_id, first_name, last_name, date_of_birth, email, phone, role) VALUES (gen_random_uuid(), '00000000-0000-0000-0000-00000000c1a1', 'Seed', 'Admin', DATE '1990-01-01', 'a@example.invalid', '+41000000000', 'ADMIN');"
+            cat dev/deployment/seed-demo-data.sql
+            echo "DO \$\$ BEGIN IF (SELECT COUNT(*) FROM teams) <> 4 OR (SELECT COUNT(*) FROM members) <> 17 OR (SELECT COUNT(*) FROM member_team_assignments) <> 15 THEN RAISE EXCEPTION 'Unexpected seed result'; END IF; END \$\$;"
+          } > "$RUNNER_TEMP/seed-check.sql"
+          docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U openclub -d openclub < <(cat "$RUNNER_TEMP/seed-check.sql"; echo "ROLLBACK;")
+          if docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U openclub -d openclub \
+               < <(cat "$RUNNER_TEMP/seed-check.sql" dev/deployment/seed-demo-data.sql; echo "ROLLBACK;") >/dev/null 2>&1; then
+            echo 'A second seed run was not refused' >&2; exit 1
+          fi
+          [[ "$(docker compose exec -T postgres psql -t -A -U openclub -d openclub -c 'SELECT COUNT(*) FROM clubs')" == 0 ]]
+          shellcheck dev/deployment/*.sh
+          echo 'Demo seed verified on the migrated schema and refused a second run; deployment scripts pass shellcheck.'
       - name: Verify failed database readiness does not masquerade as liveness
         shell: bash
         run: |
