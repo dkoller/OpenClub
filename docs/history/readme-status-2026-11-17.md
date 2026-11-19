@@ -20,3 +20,27 @@ OpenClub targets **one club per installation**, with an independently operated d
 **Player creation (synthetic M1, PR #213):** The authorized member-create form now supports a player checkbox and an optional free-text gender field (required in the form only when the installation's existing `gender_required_for_players` policy is enabled). The linked-member club read exposes that policy boolean, not any person's gender; member directory and public responses still contain names only. Real gender values, options, consent, retention and visibility remain R03/R04/M2 decisions.
 
 **Synthetic player policy administration (PR #214):** A verified identity-bound administrator with explicit MANAGE_PERMISSIONS can toggle the existing player-gender requirement from the four-language club settings form. PostgreSQL prevents enabling a stricter rule when existing players lack the required field. No personal gender data is returned by the settings API; real-data policy and consent remain R03/R04/M2 gates.
+
+---
+
+## README status block of 2026-11-17 (replaced on 2026-11-19)
+
+_Kept verbatim for history; the README now carries the 2026-11-19 status._
+
+### Current status (2026-11-17)
+
+OpenClub is a **pre-production, synthetic-data-only** application. Each installation serves **one club** with its own PostgreSQL database ([ADR-0005](../decisions/0005-single-club-installation.md)).
+
+**Works today**, with test (fictional) data only:
+
+- An authorized administrator can search, create, edit and archive members, manage teams and team assignments, change member roles (with last-administrator protection), grant and revoke club- or team-scoped permissions, and edit the club name and player-gender policy.
+- The UI is available in German, English, French and Italian. Public member lists show adults' full names and minors' first name plus surname initial, and no private fields.
+- Login uses OIDC through a backend-for-frontend with server-side sessions. Keycloak and Rauthy are both supported, with one issuer per installation ([ADR-0006](../decisions/0006-oidc-provider-choice.md)). The first administrator is created by an operator-only bootstrap.
+- Every protected read or write checks the actor's current verified identity and explicit grant inside the same SQL statement. CI runs PostgreSQL integration tests, real Keycloak/Rauthy browser tests and disposable Compose restart checks.
+
+**Not yet accepted:**
+
+- **M1, hosted synthetic demo:** needs an operator-run, externally reachable HTTPS/OIDC installation, with witnessed browser, persistence and resource/cost evidence ([#27](https://github.com/dkoller/OpenClub/issues/27), [#28](https://github.com/dkoller/OpenClub/issues/28)). The repository ships only a [reference HTTPS overlay](../deployment/single-club.md#opt-in-public-https-reference-deployment-synthetic-data-only) and probes.
+- **M2, real member data:** blocked on privacy/legal approval, the private-field contract, export/erasure/audit, backups and a witnessed recovery drill ([#12](https://github.com/dkoller/OpenClub/issues/12), [#13](https://github.com/dkoller/OpenClub/issues/13), [#26](https://github.com/dkoller/OpenClub/issues/26), [#180](https://github.com/dkoller/OpenClub/issues/180)). **Do not enter real personal data.**
+
+The [roadmap](../roadmap.md#delivery-gates), the [M1 evidence checklist](../deployment/m1-resource-evidence.md) and the [open issues](https://github.com/dkoller/OpenClub/issues) are authoritative. Earlier dated README status notes are kept in [docs/history](../history/readme-status-2026-11-17.md).

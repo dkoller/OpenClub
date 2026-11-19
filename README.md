@@ -2,23 +2,26 @@
 
 An open-source project exploring a free-to-use platform for clubs, starting with sports clubs and a floorball-club use case.
 
-## Current status (2026-11-17)
+## Current status (2026-11-19)
 
-OpenClub is a **pre-production, synthetic-data-only** application. Each installation serves **one club** with its own PostgreSQL database ([ADR-0005](docs/decisions/0005-single-club-installation.md)).
+OpenClub is a **pre-production, synthetic-data-only** application. Each installation serves **one club** with its own PostgreSQL database ([ADR-0005](docs/decisions/0005-single-club-installation.md)). **Do not enter real personal data.**
 
-**Works today**, with test (fictional) data only:
+**Works today**, with fictional data, in German, English, French and Italian:
 
-- An authorized administrator can search, create, edit and archive members, manage teams and team assignments, change member roles (with last-administrator protection), grant and revoke club- or team-scoped permissions, and edit the club name and player-gender policy.
-- The UI is available in German, English, French and Italian. Public member lists show adults' full names and minors' first name plus surname initial, and no private fields.
-- Login uses OIDC through a backend-for-frontend with server-side sessions. Keycloak and Rauthy are both supported, with one issuer per installation ([ADR-0006](docs/decisions/0006-oidc-provider-choice.md)). The first administrator is created by an operator-only bootstrap.
-- Every protected read or write checks the actor's current verified identity and explicit grant inside the same SQL statement. CI runs PostgreSQL integration tests, real Keycloak/Rauthy browser tests and disposable Compose restart checks.
+- **Members:** search, create, edit every field, view details, archive with undo, find and reactivate archived members, and download everything stored about a member as JSON for access requests. Erasing an archived member is an operator command (no button in M1, by owner decision).
+- **Teams and permissions:** teams and assignments, member roles with last-administrator protection, club- or team-scoped permissions. Team managers read the contacts of their own team's active members, and every such read is logged.
+- **Self sign-in:** an administrator sends a one-time invitation link and the member signs in and accepts. Unlinking ends their session at once ([design](docs/security/invitation-linking-design.md)).
+- **Guardians:** an administrator records up to two guardians for a minor. A guardian sees *My children* with the child's details and can update the child's email and phone. Access ends automatically at the club's adult age ([design](docs/security/guardian-design.md)).
+- **Club settings:** name, adult age (13 to 25, default 18) and whether players need a gender. Public member lists show adults' full names and minors' first name plus surname initial, nothing private.
+- **Security:** login through Keycloak or Rauthy (one per installation, [ADR-0006](docs/decisions/0006-oidc-provider-choice.md)) with server-side sessions. Every protected read or write checks the actor's current verified identity and explicit grant in the same SQL statement, and changes are kept in an identifier-only audit trail. The HTTP API is the frozen [OpenAPI 1.7.0](docs/contracts/openapi-v1.yaml) contract (38 operations), guarded against drift in CI. CI also runs PostgreSQL integration tests and real Keycloak and Rauthy browser journeys.
+- **Deployment:** one command on an Infomaniak VPS, driven by one settings file ([runbook](docs/deployment/infomaniak-demo.md)), with optional email and fictional demo data.
 
 **Not yet accepted:**
 
-- **M1, hosted synthetic demo:** needs an operator-run, externally reachable HTTPS/OIDC installation, with witnessed browser, persistence and resource/cost evidence ([#27](https://github.com/dkoller/OpenClub/issues/27), [#28](https://github.com/dkoller/OpenClub/issues/28)). The repository ships only a [reference HTTPS overlay](docs/deployment/single-club.md#opt-in-public-https-reference-deployment-synthetic-data-only) and probes.
-- **M2, real member data:** blocked on privacy/legal approval, the private-field contract, export/erasure/audit, backups and a witnessed recovery drill ([#12](https://github.com/dkoller/OpenClub/issues/12), [#13](https://github.com/dkoller/OpenClub/issues/13), [#26](https://github.com/dkoller/OpenClub/issues/26), [#180](https://github.com/dkoller/OpenClub/issues/180)). **Do not enter real personal data.**
+- **M1, hosted synthetic demo:** the owner runs the [deploy script and acceptance walkthrough](docs/deployment/m1-acceptance-walkthrough.md) on the real host ([#27](https://github.com/dkoller/OpenClub/issues/27), [#28](https://github.com/dkoller/OpenClub/issues/28)).
+- **M2, real member data:** needs the controller's privacy and legal decisions, including the lawful basis for guardian access ([#12](https://github.com/dkoller/OpenClub/issues/12)), production backups and a witnessed recovery drill ([#180](https://github.com/dkoller/OpenClub/issues/180)).
 
-The [roadmap](docs/roadmap.md#delivery-gates), the [M1 evidence checklist](docs/deployment/m1-resource-evidence.md) and the [open issues](https://github.com/dkoller/OpenClub/issues) are authoritative. Earlier dated README status notes are kept in [docs/history](docs/history/readme-status-2026-11-17.md).
+How to use it: the [user guide](docs/user-guide.md). Authoritative status: the [roadmap](docs/roadmap.md#delivery-gates), the [decision log](docs/decisions/0008-owner-decisions-2026-11-18.md) and the [open issues](https://github.com/dkoller/OpenClub/issues). Earlier README status notes are kept in [docs/history](docs/history/readme-status-2026-11-17.md).
 
 ## Goal
 
@@ -26,9 +29,9 @@ Help volunteers manage club administration without requiring expensive software 
 
 ## First vertical slice
 
-The pilot administrator approved a first usable release demonstrating **member management, team assignments and configurable club/team-scoped permissions** in **German, English, French and Italian**. Members may be entered before login; invitations, so that members sign in themselves, are part of the M1 demo and implemented for synthetic data: an administrator creates a one-time link, the member signs in and accepts ([design](docs/security/invitation-linking-design.md)). Minors are not invited; a guardian design is pending. The first existing system targeted for replacement is Excel membership administration.
+The pilot administrator approved a first usable release demonstrating **member management, team assignments and configurable club/team-scoped permissions** in **German, English, French and Italian**. Members may be entered before login and invited later to sign in themselves. Minors are not invited; their guardians are (see *Guardians* above). The first existing system targeted for replacement is Excel membership administration.
 
-Each independent installation owns its club's member data: no shared database, cross-installation data transfer, or automatic synchronization. First/last names and date of birth are required for all; adult email and phone required, optional for minors; player gender required only if configured by that club. The synthetic-data application enforces the required names, DOB, adult contacts and configured player-gender rule, and offers authorized member/team/permission workflows; this is **not** authorization to use real personal data. Private-field editing, lifecycle/retention, deployment and M2 legal/privacy approvals remain incomplete. See [accepted R01 pilot requirements](docs/concepts/product/r01-pilot-validation.md) and [R01/#10](https://github.com/dkoller/OpenClub/issues/10).
+Each independent installation owns its club's member data: no shared database, cross-installation data transfer, or automatic synchronization. First/last names and date of birth are required for all; adult email and phone required, optional for minors; player gender required only if configured by that club. The synthetic-data application enforces the required names, DOB, adult contacts and configured player-gender rule; this is **not** authorization to use real personal data. Retention rules and the M2 legal and privacy approvals remain open. See [accepted R01 pilot requirements](docs/concepts/product/r01-pilot-validation.md) and [R01/#10](https://github.com/dkoller/OpenClub/issues/10).
 
 ## Project documents
 
@@ -41,7 +44,9 @@ Each independent installation owns its club's member data: no shared database, c
 - [Numbered roadmap, GitHub issues and completed milestones](docs/roadmap.md)
 - [Owner decisions of 2026-11-18](docs/decisions/0008-owner-decisions-2026-11-18.md), with the [privacy proposal](docs/discovery/privacy-proposal-2026-11-18.md), the [invitation design](docs/security/invitation-linking-design.md) and the [guardian design](docs/security/guardian-design.md)
 - [Single-club deployment and safe fresh-database setup](docs/deployment/single-club.md)
-- [Opt-in synthetic HTTPS/OIDC demo reference](docs/deployment/single-club.md#opt-in-public-https-reference-deployment-synthetic-data-only) (requires an operator-provided host, DNS and HTTPS identity provider; not deployed by this repository)
+- [Hosted demo on Infomaniak (runbook)](docs/deployment/infomaniak-demo.md) and the [M1 acceptance walkthrough](docs/deployment/m1-acceptance-walkthrough.md)
+- [User guide for administrators, members and guardians](docs/user-guide.md)
+- [HTTP API contract (OpenAPI 1.7.0)](docs/contracts/openapi-v1.yaml) and its [test coverage](docs/contracts/m1-route-test-coverage.md)
 - [Original milestone concept](docs/concepts/ai/first-milestone.md)
 - [AI-assisted development concept](docs/concepts/ai/ai-agent-development.md)
 - [Agent contribution rules](AGENTS.md)
