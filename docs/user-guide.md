@@ -45,6 +45,13 @@ alone allows nothing, and each panel needs its permission (see *Permissions* bel
   again, **without** their former permissions, teams or sign-in. If the record no longer meets the club's rules (for
   example an adult without a phone number), reactivation is refused.
 - Deleting a member for good is done by the server operator, not in the app.
+- **Excel:** in *Excel import and export*, *Download member list (CSV for Excel)* saves all active members as a file
+  Excel opens directly (phone numbers start with an apostrophe so Excel does not treat them as formulas). To import,
+  save your sheet in Excel with *Save As* → *CSV UTF-8*; it needs the columns First name, Last name and Date of birth
+  (31.12.2010), and may have Email, Phone, Gender and Player (yes/no), with headings in any of the four languages.
+  *Check file* shows every row: *will be imported*, *already exists* (same name and birth date; left out) or *has
+  problems* with the reason (left out). Nothing is created until you choose *Import N members*. Existing members are
+  never changed. Every export and import is recorded.
 
 ### Teams (*Teams*, *Team members*)
 

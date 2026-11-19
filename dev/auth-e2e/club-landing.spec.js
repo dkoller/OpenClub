@@ -618,6 +618,29 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.reload();
   await expect(page.getByRole('region', { name: 'My fees' })).toContainText('Season 2026/27');
 
+  // Excel import and export (OpenAPI 1.13.0): the list downloads as CSV; an import is checked first, skips the
+  // existing Mara Demo and creates only the new rows.
+  const transfer = page.getByRole('region', { name: 'Excel import and export' });
+  const listDownload = page.waitForEvent('download');
+  await transfer.getByRole('link', { name: 'Download member list (CSV for Excel)' }).click();
+  const listFile = await listDownload;
+  expect(listFile.suggestedFilename()).toMatch(/^members-\d{4}-\d{2}-\d{2}\.csv$/);
+  const listText = readFileSync(await listFile.path(), 'utf8');
+  expect(listText.startsWith('\uFEFF"First name";"Last name";"Date of birth"')).toBe(true);
+  expect(listText).toContain('"Mara";"Demo";"01.01.2015"');
+  await transfer.getByLabel('CSV file from Excel').setInputFiles({
+    name: 'members.csv', mimeType: 'text/csv',
+    // With a gender for players, in case the club's "Require gender for players" rule is on at this point.
+    buffer: Buffer.from('Vorname;Nachname;Geburtsdatum;E-Mail;Telefon;Spieler;Geschlecht\nImporta;Csvtest;3.2.2014;;;ja;Synthetic\n' +
+      'Importb;Csvtest;1.1.1990;importb@example.invalid;+41 79 000 00 09;nein;\nMara;Demo;01.01.2015;;;ja;Synthetic\n' +
+      'Broken;Csvtest;31.02.2014;;;ja;Synthetic\n'),
+  });
+  await transfer.getByRole('button', { name: 'Check file' }).click();
+  await expect(transfer.getByRole('status')).toHaveText('2 will be imported, 1 already exist, 1 have problems (not imported).');
+  await expect(transfer.getByRole('row').filter({ hasText: 'Broken Csvtest' })).toContainText('date of birth');
+  await transfer.getByRole('button', { name: 'Import 2 members' }).click();
+  await expect(transfer.getByRole('status')).toHaveText('2 members imported.');
+
   const permissionAdmin = page.getByRole('region', { name: 'Manage permissions' });
   // Superseded permission-member lookups must not replace newer selection/grants.
   let notifySlowGrant;

@@ -162,6 +162,8 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Delete, "/api/v1/members/$target/invitation"),
         Route(HttpMethod.Delete, "/api/v1/members/$target/account-link"),
         Route(HttpMethod.Get, "/api/v1/members/$target/details"),
+        // The member list as CSV (1.13.0); the import needs a CSV body and is covered in MemberListHttpTest.
+        Route(HttpMethod.Get, "/api/v1/members/export.csv?lang=de"),
         Route(HttpMethod.Get, "/api/v1/members/$target/export"),
         // Guardian editor routes; the target is an adult, so the authorized pass gets 404 (no guardians) and 204.
         Route(HttpMethod.Get, "/api/v1/members/$target/guardians"),

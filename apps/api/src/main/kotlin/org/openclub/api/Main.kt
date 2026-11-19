@@ -13,6 +13,7 @@ import org.openclub.api.members.installGuardianHttpRoutes
 import org.openclub.api.members.installMyProfileHttpRoutes
 import org.openclub.api.teams.installTeamEventHttpRoutes
 import org.openclub.api.fees.installFeeHttpRoutes
+import org.openclub.api.members.installMemberListHttpRoutes
 import org.openclub.api.members.installMemberDetailsHttpRoute
 import org.openclub.api.members.installMemberErasureHttpRoute
 import org.openclub.api.members.installMemberInvitationHttpRoutes
@@ -150,5 +151,6 @@ internal fun Application.module(
         installMyProfileHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installTeamEventHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installFeeHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
+        installMemberListHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
     }
 }

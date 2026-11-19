@@ -32,6 +32,9 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] B8 *Membership fees*: create "Season 2026/27" (due date, CHF 150): every active member is listed; *Mark paid*
       for one, *Change amount* for another, *Exclude* a third; the totals change. After a reload *My fees* shows the
       administrator's own fee. Only members with the `MANAGE_FEES` permission see the panel.
+- [ ] B9 *Excel import and export*: download the member list and open it in Excel (umlauts and phone numbers shown
+      correctly). Add two new rows and one copy of an existing member, *Save As* → *CSV UTF-8*, *Check file*: 2 will be
+      imported, 1 already exists; *Import 2 members*: both appear in *Manage members*.
 
 ## C. Teams and permissions
 
@@ -78,7 +81,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 | --- | --- |
 | Operator and host | Owner; Infomaniak VPS Lite \_ vCPU / \_ GB; Ubuntu \_ ; date \_ |
 | HTTPS probe (A1), identity provider | pass / fail, Rauthy, date \_ |
-| Members, languages, own profile and fees (B1–B8) | pass / fail, notes \_ |
+| Members, languages, own profile, fees and Excel (B1–B9) | pass / fail, notes \_ |
 | Teams, invitations, scoped permissions, schedule (C1–C5) | pass / fail, notes \_ |
 | Guardians (D1–D4) | pass / fail, notes \_ |
 | Denial and sessions (E1–E3) | pass / fail, notes \_ |
