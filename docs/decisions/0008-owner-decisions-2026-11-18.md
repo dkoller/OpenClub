@@ -73,3 +73,15 @@ Asked in the Claude Code session that built pull request #342 whether `replaceLo
 | 21 | Erasure UI | None in M1; the HTTP route serves API clients and the operator command remains the M1 path. An archived-member listing would be a new contract change. |
 
 None of this authorizes real data.
+
+## Addendum 6 — hosting provider and backups for the synthetic demo (2026-11-19)
+
+In the Claude Code session after pull request #343 the owner stated: **"The hosting provider is Infomaniak"** and **"No backup for now."**
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 22 | Hosting provider for the M1 demo | **Infomaniak** (Switzerland). The agent recommends VPS Lite 2 vCPU / 4 GB / 60 GB at CHF 7.20 per month (price checked 2026-11-19), inside the ≤ €10/month of ADR-0007; the invoiced amount is the evidence, not this estimate. Who operates the host is still open. |
+| 23 | Backups | **None for the synthetic demo for now.** Losing the server loses the fictional demo data. This does not change the M2 gates: real member data still needs backups, a witnessed restore and recovery sign-off (#12, #26, #180). |
+| 24 | Identity provider on the host | Not decided by the owner. The [Infomaniak runbook](../deployment/infomaniak-demo.md) uses **Rauthy** on the same VPS because it fits in 4 GB next to the API and PostgreSQL; Keycloak stays supported (ADR-0006) with an external or larger host. |
+
+None of this authorizes real data.

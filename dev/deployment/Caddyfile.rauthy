@@ -1,0 +1,13 @@
+# One-host synthetic demo (Infomaniak runbook): the club app and the Rauthy identity provider share one
+# Caddy. Caddy obtains and renews public ACME certificates for both names; DNS for both must point to
+# this host and ports 80/443 must be reachable. Upstreams stay private to the Compose network.
+{$OPENCLUB_DEMO_HOST} {
+    # Short HSTS lifetime for an operator-owned synthetic demo hostname; no subdomains.
+    header Strict-Transport-Security "max-age=86400"
+    reverse_proxy web:80
+}
+
+{$OPENCLUB_ID_HOST} {
+    header Strict-Transport-Security "max-age=86400"
+    reverse_proxy rauthy:8080
+}

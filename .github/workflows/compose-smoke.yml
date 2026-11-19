@@ -57,6 +57,7 @@ jobs:
                   [[ "$file" == apps/web/Dockerfile || "$file" == apps/web/.dockerignore || "$file" == apps/web/nginx.conf ]] && compose=true
                   ;;
                 compose.yaml|compose.dev.yaml|compose.auth.dev.yaml|compose.rauthy.eval.yaml|dev/keycloak/*|.github/workflows/compose-smoke.yml) compose=true ;;
+                compose.https.demo.yaml|compose.rauthy.demo.yaml|dev/deployment/*) compose=true ;;
                 .github/workflows/build.yml) api=true; web=true ;;
                 # Unknown paths run everything rather than silently missing coverage.
                 *) api=true; web=true; compose=true ;;
@@ -102,6 +103,67 @@ jobs:
                    ([.services.postgres, .services.api, .services.web, .services["demo-https"]] | all(.restart == "unless-stopped")) and
                     .services.api.environment.OPENCLUB_AUTH_MODE == "production"'
           docker run --rm -e OPENCLUB_DEMO_HOST="$OPENCLUB_DEMO_HOST"             -v "$PWD/dev/deployment/Caddyfile:/etc/caddy/Caddyfile:ro"             caddy:2.11.9-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Validate one-host demo kit (Infomaniak runbook) and production Rauthy discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          env_dir="$RUNNER_TEMP/openclub-demo-env"
+          host=club.demo.example.invalid
+          id_host=id.demo.example.invalid
+          bash dev/deployment/generate-demo-env.sh --synthetic-only "$host" "$id_host" admin@example.invalid "$env_dir"
+          # Rerunning must refuse to replace an existing installation's keys.
+          if bash dev/deployment/generate-demo-env.sh --synthetic-only "$host" "$id_host" admin@example.invalid "$env_dir" 2>/dev/null; then
+            echo 'Generator overwrote an existing environment directory' >&2; exit 1
+          fi
+          [[ "$(stat -c %a "$env_dir/.env")" == 600 ]] || { echo 'Generated env file is not owner-only' >&2; exit 1; }
+          python3 -m json.tool "$env_dir/rauthy-bootstrap/clients.json" > /dev/null
+          jq -e --arg cb "https://$host/api/v1/auth/callback" \
+            '.[0].redirect_uris == [$cb] and .[0].challenges == ["S256"] and (.[0].secret | length) == 48' \
+            "$env_dir/rauthy-bootstrap/clients.json" > /dev/null
+          demo=(docker compose --env-file "$env_dir/.env" -p openclub-demo-ci
+            -f compose.yaml -f compose.https.demo.yaml -f compose.rauthy.demo.yaml)
+          "${demo[@]}" config --quiet
+          "${demo[@]}" config --format json |
+            jq -e --arg id "$id_host" '
+              (.services.rauthy.environment.LOCAL_TEST // null) == null and
+              .services.rauthy.environment.PROXY_MODE == "true" and
+              .services.rauthy.environment.PUB_URL == $id and
+              ((.services.rauthy.ports // []) | length) == 0 and
+              ((.services.postgres.ports // []) | length) == 0 and
+              ((.services.web.ports // []) | length) == 0 and
+              (.services["demo-https"].ports | length) == 2 and
+              ([.services[]] | all(.restart == "unless-stopped")) and
+              (.services.api.extra_hosts | tostring | contains($id)) and
+              .services.api.environment.OPENCLUB_OIDC_ISSUER == ("https://" + $id + "/auth/v1/") and
+              ([.services["demo-https"].volumes[] | select(.target == "/etc/caddy/Caddyfile") | .source] | .[0] | endswith("Caddyfile.rauthy"))' > /dev/null
+          docker run --rm -e OPENCLUB_DEMO_HOST="$host" -e OPENCLUB_ID_HOST="$id_host" \
+            -v "$PWD/dev/deployment/Caddyfile.rauthy:/etc/caddy/Caddyfile:ro" \
+            caddy:2.11.9-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          # Boot the production-configured provider alone and read discovery from inside the Compose
+          # network, as Caddy would forward it. TLS and ACME need the real host and are not exercised here.
+          "${demo[@]}" up -d --no-deps rauthy
+          trap '"${demo[@]}" down -v >/dev/null 2>&1 || true' EXIT
+          ready=false
+          for attempt in {1..60}; do
+            if docker run --rm --network openclub-demo-ci_default curlimages/curl:8.11.1 \
+              --fail --silent --max-time 3 -H "Host: $id_host" -H 'X-Forwarded-For: 203.0.113.9' \
+              -H 'X-Forwarded-Proto: https' http://rauthy:8080/.well-known/openid-configuration \
+              > "$RUNNER_TEMP/demo-discovery.json" 2>/dev/null; then
+              ready=true; break
+            fi
+            sleep 2
+          done
+          if [[ "$ready" != true ]]; then
+            "${demo[@]}" logs --no-color rauthy 2>&1 | grep -Ei 'ERROR|panic|invalid|missing' |
+              sed -E 's/(password|secret|token|key)[=:][^ ]+/[REDACTED]/Ig' | tail -n 15 >&2 || true
+            echo 'Production-configured Rauthy did not serve discovery' >&2; exit 1
+          fi
+          jq -e --arg iss "https://$id_host/auth/v1/" '
+            .issuer == $iss and
+            (.authorization_endpoint | startswith("https://" + ($iss | ltrimstr("https://") | split("/")[0]) + "/")) and
+            (.token_endpoint | startswith("https://"))' "$RUNNER_TEMP/demo-discovery.json" > /dev/null ||
+            { echo "Unexpected issuer metadata: $(jq -c '{issuer, authorization_endpoint}' "$RUNNER_TEMP/demo-discovery.json")" >&2; exit 1; }
+          echo 'Demo kit validated: generated secrets, merged Compose, Caddy routes and production Rauthy issuer.'
       - name: Verify optional Rauthy OIDC discovery with isolated localhost TLS
         shell: bash
         run: |
