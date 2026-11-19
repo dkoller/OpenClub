@@ -1,15 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 import {
-  createEvents, deleteEvent, formatWhen, instants, localParts, readTeamEvents, replaceEvent,
-  type EventKind, type EventOutcome, type TeamEvent,
+  createEvents, deleteEvent, formatWhen, instants, localParts, readAttendance, readTeamEvents, replaceEvent,
+  type AttendanceList, type EventKind, type EventOutcome, type TeamEvent,
 } from './events'
 
 const words = {
-  de: { show: 'Programm', hide: 'Programm schliessen', title: 'Programm', empty: 'Keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', error: 'Programm nicht verfügbar.', kind: 'Art', TRAINING: 'Training', MATCH: 'Spiel', OTHER: 'Termin', name: 'Titel', date: 'Datum', start: 'Beginn', end: 'Ende', place: 'Ort', notes: 'Hinweise', repeat: 'Wöchentlich wiederholen bis', add: 'Termin hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', cancelEvent: 'Absagen', reinstate: 'Wieder ansetzen', remove: 'Löschen', confirmRemove: 'Löschen bestätigen', cancelled: 'Abgesagt', invalid: 'Bitte die Angaben prüfen: Ende nach Beginn, höchstens 52 Wiederholungen.', denied: 'Keine Berechtigung für dieses Team.', gone: 'Dieser Termin existiert nicht mehr.', failed: 'Aktion fehlgeschlagen.', added: 'Termin gespeichert.' },
-  en: { show: 'Schedule', hide: 'Close schedule', title: 'Schedule', empty: 'No events in the next eight weeks.', more: 'More events follow later.', error: 'Schedule unavailable.', kind: 'Kind', TRAINING: 'Training', MATCH: 'Match', OTHER: 'Event', name: 'Title', date: 'Date', start: 'Start', end: 'End', place: 'Place', notes: 'Notes', repeat: 'Repeat weekly until', add: 'Add event', edit: 'Edit', save: 'Save', cancel: 'Cancel', cancelEvent: 'Cancel event', reinstate: 'Reinstate', remove: 'Delete', confirmRemove: 'Confirm delete', cancelled: 'Cancelled', invalid: 'Please check the details: end after start, at most 52 repeats.', denied: 'No permission for this team.', gone: 'This event no longer exists.', failed: 'Action failed.', added: 'Event saved.' },
-  fr: { show: 'Programme', hide: 'Fermer le programme', title: 'Programme', empty: 'Aucun événement dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', error: 'Programme indisponible.', kind: 'Type', TRAINING: 'Entraînement', MATCH: 'Match', OTHER: 'Événement', name: 'Titre', date: 'Date', start: 'Début', end: 'Fin', place: 'Lieu', notes: 'Remarques', repeat: 'Répéter chaque semaine jusqu’au', add: 'Ajouter un événement', edit: 'Modifier', save: 'Enregistrer', cancel: 'Annuler', cancelEvent: 'Annuler l’événement', reinstate: 'Rétablir', remove: 'Supprimer', confirmRemove: 'Confirmer la suppression', cancelled: 'Annulé', invalid: 'Vérifiez les informations : fin après le début, au plus 52 répétitions.', denied: 'Pas d’autorisation pour cette équipe.', gone: 'Cet événement n’existe plus.', failed: 'L’action a échoué.', added: 'Événement enregistré.' },
-  it: { show: 'Programma', hide: 'Chiudi programma', title: 'Programma', empty: 'Nessun evento nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', error: 'Programma non disponibile.', kind: 'Tipo', TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', name: 'Titolo', date: 'Data', start: 'Inizio', end: 'Fine', place: 'Luogo', notes: 'Note', repeat: 'Ripeti ogni settimana fino al', add: 'Aggiungi evento', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', cancelEvent: 'Annulla evento', reinstate: 'Ripristina', remove: 'Elimina', confirmRemove: 'Conferma eliminazione', cancelled: 'Annullato', invalid: 'Controlla i dati: fine dopo l’inizio, al massimo 52 ripetizioni.', denied: 'Nessuna autorizzazione per questa squadra.', gone: 'Questo evento non esiste più.', failed: 'Azione non riuscita.', added: 'Evento salvato.' },
+  de: { show: 'Programm', hide: 'Programm schliessen', title: 'Programm', empty: 'Keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', error: 'Programm nicht verfügbar.', kind: 'Art', TRAINING: 'Training', MATCH: 'Spiel', OTHER: 'Termin', name: 'Titel', date: 'Datum', start: 'Beginn', end: 'Ende', place: 'Ort', notes: 'Hinweise', repeat: 'Wöchentlich wiederholen bis', add: 'Termin hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', cancelEvent: 'Absagen', reinstate: 'Wieder ansetzen', remove: 'Löschen', confirmRemove: 'Löschen bestätigen', cancelled: 'Abgesagt', invalid: 'Bitte die Angaben prüfen: Ende nach Beginn, höchstens 52 Wiederholungen.', denied: 'Keine Berechtigung für dieses Team.', gone: 'Dieser Termin existiert nicht mehr.', failed: 'Aktion fehlgeschlagen.', added: 'Termin gespeichert.', answers: 'Antworten', showAnswers: 'Antworten anzeigen', hideAnswers: 'Antworten ausblenden', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', noAnswer: 'keine Antwort', noMembers: 'Keine Mitglieder im Team.' },
+  en: { show: 'Schedule', hide: 'Close schedule', title: 'Schedule', empty: 'No events in the next eight weeks.', more: 'More events follow later.', error: 'Schedule unavailable.', kind: 'Kind', TRAINING: 'Training', MATCH: 'Match', OTHER: 'Event', name: 'Title', date: 'Date', start: 'Start', end: 'End', place: 'Place', notes: 'Notes', repeat: 'Repeat weekly until', add: 'Add event', edit: 'Edit', save: 'Save', cancel: 'Cancel', cancelEvent: 'Cancel event', reinstate: 'Reinstate', remove: 'Delete', confirmRemove: 'Confirm delete', cancelled: 'Cancelled', invalid: 'Please check the details: end after start, at most 52 repeats.', denied: 'No permission for this team.', gone: 'This event no longer exists.', failed: 'Action failed.', added: 'Event saved.', answers: 'Answers', showAnswers: 'Show answers', hideAnswers: 'Hide answers', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', noAnswer: 'no answer', noMembers: 'No members in this team.' },
+  fr: { show: 'Programme', hide: 'Fermer le programme', title: 'Programme', empty: 'Aucun événement dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', error: 'Programme indisponible.', kind: 'Type', TRAINING: 'Entraînement', MATCH: 'Match', OTHER: 'Événement', name: 'Titre', date: 'Date', start: 'Début', end: 'Fin', place: 'Lieu', notes: 'Remarques', repeat: 'Répéter chaque semaine jusqu’au', add: 'Ajouter un événement', edit: 'Modifier', save: 'Enregistrer', cancel: 'Annuler', cancelEvent: 'Annuler l’événement', reinstate: 'Rétablir', remove: 'Supprimer', confirmRemove: 'Confirmer la suppression', cancelled: 'Annulé', invalid: 'Vérifiez les informations : fin après le début, au plus 52 répétitions.', denied: 'Pas d’autorisation pour cette équipe.', gone: 'Cet événement n’existe plus.', failed: 'L’action a échoué.', added: 'Événement enregistré.', answers: 'Réponses', showAnswers: 'Afficher les réponses', hideAnswers: 'Masquer les réponses', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', noAnswer: 'pas de réponse', noMembers: 'Aucun membre dans cette équipe.' },
+  it: { show: 'Programma', hide: 'Chiudi programma', title: 'Programma', empty: 'Nessun evento nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', error: 'Programma non disponibile.', kind: 'Tipo', TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', name: 'Titolo', date: 'Data', start: 'Inizio', end: 'Fine', place: 'Luogo', notes: 'Note', repeat: 'Ripeti ogni settimana fino al', add: 'Aggiungi evento', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', cancelEvent: 'Annulla evento', reinstate: 'Ripristina', remove: 'Elimina', confirmRemove: 'Conferma eliminazione', cancelled: 'Annullato', invalid: 'Controlla i dati: fine dopo l’inizio, al massimo 52 ripetizioni.', denied: 'Nessuna autorizzazione per questa squadra.', gone: 'Questo evento non esiste più.', failed: 'Azione non riuscita.', added: 'Evento salvato.', answers: 'Risposte', showAnswers: 'Mostra risposte', hideAnswers: 'Nascondi risposte', YES: 'Sì', NO: 'No', MAYBE: 'Forse', noAnswer: 'nessuna risposta', noMembers: 'Nessun membro in questa squadra.' },
 } satisfies Record<Language, Record<string, string>>
 
 type Draft = { kind: EventKind; title: string; date: string; start: string; end: string; location: string; notes: string }
@@ -50,6 +50,14 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
   const [notice, setNotice] = useState<Notice | null>(null)
   const [busy, setBusy] = useState(false)
   const [revision, setRevision] = useState(0)
+  const [answersFor, setAnswersFor] = useState<string | null>(null)
+  const [answers, setAnswers] = useState<AttendanceList | 'denied' | 'error' | null>(null)
+
+  async function toggleAnswers(eventId: string) {
+    if (answersFor === eventId) { setAnswersFor(null); return }
+    setAnswersFor(eventId); setAnswers(null)
+    try { setAnswers(await readAttendance(eventId)) } catch { setAnswers('error') }
+  }
 
   useEffect(() => {
     if (!open) return
@@ -115,6 +123,15 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
             {item.location && <> · {item.location}</>}
             {item.cancelled && <> · <em>{t.cancelled}</em></>}
             {item.notes && <p>{item.notes}</p>}
+            <p>{t.answers}: {item.counts.yes} {t.YES}, {item.counts.no} {t.NO}, {item.counts.maybe} {t.MAYBE}{' '}
+              <button type="button" aria-expanded={answersFor === item.id} onClick={() => { void toggleAnswers(item.id) }}>
+                {answersFor === item.id ? t.hideAnswers : t.showAnswers}</button></p>
+            {answersFor === item.id && (answers === 'denied' ? <p role="alert">{t.denied}</p>
+              : answers === 'error' ? <p role="alert">{t.error}</p>
+                : answers === null ? <p role="status">…</p>
+                  : answers.items.length === 0 ? <p>{t.noMembers}</p>
+                    : <ul aria-label={`${t.answers} ${item.title}`}>{answers.items.map((answer, index) =>
+                      <li key={index}>{answer.displayName}: {answer.response ? t[answer.response] : t.noAnswer}</li>)}</ul>)}
             {canManage && <>
               <button type="button" disabled={busy} onClick={() => { setEditing({ id: item.id, cancelled: item.cancelled, draft: draftOf(item) }); setNotice(null) }}>{t.edit}</button>
               <button type="button" disabled={busy} onClick={() => {

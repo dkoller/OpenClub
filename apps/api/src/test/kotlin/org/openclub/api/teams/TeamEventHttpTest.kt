@@ -12,6 +12,7 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -217,7 +218,7 @@ class TeamEventHttpTest {
         assertEquals(false, viewer.getValue("canManage").jsonPrimitive.content.toBoolean())
         assertEquals(true, send(HttpMethod.Get, teamEvents(teamA), "teamManager").json().getValue("canManage").jsonPrimitive.content.toBoolean())
         val item = viewer.getValue("items").jsonArray.single().jsonObject
-        assertEquals(setOf("id", "teamId", "teamName", "kind", "title", "startsAt", "endsAt", "location", "notes", "cancelled"), item.keys)
+        assertEquals(setOf("id", "teamId", "teamName", "kind", "title", "startsAt", "endsAt", "location", "notes", "cancelled", "counts"), item.keys)
         assertTrue(item.getValue("startsAt").jsonPrimitive.content.endsWith("Z"))
         // An explicit range includes the past event.
         val past = send(HttpMethod.Get, teamEvents(teamA) + "?from=" + start.minusDays(40).toString().replace("+", "%2B") + "&to=" + start.plusDays(1), "viewer")
@@ -251,6 +252,84 @@ class TeamEventHttpTest {
             assertEquals(emptyList<JsonObject>(), mine("guardian"))
         } finally {
             sql { it.execute("UPDATE members SET date_of_birth = DATE '2016-02-03' WHERE id = ?", kid) }
+        }
+    }
+
+    private fun attendance(event: String, member: UUID) = "/api/v1/events/$event/attendance/${member}"
+    private fun answer(response: String) = """{"response":"$response"}"""
+
+    @Test
+    fun membersAndGuardiansAnswerUntilTheStartAndTeamViewersSeeTheAnswers() = app {
+        // Test order is not fixed: the visibility test may have ended the guardianship (the child came of age).
+        sql {
+            it.execute("DELETE FROM team_events WHERE team_id IN (?, ?)", teamA, teamB)
+            it.execute("""INSERT INTO member_guardianships (minor_member_id, guardian_member_id)
+                          SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM member_guardianships WHERE minor_member_id = ?)""",
+                kid, memberOf.getValue("guardian"), kid)
+        }
+        val player = memberOf.getValue("player")
+        val a = create(teamA, "clubManager", event("A training")).single()
+        val b = create(teamB, "clubManager", event("B training")).single()
+        val past = create(teamA, "clubManager", event("Past", start.minusDays(30))).single()
+        val cancelled = create(teamA, "clubManager", event("Cancelled", start.plusDays(1))).single()
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, "/api/v1/events/$cancelled", "clubManager",
+            """{"kind":"TRAINING","title":"Cancelled","startsAt":"${start.plusDays(1)}","endsAt":"${start.plusDays(1).plusHours(1)}","cancelled":true}""").status)
+
+        val check = Check()
+        check.expect("no session", send(HttpMethod.Put, attendance(a, player), null, answer("YES")), HttpStatusCode.Unauthorized)
+        check.expect("wrong origin", send(HttpMethod.Put, attendance(a, player), "player", answer("YES"), withOrigin = "https://evil.example.invalid"), HttpStatusCode.Forbidden)
+        check.expect("no member record", send(HttpMethod.Put, "/api/v1/events/x/attendance/y", "stranger", "[]"), HttpStatusCode.Forbidden)
+        check.expect("bad ids", send(HttpMethod.Put, "/api/v1/events/x/attendance/y", "player", answer("YES")), HttpStatusCode.BadRequest)
+        check.expect("lower case", send(HttpMethod.Put, attendance(a, player), "player", answer("yes")), HttpStatusCode.BadRequest)
+        check.expect("reason field", send(HttpMethod.Put, attendance(a, player), "player", """{"response":"NO","reason":"ill"}"""), HttpStatusCode.BadRequest)
+        check.expect("someone else's child", send(HttpMethod.Put, attendance(b, kid), "player", answer("YES")), HttpStatusCode.Forbidden)
+        check.expect("another team's event", send(HttpMethod.Put, attendance(b, player), "player", answer("YES")), HttpStatusCode.Forbidden)
+        check.expect("unknown event", send(HttpMethod.Put, attendance(UUID.randomUUID().toString(), player), "player", answer("YES")), HttpStatusCode.Forbidden)
+        check.expect("guardian for self, not in team", send(HttpMethod.Put, attendance(b, memberOf.getValue("guardian")), "guardian", answer("YES")), HttpStatusCode.Forbidden)
+        check.expect("a manager for a player", send(HttpMethod.Put, attendance(a, player), "teamManager", answer("YES")), HttpStatusCode.Forbidden)
+        check.expect("started", send(HttpMethod.Put, attendance(past, player), "player", answer("YES")), HttpStatusCode.Conflict)
+        check.expect("cancelled", send(HttpMethod.Put, attendance(cancelled, player), "player", answer("YES")), HttpStatusCode.Conflict)
+        check.expect("clear after start", send(HttpMethod.Delete, attendance(past, player), "player"), HttpStatusCode.Conflict)
+        check.expect("own answer", send(HttpMethod.Put, attendance(a, player), "player", answer("YES")), HttpStatusCode.NoContent)
+        check.expect("changed answer", send(HttpMethod.Put, attendance(a, player), "player", answer("MAYBE")), HttpStatusCode.NoContent)
+        check.expect("guardian for child", send(HttpMethod.Put, attendance(b, kid), "guardian", answer("NO")), HttpStatusCode.NoContent)
+        check.done()
+        assertEquals(2, count("SELECT COUNT(*) FROM event_attendance WHERE event_id IN (?::uuid, ?::uuid)", a, b))
+
+        // Own schedules carry one's own (or the child's) answer and the totals, never other people's answers.
+        suspend fun mine(handle: String) = send(HttpMethod.Get, "/api/v1/me/events", handle).json().getValue("items").jsonArray.map { it.jsonObject }
+        val playerItem = mine("player").single { it.getValue("id").jsonPrimitive.content == a }
+        assertEquals("MAYBE", playerItem.getValue("for").jsonArray.single().jsonObject.getValue("response").jsonPrimitive.content)
+        assertEquals("""{"yes":0,"no":0,"maybe":1}""", playerItem.getValue("counts").toString())
+        val childItem = mine("guardian").single()
+        assertEquals("NO", childItem.getValue("for").jsonArray.single().jsonObject.getValue("response").jsonPrimitive.content)
+
+        // Viewers and managers of the team see every answer by public display name only.
+        val list = send(HttpMethod.Get, "/api/v1/events/$a/attendance", "viewer")
+        assertEquals(HttpStatusCode.OK, list.status)
+        assertEquals("no-store", list.headers[HttpHeaders.CacheControl])
+        val items = list.json().getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(listOf("player Events" to "MAYBE"), items.map { it.getValue("displayName").jsonPrimitive.content to it.getValue("response").jsonPrimitive.content })
+        assertEquals(setOf("displayName", "response"), items.single().keys)
+        val minors = send(HttpMethod.Get, "/api/v1/events/$b/attendance", "clubManager").json().getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(listOf("Kiddo E."), minors.map { it.getValue("displayName").jsonPrimitive.content })
+        val check2 = Check()
+        check2.expect("list without session", send(HttpMethod.Get, "/api/v1/events/$a/attendance", null), HttpStatusCode.Unauthorized)
+        check2.expect("list without team grant", send(HttpMethod.Get, "/api/v1/events/$a/attendance", "player"), HttpStatusCode.Forbidden)
+        check2.expect("list of another team", send(HttpMethod.Get, "/api/v1/events/$b/attendance", "viewer"), HttpStatusCode.Forbidden)
+        check2.expect("list bad id", send(HttpMethod.Get, "/api/v1/events/x/attendance", "viewer"), HttpStatusCode.BadRequest)
+        check2.expect("list unknown event", send(HttpMethod.Get, "/api/v1/events/${UUID.randomUUID()}/attendance", "clubManager"), HttpStatusCode.NotFound)
+        // Clearing works twice; leaving the team removes the remaining answer.
+        check2.expect("clear", send(HttpMethod.Delete, attendance(a, player), "player"), HttpStatusCode.NoContent)
+        check2.expect("clear again", send(HttpMethod.Delete, attendance(a, player), "player"), HttpStatusCode.NoContent)
+        check2.done()
+        assertEquals(JsonNull, send(HttpMethod.Get, "/api/v1/events/$a/attendance", "viewer").json()
+            .getValue("items").jsonArray.single().jsonObject.getValue("response"))
+        sql { it.execute("DELETE FROM member_team_assignments WHERE team_id = ? AND member_id = ?", teamB, kid) }
+        try {
+            assertEquals(0, count("SELECT COUNT(*) FROM event_attendance WHERE member_id = ?", kid))
+        } finally {
+            sql { it.execute("INSERT INTO member_team_assignments VALUES (?, ?)", teamB, kid) }
         }
     }
 }

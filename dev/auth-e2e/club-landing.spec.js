@@ -590,6 +590,12 @@ test('verified login gains club access only after restricted operator bootstrap'
   await trainings.last().getByRole('button', { name: 'Delete', exact: true }).click();
   await trainings.last().getByRole('button', { name: 'Confirm delete' }).click();
   await expect(trainings).toHaveCount(2);
+  // Attendance (OpenAPI 1.11.0): the team's viewers and managers see each member's answer by public display name.
+  await expect(trainings.last()).toContainText('Answers: 0 Yes, 0 No, 0 Maybe');
+  await trainings.last().getByRole('button', { name: 'Show answers' }).click();
+  await expect(trainings.last().getByRole('list', { name: 'Answers Juniors training' }).getByRole('listitem'))
+    .toHaveText(['Mara D.: no answer']);
+  await trainings.last().getByRole('button', { name: 'Hide answers' }).click();
   await juniors.getByRole('button', { name: 'Close schedule' }).click();
   await expect(schedule).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'My schedule' }).getByText('No events in the next eight weeks.')).toBeVisible();

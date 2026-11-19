@@ -128,6 +128,34 @@ internal fun Application.installTeamEventHttpRoutes(
                 call.answer(database.onDatabaseThread { TeamEvents(it).replace(actor.accountId, event, input, cancelled) })
             }
         }
+        get("/api/v1/events/{eventId}/attendance") {
+            call.readSession(sessions, cookies) { actor ->
+                if (!database.onDatabaseThread {
+                        TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS) }) {
+                    return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+                val event = call.uuid("eventId") ?: return@readSession call.refuse(HttpStatusCode.BadRequest, "invalid")
+                when (val result = database.onDatabaseThread { EventAttendance(it).list(actor.accountId, event) }) {
+                    is EventAttendance.Listing.Found -> call.respondJson(buildJsonObject {
+                        put("items", buildJsonArray {
+                            result.answers.forEach { add(buildJsonObject {
+                                put("displayName", it.displayName)
+                                put("response", it.response?.let { response -> JsonPrimitive(response.name) } ?: JsonNull)
+                            }) }
+                        })
+                        put("counts", result.counts.json())
+                    })
+                    EventAttendance.Listing.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    EventAttendance.Listing.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+            }
+        }
+        put("/api/v1/events/{eventId}/attendance/{memberId}") {
+            call.attendance(sessions, cookies, origin, database, clear = false)
+        }
+        delete("/api/v1/events/{eventId}/attendance/{memberId}") {
+            call.attendance(sessions, cookies, origin, database, clear = true)
+        }
         delete("/api/v1/events/{eventId}") {
             call.guarded(sessions, cookies, origin, database, null) { actor ->
                 if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
@@ -189,8 +217,12 @@ private fun TeamEvents.Event.json(withFor: Boolean) = buildJsonObject {
     put("location", location?.let(::JsonPrimitive) ?: JsonNull)
     put("notes", notes?.let(::JsonPrimitive) ?: JsonNull)
     put("cancelled", cancelled)
+    put("counts", counts.json())
     if (withFor) put("for", buildJsonArray {
-        forMembers.forEach { add(buildJsonObject { put("id", it.id.toString()); put("firstName", it.firstName) }) }
+        forMembers.forEach { add(buildJsonObject {
+            put("id", it.id.toString()); put("firstName", it.firstName)
+            put("response", it.response?.let { response -> JsonPrimitive(response.name) } ?: JsonNull)
+        }) }
     })
 }
 
@@ -198,4 +230,38 @@ private suspend fun ApplicationCall.answer(change: TeamEvents.Change) = when (ch
     TeamEvents.Change.DONE -> respondText("", status = HttpStatusCode.NoContent)
     TeamEvents.Change.NOT_FOUND -> refuse(HttpStatusCode.NotFound, "not_found")
     TeamEvents.Change.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
+}
+
+private fun EventAttendance.Counts.json() = buildJsonObject { put("yes", yes); put("no", no); put("maybe", maybe) }
+
+/**
+ * Answer (PUT) or clear (DELETE) one member's attendance. Session (401), Origin and CSRF (403), an active membership
+ * (403), the IDs and body (400); then one 403 for every event or member the actor may not answer for, and 409 once
+ * the event has started or is cancelled.
+ */
+private suspend fun ApplicationCall.attendance(
+    sessions: BrowserSessionOperations, cookies: AuthCookiePolicy, origin: String, database: DatabaseRuntime, clear: Boolean,
+) = guarded(sessions, cookies, origin, database, null) { actor ->
+    if (!database.onDatabaseThread { TeamEvents(it).isMember(actor.accountId) }) {
+        return@guarded refuse(HttpStatusCode.Forbidden, "forbidden")
+    }
+    val event = uuid("eventId")
+    val member = uuid("memberId")
+    if (event == null || member == null) return@guarded refuse(HttpStatusCode.BadRequest, "invalid")
+    val response = if (clear) null else try {
+        val value = receiveJsonObject(setOf("response")).requiredString("response")
+        EventAttendance.Response.entries.firstOrNull { it.name == value } ?: throw IllegalArgumentException("response")
+    } catch (_: IllegalArgumentException) {
+        return@guarded refuse(HttpStatusCode.BadRequest, "invalid")
+    }
+    val change = database.onDatabaseThread {
+        val attendance = EventAttendance(it)
+        if (response == null) attendance.clear(actor.accountId, event, member)
+        else attendance.answer(actor.accountId, event, member, response)
+    }
+    when (change) {
+        EventAttendance.Change.DONE -> respondText("", status = HttpStatusCode.NoContent)
+        EventAttendance.Change.CLOSED -> refuse(HttpStatusCode.Conflict, "conflict")
+        EventAttendance.Change.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
+    }
 }
