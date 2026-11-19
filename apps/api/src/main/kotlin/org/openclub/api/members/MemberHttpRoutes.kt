@@ -10,6 +10,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CancellationException
@@ -186,6 +187,84 @@ internal fun Application.installMemberHttpRoutes(
                         null -> call.error(HttpStatusCode.Forbidden, "forbidden")
                         false -> call.error(HttpStatusCode.NotFound, "not_found")
                         true -> call.respond(HttpStatusCode.NoContent)
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
+                }
+            }
+            // Full replacement (OpenAPI 1.4.0, owner-approved 2026-11-19). Every editable field is sent: an omitted
+            // contact or gender clears it, so the browser must first read the current values (GET .../details).
+            put("/{memberId}") {
+                call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                try {
+                    val actor = call.requireActor(sessions, cookies) ?: return@put
+                    if (!call.requireWrite(actor, origin)) return@put
+                    if (!call.requireCapability(database, actor, ClubCapabilityAccess.Capability.EDIT_MEMBERS)) {
+                        return@put
+                    }
+                    val (id, input) = try {
+                        UUID.fromString(call.parameters["memberId"]) to call.readNewMember()
+                    } catch (_: IllegalArgumentException) {
+                        call.error(HttpStatusCode.BadRequest, "invalid")
+                        return@put
+                    }
+                    val result = database.onDatabaseThread { db ->
+                        if (!ClubCapabilityAccess(db).has(actor.accountId,
+                                ClubCapabilityAccess.Capability.EDIT_MEMBERS)) null
+                        else MemberDetailsUpdate(db).update(actor.accountId, id, MemberDetailsUpdate.Input(
+                            input.firstName, input.lastName, input.dateOfBirth,
+                            input.email, input.phone, input.gender, input.isPlayer))
+                    }
+                    when (result) {
+                        null -> call.error(HttpStatusCode.Forbidden, "forbidden")
+                        false -> call.error(HttpStatusCode.NotFound, "not_found")
+                        true -> call.respond(HttpStatusCode.NoContent)
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: DataAccessException) {
+                    // Same mapping as creation: the database rules (adult contacts, player gender) are authoritative.
+                    if (failure.rejectedTheData()) call.error(HttpStatusCode.BadRequest, "invalid")
+                    else call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
+                } catch (_: Exception) {
+                    call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
+                }
+            }
+            // Reactivation (OpenAPI 1.4.0, owner-approved 2026-11-19): restores only active status, never grants,
+            // teams or a login link. 404 for an unknown or active member; 409 when the archived record no longer
+            // satisfies the club's current policy (for example an adult without email or phone).
+            post("/{memberId}/reactivate") {
+                call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                try {
+                    val actor = call.requireActor(sessions, cookies) ?: return@post
+                    if (!call.requireWrite(actor, origin)) return@post
+                    if (!call.requireCapability(database, actor, ClubCapabilityAccess.Capability.EDIT_MEMBERS)) {
+                        return@post
+                    }
+                    val id = try {
+                        UUID.fromString(call.parameters["memberId"])
+                    } catch (_: IllegalArgumentException) {
+                        call.error(HttpStatusCode.BadRequest, "invalid")
+                        return@post
+                    }
+                    val result = try {
+                        database.onDatabaseThread { db ->
+                            val archived = db.fetchOne("SELECT 1 FROM members WHERE id = ? AND archived_at IS NOT NULL", id) != null
+                            if (!archived) "not_found"
+                            else if (MemberReactivation(db).reactivate(actor.accountId, id)) "ok"
+                            else "forbidden"
+                        }
+                    } catch (failure: DataAccessException) {
+                        if (!failure.rejectedTheData()) throw failure
+                        "conflict"
+                    }
+                    when (result) {
+                        "ok" -> call.respond(HttpStatusCode.NoContent)
+                        "not_found" -> call.error(HttpStatusCode.NotFound, "not_found")
+                        "conflict" -> call.error(HttpStatusCode.Conflict, "conflict")
+                        else -> call.error(HttpStatusCode.Forbidden, "forbidden")
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled

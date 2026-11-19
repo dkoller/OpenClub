@@ -178,11 +178,35 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(searchForm.getByRole('listitem').filter({ hasText: 'Nina Private' })).toBeVisible();
 
   await created.getByRole('button', { name: 'Edit' }).click();
-  // The row text is replaced by editable inputs, so locate the active form.
+  // The row text is replaced by editable inputs, so locate the active form. It is filled from the
+  // restricted detail read (OpenAPI 1.4.0 full replacement), so the save never clears unseen fields.
   const editForm = page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) });
+  await expect(editForm.getByLabel('Date of birth')).toHaveValue('2013-01-01');
   await editForm.getByLabel('Last name').fill('Renamed');
+  await editForm.getByLabel('Phone').fill('+41000000077');
+  const replaceResponse = page.waitForResponse(response => response.request().method() === 'PUT');
   await editForm.getByRole('button', { name: 'Save' }).click();
+  expect((await replaceResponse).status()).toBe(204);
   const renamed = page.getByRole('listitem').filter({ hasText: 'Nina Renamed' });
+  await expect(renamed).toBeVisible();
+  await renamed.getByRole('button', { name: 'Details', exact: true }).click();
+  await expect(renamed.getByRole('region', { name: 'Details: Nina Renamed' }).getByText('+41000000077')).toBeVisible();
+  await renamed.getByRole('button', { name: 'Close' }).click();
+  // Turning a minor into an adult without email is refused by the server; nothing changes.
+  await renamed.getByRole('button', { name: 'Edit' }).click();
+  await editForm.getByLabel('Date of birth').fill('1990-01-01');
+  await editForm.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('region', { name: 'Manage members' }).getByRole('status')
+    .filter({ hasText: 'Please check the fields' })).toBeVisible();
+  await editForm.getByRole('button', { name: 'Cancel' }).click();
+  // Archive, undo (reactivation restores the member, without former rights), and archive again below.
+  await renamed.getByRole('button', { name: 'Archive' }).click();
+  await renamed.getByRole('button', { name: 'Confirm archive' }).click();
+  await expect(renamed).toHaveCount(0);
+  const memberAdminRegion = page.getByRole('region', { name: 'Manage members' });
+  await expect(memberAdminRegion.getByText('Member archived.')).toBeVisible();
+  await memberAdminRegion.getByRole('button', { name: 'Undo archive' }).click();
+  await expect(memberAdminRegion.getByText(/Member reactivated/)).toBeVisible();
   await expect(renamed).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toBeVisible();
   const renamedPublicNames = await context.request.get('/api/v1/public/members');
@@ -686,13 +710,12 @@ test('verified login gains club access only after restricted operator bootstrap'
     const adminMember = page.getByRole('region', { name: 'Manage members' })
       .getByRole('listitem').filter({ hasText: 'Synthetic Administrator' });
     await expect(adminMember).toBeVisible();
+    // Editing starts with the restricted detail read, which the server now refuses: no form, no write.
+    const readResponse = page.waitForResponse(response =>
+      /\/api\/v1\/members\/[0-9a-f-]+\/details$/.test(new URL(response.url()).pathname));
     await adminMember.getByRole('button', { name: 'Edit' }).click();
-    const writeResponse = page.waitForResponse(response =>
-      response.request().method() === 'PATCH' &&
-      /\/api\/v1\/members\/[0-9a-f-]+$/.test(new URL(response.url()).pathname));
-    await page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) })
-      .getByRole('button', { name: 'Save' }).click();
-    expect((await writeResponse).status()).toBe(403);
+    expect((await readResponse).status()).toBe(403);
+    await expect(page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) })).toHaveCount(0);
     const deniedMemberAdmin = page.getByRole('region', { name: 'Manage members' });
     await expect(deniedMemberAdmin.getByRole('alert'))
       .toContainText('No permission to manage members.');

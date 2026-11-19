@@ -61,3 +61,43 @@ export async function fetchMemberDetails(memberId: string, signal?: AbortSignal,
   if (!response.ok) throw new Error('Details unavailable')
   return parseMemberDetails(await response.json())
 }
+
+export type EditOutcome = 'ok' | Denied | 'invalid' | 'not-found' | 'conflict'
+
+async function memberWrite(path: string, method: 'PUT' | 'POST', csrfToken: string, body: object | undefined,
+  request: typeof fetch): Promise<EditOutcome> {
+  const response = await request(path, {
+    method, credentials: 'same-origin',
+    headers: { 'X-CSRF-Token': csrfToken, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  })
+  if (response.ok) return 'ok'
+  if (response.status === 401 || response.status === 403) return 'denied'
+  if (response.status === 400) return 'invalid'
+  if (response.status === 404) return 'not-found'
+  if (response.status === 409) return 'conflict'
+  throw new Error('Request failed')
+}
+
+/**
+ * PUT /api/v1/members/{id} (OpenAPI 1.4.0) replaces every editable field: an omitted contact or gender is
+ * cleared. Build the body only from a form that was filled from [fetchMemberDetails], never from guesses.
+ */
+export function replaceMember(memberId: string, body: object, csrfToken: string, request: typeof fetch = fetch) {
+  return memberWrite('/api/v1/members/' + encodeURIComponent(memberId), 'PUT', csrfToken, body, request)
+}
+
+/** POST /api/v1/members/{id}/reactivate: 'conflict' means the record no longer fits the club's current policy. */
+export function reactivateMember(memberId: string, csrfToken: string, request: typeof fetch = fetch) {
+  return memberWrite('/api/v1/members/' + encodeURIComponent(memberId) + '/reactivate', 'POST', csrfToken, undefined, request)
+}
+
+/** The edit form's starting values; only an editor's full read has every field. */
+export function draftFromDetails(details: MemberDetails) {
+  if (!('dateOfBirth' in details) || typeof details.dateOfBirth !== 'string') throw new Error('Not a full read')
+  return {
+    firstName: details.firstName, lastName: details.lastName, dateOfBirth: details.dateOfBirth,
+    email: details.email ?? '', phone: details.phone ?? '', isPlayer: details.isPlayer ?? false,
+    gender: details.gender ?? '',
+  }
+}

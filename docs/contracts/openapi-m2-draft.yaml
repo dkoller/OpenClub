@@ -17,7 +17,10 @@ info:
     15 and 16): createLocalMemberInvitation, revokeLocalMemberInvitation,
     acceptInvitation and unlinkLocalMemberAccount were implemented and moved into
     openapi-v1.yaml (version 1.2.0); getLocalMemberDetails and
-    eraseArchivedLocalMember followed in version 1.3.0.
+    eraseArchivedLocalMember followed in version 1.3.0. replaceLocalMemberDetails
+    and reactivateLocalMember were approved on 2026-11-19 (ADR-0008 addendum 5)
+    and moved into version 1.4.0, so this draft currently proposes no operation;
+    it is kept for the next proposals (for example guardian operations).
     They implement the owner-approved privacy defaults (docs/discovery/
     privacy-proposal-2026-11-18.md) and the invitation design (docs/security/
     invitation-linking-design.md). When an operation is implemented it moves
@@ -29,87 +32,7 @@ security:
   - browserSession: []
 tags:
   - name: Members
-paths:
-  /v1/members/{memberId}:
-    parameters:
-      - name: memberId
-        in: path
-        required: true
-        schema: { type: string, format: uuid }
-    put:
-      tags: [Members]
-      operationId: replaceLocalMemberDetails
-      summary: Proposed authorized member details replacement (NOT IMPLEMENTED)
-      description: >
-        The existing internal MemberDetailsUpdate replaces editable fields for
-        a currently active member under an explicit live EDIT_MEMBERS grant.
-        It cannot modify account links, ADMIN/MEMBER roles, grants or teams.
-        Proposed HTTP write must derive the actor from the verified session
-        and require exact configured Origin, session-bound CSRF and JSON input.
-        Supply all editable fields on every call; omitted optional contacts
-        and gender clear those values, so a browser edit form MUST NOT guess
-        unseen private fields. R03 must first approve a restricted, authorized
-        detail-read contract and adult/minor contact disclosure to editors,
-        including policy transitions. Never round-trip a directory-only DTO
-        into this write or silently reset hidden private fields. Do not enable
-        this route until the privacy/contract, audit and security review gates
-        are explicitly accepted.
-      parameters:
-        - $ref: '#/components/parameters/CsrfToken'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NewMember'
-      responses:
-        '204':
-          description: Active member updated; never echo private fields
-        '400':
-          $ref: '#/components/responses/Invalid'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '503':
-          $ref: '#/components/responses/Unavailable'
-  /v1/members/{memberId}/reactivate:
-    post:
-      tags: [Members]
-      operationId: reactivateLocalMember
-      summary: Proposed reactivation without restored rights (NOT IMPLEMENTED)
-      description: >
-        Internal-only MemberReactivation restores only a currently archived,
-        unlinked MEMBER to active status under a live EDIT_MEMBERS grant.
-        It never restores old login links, team assignments or capability grants.
-        Current adult contact/gender policy must still validate at reactivation;
-        conflict and audit behavior require R03/R04 approval before HTTP access.
-        No request body or caller-provided actor account ID.
-      parameters:
-        - name: memberId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-        - $ref: '#/components/parameters/CsrfToken'
-      responses:
-        '204':
-          description: Member reactivated without restoring old privileges
-        '400':
-          $ref: '#/components/responses/Invalid'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+paths: {}
 components:
   parameters:
     CsrfToken:
