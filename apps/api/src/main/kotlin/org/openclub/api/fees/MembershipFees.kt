@@ -136,7 +136,8 @@ internal class MembershipFees(private val database: DSLContext) {
                WHERE $condition
                ORDER BY m.last_name, m.first_name, m.id""", periodId).map {
             Fee(it.get("id", UUID::class.java), it.get("first_name", String::class.java), it.get("last_name", String::class.java),
-                it.get("archived", Boolean::class.java), it.get("amount_cents", Int::class.java),
+                // Nullable for an excluded member: the boxed type, so jOOQ does not turn NULL into 0.
+                it.get("archived", Boolean::class.java), it.get("amount_cents", Int::class.javaObjectType),
                 it.get("paid_on", LocalDate::class.java))
         })
     }
