@@ -31,7 +31,7 @@ Help volunteers manage club administration without requiring expensive software 
 
 ## First vertical slice
 
-The pilot administrator approved a first usable release demonstrating **member management, team assignments and configurable club/team-scoped permissions** in **German, English, French and Italian**. Members may be entered before login and invited later to sign in themselves. Minors are not invited; their guardians are (see *Guardians* above). The first existing system targeted for replacement is Excel membership administration.
+The pilot administrator approved a first usable release demonstrating **member management, team assignments and configurable club/team-scoped permissions** in **German, English, French and Italian**. Members may be entered before login and invited later to sign in themselves. Minors are not invited; their guardians are (see *Guardians* above). The first existing system targeted for replacement is Excel membership administration. By owner decision of 2026-11-19 ([ADR-0008 addendum 12](docs/decisions/0008-owner-decisions-2026-11-18.md)), four features follow before pilot feedback: My profile and trainings and events (built), attendance and membership fees (next, each after its own contract approval).
 
 Each independent installation owns its club's member data: no shared database, cross-installation data transfer, or automatic synchronization. First/last names and date of birth are required for all; adult email and phone required, optional for minors; player gender required only if configured by that club. The synthetic-data application enforces the required names, DOB, adult contacts and configured player-gender rule; this is **not** authorization to use real personal data. Retention rules and the M2 legal and privacy approvals remain open. See [accepted R01 pilot requirements](docs/concepts/product/r01-pilot-validation.md) and [R01/#10](https://github.com/dkoller/OpenClub/issues/10).
 
@@ -47,8 +47,8 @@ Each independent installation owns its club's member data: no shared database, c
 - [Owner decisions of 2026-11-18](docs/decisions/0008-owner-decisions-2026-11-18.md), with the [privacy proposal](docs/discovery/privacy-proposal-2026-11-18.md), the [invitation design](docs/security/invitation-linking-design.md) and the [guardian design](docs/security/guardian-design.md)
 - [Single-club deployment and safe fresh-database setup](docs/deployment/single-club.md)
 - [Hosted demo on Infomaniak (runbook)](docs/deployment/infomaniak-demo.md) and the [M1 acceptance walkthrough](docs/deployment/m1-acceptance-walkthrough.md)
-- [User guide for administrators, members and guardians](docs/user-guide.md)
-- [HTTP API contract (OpenAPI 1.8.0)](docs/contracts/openapi-v1.yaml) and its [test coverage](docs/contracts/m1-route-test-coverage.md)
+- [User guide for administrators, team managers, members and guardians](docs/user-guide.md)
+- [HTTP API contract (OpenAPI 1.10.0)](docs/contracts/openapi-v1.yaml) and its [test coverage](docs/contracts/m1-route-test-coverage.md)
 - [Original milestone concept](docs/concepts/ai/first-milestone.md)
 - [AI-assisted development concept](docs/concepts/ai/ai-agent-development.md)
 - [Agent contribution rules](AGENTS.md)
