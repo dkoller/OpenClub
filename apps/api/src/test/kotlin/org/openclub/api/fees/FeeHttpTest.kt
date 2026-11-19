@@ -211,7 +211,7 @@ class FeeHttpTest {
         val removedBefore = audits("FEE_REMOVED", kid)
         assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Delete, "/api/v1/fee-periods/$id", "treasurer", """{"name":"Fee test $tag renamed"}""").status)
         assertEquals(removedBefore + 1, audits("FEE_REMOVED", kid))
-        assertEquals(0, count("SELECT COUNT(*) FROM member_fees WHERE member_id = ?", kid))
+        assertEquals(0, count("SELECT COUNT(*) FROM member_fees WHERE period_id = ?::uuid", id))
     }
 
     @Test
