@@ -417,11 +417,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await teams.getByRole('button', { name: 'Contact details' }).click();
   await expect(teams.getByRole('region', { name: 'Details: Mara Demo' })).toBeVisible();
   await teams.getByRole('button', { name: 'Close' }).click();
+  // Not `times: 1`: StrictMode runs the effect twice in development, and the first request is aborted.
   await page.route('**/api/v1/members/*/details', route => route.fulfill({
-    status: 403, contentType: 'application/json', body: '{"code":"forbidden"}' }), { times: 1 });
+    status: 403, contentType: 'application/json', body: '{"code":"forbidden"}' }));
   await teams.getByRole('button', { name: 'Contact details' }).click();
   await expect(teams.getByRole('alert').filter({ hasText: 'No permission to see these details.' })).toBeVisible();
+  await expect(teams.getByRole('region', { name: 'Details: Mara Demo' })).toHaveCount(0);
   await teams.getByRole('button', { name: 'Close' }).click();
+  await page.unroute('**/api/v1/members/*/details');
   // An obsolete roster response must not replace a fresh roster after a new assignment.
   let startedOldRoster;
   const oldRosterStarted = new Promise(resolve => { startedOldRoster = resolve; });
