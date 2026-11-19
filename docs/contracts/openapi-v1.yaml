@@ -878,8 +878,8 @@ paths:
         response, never null: a null means "readable and not set". A holder of a live club-wide
         EDIT_MEMBERS grant (with a current verified identity) receives every field and may also read
         an ARCHIVED member, solely so the record can be exported, reactivated or erased. A holder of
-        MANAGE_TEAMS for a team the member belongs to receives only email, phone and isPlayer, and
-        only for members of that team. Every other caller gets 403. Authorization is decided before
+        MANAGE_TEAMS for a team the member belongs to receives only names, email, phone and isPlayer,
+        and only for ACTIVE members of that team; an unknown, archived or out-of-team member is 403. Every other caller gets 403. Authorization is decided before
         the path is validated. Each contact read by a team manager writes a CONTACT_READ audit event
         (identifiers only). Responses are never cacheable (Cache-Control: no-store).
       responses:
@@ -1116,7 +1116,7 @@ components:
       required: [id, firstName, lastName]
       description: >
         Only the fields the caller may read are present. null means readable and not set; an absent
-        key means not permitted. Team managers see only email, phone and isPlayer.
+        key means not permitted. Team managers see only id, names, email, phone and isPlayer.
       properties:
         id: { type: string, format: uuid }
         firstName: { type: string, minLength: 1, maxLength: 200 }
