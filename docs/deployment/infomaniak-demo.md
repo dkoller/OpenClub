@@ -121,9 +121,9 @@ The deploy script already ran the HTTPS probe. Measure resources with:
 COMPOSE_PROJECT_NAME=openclub-demo bash dev/measure-synthetic-compose.sh --synthetic-only
 ```
 
-Then walk through the synthetic browser workflows (members, teams, permissions, invitations, the four languages),
-reboot the VPS once and confirm the club and its members are still there, and record the results, the measured
-memory and disk, and the real monthly cost in #27/#28 using the [M1 evidence checklist](m1-resource-evidence.md).
+Then work through the [M1 acceptance walkthrough](m1-acceptance-walkthrough.md) (members, teams, scoped permissions,
+invitations, guardians, the four languages, restart and reboot, resources and cost) and copy its results table into
+#28; the [M1 evidence checklist](m1-resource-evidence.md) explains what counts as evidence.
 
 ## Updating
 

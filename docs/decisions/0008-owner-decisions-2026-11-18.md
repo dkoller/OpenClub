@@ -106,3 +106,12 @@ Asked in the Claude Code session to approve the six guardian operations drafted 
 | --- | --- | --- |
 | 28 | Guardian operations | Approved as drafted and implemented as OpenAPI **1.6.0**: editors (`EDIT_MEMBERS`) list, add (their attestation, at most two, active adults with a login) and remove a minor's guardians; a guardian lists their minors, reads one (names, birth date, email, phone, player flag, team names; audited) and replaces only email and phone. No capability is granted; access ends at the club's adult age, on archive, unlink, erasure or removal. |
 | 29 | Still open | Lawful basis and notices for a guardian's access to a child's data (controller and counsel). This approval covers synthetic data only. |
+
+## Addendum 9 — demo operator (2026-11-19)
+
+Asked who operates the Infomaniak demo server (orders the VPS, holds root and the generated secrets, runs the deploy script), the owner answered **"Me (the owner)"**; the two hostnames are **not decided yet**.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 30 | Demo operator | **The owner** operates the synthetic demo host and runs the [M1 acceptance walkthrough](../deployment/m1-acceptance-walkthrough.md). This replaces "operator not yet chosen" in ADR-0007 and decision 22. |
+| 31 | Hostnames | Open; the runbook keeps `club.example.ch` and `id.example.ch` placeholders. |
