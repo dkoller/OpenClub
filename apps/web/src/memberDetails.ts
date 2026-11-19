@@ -23,6 +23,11 @@ export function memberDetailsPath(memberId: string): string {
   return '/api/v1/members/' + encodeURIComponent(memberId) + '/details'
 }
 
+/** GET /api/v1/members/{id}/export (OpenAPI 1.7.0): the editor's JSON download, audited on the server. */
+export function memberExportPath(memberId: string): string {
+  return '/api/v1/members/' + encodeURIComponent(memberId) + '/export'
+}
+
 const optionalText = ['dateOfBirth', 'email', 'phone', 'gender', 'archivedAt'] as const
 const optionalFlag = ['isPlayer', 'hasLinkedLogin'] as const
 const known = new Set<string>(['id', 'firstName', 'lastName', 'invitation', ...optionalText, ...optionalFlag])

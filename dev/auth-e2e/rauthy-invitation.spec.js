@@ -126,6 +126,7 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
     expect(fixtureSql("SELECT phone FROM members WHERE first_name = 'Tim' AND last_name = 'Minor'")).toBe('+41000000066');
     expect((await invitee.request.get('/api/v1/members')).status()).toBe(403);
     await expect(second.getByRole('region', { name: 'Guardians' })).toHaveCount(0);
+    await expect(second.getByRole('region', { name: 'Invitations and account links' })).toHaveCount(0);
 
     // Unlinking ends the member's session and access at once.
     await region.getByRole('textbox', { name: 'Find member' }).fill('Invitee');
