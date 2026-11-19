@@ -227,7 +227,7 @@ class MemberReplaceAndReactivateHttpTest {
         val target = member()
         val details = send(HttpMethod.Get, "/api/v1/members/$target/details", "editor", withOrigin = null, withCsrf = null)
         assertEquals(HttpStatusCode.OK, details.status)
-        val read = requireNotNull(details.headers[HttpHeaders.ETag], "an editor's read carries the version")
+        val read = requireNotNull(details.headers[HttpHeaders.ETag]) { "an editor's read carries the version" }
         assertEquals(currentETag(target), read)
 
         // Missing is 428; malformed, a wildcard or another version is 412; none of them changes or audits anything.
