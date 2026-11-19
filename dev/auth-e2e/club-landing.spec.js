@@ -976,7 +976,6 @@ test('verified login gains club access only after restricted operator bootstrap'
   const answered = (path, status) => page.waitForResponse(response =>
     new URL(response.url()).pathname === path && response.status() === status, { timeout: 20000 });
   let contactMember = '';
-  let originalAssignments = [];
   try {
     // ADMIN role alone grants nothing: every private region fails closed on a real 403.
     fixtureSql('DELETE FROM club_capability_grants WHERE member_id = ' + adminMemberSql);
@@ -1025,12 +1024,9 @@ test('verified login gains club access only after restricted operator bootstrap'
     // Contact reads (OpenAPI 1.3.0) follow the same team boundary, on real grants: VIEW_TEAMS reads no
     // contacts, a team-scoped MANAGE_TEAMS reads only the manager fields of that team's active members,
     // every read is audited, and a member of another team stays refused.
-    contactMember = fixtureSql("SELECT id FROM members WHERE archived_at IS NULL AND account_id IS NULL " +
-      "AND role = 'MEMBER' ORDER BY created_at LIMIT 1");
+    contactMember = fixtureSql("INSERT INTO members (id, first_name, last_name, date_of_birth, phone) " +
+      "VALUES (gen_random_uuid(), 'Contact', 'Fixture', DATE '2014-01-01', '+41000000088') RETURNING id").split('\n')[0];
     expect(contactMember).toMatch(/^[0-9a-f-]{36}$/);
-    originalAssignments = fixtureSql("SELECT team_id FROM member_team_assignments WHERE member_id = '" + contactMember + "'")
-      .split('\n').filter(Boolean);
-    fixtureSql("DELETE FROM member_team_assignments WHERE member_id = '" + contactMember + "'");
     fixtureSql("INSERT INTO member_team_assignments (team_id, member_id) VALUES ('" + visibleTeam.id + "', '" + contactMember + "')");
     const detailsPath = '/api/v1/members/' + contactMember + '/details';
     expect((await context.request.get(detailsPath)).status()).toBe(403);
@@ -1047,12 +1043,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     fixtureSql("UPDATE member_team_assignments SET team_id = '" + hiddenTeams[0].id + "' WHERE member_id = '" + contactMember + "'");
     expect((await context.request.get(detailsPath)).status()).toBe(403);
   } finally {
-    if (contactMember) {
-      fixtureSql("DELETE FROM member_team_assignments WHERE member_id = '" + contactMember + "'");
-      for (const team of originalAssignments) {
-        fixtureSql("INSERT INTO member_team_assignments (team_id, member_id) VALUES ('" + team + "', '" + contactMember + "')");
-      }
-    }
+    if (contactMember) fixtureSql("DELETE FROM members WHERE id = '" + contactMember + "'");
     fixtureSql('DELETE FROM team_capability_grants WHERE member_id = ' + adminMemberSql);
     fixtureSql('DELETE FROM club_capability_grants WHERE member_id = ' + adminMemberSql);
     for (const capability of originalGrants) {
