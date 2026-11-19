@@ -6,11 +6,12 @@ table at the end into [#28](https://github.com/dkoller/OpenClub/issues/28). Ever
 fictional demo data and `example.invalid` addresses. Never paste secrets, cookies, account IDs, tokens or screenshots
 containing them into the issue.
 
-Placeholders: `club.example.ch` (app), `id.example.ch` (Rauthy), `/opt/openclub-demo-env` (generated secrets). Use a
+Hostnames below are the examples from `/etc/openclub/demo.yaml` (`clubHost`, `idHost`); use yours. The generated
+secrets are in its `envDirectory`. Use a
 desktop browser in a private window per person; you need **three** Rauthy users, created in the Rauthy admin UI
 (`https://id.example.ch/auth/v1/admin`): `admin@…` (you, the club administrator), `coach@…` and `parent@…`.
 
-## A. Deploy and first club (runbook sections 3 to 6)
+## A. Deploy and first club (runbook sections 3 to 7)
 
 - [ ] A1 `deploy-demo.sh` finished with the HTTPS probe passing. Note the date.
 - [ ] A2 Optional email configured; a Rauthy password-reset email for `coach@…` arrives.
@@ -50,11 +51,11 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] E1 A Rauthy user who is not a club member sees "not yet a club member" and nothing else.
 - [ ] E2 *Sign out* ends the session; the back button shows no member data.
 - [ ] E3 The audit trail has the expected identifier-only events (run on the server, do **not** paste the output):
-      `bash dev/deployment/demo-compose.sh /opt/openclub-demo-env exec -T api java -cp '/app/lib/*' org.openclub.api.database.AuditTrailCliKt`
+      `bash dev/deployment/demo-compose.sh exec -T api java -cp '/app/lib/*' org.openclub.api.database.AuditTrailCliKt`
 
 ## F. Restart, reboot and resources
 
-- [ ] F1 `bash dev/deployment/demo-compose.sh /opt/openclub-demo-env restart api web` then sign in again: data unchanged.
+- [ ] F1 `bash dev/deployment/demo-compose.sh restart api web` then sign in again: data unchanged.
 - [ ] F2 `reboot` the VPS. After a few minutes the site and sign-in work and the data is unchanged (services are
       `unless-stopped`).
 - [ ] F3 Resources during a walkthrough step: `COMPOSE_PROJECT_NAME=openclub-demo bash dev/measure-synthetic-compose.sh --synthetic-only`

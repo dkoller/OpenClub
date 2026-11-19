@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Copies the OpenClub client secret that Rauthy generated on its first start into the demo env file
-# created by generate-demo-env.sh. Run once, after `up -d rauthy` and before starting the API. It reads
+# created by generate-demo-env.sh (envDirectory in the demo config). Run once, after `up -d rauthy` and before starting the API. It reads
 # the secret with Rauthy's own `bootstrap get` command inside the container and never prints it.
 set -euo pipefail
 
-[[ $# -eq 2 && "$1" == --synthetic-only && "$2" == /* && -f "$2/.env" ]] ||
-  { echo "Usage: bash dev/deployment/fetch-demo-client-secret.sh --synthetic-only /ABSOLUTE/ENV_DIRECTORY" >&2; exit 2; }
-env_dir="$2"
-demo=(bash "$(dirname "$0")/demo-compose.sh" "$env_dir")
+[[ $# -eq 1 && "$1" == --synthetic-only ]] ||
+  { echo "Usage: bash dev/deployment/fetch-demo-client-secret.sh --synthetic-only   (settings from the demo config)" >&2; exit 2; }
+env_dir="$(python3 "$(dirname "$0")/demo-config.py" get envDirectory)"
+demo=(bash "$(dirname "$0")/demo-compose.sh")
 
 value=""
 for _ in {1..60}; do
