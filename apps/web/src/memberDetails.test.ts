@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fetchMemberDetails, memberDetailsPath, parseMemberDetails } from './memberDetails'
+import { fetchMemberDetails, memberDetailsPath, memberExportPath, parseMemberDetails } from './memberDetails'
 
 const res = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
 const manager = { id: 'm1', firstName: 'Ada', lastName: 'Example', email: null, phone: '+41000000000', isPlayer: true }
@@ -9,6 +9,7 @@ const editor = { ...manager, dateOfBirth: '1990-01-01', gender: null, archivedAt
 describe('member details', () => {
   it('encodes the member id', () => {
     expect(memberDetailsPath('a/b')).toBe('/api/v1/members/a%2Fb/details')
+    expect(memberExportPath('a/b')).toBe('/api/v1/members/a%2Fb/export')
   })
 
   it('reads uncached and same-origin, and maps outcomes', async () => {

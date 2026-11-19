@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -332,6 +333,15 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(maraDetails.getByText('2015-01-01')).toBeVisible();
   await expect(maraDetails.getByText('not set').first()).toBeVisible();
   await expect(maraRow.getByRole('button', { name: 'Details', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  // Export (OpenAPI 1.7.0): the editor downloads everything stored about Mara as a JSON attachment.
+  const download = page.waitForEvent('download');
+  await maraDetails.getByRole('link', { name: 'Export all data (JSON)' }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^member-[0-9a-f-]{36}\.json$/);
+  const exported = JSON.parse(readFileSync(await file.path(), 'utf8'));
+  expect(Object.keys(exported).sort()).toEqual(['clubGrants', 'exportedAt', 'guardianships', 'invitations', 'member', 'teamGrants', 'teams']);
+  expect(exported.member.firstName).toBe('Mara');
+  expect(exported.member).not.toHaveProperty('accountId');
   await maraDetails.getByRole('button', { name: 'Close' }).click();
   await expect(maraDetails).toHaveCount(0);
 
@@ -1044,6 +1054,11 @@ test('verified login gains club access only after restricted operator bootstrap'
       .toContainText('No permission to manage members.');
     await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'Teams', exact: true })).toHaveCount(0);
+    // Editor-only panels never render for a member without the grants (not even an empty form).
+    await expect(page.getByRole('region', { name: 'Invitations and account links' })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Guardians' })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Archived members' })).toHaveCount(0);
+    expect((await context.request.get('/api/v1/members/00000000-0000-0000-0000-000000000000/export')).status()).toBe(403);
     for (const path of ['/api/v1/members', '/api/v1/teams', '/api/v1/grants?memberId=00000000-0000-0000-0000-000000000000']) {
       expect((await context.request.get(path)).status()).toBe(403);
     }

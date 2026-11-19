@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { Language } from './language'
-import { fetchMemberDetails, type MemberDetails } from './memberDetails'
+import { fetchMemberDetails, memberExportPath, type MemberDetails } from './memberDetails'
 
 const words = {
-  de: { title: 'Details', close: 'Schliessen', loading: 'Details werden geladen…', denied: 'Keine Berechtigung, diese Details zu sehen.', missing: 'Mitglied nicht gefunden.', error: 'Details nicht verfügbar.', notSet: 'nicht angegeben', yes: 'Ja', no: 'Nein', dateOfBirth: 'Geburtsdatum', email: 'E-Mail', phone: 'Telefon', gender: 'Geschlecht', isPlayer: 'Spieler', archivedAt: 'Archiviert am', hasLinkedLogin: 'Anmeldung verknüpft', invitation: 'Einladung', open: 'offen bis', none: 'keine' },
-  en: { title: 'Details', close: 'Close', loading: 'Loading details…', denied: 'No permission to see these details.', missing: 'Member not found.', error: 'Details unavailable.', notSet: 'not set', yes: 'Yes', no: 'No', dateOfBirth: 'Date of birth', email: 'Email', phone: 'Phone', gender: 'Gender', isPlayer: 'Player', archivedAt: 'Archived on', hasLinkedLogin: 'Sign-in linked', invitation: 'Invitation', open: 'open until', none: 'none' },
-  fr: { title: 'Détails', close: 'Fermer', loading: 'Chargement des détails…', denied: 'Pas d’autorisation pour voir ces détails.', missing: 'Membre introuvable.', error: 'Détails indisponibles.', notSet: 'non renseigné', yes: 'Oui', no: 'Non', dateOfBirth: 'Date de naissance', email: 'E-mail', phone: 'Téléphone', gender: 'Genre', isPlayer: 'Joueur', archivedAt: 'Archivé le', hasLinkedLogin: 'Connexion liée', invitation: 'Invitation', open: 'ouverte jusqu’au', none: 'aucune' },
-  it: { title: 'Dettagli', close: 'Chiudi', loading: 'Caricamento dettagli…', denied: 'Nessun permesso per vedere questi dettagli.', missing: 'Membro non trovato.', error: 'Dettagli non disponibili.', notSet: 'non indicato', yes: 'Sì', no: 'No', dateOfBirth: 'Data di nascita', email: 'Email', phone: 'Telefono', gender: 'Genere', isPlayer: 'Giocatore', archivedAt: 'Archiviato il', hasLinkedLogin: 'Accesso collegato', invitation: 'Invito', open: 'aperto fino al', none: 'nessuno' },
+  de: { title: 'Details', close: 'Schliessen', loading: 'Details werden geladen…', denied: 'Keine Berechtigung, diese Details zu sehen.', missing: 'Mitglied nicht gefunden.', error: 'Details nicht verfügbar.', notSet: 'nicht angegeben', yes: 'Ja', no: 'Nein', dateOfBirth: 'Geburtsdatum', email: 'E-Mail', phone: 'Telefon', gender: 'Geschlecht', isPlayer: 'Spieler', archivedAt: 'Archiviert am', hasLinkedLogin: 'Anmeldung verknüpft', invitation: 'Einladung', open: 'offen bis', none: 'keine', export: 'Alle Daten exportieren (JSON)', exportNote: 'Enthält Personendaten; nur an die berechtigte Person weitergeben. Jeder Export wird protokolliert.' },
+  en: { title: 'Details', close: 'Close', loading: 'Loading details…', denied: 'No permission to see these details.', missing: 'Member not found.', error: 'Details unavailable.', notSet: 'not set', yes: 'Yes', no: 'No', dateOfBirth: 'Date of birth', email: 'Email', phone: 'Phone', gender: 'Gender', isPlayer: 'Player', archivedAt: 'Archived on', hasLinkedLogin: 'Sign-in linked', invitation: 'Invitation', open: 'open until', none: 'none', export: 'Export all data (JSON)', exportNote: 'Contains personal data; give it only to the verified requester. Every export is logged.' },
+  fr: { title: 'Détails', close: 'Fermer', loading: 'Chargement des détails…', denied: 'Pas d’autorisation pour voir ces détails.', missing: 'Membre introuvable.', error: 'Détails indisponibles.', notSet: 'non renseigné', yes: 'Oui', no: 'Non', dateOfBirth: 'Date de naissance', email: 'E-mail', phone: 'Téléphone', gender: 'Genre', isPlayer: 'Joueur', archivedAt: 'Archivé le', hasLinkedLogin: 'Connexion liée', invitation: 'Invitation', open: 'ouverte jusqu’au', none: 'aucune', export: 'Exporter toutes les données (JSON)', exportNote: 'Contient des données personnelles ; à remettre uniquement à la personne vérifiée. Chaque export est journalisé.' },
+  it: { title: 'Dettagli', close: 'Chiudi', loading: 'Caricamento dettagli…', denied: 'Nessun permesso per vedere questi dettagli.', missing: 'Membro non trovato.', error: 'Dettagli non disponibili.', notSet: 'non indicato', yes: 'Sì', no: 'No', dateOfBirth: 'Data di nascita', email: 'Email', phone: 'Telefono', gender: 'Genere', isPlayer: 'Giocatore', archivedAt: 'Archiviato il', hasLinkedLogin: 'Accesso collegato', invitation: 'Invito', open: 'aperto fino al', none: 'nessuno', export: 'Esporta tutti i dati (JSON)', exportNote: 'Contiene dati personali; consegnarli solo alla persona verificata. Ogni esportazione viene registrata.' },
 } satisfies Record<Language, Record<string, string>>
 
 type State = MemberDetails | 'loading' | 'denied' | 'not-found' | 'error'
@@ -51,7 +51,14 @@ export function MemberDetailsView({ memberId, language, onClose }: {
       ? `${t.open} ${state.invitation.expiresAt ? new Date(state.invitation.expiresAt).toLocaleString(language) : ''}`.trim()
       : t.none])
     if ('archivedAt' in state && state.archivedAt) rows.push([t.archivedAt, date(state.archivedAt)])
-    body = <dl>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+    body = <>
+      <dl>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+      {/* Only an editor's full read carries a birth date; only editors may export (the server checks again). */}
+      {'dateOfBirth' in state && <p>
+        <a href={memberExportPath(state.id)} download={`member-${state.id}.json`} aria-describedby={`export-note-${state.id}`}>{t.export}</a>{' '}
+        <span id={`export-note-${state.id}`}>{t.exportNote}</span>
+      </p>}
+    </>
   }
 
   const name = typeof state === 'object' ? `${state.firstName} ${state.lastName}` : ''

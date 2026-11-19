@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 import { fetchMemberPage, type Member } from './members'
 import { latestLookup } from './roles'
+import { useEditorAccess } from './editorAccess'
+import { probeGrantAccess } from './grants'
 import { createInvitation, invitationLink, revokeInvitation, unlinkAccount, type Invitation } from './invitations'
 
 const words = {
@@ -20,9 +22,18 @@ export function InvitationAdmin({ language, csrfToken }: { language: Language; c
   const [message, setMessage] = useState<'created' | 'revoked' | 'unlinked' | 'conflict' | null>(null)
   const [error, setError] = useState(false)
   const [denied, setDenied] = useState(false)
+  // Shown only to those who can use it: editors create and revoke invitations (EDIT_MEMBERS), permission
+  // managers unlink accounts (MANAGE_PERMISSIONS). Everyone else never sees the form; the server decides anyway.
+  const editor = useEditorAccess()
+  const [permissions, setPermissions] = useState<'unknown' | 'allowed' | 'denied'>('unknown')
   const [busy, setBusy] = useState(false)
   const lookups = useRef(latestLookup())
   useEffect(() => () => lookups.current.cancel(), [])
+  useEffect(() => {
+    let active = true
+    probeGrantAccess().then(result => { if (active) setPermissions(result) }).catch(() => { if (active) setPermissions('denied') })
+    return () => { active = false }
+  }, [])
 
   function select(id: string) {
     setMemberId(id)
@@ -61,7 +72,7 @@ export function InvitationAdmin({ language, csrfToken }: { language: Language; c
     finally { setBusy(false) }
   }
 
-  if (denied) return null
+  if (denied || (editor !== 'editor' && permissions !== 'allowed')) return null
   return (
     <section aria-label={t.title}>
       <h2>{t.title}</h2>

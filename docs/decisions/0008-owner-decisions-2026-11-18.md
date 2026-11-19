@@ -115,3 +115,12 @@ Asked who operates the Infomaniak demo server (orders the VPS, holds root and th
 | --- | --- | --- |
 | 30 | Demo operator | **The owner** operates the synthetic demo host and runs the [M1 acceptance walkthrough](../deployment/m1-acceptance-walkthrough.md). This replaces "operator not yet chosen" in ADR-0007 and decision 22. |
 | 31 | Hostnames | Open; the runbook keeps `club.example.ch` and `id.example.ch` placeholders. |
+
+## Addendum 10 — member export for editors (2026-11-19)
+
+Offered "the Invitations panel fix" and "proposing the editor export for #26 for your approval", the owner answered **"Ok, lets implement them all"**, which the agent recorded as approval of the export as proposed.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 32 | Member export | Approved as OpenAPI **1.7.0**: `GET /v1/members/{id}/export` for `EDIT_MEMBERS` returns the same complete export as the operator command (own fields, teams, invitation times, grants, guardianships with the other member as an ID only; never the login binding, sessions, other people's names or the audit trail), as a JSON download, audited as `MEMBER_EXPORTED` with the editor as actor. For access and portability requests; retention and notices stay with #12. |
+| 33 | Editor-only panels | *Invitations* and *Guardians* render only for members who can use them (editors; for *Invitations* also permission managers, who unlink). |

@@ -72,6 +72,7 @@ DELETE /v1/members/{memberId}/guardians/{guardianMemberId}
 GET /v1/me/dependents
 GET /v1/me/dependents/{memberId}
 PUT /v1/me/dependents/{memberId}/contacts
+GET /v1/members/{memberId}/export
 """.strip().splitlines())
 
 # A single direct-route pattern avoids interpreting JSON builder put() as an
@@ -108,7 +109,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.6.0"
+FROZEN_VERSION = "1.7.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
