@@ -17,7 +17,7 @@ import java.util.UUID
  * verified access or portability request), produced by an operator (`MemberExportCli`) or, since OpenAPI 1.7.0,
  * by an editor (`GET /api/v1/members/{id}/export`, owner-approved 2026-11-19, ADR-0008 addendum 10). It contains
  * the member's own stored fields, their team assignments, their invitation timestamps, their grants and their
- * guardianships (the other member only as an ID, with the date). It deliberately leaves out the login binding
+ * guardianships (the other member only as an ID, with the date), membership fees (since OpenAPI 1.12.0). It deliberately leaves out the login binding
  * (issuer and subject), sessions, other people's names and contacts, and the audit trail, whose actor identifiers
  * belong to other people; whether a login is linked is reported only as a yes or no. The read and its
  * `MEMBER_EXPORTED` audit event happen in one transaction, so every export that produced data is audited. Active,
@@ -75,6 +75,12 @@ internal class MemberExport(private val database: DSLContext) {
                    SELECT 'guardedBy', guardian_member_id, created_at FROM member_guardianships WHERE minor_member_id = ?
                    ORDER BY 1, 3, 2""", memberId, memberId)
 
+            // Membership fees (OpenAPI 1.12.0): the member's own fee rows, with the period name and due date.
+            val fees = db.fetch(
+                """SELECT p.id, p.name, p.due_date, f.amount_cents, f.paid_on
+                   FROM member_fees f JOIN fee_periods p ON p.id = f.period_id
+                   WHERE f.member_id = ? ORDER BY p.due_date, p.name, p.id""", memberId)
+
             val invitations = db.fetch(
                 "SELECT created_at, expires_at, used_at, revoked_at FROM member_invitations WHERE member_id = ? ORDER BY created_at, id",
                 memberId)
@@ -113,6 +119,15 @@ internal class MemberExport(private val database: DSLContext) {
                         add(buildJsonObject {
                             put("relation", it.get(0).toString()); put("memberId", it.get(1).toString())
                             put("since", it.get(2).toString())
+                        })
+                    }
+                })
+                put("fees", buildJsonArray {
+                    fees.forEach {
+                        add(buildJsonObject {
+                            put("periodId", it.get(0).toString()); put("periodName", it.get(1).toString())
+                            put("dueDate", it.get(2).toString()); put("amountCents", it.get(3, Int::class.java))
+                            put("paidOn", it.get(4)?.toString()?.let(::JsonPrimitive) ?: JsonNull)
                         })
                     }
                 })

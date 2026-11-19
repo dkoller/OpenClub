@@ -1,10 +1,10 @@
 import { readItems } from './api'
 
 export type Scope = 'CLUB' | 'TEAM'
-export type Capability = 'VIEW_MEMBER_DIRECTORY' | 'EDIT_MEMBERS' | 'VIEW_TEAMS' | 'MANAGE_TEAMS' | 'MANAGE_PERMISSIONS'
+export type Capability = 'VIEW_MEMBER_DIRECTORY' | 'EDIT_MEMBERS' | 'VIEW_TEAMS' | 'MANAGE_TEAMS' | 'MANAGE_PERMISSIONS' | 'MANAGE_FEES'
 export type Grant = { capability: string; scope: Scope; teamId?: string }
 
-export const capabilities: Capability[] = ['VIEW_MEMBER_DIRECTORY', 'EDIT_MEMBERS', 'VIEW_TEAMS', 'MANAGE_TEAMS', 'MANAGE_PERMISSIONS']
+export const capabilities: Capability[] = ['VIEW_MEMBER_DIRECTORY', 'EDIT_MEMBERS', 'VIEW_TEAMS', 'MANAGE_TEAMS', 'MANAGE_PERMISSIONS', 'MANAGE_FEES']
 const teamCapabilities: Capability[] = ['VIEW_TEAMS', 'MANAGE_TEAMS']
 
 /** Only team capabilities can be delegated to one team; the server enforces the same rule. */

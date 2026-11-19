@@ -365,7 +365,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/^member-[0-9a-f-]{36}\.json$/);
   const exported = JSON.parse(readFileSync(await file.path(), 'utf8'));
-  expect(Object.keys(exported).sort()).toEqual(['clubGrants', 'exportedAt', 'guardianships', 'invitations', 'member', 'teamGrants', 'teams']);
+  expect(Object.keys(exported).sort()).toEqual(['clubGrants', 'exportedAt', 'fees', 'guardianships', 'invitations', 'member', 'teamGrants', 'teams']);
   expect(exported.member.firstName).toBe('Mara');
   expect(exported.member).not.toHaveProperty('accountId');
   await maraDetails.getByRole('button', { name: 'Close' }).click();
@@ -599,6 +599,24 @@ test('verified login gains club access only after restricted operator bootstrap'
   await juniors.getByRole('button', { name: 'Close schedule' }).click();
   await expect(schedule).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'My schedule' }).getByText('No events in the next eight weeks.')).toBeVisible();
+
+  // Membership fees (OpenAPI 1.12.0): the first administrator holds MANAGE_FEES from the bootstrap. A new period
+  // includes every active member; marking Mara's fee paid updates the totals; the administrator sees their own fee.
+  const feeAdmin = page.getByRole('region', { name: 'Membership fees' });
+  await feeAdmin.getByLabel('Name').fill('Season 2026/27');
+  await feeAdmin.getByLabel('Due date').fill('2026-12-31');
+  await feeAdmin.getByLabel('Amount (CHF)').fill('150');
+  await feeAdmin.getByRole('button', { name: 'Create period' }).click();
+  const season = feeAdmin.getByRole('listitem').filter({ hasText: 'Season 2026/27' });
+  await expect(season).toContainText(/0 of \d+ paid/);
+  await season.getByRole('button', { name: 'Open' }).click();
+  const maraFee = feeAdmin.getByRole('region', { name: 'Season 2026/27' }).getByRole('row').filter({ hasText: 'Demo Mara' });
+  await expect(maraFee).toContainText('150.00');
+  await maraFee.getByRole('button', { name: 'Mark paid' }).click();
+  await expect(maraFee).toContainText('Paid on');
+  await expect(season).toContainText(/1 of \d+ paid/);
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'My fees' })).toContainText('Season 2026/27');
 
   const permissionAdmin = page.getByRole('region', { name: 'Manage permissions' });
   // Superseded permission-member lookups must not replace newer selection/grants.

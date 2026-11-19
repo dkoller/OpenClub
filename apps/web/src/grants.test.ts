@@ -10,6 +10,8 @@ describe('grant scope rules', () => {
   it('resets a club-only capability when switching to team scope', () => {
     expect(capabilityForScope('TEAM', 'MANAGE_PERMISSIONS')).toBe('VIEW_TEAMS')
     expect(capabilityForScope('TEAM', 'EDIT_MEMBERS')).toBe('VIEW_TEAMS')
+    expect(capabilityForScope('TEAM', 'MANAGE_FEES')).toBe('VIEW_TEAMS')
+    expect(capabilityChoices('CLUB')).toContain('MANAGE_FEES')
     expect(capabilityForScope('TEAM', 'MANAGE_TEAMS')).toBe('MANAGE_TEAMS')
     expect(capabilityForScope('CLUB', 'MANAGE_TEAMS')).toBe('MANAGE_TEAMS')
   })

@@ -66,6 +66,7 @@ what they hold; *Revoke* removes one. A change applies to the member's next acti
 | `VIEW_TEAMS` | Seeing teams, their members and their schedules (club-wide or one team) |
 | `MANAGE_TEAMS` | Managing teams, assignments and schedules, and reading the contacts of active team members (club-wide or one team) |
 | `MANAGE_PERMISSIONS` | Granting and revoking permissions; with the *Administrator* role also unlinking sign-ins |
+| `MANAGE_FEES` | Managing membership fees (club-wide only) |
 
 *Manage club roles* switches a member between *Member* and *Administrator*. The last administrator cannot be demoted.
 
@@ -88,6 +89,18 @@ Minors and archived members cannot be invited, and an administrator's sign-in ca
    reaches the club's adult age, or when either person is archived or the guardian's sign-in is unlinked.
 
 Being a guardian gives no other permission in the club.
+
+### Membership fees (*Membership fees*, permission `MANAGE_FEES`)
+
+Tracking only: OpenClub records who paid, it does not collect money.
+
+- **New period:** *Name* (for example "Season 2026/27"), *Due date* and *Amount (CHF)*, then *Create period*. Every
+  active member gets a fee at that amount. The list shows each period with how many paid and the amounts.
+- **Open** a period to see the fees; *Show* filters *All*, *Open*, *Paid* or *Excluded*. Per member: *Mark paid*
+  (today) or *Mark unpaid*, *Change amount* (for example a reduced fee), *Exclude* (for example an honorary member),
+  and for excluded members *Include*. Archived members keep their fee and can still be marked paid.
+- *Delete period* removes the period with all its fees; type its name to confirm.
+- Every change is recorded in the audit trail. Fees are part of a member's data export.
 
 ### Club settings
 
@@ -120,6 +133,9 @@ its public member list (adults by full name, minors by first name and surname in
 teams if you are a guardian (marked *For* and the child's name). Answer *Yes*, *No* or *Maybe* for each event until
 it starts; choosing your answer again clears it. You see the totals, but never other members' answers.
 
+**My fees** lists your membership fees with amount, due date and whether they are paid (and your children's, if you
+are a guardian). Questions about a fee go to the club's treasurer.
+
 **My profile** shows what the club stores about you: name, date of birth, gender (if recorded), whether you play,
 your role and your teams. Change your *Email* and *Phone* there and choose *Save contacts*; adults need both. Other
 details are changed by the club administration. If the club changed your record while the page was open, nothing is
@@ -134,6 +150,7 @@ If the club recorded you as a guardian, *My children* appears after you sign in.
   the child, and nothing about other members, can be seen or changed here.
 - *My schedule* also lists the trainings and events of the child's teams, marked *For* and the child's first name,
   and you answer for the child there.
+- *My fees* also lists the child's membership fees, marked *for* and the child's first name.
 - If the child reaches the club's adult age, or the club removes you as guardian, the child disappears from the list
   and from your schedule.
 
