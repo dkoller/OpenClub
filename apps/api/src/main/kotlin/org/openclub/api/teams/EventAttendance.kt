@@ -45,7 +45,10 @@ internal class EventAttendance(private val database: DSLContext) {
                  AND (target.id = me.id OR EXISTS (
                        SELECT 1 FROM member_guardianships gs JOIN members guardian ON guardian.id = gs.guardian_member_id
                        WHERE gs.minor_member_id = target.id AND gs.guardian_member_id = me.id
-                         AND ${AgeSql.adult("guardian")} AND ${AgeSql.minor("target")})))"""
+                         AND ${AgeSql.adult("guardian")} AND ${AgeSql.minor("target")}))
+               -- Locks the assignment: a concurrent unassign either waits for this answer (and its trigger then
+               -- removes it) or commits first (and this answer is refused).
+               FOR SHARE OF a)"""
 
     fun answer(actor: UUID, eventId: UUID, memberId: UUID, response: Response): Change {
         val changed = database.fetch(
@@ -75,7 +78,10 @@ internal class EventAttendance(private val database: DSLContext) {
     fun list(actor: UUID, eventId: UUID): Listing {
         val access = database.fetchOne(
             "SELECT ${ActorSql.holdsTeamCapability("e.team_id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)} FROM team_events e WHERE e.id = ?",
-            actor, eventId) ?: return Listing.NotFound
+            actor, eventId) ?: return if (database.fetchOne(
+                """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
+                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS') LIMIT 1""",
+                actor) != null) Listing.NotFound else Listing.Denied
         if (access.get(0, Boolean::class.java) != true) return Listing.Denied
         val answers = database.fetch(
             """SELECT CASE WHEN ${AgeSql.minor("m")}
@@ -99,8 +105,11 @@ internal class EventAttendance(private val database: DSLContext) {
     companion object {
         /** SQL columns `yes_count`, `no_count`, `maybe_count` for the event aliased `e`. Binds nothing. */
         const val COUNTS = """
-            (SELECT count(*) FROM event_attendance ea WHERE ea.event_id = e.id AND ea.response = 'YES') AS yes_count,
-            (SELECT count(*) FROM event_attendance ea WHERE ea.event_id = e.id AND ea.response = 'NO') AS no_count,
-            (SELECT count(*) FROM event_attendance ea WHERE ea.event_id = e.id AND ea.response = 'MAYBE') AS maybe_count"""
+            (SELECT count(*) FROM event_attendance ea JOIN member_team_assignments ta ON ta.team_id = e.team_id AND ta.member_id = ea.member_id
+             WHERE ea.event_id = e.id AND ea.response = 'YES') AS yes_count,
+            (SELECT count(*) FROM event_attendance ea JOIN member_team_assignments ta ON ta.team_id = e.team_id AND ta.member_id = ea.member_id
+             WHERE ea.event_id = e.id AND ea.response = 'NO') AS no_count,
+            (SELECT count(*) FROM event_attendance ea JOIN member_team_assignments ta ON ta.team_id = e.team_id AND ta.member_id = ea.member_id
+             WHERE ea.event_id = e.id AND ea.response = 'MAYBE') AS maybe_count"""
     }
 }

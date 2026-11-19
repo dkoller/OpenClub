@@ -45,6 +45,11 @@ application {
 
 tasks.test {
     useJUnitPlatform()
+    // Print the assertion message of a failing test in CI, not only its location.
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
     // Integration tests depend on the live PostgreSQL service, which is not a task
     // input: never restore their result from the build cache, always run them.
     outputs.cacheIf("PostgreSQL-backed tests must always execute") { false }

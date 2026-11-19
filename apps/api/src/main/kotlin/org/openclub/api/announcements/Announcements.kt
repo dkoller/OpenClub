@@ -1,6 +1,7 @@
 package org.openclub.api.announcements
 
 import org.jooq.DSLContext
+import org.jooq.exception.DataAccessException
 import org.openclub.api.members.ActorSql
 import org.openclub.api.members.AgeSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
@@ -88,14 +89,27 @@ internal class Announcements(private val database: DSLContext) {
         return Page(items, audiences)
     }
 
+    /** Club-wide holders may learn that a team or announcement does not exist; team-scoped ones get 403 instead. */
+    private fun clubWide(actor: UUID): Boolean = database.fetchOne(
+        """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
+           WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability IN ('MANAGE_TEAMS', 'POST_ANNOUNCEMENTS') LIMIT 1""",
+        actor) != null
+
     fun create(actor: UUID, teamId: UUID?, title: String, body: String, showUntil: LocalDate): Created {
-        if (teamId != null && database.fetchOne("SELECT 1 FROM teams WHERE id = ?", teamId) == null) return Created.NotFound
+        if (teamId != null && database.fetchOne("SELECT 1 FROM teams WHERE id = ?", teamId) == null) {
+            return if (clubWide(actor)) Created.NotFound else Created.Denied
+        }
         val id = UUID.randomUUID()
-        val created = database.execute(
+        val created = try { database.execute(
             """INSERT INTO announcements (id, team_id, title, body, show_until)
                SELECT ?, t.team_id, ?, ?, ?::date FROM (SELECT ?::uuid AS team_id) t
                WHERE ${manages("t.team_id")}""",
             id, title, body, showUntil.toString(), teamId, actor, actor) == 1
+        } catch (failure: DataAccessException) {
+            // The team was deleted after the check above.
+            if (failure.sqlState() == "23503") return if (clubWide(actor)) Created.NotFound else Created.Denied
+            throw failure
+        }
         return if (created) Created.Done(id) else Created.Denied
     }
 
@@ -103,14 +117,17 @@ internal class Announcements(private val database: DSLContext) {
         val changed = database.execute(
             """UPDATE announcements an SET title = ?, body = ?, show_until = ?::date, updated_at = now()
                WHERE an.id = ? AND ${manages("an.team_id")}""", title, body, showUntil.toString(), id, actor, actor) == 1
-        return if (changed) Change.DONE else missing(id)
+        return if (changed) Change.DONE else missing(id, actor)
     }
 
     fun delete(actor: UUID, id: UUID): Change {
         val deleted = database.execute("DELETE FROM announcements an WHERE an.id = ? AND ${manages("an.team_id")}", id, actor, actor) == 1
-        return if (deleted) Change.DONE else missing(id)
+        return if (deleted) Change.DONE else missing(id, actor)
     }
 
-    private fun missing(id: UUID) =
-        if (database.fetchOne("SELECT 1 FROM announcements WHERE id = ?", id) != null) Change.DENIED else Change.NOT_FOUND
+    private fun missing(id: UUID, actor: UUID) = when {
+        database.fetchOne("SELECT 1 FROM announcements WHERE id = ?", id) != null -> Change.DENIED
+        clubWide(actor) -> Change.NOT_FOUND
+        else -> Change.DENIED
+    }
 }

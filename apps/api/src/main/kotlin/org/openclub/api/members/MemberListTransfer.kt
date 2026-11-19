@@ -1,5 +1,8 @@
 package org.openclub.api.members
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import java.time.LocalDate
@@ -34,8 +37,10 @@ internal class MemberListTransfer(private val database: DSLContext) {
         val club = db.fetchOne("SELECT adult_age_years, gender_required_for_players FROM clubs LIMIT 1")
             ?: return@transactionResult null
         val rows = MemberCsv.rows(table, club.get(0, Int::class.java), club.get(1, Boolean::class.java), LocalDate.now())
-        val existing = db.fetch("SELECT lower(first_name), lower(last_name), date_of_birth FROM members").map {
-            Triple(it.get(0, String::class.java), it.get(1, String::class.java), it.get(2, LocalDate::class.java))
+        // Lowercased in Kotlin, exactly like the file's rows, whatever the database collation.
+        val existing = db.fetch("SELECT first_name, last_name, date_of_birth FROM members").map {
+            Triple(it.get(0, String::class.java).lowercase(Locale.ROOT), it.get(1, String::class.java).lowercase(Locale.ROOT),
+                it.get(2, LocalDate::class.java))
         }.toSet()
         val checked = rows.map { row ->
             val key = row.dateOfBirth?.let { Triple(row.firstName.lowercase(Locale.ROOT), row.lastName.lowercase(Locale.ROOT), it) }
@@ -61,8 +66,8 @@ internal class MemberListTransfer(private val database: DSLContext) {
         if (!lockEditor(db, actor)) return@transactionResult null
         val rows = db.fetch(
             """SELECT m.id, m.first_name, m.last_name, m.date_of_birth, m.email, m.phone, m.gender, m.is_player, m.role,
-                      COALESCE((SELECT string_agg(t.name, '|' ORDER BY t.name) FROM member_team_assignments a
-                                JOIN teams t ON t.id = a.team_id WHERE a.member_id = m.id), '') AS teams
+                      COALESCE((SELECT json_agg(t.name ORDER BY t.name) FROM member_team_assignments a
+                                JOIN teams t ON t.id = a.team_id WHERE a.member_id = m.id), '[]')::text AS teams
                FROM members m WHERE m.archived_at IS NULL
                ORDER BY m.last_name, m.first_name, m.id""")
         db.execute(
@@ -74,7 +79,7 @@ internal class MemberListTransfer(private val database: DSLContext) {
                 it.get("date_of_birth", LocalDate::class.java), it.get("email", String::class.java),
                 it.get("phone", String::class.java), it.get("gender", String::class.java),
                 it.get("is_player", Boolean::class.java), it.get("role", String::class.java),
-                it.get("teams", String::class.java).split('|').filter(String::isNotEmpty))
+                Json.parseToJsonElement(it.get("teams", String::class.java)).jsonArray.map { team -> team.jsonPrimitive.content })
         })
     }
 }

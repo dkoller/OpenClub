@@ -150,7 +150,9 @@ internal class MembershipFees(private val database: DSLContext) {
         database.transactionResult { configuration ->
             val db = DSL.using(configuration)
             if (!lockManager(db, actor)) return@transactionResult Change.DENIED
-            if (db.fetchOne("SELECT 1 FROM fee_periods WHERE id = ? FOR SHARE", periodId) == null) return@transactionResult Change.NOT_FOUND
+            // FOR NO KEY UPDATE serializes changes within one period (two first-time sets cannot both insert), without
+            // blocking the foreign-key checks of the fee rows.
+            if (db.fetchOne("SELECT 1 FROM fee_periods WHERE id = ? FOR NO KEY UPDATE", periodId) == null) return@transactionResult Change.NOT_FOUND
             val member = db.fetchOne("SELECT archived_at IS NOT NULL FROM members WHERE id = ? FOR SHARE", memberId)
                 ?: return@transactionResult Change.NOT_FOUND
             val current = db.fetchOne(

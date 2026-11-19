@@ -89,7 +89,7 @@ internal fun Application.installTeamEventHttpRoutes(
                 }
                 val team = call.uuid("teamId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 val (input, starts) = try {
-                    val body = call.receiveJsonObject(EVENT_FIELDS, OPTIONAL_FIELDS + setOf("repeatWeeklyUntil", "timeZone"))
+                    val body = call.receiveJsonObject(EVENT_FIELDS, OPTIONAL_FIELDS + setOf("repeatWeeklyUntil", "timeZone"), EVENT_BODY)
                     val input = body.eventInput()
                     val until = body.optionalText("repeatWeeklyUntil")?.let(LocalDate::parse)
                     val zone = body.optionalText("timeZone")?.let(ZoneId::of)
@@ -116,7 +116,7 @@ internal fun Application.installTeamEventHttpRoutes(
                 }
                 val event = call.uuid("eventId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 val (input, cancelled) = try {
-                    val body = call.receiveJsonObject(EVENT_FIELDS + "cancelled", OPTIONAL_FIELDS)
+                    val body = call.receiveJsonObject(EVENT_FIELDS + "cancelled", OPTIONAL_FIELDS, EVENT_BODY)
                     val cancelled = body["cancelled"] as? JsonPrimitive
                     require(cancelled != null && !cancelled.isString && cancelled.content in setOf("true", "false")) { "Expected a boolean" }
                     body.eventInput() to (cancelled.content == "true")
@@ -169,6 +169,8 @@ internal fun Application.installTeamEventHttpRoutes(
 }
 
 private val EVENT_FIELDS = setOf("kind", "title", "startsAt", "endsAt")
+/** Notes of 2,000 characters and a 200-character title and place can exceed 4 KiB as JSON. */
+private const val EVENT_BODY = 16 * 1024
 private val OPTIONAL_FIELDS = setOf("location", "notes")
 private val EARLIEST = OffsetDateTime.parse("2000-01-01T00:00:00Z")
 private val LATEST = OffsetDateTime.parse("2100-01-01T00:00:00Z")
