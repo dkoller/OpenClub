@@ -35,7 +35,8 @@ alone allows nothing, and each panel needs its permission (see *Permissions* bel
   their data. The file contains personal data: give it only to the verified person, then delete it. Every export is
   recorded.
 - **Edit:** *Edit* opens a form with all current values; change what you need and *Save*. Values you did not change
-  stay as they are.
+  stay as they are. If someone else changed the member while your form was open (for example a guardian updating a
+  phone number), nothing is saved and you are asked to edit again, so their change is not overwritten.
 - **Archive:** *Archive*, then *Confirm archive*. Archived members disappear from lists and lose their permissions,
   team places and guardianships. Only members with the *Member* role and no linked sign-in can be archived: unlink
   their sign-in first (see *Invitations*). Right after archiving, *Undo archive* brings them back.

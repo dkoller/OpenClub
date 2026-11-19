@@ -124,3 +124,13 @@ Offered "the Invitations panel fix" and "proposing the editor export for #26 for
 | --- | --- | --- |
 | 32 | Member export | Approved as OpenAPI **1.7.0**: `GET /v1/members/{id}/export` for `EDIT_MEMBERS` returns the same complete export as the operator command (own fields, teams, invitation times, grants, guardianships with the other member as an ID only; never the login binding, sessions, other people's names or the audit trail), as a JSON download, audited as `MEMBER_EXPORTED` with the editor as actor. For access and portability requests; retention and notices stay with #12. |
 | 33 | Editor-only panels | *Invitations* and *Guardians* render only for members who can use them (editors; for *Invitations* also permission managers, who unlink). |
+
+## Addendum 11 — conditional member replacement (2026-11-19)
+
+An independent security review of PRs #342–#351 noted that `PUT /v1/members/{id}` had no `If-Match`, so an editor's
+stale form could silently overwrite a guardian's contact update. Asked whether to add the version check (a contract
+change), the owner answered **"Yes"**.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 34 | Conditional replacement | Approved as OpenAPI **1.8.0**: every member row has a version (V21) that every change advances. The editor's `GET /v1/members/{id}/details` returns it as a strong `ETag`; `PUT /v1/members/{id}` requires it in `If-Match` (428 when missing; 412 `changed`, with nothing changed, for any other value) and returns the new `ETag`. A team manager's read carries no version. The UI tells the editor to edit again. No other route changes. |

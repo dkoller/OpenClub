@@ -56,24 +56,40 @@ export function parseMemberDetails(value: unknown): MemberDetails {
   return body as MemberDetails
 }
 
+async function readDetails(memberId: string, signal: AbortSignal | undefined, request: typeof fetch) {
+  const response = await request(memberDetailsPath(memberId),
+    { credentials: 'same-origin', cache: 'no-store', ...(signal ? { signal } : {}) })
+  if (response.status === 401 || response.status === 403) return 'denied' as const
+  if (response.status === 404) return 'not-found' as const
+  if (!response.ok) throw new Error('Details unavailable')
+  return { details: parseMemberDetails(await response.json()), version: response.headers.get('ETag') }
+}
+
 /** 401/403 is 'denied' (also for members outside the caller's teams), 404 'not-found'; anything else throws. */
 export async function fetchMemberDetails(memberId: string, signal?: AbortSignal,
   request: typeof fetch = fetch): Promise<MemberDetails | Denied | 'not-found'> {
-  const response = await request(memberDetailsPath(memberId),
-    { credentials: 'same-origin', cache: 'no-store', ...(signal ? { signal } : {}) })
-  if (response.status === 401 || response.status === 403) return 'denied'
-  if (response.status === 404) return 'not-found'
-  if (!response.ok) throw new Error('Details unavailable')
-  return parseMemberDetails(await response.json())
+  const read = await readDetails(memberId, signal, request)
+  return typeof read === 'string' ? read : read.details
 }
 
-export type EditOutcome = 'ok' | Denied | 'invalid' | 'not-found' | 'conflict'
+/** An editor's read for the edit form, with the version (ETag, OpenAPI 1.8.0) the replacement must send back. */
+export async function fetchMemberForEdit(memberId: string, request: typeof fetch = fetch):
+  Promise<{ details: MemberDetails; version: string } | Denied | 'not-found'> {
+  const read = await readDetails(memberId, undefined, request)
+  if (typeof read === 'string') return read
+  if (!read.version) throw new Error('No version')
+  return { details: read.details, version: read.version }
+}
+
+/** 'changed': the member was changed by someone else after it was read (412); read it again before saving. */
+export type EditOutcome = 'ok' | Denied | 'invalid' | 'not-found' | 'conflict' | 'changed'
 
 async function memberWrite(path: string, method: 'PUT' | 'POST', csrfToken: string, body: object | undefined,
-  request: typeof fetch): Promise<EditOutcome> {
+  request: typeof fetch, ifMatch?: string): Promise<EditOutcome> {
   const response = await request(path, {
     method, credentials: 'same-origin',
-    headers: { 'X-CSRF-Token': csrfToken, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    headers: { 'X-CSRF-Token': csrfToken, ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(ifMatch ? { 'If-Match': ifMatch } : {}) },
     ...(body ? { body: JSON.stringify(body) } : {}),
   })
   if (response.ok) return 'ok'
@@ -81,15 +97,18 @@ async function memberWrite(path: string, method: 'PUT' | 'POST', csrfToken: stri
   if (response.status === 400) return 'invalid'
   if (response.status === 404) return 'not-found'
   if (response.status === 409) return 'conflict'
+  if (response.status === 412) return 'changed'
   throw new Error('Request failed')
 }
 
 /**
- * PUT /api/v1/members/{id} (OpenAPI 1.4.0) replaces every editable field: an omitted contact or gender is
- * cleared. Build the body only from a form that was filled from [fetchMemberDetails], never from guesses.
+ * PUT /api/v1/members/{id} (OpenAPI 1.4.0, conditional since 1.8.0) replaces every editable field: an omitted
+ * contact or gender is cleared. Build the body only from a form filled from [fetchMemberForEdit], and send that
+ * read's version, so a change made in between is refused ('changed') instead of overwritten.
  */
-export function replaceMember(memberId: string, body: object, csrfToken: string, request: typeof fetch = fetch) {
-  return memberWrite('/api/v1/members/' + encodeURIComponent(memberId), 'PUT', csrfToken, body, request)
+export function replaceMember(memberId: string, body: object, version: string, csrfToken: string,
+  request: typeof fetch = fetch) {
+  return memberWrite('/api/v1/members/' + encodeURIComponent(memberId), 'PUT', csrfToken, body, request, version)
 }
 
 /** POST /api/v1/members/{id}/reactivate: 'conflict' means the record no longer fits the club's current policy. */

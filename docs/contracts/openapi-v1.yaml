@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
   title: OpenClub single-club management API — synthetic M1
-  version: 1.7.0
+  version: 1.8.0
   description: >
     Frozen contract for the implemented synthetic M1 HTTP surface, accepted by
     the owner on 2026-11-17 (ADR-0007, #13). 1.1.0 adds the per-club adult-age
     setting (PATCH /v1/club/adult-age-policy and adultAgeYears in GET /v1/club, #17). 1.2.0 adds invitations
     and account unlinking (owner-approved 2026-11-18, ADR-0008 addendum 4): create and revoke an invitation,
-    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). It contains exactly the operations
+    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). It contains exactly the operations
     registered in Ktor and checked by `dev/verify-m1-openapi.py`. Authentication
     routes (/v1/auth) are documented separately in auth-api-proposal.yaml.
     Version 1.0.0 covers synthetic data only. It does not approve real member
@@ -391,8 +391,18 @@ paths:
         fields. The database rules stay authoritative: an adult (club adult age) needs email and
         phone, and a player needs a gender when the club policy requires it; a violation is 400.
         Unknown or archived members are 404. Audited as MEMBER_UPDATED (identifiers only).
+        Since 1.8.0 the replacement is conditional: If-Match must carry exactly the ETag of the
+        caller's GET /v1/members/{memberId}/details (or of a previous replacement), so a change made
+        in between, such as a guardian's contact update, is never silently overwritten. Missing
+        If-Match is 428; a different, malformed, weak or wildcard value is 412 with code "changed"
+        and nothing changes. Session, Origin/CSRF, the grant and the body are checked first.
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
+        - name: If-Match
+          in: header
+          required: true
+          description: The member's ETag from the editor's detail read, for example "7"
+          schema: { type: string, pattern: '^"[1-9][0-9]{0,18}"$' }
       requestBody:
         required: true
         content:
@@ -402,6 +412,10 @@ paths:
       responses:
         '204':
           description: Member updated; never echo private fields
+          headers:
+            ETag:
+              description: The member's new version, for a further replacement
+              schema: { type: string }
         '400':
           $ref: '#/components/responses/Invalid'
         '401':
@@ -410,6 +424,16 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '412':
+          description: The member changed since the caller read it (code "changed"); read it again
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '428':
+          description: If-Match is missing
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '503':
           $ref: '#/components/responses/Unavailable'
   /v1/members/{memberId}/archive:
@@ -991,10 +1015,16 @@ paths:
         MANAGE_TEAMS for a team the member belongs to receives only names, email, phone and isPlayer,
         and only for ACTIVE members of that team; an unknown, archived or out-of-team member is 403. Every other caller gets 403. Authorization is decided before
         the path is validated. Each contact read by a team manager writes a CONTACT_READ audit event
-        (identifiers only). Responses are never cacheable (Cache-Control: no-store).
+        (identifiers only). Responses are never cacheable (Cache-Control: no-store). Since 1.8.0 an
+        editor's read carries the member's version as an ETag, required by PUT /v1/members/{memberId}
+        in If-Match; a team manager's read has none.
       responses:
         '200':
           description: The fields the caller may read
+          headers:
+            ETag:
+              description: The member's version (editors only), for If-Match on the replacement
+              schema: { type: string }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MemberDetails' }

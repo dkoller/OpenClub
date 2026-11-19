@@ -4,12 +4,16 @@ import io.ktor.client.request.header
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.jooq.DSLContext
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.*
@@ -105,17 +109,23 @@ class MemberReplaceAndReactivateHttpTest {
     private suspend fun ApplicationTestBuilder.send(
         method: HttpMethod, path: String, handle: String?, body: String? = null,
         contentType: String? = "application/json", withOrigin: String? = origin, withCsrf: String? = csrf,
+        ifMatch: String? = null,
     ): HttpResponse = client.request(path) {
         this.method = method
+        if (ifMatch != null) header(HttpHeaders.IfMatch, ifMatch)
         if (handle != null) header(HttpHeaders.Cookie, "${cookies.sessionName}=$handle")
         if (withOrigin != null) header(HttpHeaders.Origin, withOrigin)
         if (withCsrf != null) header("X-CSRF-Token", withCsrf)
         if (body != null) { if (contentType != null) header(HttpHeaders.ContentType, contentType); setBody(body) }
     }
 
+    /** The member's current version as its ETag; an unknown or malformed ID gets a well-formed placeholder. */
+    private fun currentETag(id: Any): String = "\"" + ((runCatching { UUID.fromString(id.toString()) }.getOrNull()
+        ?.let { sql { db -> db.fetchValue("SELECT row_version FROM members WHERE id = ?", it) } } as Number?)?.toLong() ?: 1L) + "\""
+
     private suspend fun ApplicationTestBuilder.replace(id: Any, handle: String?, body: String?, withOrigin: String? = origin,
-                                                       withCsrf: String? = csrf) =
-        send(HttpMethod.Put, "/api/v1/members/$id", handle, body, withOrigin = withOrigin, withCsrf = withCsrf)
+                                                       withCsrf: String? = csrf, ifMatch: String? = currentETag(id)) =
+        send(HttpMethod.Put, "/api/v1/members/$id", handle, body, withOrigin = withOrigin, withCsrf = withCsrf, ifMatch = ifMatch)
 
     private suspend fun ApplicationTestBuilder.reactivate(id: Any, handle: String?, withOrigin: String? = origin,
                                                           withCsrf: String? = csrf) =
@@ -210,6 +220,44 @@ class MemberReplaceAndReactivateHttpTest {
         // Archived and unknown members are 404.
         assertEquals(HttpStatusCode.NotFound, replace(member(archived = true), "editor", adultBody).status)
         assertEquals(HttpStatusCode.NotFound, replace(UUID.randomUUID(), "editor", adultBody).status)
+    }
+
+    @Test
+    fun aReplacementAppliesOnlyToTheVersionTheEditorRead() = app {
+        val target = member()
+        val details = send(HttpMethod.Get, "/api/v1/members/$target/details", "editor", withOrigin = null, withCsrf = null)
+        assertEquals(HttpStatusCode.OK, details.status)
+        val read = requireNotNull(details.headers[HttpHeaders.ETag]) { "an editor's read carries the version" }
+        assertEquals(currentETag(target), read)
+
+        // Missing is 428; malformed, a wildcard or another version is 412; none of them changes or audits anything.
+        val check = Check()
+        check.expect("no If-Match", replace(target, "editor", adultBody, ifMatch = null), HttpStatusCode.PreconditionRequired)
+        for (value in listOf("*", "abc", "W/$read", "\"0\"", "\"-1\"", "\"99999999999999999999\"", "\"999\"")) {
+            check.expect("If-Match $value", replace(target, "editor", adultBody, ifMatch = value), HttpStatusCode.PreconditionFailed)
+        }
+        // Authorization and validation still come first.
+        check.expect("no grant", replace(target, "plain", adultBody, ifMatch = null), HttpStatusCode.Forbidden)
+        check.expect("bad body", replace(target, "editor", "[]", ifMatch = null), HttpStatusCode.BadRequest)
+        check.done()
+        assertEquals("Edit", sql { it.fetchValue("SELECT first_name FROM members WHERE id = ?", target) })
+        assertEquals(0, count("SELECT COUNT(*) FROM audit_events WHERE event_type = 'MEMBER_UPDATED' AND target_member_id = ?", target))
+
+        // A change in between, here a guardian-style contact update, makes the editor's version stale.
+        sql { it.execute("UPDATE members SET phone = '+41000000099' WHERE id = ?", target) }
+        val stale = replace(target, "editor", adultBody, ifMatch = read)
+        assertEquals(HttpStatusCode.PreconditionFailed, stale.status)
+        assertEquals("changed", Json.parseToJsonElement(stale.bodyAsText()).jsonObject["code"]!!.jsonPrimitive.content)
+        assertEquals("+41000000099", sql { it.fetchValue("SELECT phone FROM members WHERE id = ?", target) })
+
+        // With the current version it applies and returns the next one, which then works once.
+        val saved = replace(target, "editor", adultBody)
+        assertEquals(HttpStatusCode.NoContent, saved.status)
+        val next = requireNotNull(saved.headers[HttpHeaders.ETag])
+        assertEquals(currentETag(target), next)
+        assertEquals(HttpStatusCode.NoContent, replace(target, "editor", adultBody, ifMatch = next).status)
+        assertEquals(HttpStatusCode.PreconditionFailed, replace(target, "editor", adultBody, ifMatch = next).status)
+        assertEquals(2, count("SELECT COUNT(*) FROM audit_events WHERE event_type = 'MEMBER_UPDATED' AND target_member_id = ?", target))
     }
 
     @Test

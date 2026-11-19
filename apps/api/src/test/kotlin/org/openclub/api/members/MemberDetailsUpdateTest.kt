@@ -49,15 +49,23 @@ class MemberDetailsUpdateTest {
                     "changed@example.invalid", "+41000000001", "Other",
                     true,
                 )
-                assertFalse(service.update(account, target, update))
-                assertFalse(service.update(outsider, target, update))
+                assertFalse(service.replace(db, account, target, update))
+                assertFalse(service.replace(db, outsider, target, update))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'EDIT_MEMBERS')", editor)
-                assertFalse(service.update(account, target, update))
+                assertFalse(service.replace(db, account, target, update))
                 assertFalse(service.updateNames(account, target, "Denied", "Unverified"))
                 db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
                     VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
                     UUID.randomUUID(), account, "member-edit-" + account)
-                assertTrue(service.update(account, target, update))
+                assertTrue(service.replace(db, account, target, update))
+                // A replacement based on an older version changes nothing (OpenAPI 1.8.0).
+                val current = (db.fetchValue("SELECT row_version FROM members WHERE id = ?", target) as Number).toLong()
+                assertEquals(MemberDetailsUpdate.Replaced.Changed,
+                    service.update(account, target, update.copy(firstName = "Stale"), current - 1))
+                assertEquals(MemberDetailsUpdate.Replaced.NotFound,
+                    service.update(account, UUID.randomUUID(), update, 1))
+                assertEquals(MemberDetailsUpdate.Replaced.Denied, service.update(outsider, target, update, current))
+                assertEquals(current, (db.fetchValue("SELECT row_version FROM members WHERE id = ?", target) as Number).toLong())
                 // Name-only edits work without reading or replacing protected fields.
                 assertFalse(service.updateNames(outsider, target, "Denied", "Outsider"))
                 assertTrue(service.updateNames(account, target, "Label", "Only"))
@@ -90,12 +98,12 @@ class MemberDetailsUpdateTest {
                 assertEquals(1, db.fetchValue(
                     "SELECT COUNT(*) FROM club_capability_grants WHERE member_id = ?", target
                 )?.toString()?.toInt())
-                assertFalse(service.update(account, UUID.randomUUID(), update))
+                assertFalse(service.replace(db, account, UUID.randomUUID(), update))
                 assertThrows(IllegalArgumentException::class.java) {
-                    service.update(account, target, update.copy(firstName = " "))
+                    service.replace(db, account, target, update.copy(firstName = " "))
                 }
                 assertThrows(IllegalArgumentException::class.java) {
-                    service.update(account, target, update.copy(dateOfBirth = LocalDate.now().plusDays(1)))
+                    service.replace(db, account, target, update.copy(dateOfBirth = LocalDate.now().plusDays(1)))
                 }
                 // A rejected policy update must not partially persist any changed fields.
                 val beforeRejectedUpdate = db.fetchOne(
@@ -104,7 +112,7 @@ class MemberDetailsUpdateTest {
                 )?.intoMap()
                 assertNotNull(beforeRejectedUpdate)
                 assertThrows(DataAccessException::class.java) {
-                    service.update(account, target, update.copy(
+                    service.replace(db, account, target, update.copy(
                         firstName = "MustNotPersist", email = null))
                 }
                 assertEquals(beforeRejectedUpdate, db.fetchOne(
@@ -113,7 +121,7 @@ class MemberDetailsUpdateTest {
                 )?.intoMap())
                 db.execute("UPDATE clubs SET gender_required_for_players = TRUE WHERE id = ?", club)
                 assertThrows(DataAccessException::class.java) {
-                    service.update(account, target, update.copy(gender = null))
+                    service.replace(db, account, target, update.copy(gender = null))
                 }
                 // An age transition cannot evade adult-contact validation on UPDATE.
                 db.execute("""INSERT INTO members
@@ -121,7 +129,7 @@ class MemberDetailsUpdateTest {
                     VALUES (?, 'Young', 'Synthetic', ?)""",
                     youth, LocalDate.now().minusYears(10))
                 assertThrows(DataAccessException::class.java) {
-                    service.update(account, youth, MemberDetailsUpdate.Input(
+                    service.replace(db, account, youth, MemberDetailsUpdate.Input(
                         "Adult", "Synthetic", LocalDate.of(1990, 1, 1)))
                 }
                 val unchanged = db.fetchOne(
@@ -131,24 +139,24 @@ class MemberDetailsUpdateTest {
                 assertNull(unchanged?.get("phone", String::class.java))
                 assertEquals(LocalDate.now().minusYears(10),
                     unchanged?.get("date_of_birth", LocalDate::class.java))
-                assertTrue(service.update(account, youth, MemberDetailsUpdate.Input(
+                assertTrue(service.replace(db, account, youth, MemberDetailsUpdate.Input(
                     "Adult", "Synthetic", LocalDate.of(1990, 1, 1),
                     "adult@example.invalid", "+41000000002")))
                 db.execute("DELETE FROM club_capability_grants WHERE member_id = ? AND capability = 'EDIT_MEMBERS'",
                     editor)
-                assertFalse(service.update(account, target, update.copy(firstName = "DeniedAfterRevoke")))
+                assertFalse(service.replace(db, account, target, update.copy(firstName = "DeniedAfterRevoke")))
                 assertFalse(service.updateNames(account, target, "DeniedAfterRevoke", "NoGrant"))
                 assertEquals("Changed", db.fetchValue(
                     "SELECT first_name FROM members WHERE id = ?", target))
                 db.execute("INSERT INTO club_capability_grants VALUES (?, 'EDIT_MEMBERS')", editor)
                 db.execute("DELETE FROM account_identities WHERE account_id = ?", account)
-                assertFalse(service.update(account, target, update))
+                assertFalse(service.replace(db, account, target, update))
                 assertFalse(service.updateNames(account, target, "Denied", "IdentityRevoked"))
                 db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
                     VALUES (?, ?, 'https://issuer.example.invalid', ?)""",
                     UUID.randomUUID(), account, "restored-edit-" + account)
                 db.execute("UPDATE members SET account_id = NULL WHERE id = ?", editor)
-                assertFalse(service.update(account, target, update))
+                assertFalse(service.replace(db, account, target, update))
                 assertFalse(service.updateNames(account, target, "DeniedUnlinked", "NoAccount"))
             } finally {
                 db.execute("DELETE FROM members WHERE id IN (?, ?, ?)", editor, target, youth)

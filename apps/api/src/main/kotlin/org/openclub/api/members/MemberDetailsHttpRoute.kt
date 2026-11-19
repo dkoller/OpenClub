@@ -43,8 +43,10 @@ internal fun Application.installMemberDetailsHttpRoute(
                 if (!mayRead) return@get call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 val id = call.memberId() ?: return@get call.refuse(HttpStatusCode.BadRequest, "invalid")
                 when (val result = database.onDatabaseThread { MemberDetailsRead(it).read(actor.accountId, id) }) {
-                    is MemberDetailsRead.Result.Found ->
+                    is MemberDetailsRead.Result.Found -> {
+                        result.version?.let { call.response.headers.append(HttpHeaders.ETag, memberETag(it)) }
                         call.respondText(result.body.toString(), ContentType.Application.Json)
+                    }
                     MemberDetailsRead.Result.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     MemberDetailsRead.Result.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
                 }

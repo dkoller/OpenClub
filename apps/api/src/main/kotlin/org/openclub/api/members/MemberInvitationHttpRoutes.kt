@@ -104,6 +104,12 @@ internal fun ApplicationCall.memberId(): UUID? = runCatching { UUID.fromString(p
 internal fun ApplicationCall.isCrossSiteRequest(): Boolean =
     request.headers["Sec-Fetch-Site"]?.let { it != "same-origin" && it != "none" } ?: false
 
+/** A member's row version as a strong ETag (OpenAPI 1.8.0), and its strict inverse for `If-Match`. */
+internal fun memberETag(version: Long): String = "\"$version\""
+
+internal fun parseMemberETag(value: String): Long? =
+    Regex("^\"([1-9][0-9]{0,18})\"$").matchEntire(value.trim())?.groupValues?.get(1)?.toLongOrNull()
+
 internal suspend fun ApplicationCall.refuse(status: HttpStatusCode, code: String) =
     respondText("""{"code":"$code"}""", ContentType.Application.Json, status)
 
