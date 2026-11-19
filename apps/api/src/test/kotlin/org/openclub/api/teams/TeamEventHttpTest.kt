@@ -142,6 +142,8 @@ class TeamEventHttpTest {
 
     @Test
     fun managersCreateEditCancelAndDeleteOnlyTheirTeamsEvents() = app {
+        // Test order is not fixed: start from empty schedules.
+        sql { it.execute("DELETE FROM team_events WHERE team_id IN (?, ?)", teamA, teamB) }
         val check = Check()
         // Session, Origin/CSRF, a MANAGE_TEAMS grant somewhere, then the input, then the team itself.
         check.expect("no session", send(HttpMethod.Post, teamEvents(teamA), null, event("x")), HttpStatusCode.Unauthorized)
