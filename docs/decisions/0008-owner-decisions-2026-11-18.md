@@ -168,3 +168,16 @@ Shown the contract (tracking only, no payment processing), the owner chose **"Ne
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 40 | Membership fees | Approved as OpenAPI **1.12.0**. A holder of the new club-wide capability `MANAGE_FEES` (granted explicitly; editors do not get it; the first administrator gets it at bootstrap like the other capabilities) creates fee periods (name, due date, amount in CHF) that include every active member, changes one member's amount, excludes or re-includes members and marks payments by hand (date or open), with filters all, open, paid and excluded. Members see their own fees and guardians their current minors' (`GET /v1/me/fees`). Each change to a member's fee is audited (`FEE_ASSIGNED`, `FEE_CHANGED`, `FEE_PAID`, `FEE_UNPAID`, `FEE_REMOVED`); fees are part of the member export; erasure removes them. This completes the four features of addendum 12. |
+
+## Addendum 16 — two more features (2026-11-19)
+
+Asked what next after the four features, the owner chose **"More features"** over a security review, demo data and the #27 upgrade path, then picked **Excel import/export** and **Announcements** (not a calendar feed or email reminders). Each contract is approved separately, as before; this again overrides #31's "after pilot feedback" rule for these two only.
+
+## Addendum 17 — member list import and export (2026-11-19)
+
+Shown the contract, the owner chose **"Skip duplicates"**.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 41 | Member list as CSV | Approved as OpenAPI **1.13.0**, for `EDIT_MEMBERS`. Export: the active members as a CSV file Excel opens directly (semicolon, UTF-8 with BOM, header in the UI language, formula-like cells neutralized), every listed member audited as `MEMBER_LISTED`, with the cross-site protection of the member export. Import: a CSV saved from Excel (header in DE/EN/FR/IT, dates as 31.12.2010 or 2010-12-31, at most 1,000 rows), always previewed first; the commit creates only new valid members in one transaction, audited as `MEMBER_CREATED`, and never changes an existing member. |
+| 42 | Duplicates and problems | A row matching an existing member (same first name, last name and birth date, ignoring case, archived members included) is skipped as "already exists". The agent also leaves rows with problems out (shown with the reason in the preview, counted before the confirmation), so one bad line does not block the others. |

@@ -15,6 +15,7 @@ import { MyProfile } from './MyProfile'
 import { MySchedule } from './MySchedule'
 import { MyFees } from './MyFees'
 import { FeeAdmin } from './FeeAdmin'
+import { MemberListTransfer } from './MemberListTransfer'
 import { AcceptInvitation } from './AcceptInvitation'
 import { secretFromHash } from './invitations'
 
@@ -110,6 +111,7 @@ export function App() {
       {access?.state === 'not-member' && <AcceptInvitation language={language} csrfToken={access.csrfToken} initial={invite}
         onAccepted={() => { try { window.sessionStorage.removeItem('openclub.invite') } catch { /* storage may be disabled */ } void retryAccess() }} />}
       {access?.state === 'ready' && <TeamDirectory language={language} csrfToken={access.csrfToken} />}
+      {access?.state === 'ready' && <MemberListTransfer language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <MemberAdmin language={language} csrfToken={access.csrfToken}
         genderRequiredForPlayers={access.genderRequiredForPlayers}
         adultAgeYears={access.adultAgeYears}
