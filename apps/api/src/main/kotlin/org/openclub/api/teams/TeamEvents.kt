@@ -165,7 +165,7 @@ internal class TeamEvents(private val database: DSLContext) {
     private fun holdsClubTeamCapability(actor: UUID): Boolean = database.fetchOne(
         """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
            WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
-             AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS')""", actor) != null
+             AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS') LIMIT 1""", actor) != null
 
     private fun <T> notFoundOrDenied(actor: UUID, notFound: T, denied: T): T =
         if (holdsClubTeamCapability(actor)) notFound else denied

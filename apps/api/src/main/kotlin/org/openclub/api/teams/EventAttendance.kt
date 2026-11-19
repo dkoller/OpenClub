@@ -80,7 +80,7 @@ internal class EventAttendance(private val database: DSLContext) {
             "SELECT ${ActorSql.holdsTeamCapability("e.team_id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)} FROM team_events e WHERE e.id = ?",
             actor, eventId) ?: return if (database.fetchOne(
                 """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS')""",
+                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS') LIMIT 1""",
                 actor) != null) Listing.NotFound else Listing.Denied
         if (access.get(0, Boolean::class.java) != true) return Listing.Denied
         val answers = database.fetch(
