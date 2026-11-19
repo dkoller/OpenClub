@@ -74,6 +74,7 @@ what they hold; *Revoke* removes one. A change applies to the member's next acti
 | `MANAGE_TEAMS` | Managing teams, assignments and schedules, and reading the contacts of active team members (club-wide or one team) |
 | `MANAGE_PERMISSIONS` | Granting and revoking permissions; with the *Administrator* role also unlinking sign-ins |
 | `MANAGE_FEES` | Managing membership fees (club-wide only) |
+| `POST_ANNOUNCEMENTS` | Posting announcements to the whole club (club-wide only); team announcements need `MANAGE_TEAMS` for the team |
 
 *Manage club roles* switches a member between *Member* and *Administrator*. The last administrator cannot be demoted.
 
@@ -130,6 +131,14 @@ local time across the change to and from summer time.
 With `MANAGE_TEAMS` for a team you manage its assignments and can open *Contact details* of its **active** members
 (name, email, phone, player). Members of other teams, archived members and everyone's birth date stay hidden. Each
 contact read is recorded.
+
+## Announcements
+
+*Announcements* at the top lists what is currently posted for you: club-wide news, news for your teams and, for
+guardians, your children's teams, newest first, until each one's show-until date. With `POST_ANNOUNCEMENTS` (whole
+club) or `MANAGE_TEAMS` for a team, choose *For*, write a *Title* and *Text* (plain text, line breaks are kept),
+optionally *Show until* (default 60 days, at most a year), and *Post*. *Edit* and *Delete* (then *Confirm delete*)
+appear on the ones you may change. Do not put private details such as health or addresses into announcements.
 
 ## For members
 

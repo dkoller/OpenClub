@@ -35,6 +35,9 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] B9 *Excel import and export*: download the member list and open it in Excel (umlauts and phone numbers shown
       correctly). Add two new rows and one copy of an existing member, *Save As* → *CSV UTF-8*, *Check file*: 2 will be
       imported, 1 already exists; *Import 2 members*: both appear in *Manage members*.
+- [ ] B10 *Announcements*: post one to the whole club with two lines of text; it shows with *Whole club* and both lines.
+      As `coach@…` in C3 post one for Juniors U12 only; `parent@…` in D3 sees both, a member of another team only the
+      club-wide one.
 
 ## C. Teams and permissions
 
@@ -81,7 +84,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 | --- | --- |
 | Operator and host | Owner; Infomaniak VPS Lite \_ vCPU / \_ GB; Ubuntu \_ ; date \_ |
 | HTTPS probe (A1), identity provider | pass / fail, Rauthy, date \_ |
-| Members, languages, own profile, fees and Excel (B1–B9) | pass / fail, notes \_ |
+| Members, languages, own profile, fees, Excel and announcements (B1–B10) | pass / fail, notes \_ |
 | Teams, invitations, scoped permissions, schedule (C1–C5) | pass / fail, notes \_ |
 | Guardians (D1–D4) | pass / fail, notes \_ |
 | Denial and sessions (E1–E3) | pass / fail, notes \_ |

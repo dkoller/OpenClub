@@ -82,7 +82,7 @@ class PrivateRoutesRevocationTest {
                     tx.execute("INSERT INTO teams (id, name) VALUES (?, ?)", team,
                         "Revocation team ${UUID.randomUUID().toString().take(8)}")
                     for (capability in listOf("VIEW_MEMBER_DIRECTORY", "EDIT_MEMBERS", "MANAGE_PERMISSIONS",
-                        "VIEW_TEAMS", "MANAGE_TEAMS", "MANAGE_FEES")) {
+                        "VIEW_TEAMS", "MANAGE_TEAMS", "MANAGE_FEES", "POST_ANNOUNCEMENTS")) {
                         tx.execute("INSERT INTO club_capability_grants VALUES (?, ?)", holder, capability)
                     }
                 }
@@ -106,6 +106,7 @@ class PrivateRoutesRevocationTest {
                 tx.execute("DELETE FROM teams WHERE id = ? OR name LIKE 'Revocation%'", team)
                 // And the fee period the authorized pass created through POST /fee-periods.
                 tx.execute("DELETE FROM fee_periods WHERE name LIKE 'Revocation%'")
+                tx.execute("DELETE FROM announcements WHERE title LIKE 'Revocation%'")
                 tx.execute("DELETE FROM members WHERE first_name = 'Denied' AND last_name = 'Person'")
                 tx.execute("DELETE FROM audit_events WHERE target_member_id = ?", erasable)
                 tx.execute("DELETE FROM members WHERE id IN (?, ?, ?)", holder, target, erasable)
@@ -181,6 +182,11 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Put, "/api/v1/fee-periods/${UUID(0, 2)}/fees/$target", """{"amountCents":100,"paidOn":null}"""),
         Route(HttpMethod.Delete, "/api/v1/fee-periods/${UUID(0, 2)}/fees/$target"),
         Route(HttpMethod.Get, "/api/v1/me/fees"),
+        // Announcements (1.14.0): a club-wide post by the holder; unknown announcements are 404.
+        Route(HttpMethod.Get, "/api/v1/me/announcements"),
+        Route(HttpMethod.Post, "/api/v1/announcements", """{"teamId":null,"title":"Revocation news","body":"Synthetic"}"""),
+        Route(HttpMethod.Put, "/api/v1/announcements/${UUID(0, 3)}", """{"title":"Revocation news","body":"Synthetic"}"""),
+        Route(HttpMethod.Delete, "/api/v1/announcements/${UUID(0, 3)}"),
         Route(HttpMethod.Post, "/api/v1/members/$erasable/erase", """{"confirmation":"Erasable Person"}"""),
         // Last: an archived target is hidden from the role and grant routes by design.
         Route(HttpMethod.Post, "/api/v1/members/$target/archive"),
