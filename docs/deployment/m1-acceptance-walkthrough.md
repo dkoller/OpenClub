@@ -27,6 +27,8 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       date; *Reactivate* brings them back.
 - [ ] B6 The anonymous member list (signed out, or `https://club.example.ch/api/v1/public/members`) shows minors only as
       first name plus initial (for example "Lea B.").
+- [ ] B7 *My profile* shows the administrator's own record and role; change the phone, *Save contacts*, reload: the new
+      phone is kept and nothing else changed.
 
 ## C. Teams and permissions
 
@@ -35,7 +37,10 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       as `coach@…` and accept. The coach sees the club but no administration.
 - [ ] C3 As administrator, give Peter a **team** grant `MANAGE_TEAMS` for Juniors U12 only. As `coach@…` (reload): only
       Juniors U12 is visible; *Contact details* of a U12 member works; another team's member is not reachable.
-- [ ] C4 Revoke the grant: the coach loses the team at the next reload. *Unlink account* for Peter: the coach's session ends.
+- [ ] C4 Still as `coach@…`: *Schedule* under Juniors U12, add a training with *Repeat weekly until* three weeks later:
+      four dates appear. *Cancel event* on one (marked *Cancelled*), *Delete* and *Confirm delete* another. *My
+      schedule* (reload) lists the remaining U12 dates, because Peter is in that team.
+- [ ] C5 Revoke the grant: the coach loses the team at the next reload. *Unlink account* for Peter: the coach's session ends.
 
 ## D. Guardians
 
@@ -43,7 +48,8 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] D2 As administrator, *Guardians*: find Lea Brunner, add Sandra (the attestation text is shown). A third guardian is
       refused after a second one.
 - [ ] D3 As `parent@…` (reload): *My children* lists Lea; *Open* shows birth date, player flag and team; change her email;
-      it is saved. Nothing else about other members is visible.
+      it is saved. *My schedule* lists the U12 trainings from C4 marked *For Lea*. Nothing else about other members is
+      visible.
 - [ ] D4 Remove Sandra as guardian: *My children* disappears for `parent@…` after a reload.
 
 ## E. Denial and sessions
@@ -68,8 +74,8 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 | --- | --- |
 | Operator and host | Owner; Infomaniak VPS Lite \_ vCPU / \_ GB; Ubuntu \_ ; date \_ |
 | HTTPS probe (A1), identity provider | pass / fail, Rauthy, date \_ |
-| Members and languages (B1–B6) | pass / fail, notes \_ |
-| Teams, invitations, scoped permissions (C1–C4) | pass / fail, notes \_ |
+| Members, languages and own profile (B1–B7) | pass / fail, notes \_ |
+| Teams, invitations, scoped permissions, schedule (C1–C5) | pass / fail, notes \_ |
 | Guardians (D1–D4) | pass / fail, notes \_ |
 | Denial and sessions (E1–E3) | pass / fail, notes \_ |
 | Restart and reboot persistence (F1–F2) | pass / fail |

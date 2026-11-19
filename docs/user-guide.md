@@ -6,8 +6,9 @@ are the English ones; switch the language (German, English, French, Italian) wit
 > **Fictional data only.** OpenClub is in a synthetic-data test phase. Do not enter real people's names, birth dates,
 > addresses or phone numbers until the club's privacy approval is complete (see the [README](../README.md)).
 
-What you see depends on your permissions: panels you cannot use are not shown at all. Every change and every read of
-someone's private details is checked by the server and recorded in an audit trail that holds identifiers only.
+What you see depends on your permissions: panels you cannot use are not shown at all. Every action is checked by the
+server. Every change to member data and every read of someone's private details is also recorded in an audit trail
+that holds identifiers only (team schedules hold no personal data and are not recorded).
 
 ## Signing in
 
@@ -47,7 +48,9 @@ alone allows nothing, and each panel needs its permission (see *Permissions* bel
 
 ### Teams (*Teams*, *Team members*)
 
-- *Team name* and *Add team* create a team; *Rename* and *Delete team* (type its name to confirm) change it.
+- *Team name* and *Add team* create a team; *Rename* and *Delete team* (type its name to confirm) change it. Deleting
+  a team also deletes its schedule.
+- *Schedule* under a team shows and plans its trainings and events (see *For team managers*).
 - Open a team to see *Team members*. Find a member and *Assign*; *Remove* takes them out of the team.
 - *Contact details* shows a team member's email and phone (see *For team managers*).
 
@@ -60,8 +63,8 @@ what they hold; *Revoke* removes one. A change applies to the member's next acti
 | --- | --- |
 | `VIEW_MEMBER_DIRECTORY` | Searching members by name |
 | `EDIT_MEMBERS` | Adding, editing, archiving, reactivating and exporting members; invitations; guardians |
-| `VIEW_TEAMS` | Seeing teams and their members (club-wide or one team) |
-| `MANAGE_TEAMS` | Managing teams and assignments, and reading the contacts of active team members (club-wide or one team) |
+| `VIEW_TEAMS` | Seeing teams, their members and their schedules (club-wide or one team) |
+| `MANAGE_TEAMS` | Managing teams, assignments and schedules, and reading the contacts of active team members (club-wide or one team) |
 | `MANAGE_PERMISSIONS` | Granting and revoking permissions; with the *Administrator* role also unlinking sign-ins |
 
 *Manage club roles* switches a member between *Member* and *Administrator*. The last administrator cannot be demoted.
@@ -100,7 +103,8 @@ team you add events: *Kind* (Training, Match or Event), *Title*, *Date*, *Start*
 *Notes*, then *Add event*. Fill *Repeat weekly until* to create the same event every week up to that date (at most
 52). *Edit* changes one date, *Cancel event* marks it cancelled (members still see it, marked *Cancelled*;
 *Reinstate* undoes this) and *Delete* followed by *Confirm delete* removes it. With `VIEW_TEAMS` you see the
-schedule without these buttons.
+schedule without these buttons. Times are entered and shown in your device's time zone; weekly repeats keep the same
+local time across the change to and from summer time.
 
 With `MANAGE_TEAMS` for a team you manage its assignments and can open *Contact details* of its **active** members
 (name, email, phone, player). Members of other teams, archived members and everyone's birth date stay hidden. Each
@@ -126,7 +130,9 @@ If the club recorded you as a guardian, *My children* appears after you sign in.
 - *Open* shows the child's date of birth, whether they play and their teams.
 - Change the child's *Email* and *Phone* and choose *Save contacts*. Clearing a field removes it. Nothing else about
   the child, and nothing about other members, can be seen or changed here.
-- If the child reaches the club's adult age, or the club removes you as guardian, the child disappears from the list.
+- *My schedule* also lists the trainings and events of the child's teams, marked *For* and the child's first name.
+- If the child reaches the club's adult age, or the club removes you as guardian, the child disappears from the list
+  and from your schedule.
 
 ## Getting help
 

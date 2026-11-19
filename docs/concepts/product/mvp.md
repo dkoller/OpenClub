@@ -44,6 +44,8 @@ Consider sport-specific domain objects (teams, schedules, competitions) only aft
 
 Payments, accounting, event scheduling, tournaments, live scores, federation integrations, push notifications, chat, file sharing, agent orchestration as a product feature, and general nonprofit workflows.
 
+> **Status note (2026-11-19):** by owner decision ([ADR-0008 addendum 12](../../decisions/0008-owner-decisions-2026-11-18.md)), team event scheduling (built as OpenAPI 1.10.0), attendance and membership-fee tracking (no payment processing) are brought forward before pilot feedback. The rest of this list stays out of scope.
+
 ## Open questions before implementation
 
 1. Is the first club a real pilot partner, and what is its most urgent administration problem?
