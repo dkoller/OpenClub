@@ -91,8 +91,8 @@ class AuditTrailTest {
     fun outputIsTabSeparatedIdentifiersOnlyWithEmptyCellsShownAsDashes() {
         val text = AuditTrail.format(AuditTrail.read(db, AuditTrail.Filter(null, member, 10)))
         val lines = text.trimEnd('\n').split('\n')
-        assertEquals("id\toccurred_at_utc\tevent\tactor_account\ttarget_member\tcapability\tscope\tteam\tnew_role", lines[0])
-        assertTrue(lines.all { it.split('\t').size == 9 }, "every line has the nine columns")
+        assertEquals("id\toccurred_at_utc\tevent\tactor_account\ttarget_member\tcapability\tscope\tteam\tnew_role\trelated_member", lines[0])
+        assertTrue(lines.all { it.split('\t').size == 10 }, "every line has the ten columns")
         val grant = lines.first { it.contains("GRANT_ADDED") }.split('\t')
         assertEquals(listOf("GRANT_ADDED", actor.toString(), member.toString(), "VIEW_TEAMS", "TEAM", team.toString(), "-"),
             grant.subList(2, 9))

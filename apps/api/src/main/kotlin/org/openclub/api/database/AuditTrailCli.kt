@@ -55,7 +55,7 @@ internal object AuditTrail {
 
     data class Row(
         val id: Long, val occurredAt: Instant, val type: String, val actor: UUID?, val target: UUID?,
-        val capability: String?, val scope: String?, val team: UUID?, val role: String?,
+        val capability: String?, val scope: String?, val team: UUID?, val role: String?, val related: UUID? = null,
     )
 
     fun read(db: DSLContext, filter: Filter): List<Row> {
@@ -65,7 +65,8 @@ internal object AuditTrail {
         filter.member?.let { conditions += "target_member_id = ?"; values += it }
         val where = if (conditions.isEmpty()) "" else "WHERE " + conditions.joinToString(" AND ")
         return db.fetch(
-            """SELECT id, occurred_at, event_type, actor_account_id, target_member_id, capability, scope, team_id, new_role
+            """SELECT id, occurred_at, event_type, actor_account_id, target_member_id, capability, scope, team_id, new_role,
+                      related_member_id
                FROM audit_events $where ORDER BY id DESC LIMIT ?""",
             *values.toTypedArray(), filter.limit,
         ).map {
@@ -73,16 +74,17 @@ internal object AuditTrail {
                 it.get("event_type", String::class.java), it.get("actor_account_id", UUID::class.java),
                 it.get("target_member_id", UUID::class.java), it.get("capability", String::class.java),
                 it.get("scope", String::class.java), it.get("team_id", UUID::class.java),
-                it.get("new_role", String::class.java))
+                it.get("new_role", String::class.java), it.get("related_member_id", UUID::class.java))
         }
     }
 
     /** Header plus one tab-separated line per event; an empty cell is shown as "-". */
     fun format(rows: List<Row>): String = buildString {
-        appendLine(listOf("id", "occurred_at_utc", "event", "actor_account", "target_member", "capability", "scope", "team", "new_role")
+        appendLine(listOf("id", "occurred_at_utc", "event", "actor_account", "target_member", "capability", "scope", "team", "new_role",
+            "related_member")
             .joinToString("\t"))
         for (r in rows) {
-            appendLine(listOf<Any?>(r.id, r.occurredAt, r.type, r.actor, r.target, r.capability, r.scope, r.team, r.role)
+            appendLine(listOf<Any?>(r.id, r.occurredAt, r.type, r.actor, r.target, r.capability, r.scope, r.team, r.role, r.related)
                 .joinToString("\t") { it?.toString() ?: "-" })
         }
     }
