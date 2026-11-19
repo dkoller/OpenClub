@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
-import { fetchMemberPage, type Member } from './members'
+import { fetchArchivedPage, fetchMemberPage, type Member } from './members'
 import { latestLookup } from './roles'
 import { addGuardian, listGuardians, removeGuardian } from './guardians'
 
@@ -13,7 +13,7 @@ const words = {
 
 type Notice = 'notMinor' | 'conflict' | 'added' | 'removed' | 'error' | null
 
-/** Editors record and remove a minor's guardians (OpenAPI 1.6.0). The server enforces every rule. */
+/** Editors record and remove a minor's guardians (OpenAPI 1.6.0). Hidden for non-editors; the server enforces every rule. */
 export function GuardianAdmin({ language, csrfToken }: { language: Language; csrfToken: string }) {
   const t = words[language]
   const [minorQuery, setMinorQuery] = useState('')
@@ -25,9 +25,19 @@ export function GuardianAdmin({ language, csrfToken }: { language: Language; csr
   const [candidateId, setCandidateId] = useState('')
   const [notice, setNotice] = useState<Notice>(null)
   const [denied, setDenied] = useState(false)
+  // Shown only to editors: the editor-only archived list answers whether EDIT_MEMBERS is held, so members
+  // without it never see a guardian form (the server still enforces every rule on each request).
+  const [allowed, setAllowed] = useState(false)
   const [busy, setBusy] = useState(false)
   const lookups = useRef(latestLookup())
   useEffect(() => () => lookups.current.cancel(), [])
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchArchivedPage('', undefined, controller.signal)
+      .then(page => { if (!controller.signal.aborted) { if (page === 'denied') setDenied(true); else setAllowed(true) } })
+      .catch(() => { if (!controller.signal.aborted) setDenied(true) })
+    return () => controller.abort()
+  }, [])
 
   async function show(id: string) {
     setMinorId(id)
@@ -66,7 +76,7 @@ export function GuardianAdmin({ language, csrfToken }: { language: Language; csr
     } catch { setNotice('error') } finally { setBusy(false) }
   }
 
-  if (denied) return null
+  if (denied || !allowed) return null
   return (
     <section aria-label={t.title}>
       <h2>{t.title}</h2>
