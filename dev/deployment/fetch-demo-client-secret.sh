@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Copies the OpenClub client secret that Rauthy generated on its first start into the demo env file
+# created by generate-demo-env.sh. Run once, after `up -d rauthy` and before starting the API. It reads
+# the secret with Rauthy's own `bootstrap get` command inside the container and never prints it.
+set -euo pipefail
+
+[[ $# -eq 2 && "$1" == --synthetic-only && "$2" == /* && -f "$2/.env" ]] ||
+  { echo "Usage: bash dev/deployment/fetch-demo-client-secret.sh --synthetic-only /ABSOLUTE/ENV_DIRECTORY" >&2; exit 2; }
+env_dir="$2"
+root="$(cd "$(dirname "$0")/../.." && pwd)"
+project="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$env_dir/.env")"
+[[ -n "$project" ]] || { echo "COMPOSE_PROJECT_NAME missing from $env_dir/.env" >&2; exit 1; }
+project="${OPENCLUB_DEMO_PROJECT:-$project}"
+
+demo=(docker compose --project-directory "$root" --env-file "$env_dir/.env" -p "$project"
+  -f "$root/compose.yaml" -f "$root/compose.https.demo.yaml" -f "$root/compose.rauthy.demo.yaml")
+
+value=""
+for attempt in {1..60}; do
+  # The image's default config file plus the container's env overrides (encryption keys) decrypt the secret.
+  if value="$("${demo[@]}" exec -T rauthy /app/rauthy bootstrap get -c /app/config.toml \
+      --kind client --id openclub --field secret --format raw 2>/dev/null)" && [[ ${#value} -ge 32 ]]; then
+    break
+  fi
+  value=""
+  sleep 2
+done
+[[ -n "$value" ]] || { echo "Rauthy has not generated the openclub client secret yet (is rauthy running?)" >&2; exit 1; }
+[[ "$value" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "Unexpected client secret format" >&2; exit 1; }
+
+umask 077
+tmp="$(mktemp "$env_dir/.env.XXXXXX")"
+trap 'rm -f -- "$tmp"' EXIT
+grep -v '^OPENCLUB_OIDC_CLIENT_SECRET=' "$env_dir/.env" > "$tmp"
+printf 'OPENCLUB_OIDC_CLIENT_SECRET=%s\n' "$value" >> "$tmp"
+chmod 0600 "$tmp"
+mv -f -- "$tmp" "$env_dir/.env"
+trap - EXIT
+echo "Stored the generated OpenClub client secret in $env_dir/.env. No secret was printed."

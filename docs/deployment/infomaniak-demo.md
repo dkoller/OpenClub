@@ -56,9 +56,10 @@ cd /opt/openclub
 bash dev/deployment/generate-demo-env.sh --synthetic-only club.example.ch id.example.ch you@example.ch /opt/openclub-demo-env
 ```
 
-The script writes `/opt/openclub-demo-env/.env` (owner-only) with a fresh database password, OIDC client secret, Rauthy
-encryption key, cluster secrets and Rauthy administrator password, and `rauthy-bootstrap/clients.json` with the
-`openclub` client and its exact callback `https://club.example.ch/api/v1/auth/callback`. It prints no secret and refuses
+The script writes `/opt/openclub-demo-env/.env` (owner-only) with a fresh database password, Rauthy encryption key,
+cluster secrets and Rauthy administrator password, and `rauthy-bootstrap/clients.json` with the `openclub` client and
+its exact callback `https://club.example.ch/api/v1/auth/callback`. Rauthy generates the client secret itself on its
+first start (its bootstrap accepts no preset secret); step 5 copies it into the env file. It prints no secret and refuses
 to overwrite an existing directory, so it cannot replace the keys of a running installation. Keep this directory out
 of the repository and of any issue, chat or CI log.
 
@@ -69,7 +70,9 @@ cd /opt/openclub
 demo() { docker compose --env-file /opt/openclub-demo-env/.env -p openclub-demo \
   -f compose.yaml -f compose.https.demo.yaml -f compose.rauthy.demo.yaml "$@"; }
 demo config --quiet
-demo up -d --build --wait
+demo up -d rauthy                       # first start: Rauthy creates its administrator and the openclub client
+bash dev/deployment/fetch-demo-client-secret.sh --synthetic-only /opt/openclub-demo-env
+demo up -d --build --wait               # now the API starts with the real client secret
 ```
 
 All five services restart automatically after a reboot (`unless-stopped`). Only Caddy publishes ports (80, 443).

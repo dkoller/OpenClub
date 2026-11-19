@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Creates the private environment directory for the one-host synthetic demo (compose.https.demo.yaml +
 # compose.rauthy.demo.yaml): a Compose env file with fresh random secrets and the Rauthy bootstrap file
-# for the OpenClub client. It never prints a secret and refuses to touch an existing directory, so a
-# rerun can never replace the keys of a running installation. See docs/deployment/infomaniak-demo.md.
+# for the OpenClub client. Rauthy generates the client secret itself on first start (its bootstrap accepts
+# only "generate"); fetch-demo-client-secret.sh then copies it into the env file. This script never prints
+# a secret and refuses to touch an existing directory, so a rerun can never replace the keys of a running
+# installation. See docs/deployment/infomaniak-demo.md.
 set -euo pipefail
 
 usage() {
@@ -28,7 +30,6 @@ secret() { openssl rand -base64 96 | tr -dc 'A-Za-z0-9' | head -c "$1"; }
 umask 077
 mkdir -p "$target/rauthy-bootstrap"
 key_id="k$(openssl rand -hex 4)"
-client_secret="$(secret 48)"
 
 cat > "$target/.env" <<ENV
 # Generated $(date -u +%Y-%m-%dT%H:%M:%SZ) for a SYNTHETIC demo. Contains secrets: keep private, never commit.
@@ -40,7 +41,8 @@ POSTGRES_PASSWORD=$(secret 40)
 OPENCLUB_OIDC_ISSUER=https://$id_host/auth/v1/
 OPENCLUB_OIDC_AUTHORIZATION_ENDPOINT=https://$id_host/auth/v1/oidc/authorize
 OPENCLUB_OIDC_CLIENT_ID=openclub
-OPENCLUB_OIDC_CLIENT_SECRET=$client_secret
+# Placeholder until fetch-demo-client-secret.sh copies the secret Rauthy generated on first start.
+OPENCLUB_OIDC_CLIENT_SECRET=pending-run-fetch-demo-client-secret-sh
 RAUTHY_ENC_KEYS='$key_id/$(openssl rand -base64 32)'
 RAUTHY_ENC_KEY_ACTIVE=$key_id
 RAUTHY_HQL_SECRET_RAFT=$(secret 40)
@@ -54,7 +56,7 @@ cat > "$target/rauthy-bootstrap/clients.json" <<JSON
   {
     "id": "openclub",
     "name": "OpenClub synthetic demo",
-    "secret": "$client_secret",
+    "secret": "generate",
     "redirect_uris": ["https://$club_host/api/v1/auth/callback"],
     "enabled": true,
     "flows_enabled": ["authorization_code"],
@@ -70,19 +72,10 @@ cat > "$target/rauthy-bootstrap/clients.json" <<JSON
 ]
 JSON
 
-# Rauthy runs as uid 10001 and must read its bootstrap file, which holds the client secret. As root (the
-# normal case on the host) hand it to 10001 and keep it owner-only; otherwise it must be readable by all.
+# Only .env holds secrets; the bootstrap file holds none and Rauthy (uid 10001) must be able to read it.
 chmod 0600 "$target/.env"
-chmod 0711 "$target"
-if [[ "$(id -u)" == 0 ]]; then
-  chown -R 10001:10001 "$target/rauthy-bootstrap"
-  chmod 0700 "$target/rauthy-bootstrap"
-  chmod 0600 "$target/rauthy-bootstrap/clients.json"
-else
-  chmod 0755 "$target/rauthy-bootstrap"
-  chmod 0644 "$target/rauthy-bootstrap/clients.json"
-  echo "Not root: rauthy-bootstrap/clients.json is world-readable so Rauthy can read it. Run as root on a shared host." >&2
-fi
+chmod 0755 "$target" "$target/rauthy-bootstrap"
+chmod 0644 "$target/rauthy-bootstrap/clients.json"
 
 echo "Created $target (.env and rauthy-bootstrap/clients.json). No secret was printed."
 echo "The Rauthy administrator password is RAUTHY_ADMIN_PASSWORD in $target/.env."
