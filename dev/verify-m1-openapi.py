@@ -27,6 +27,7 @@ ROUTE_SOURCES = {
     "members/MemberDetailsHttpRoute.kt": "installMemberDetailsHttpRoute",
     "members/GuardianHttpRoutes.kt": "installGuardianHttpRoutes",
     "members/MyProfileHttpRoutes.kt": "installMyProfileHttpRoutes",
+    "teams/TeamEventHttpRoutes.kt": "installTeamEventHttpRoutes",
     "members/GrantHttpRoutes.kt": "installGrantHttpRoutes",
     "teams/TeamHttpRoutes.kt": "installTeamHttpRoutes",
     "teams/TeamMemberHttpRoutes.kt": "installTeamMemberHttpRoutes",
@@ -75,6 +76,11 @@ GET /v1/me/dependents/{memberId}
 PUT /v1/me/dependents/{memberId}/contacts
 GET /v1/me/profile
 PUT /v1/me/profile/contacts
+GET /v1/me/events
+GET /v1/teams/{teamId}/events
+POST /v1/teams/{teamId}/events
+PUT /v1/events/{eventId}
+DELETE /v1/events/{eventId}
 GET /v1/members/{memberId}/export
 """.strip().splitlines())
 
@@ -112,7 +118,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.9.0"
+FROZEN_VERSION = "1.10.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
@@ -144,7 +150,7 @@ def verify_contract(spec):
         if not operation:
             fail(f"Missing implemented operation in OpenAPI: {entry}")
         responses = operation.get("responses", {})
-        success = "201" if entry in {"POST /v1/members", "POST /v1/teams", "POST /v1/members/{memberId}/invitation"} else (
+        success = "201" if entry in {"POST /v1/members", "POST /v1/teams", "POST /v1/members/{memberId}/invitation", "POST /v1/teams/{teamId}/events"} else (
             "200" if method == "GET" else "204"
         )
         if success not in responses or "503" not in responses:

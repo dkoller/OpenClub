@@ -143,3 +143,11 @@ Offered an upgrade path and resource measurements for #27, the owner answered **
 | --- | --- | --- |
 | 35 | Feature order | The four features are built before #28 pilot feedback, in the order My profile, Trainings & events, Attendance, Membership fees. This overrides the "after pilot feedback" rule of #31 for these four only; other post-MVP features stay deferred. #27 upgrade path and resource figures are postponed, not dropped. |
 | 36 | My profile | Approved as OpenAPI **1.9.0**: `GET /v1/me/profile` returns the signed-in, active, verified member's own name, birth date, email, phone, gender, player flag, role and teams with the row version as `ETag` (not audited); `PUT /v1/me/profile/contacts` replaces only their own email and phone with `If-Match` (428/412 as in 1.8.0), audited as `SELF_CONTACTS_UPDATED`. Names, birth date, gender, player and role stay editor-only. No own export (offered, not chosen). |
+
+## Addendum 13 — trainings and events (2026-11-19)
+
+Shown the contract below, the owner answered **"Approve"** (with weekly repeats).
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 37 | Trainings and events | Approved as OpenAPI **1.10.0**. An event belongs to one team: kind (training, match, other), title, start, end, place, notes, cancelled. `MANAGE_TEAMS` for the team (club-wide or team-scoped) creates (optionally weekly until a date, at most 52, keeping the local time in the caller's time zone), replaces (including cancel), and deletes. `VIEW_TEAMS` or `MANAGE_TEAMS` reads the team's schedule; every member reads their own teams' and their current minors' events (`GET /v1/me/events`, eight weeks by default). No personal data, not audited. Deleting a team deletes its events. |

@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
   title: OpenClub single-club management API — synthetic M1
-  version: 1.9.0
+  version: 1.10.0
   description: >
     Frozen contract for the implemented synthetic M1 HTTP surface, accepted by
     the owner on 2026-11-17 (ADR-0007, #13). 1.1.0 adds the per-club adult-age
     setting (PATCH /v1/club/adult-age-policy and adultAgeYears in GET /v1/club, #17). 1.2.0 adds invitations
     and account unlinking (owner-approved 2026-11-18, ADR-0008 addendum 4): create and revoke an invitation,
-    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). It contains exactly the operations
+    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). It contains exactly the operations
     registered in Ktor and checked by `dev/verify-m1-openapi.py`. Authentication
     routes (/v1/auth) are documented separately in auth-api-proposal.yaml.
     Version 1.0.0 covers synthetic data only. It does not approve real member
@@ -29,6 +29,7 @@ tags:
   - name: Permissions
   - name: Guardians
   - name: Profile
+  - name: Events
 paths:
   /v1/club:
     get:
@@ -1332,6 +1333,185 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/me/events:
+    get:
+      tags: [Events]
+      operationId: listMyEvents
+      summary: The signed-in member's schedule (since 1.10.0)
+      description: >
+        Events overlapping [from, to) of the teams the caller is assigned to and of the teams of
+        their current minors (the same guardianship rule as /v1/me/dependents), each with "for":
+        whom among them it concerns (ID and first name). A team grant alone adds nothing here.
+        The caller must be an active verified member (403 otherwise). At most 500 events, ordered
+        by start; "truncated" says a narrower range shows the rest. Never cacheable.
+      parameters:
+        - name: from
+          in: query
+          required: false
+          description: RFC 3339 date-time with offset; default now
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          required: false
+          description: RFC 3339 date-time with offset, after from and at most 366 days later; default from + 56 days
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: The caller's events
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items, truncated]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/MyEvent' } }
+                  truncated: { type: boolean }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/teams/{teamId}/events:
+    parameters:
+      - name: teamId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Events]
+      operationId: listTeamEvents
+      summary: A team's schedule (since 1.10.0)
+      description: >
+        Needs VIEW_TEAMS or MANAGE_TEAMS club-wide or for this team. Without any such grant the
+        answer is 403 before the input is validated; with one for another team it is 403; an
+        unknown team is 404 for a club-wide holder. canManage says whether the caller may change
+        this team's events. At most 500 events by start, as for /v1/me/events.
+      parameters:
+        - name: from
+          in: query
+          required: false
+          description: RFC 3339 date-time with offset; default now
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          required: false
+          description: RFC 3339 date-time with offset, after from and at most 366 days later; default from + 56 days
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: The team's events
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items, truncated, canManage]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/TeamEvent' } }
+                  truncated: { type: boolean }
+                  canManage: { type: boolean }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      tags: [Events]
+      operationId: createTeamEvents
+      summary: Create an event, optionally repeated weekly (since 1.10.0)
+      description: >
+        Needs MANAGE_TEAMS club-wide or for this team; exact Origin and session CSRF. Without the
+        grant anywhere the answer is 403 before the input is validated.
+        Times are RFC 3339 with an offset and answered in UTC. kind is TRAINING, MATCH or OTHER;
+        the title has 1–200 characters, location 1–200 and notes 1–2000 after trimming (blank
+        optional text is stored as absent); the end is after the start and at most 7 days later;
+        the start lies in 2000–2099.
+        With repeatWeeklyUntil (a date) and timeZone (an IANA zone, both or neither) the event is
+        also created every week up to and including that local date, keeping its local time in
+        that zone across daylight-saving changes; at most 52 events in all. All or none are created.
+        Not audited (no personal data).
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/TeamEventInput'
+              properties:
+                repeatWeeklyUntil: { type: string, format: date }
+                timeZone: { type: string, minLength: 1, maxLength: 64 }
+      responses:
+        '201':
+          description: The IDs of the created events, in date order
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [ids]
+                properties:
+                  ids: { type: array, minItems: 1, maxItems: 52, items: { type: string, format: uuid } }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/events/{eventId}:
+    parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [Events]
+      operationId: replaceTeamEvent
+      summary: Replace one event, including cancelling it (since 1.10.0)
+      description: >
+        Needs MANAGE_TEAMS club-wide or for the event's team; exact Origin and session CSRF. All
+        fields are replaced (omitted location or notes are cleared); cancelled is required.
+        Times are RFC 3339 with an offset and answered in UTC. kind is TRAINING, MATCH or OTHER;
+        the title has 1–200 characters, location 1–200 and notes 1–2000 after trimming (blank
+        optional text is stored as absent); the end is after the start and at most 7 days later;
+        the start lies in 2000–2099.
+        403 without the grant for this event's team, 404 for an unknown event.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/TeamEventInput'
+              required: [cancelled]
+              properties:
+                cancelled: { type: boolean }
+      responses:
+        '204': { description: Event replaced }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      tags: [Events]
+      operationId: deleteTeamEvent
+      summary: Delete one event (since 1.10.0)
+      description: >
+        Needs MANAGE_TEAMS club-wide or for the event's team; exact Origin and session CSRF. 403
+        without the grant for this event's team, 404 for an unknown event. Deleting a team
+        deletes its events.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204': { description: Event deleted }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
 components:
   parameters:
     CsrfToken:
@@ -1627,6 +1807,46 @@ components:
             properties:
               id: { type: string, format: uuid }
               name: { type: string }
+    TeamEventInput:
+      type: object
+      required: [kind, title, startsAt, endsAt]
+      properties:
+        kind: { type: string, enum: [TRAINING, MATCH, OTHER] }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        location: { type: [string, 'null'], maxLength: 200 }
+        notes: { type: [string, 'null'], maxLength: 2000 }
+    TeamEvent:
+      type: object
+      additionalProperties: false
+      required: [id, teamId, teamName, kind, title, startsAt, endsAt, location, notes, cancelled]
+      properties:
+        id: { type: string, format: uuid }
+        teamId: { type: string, format: uuid }
+        teamName: { type: string }
+        kind: { type: string, enum: [TRAINING, MATCH, OTHER] }
+        title: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        location: { type: [string, 'null'] }
+        notes: { type: [string, 'null'] }
+        cancelled: { type: boolean }
+    MyEvent:
+      allOf:
+        - $ref: '#/components/schemas/TeamEvent'
+      required: [for]
+      properties:
+        for:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, firstName]
+            properties:
+              id: { type: string, format: uuid }
+              firstName: { type: string }
     DependentContacts:
       type: object
       additionalProperties: false

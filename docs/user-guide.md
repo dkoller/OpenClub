@@ -95,6 +95,13 @@ Being a guardian gives no other permission in the club.
 
 ## For team managers
 
+**Schedule.** In *Teams*, choose *Schedule* under a team to see its next eight weeks. With `MANAGE_TEAMS` for the
+team you add events: *Kind* (Training, Match or Event), *Title*, *Date*, *Start*, *End*, optionally *Place* and
+*Notes*, then *Add event*. Fill *Repeat weekly until* to create the same event every week up to that date (at most
+52). *Edit* changes one date, *Cancel event* marks it cancelled (members still see it, marked *Cancelled*;
+*Reinstate* undoes this) and *Delete* followed by *Confirm delete* removes it. With `VIEW_TEAMS` you see the
+schedule without these buttons.
+
 With `MANAGE_TEAMS` for a team you manage its assignments and can open *Contact details* of its **active** members
 (name, email, phone, player). Members of other teams, archived members and everyone's birth date stay hidden. Each
 contact read is recorded.
@@ -103,6 +110,9 @@ contact read is recorded.
 
 Once your invitation is accepted you are signed in as a club member. Without further permissions you see the club and
 its public member list (adults by full name, minors by first name and surname initial, nothing private).
+
+**My schedule** lists the next eight weeks of trainings, matches and events of your teams, and of your children's
+teams if you are a guardian (marked *For* and the child's name).
 
 **My profile** shows what the club stores about you: name, date of birth, gender (if recorded), whether you play,
 your role and your teams. Change your *Email* and *Phone* there and choose *Save contacts*; adults need both. Other
