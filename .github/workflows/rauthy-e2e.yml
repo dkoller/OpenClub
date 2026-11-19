@@ -54,6 +54,8 @@ jobs:
       DB_USER: openclub
       DB_PASSWORD: openclub_dev
       OPENCLUB_AUTH_MODE: production
+      # Disposable job database: the invitation journey may bootstrap and then remove a synthetic club.
+      OPENCLUB_E2E_DISPOSABLE: 'true'
       OPENCLUB_PUBLIC_ORIGIN: https://localhost:5443
       OPENCLUB_OIDC_ISSUER: https://localhost:8443/auth/v1/
       OPENCLUB_OIDC_AUTHORIZATION_ENDPOINT: https://localhost:8443/auth/v1/oidc/authorize
@@ -149,6 +151,14 @@ jobs:
           [[ "${#otp_password}" -ge 16 ]] || { echo 'Synthetic OTP user credentials unavailable' >&2; exit 1; }
           echo "::add-mask::$otp_password"
           echo "OPENCLUB_RAUTHY_OTP_PASSWORD=$otp_password" >> "$GITHUB_ENV"
+          # Two more synthetic users for the invitation journey: a club administrator and the invitee.
+          for kind in admin invitee; do
+            value="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
+              -c /app/config-local-test.toml --kind user --id "openclub-rauthy-$kind-ci@example.invalid" --field password --format raw)"
+            [[ "${#value}" -ge 16 ]] || { echo "Synthetic $kind user credentials unavailable" >&2; exit 1; }
+            echo "::add-mask::$value"
+            echo "OPENCLUB_RAUTHY_${kind^^}_PASSWORD=$value" >> "$GITHUB_ENV"
+          done
           # This disposable admin credential is scoped to user read/delete.
           # Extract only from the encrypted provider-local bootstrap container.
           recovery_key="$("${overlay[@]}" exec -T rauthy /app/rauthy bootstrap get \
