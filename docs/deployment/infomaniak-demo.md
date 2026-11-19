@@ -35,83 +35,89 @@ Create two A records (and AAAA if the VPS has IPv6) pointing to the VPS, for exa
 
 Both must resolve before the first start: Caddy requests public ACME certificates for both names.
 
-## 3. Prepare the host
+## 3. Deploy with one command
 
 As root on the VPS:
 
 ```sh
-apt-get update && apt-get -y upgrade
-apt-get -y install ca-certificates curl git jq openssl unattended-upgrades
-# Docker Engine and the Compose plugin from Docker's official repository:
-# https://docs.docker.com/engine/install/ubuntu/
-git clone https://github.com/dkoller/OpenClub.git /opt/openclub
+apt-get update && apt-get -y install git
+git clone https://github.com/dkoller/OpenClub.git /opt/openclub && cd /opt/openclub
+bash dev/deployment/deploy-demo.sh --synthetic-only club.example.ch id.example.ch you@example.ch
 ```
 
-Keep automatic security updates on (`unattended-upgrades`). The repository holds no secrets.
+[`deploy-demo.sh`](../../dev/deployment/deploy-demo.sh) does, in order:
 
-## 4. Generate the secrets (once)
+1. installs the base packages, automatic security updates (`unattended-upgrades`) and Docker Engine with the Compose
+   plugin from Docker's official repository;
+2. enables the host firewall (`ufw`) for SSH, 80 and 443 only;
+3. checks that both names resolve to this server's public IPv4 address, so Caddy does not burn ACME attempts;
+4. generates the secrets once with [`generate-demo-env.sh`](../../dev/deployment/generate-demo-env.sh) into
+   `/opt/openclub-demo-env` (owner-only `.env`, nothing printed; an existing directory is reused, never replaced);
+5. starts Rauthy, which creates its administrator and the `openclub` client with its exact callback on the first
+   start, and stores the client secret Rauthy generated in the env file
+   ([`fetch-demo-client-secret.sh`](../../dev/deployment/fetch-demo-client-secret.sh), Rauthy's bootstrap accepts no
+   preset secret);
+6. builds and starts all five services (`unless-stopped`; only Caddy publishes 80/443), retrying once while the
+   certificates are issued;
+7. runs the read-only HTTPS and OIDC probe ([`verify-synthetic-https-demo.sh`](../../dev/verify-synthetic-https-demo.sh)).
+
+Rerunning the script is safe and is also how you update (see below). For any other Compose command use the wrapper,
+which picks the right files and env: `bash dev/deployment/demo-compose.sh /opt/openclub-demo-env ps` (or `logs`, `down`).
+
+## 4. Email for Rauthy (Infomaniak mailbox)
+
+Rauthy sends password-reset and notification emails. Create a mailbox in the Infomaniak Manager (for example
+`noreply@example.ch`), then:
 
 ```sh
-cd /opt/openclub
-bash dev/deployment/generate-demo-env.sh --synthetic-only club.example.ch id.example.ch you@example.ch /opt/openclub-demo-env
+read -rs MAILBOX_PASSWORD && printf '%s' "$MAILBOX_PASSWORD" |
+  bash dev/deployment/configure-demo-email.sh --synthetic-only /opt/openclub-demo-env noreply@example.ch
+unset MAILBOX_PASSWORD
+bash dev/deployment/deploy-demo.sh --synthetic-only club.example.ch id.example.ch you@example.ch
 ```
 
-The script writes `/opt/openclub-demo-env/.env` (owner-only) with a fresh database password, Rauthy encryption key,
-cluster secrets and Rauthy administrator password, and `rauthy-bootstrap/clients.json` with the `openclub` client and
-its exact callback `https://club.example.ch/api/v1/auth/callback`. Rauthy generates the client secret itself on its
-first start (its bootstrap accepts no preset secret); step 5 copies it into the env file. It prints no secret and refuses
-to overwrite an existing directory, so it cannot replace the keys of a running installation. Keep this directory out
-of the repository and of any issue, chat or CI log.
+This stores Infomaniak's documented submission settings (`mail.infomaniak.com`, port 465, implicit TLS, username = full
+address; the sender is the same address, as Infomaniak requires) and the password, which is read from standard input and
+never printed. From then on the wrapper adds [`compose.rauthy-email.demo.yaml`](../../compose.rauthy-email.demo.yaml).
+**Rauthy exits at startup if it cannot reach or log in to the SMTP server**, so a wrong password stops sign-in for the
+whole demo: check `demo-compose.sh … logs rauthy`, rerun `configure-demo-email.sh` with the right password and deploy
+again. Without this step everything works except outgoing email; the administrator then resets passwords in the
+Rauthy admin UI.
 
-## 5. Start
-
-```sh
-cd /opt/openclub
-demo() { docker compose --env-file /opt/openclub-demo-env/.env -p openclub-demo \
-  -f compose.yaml -f compose.https.demo.yaml -f compose.rauthy.demo.yaml "$@"; }
-demo config --quiet
-demo up -d rauthy                       # first start: Rauthy creates its administrator and the openclub client
-bash dev/deployment/fetch-demo-client-secret.sh --synthetic-only /opt/openclub-demo-env
-demo up -d --build --wait               # now the API starts with the real client secret
-```
-
-All five services restart automatically after a reboot (`unless-stopped`). Only Caddy publishes ports (80, 443).
-Rauthy reads the `openclub` client and its administrator from the bootstrap on its **first** start only. The API checks
-the issuer over HTTPS at startup; `compose.rauthy.demo.yaml` maps the identity hostname to the host, so this does not
-rely on hairpin NAT. If the API fails at first start because the certificate for the identity name was not issued
-yet, run `demo up -d` again after a minute.
-
-## 6. First club and administrator
+## 5. First club and administrator
 
 1. Sign in to Rauthy at `https://id.example.ch/auth/v1/admin` with `RAUTHY_ADMIN_EMAIL` and `RAUTHY_ADMIN_PASSWORD` from
-   the env file, and create the synthetic user who will be the club administrator (or use the Rauthy administrator).
-2. Sign in to `https://club.example.ch` as that user. The page says the account is not yet a club member.
-3. Read the account ID with the browser at `https://club.example.ch/api/v1/auth/me`, then run the operator-only
-   bootstrap from [single-club operations](single-club.md#operator-only-first-club-bootstrap-pre-production) inside the
-   API container, with synthetic names, for example:
+   `/opt/openclub-demo-env/.env`, and create the synthetic user who will be the club administrator (or use the Rauthy
+   administrator).
+2. Sign in to `https://club.example.ch` as that user. The page says the account is not yet a club member. Open
+   `https://club.example.ch/api/v1/auth/me` and copy `accountId`.
+3. Create the club with the restricted operator bootstrap ([single-club operations](single-club.md#operator-only-first-club-bootstrap-pre-production)),
+   run inside the API container with fictional administrator details:
 
    ```sh
-   demo exec -e OPENCLUB_BOOTSTRAP_CONFIRM=create-first-club -e OPENCLUB_BOOTSTRAP_ACCOUNT_ID=<account id> \
-     -e OPENCLUB_BOOTSTRAP_CLUB_NAME='Demo Club' -e OPENCLUB_BOOTSTRAP_CLUB_SLUG=demo-club \
-     -e OPENCLUB_BOOTSTRAP_FIRST_NAME=Demo -e OPENCLUB_BOOTSTRAP_LAST_NAME=Administrator \
-     -e OPENCLUB_BOOTSTRAP_BIRTH_DATE=1990-01-01 -e OPENCLUB_BOOTSTRAP_EMAIL=admin@example.invalid \
-     -e OPENCLUB_BOOTSTRAP_PHONE=+41000000000 \
-     api java -cp '/app/lib/*' org.openclub.api.club.BootstrapCliKt
+   bash dev/deployment/bootstrap-demo-club.sh --synthetic-only /opt/openclub-demo-env <accountId> "Demo Club"
    ```
 
-   The API image ships the application libraries in `/app/lib` and already has the database settings.
-4. Reload the club page: the administrator sees the administration in DE/EN/FR/IT. Further members join through
-   invitations: create each synthetic member's Rauthy account in the Rauthy admin UI, then send the invitation link.
+4. Reload the club page: the administrator sees the administration in DE/EN/FR/IT.
 
-Rauthy has no outgoing email configured in this kit, so password-reset emails and email OTP do not work; the
-administrator resets passwords in the Rauthy admin UI. Configure SMTP (`SMTP_URL`, `SMTP_USERNAME`, `SMTP_PASSWORD`,
-`SMTP_FROM`) in a later change if needed.
+## 6. Fictional demo data (optional)
+
+```sh
+bash dev/deployment/seed-demo-data.sh --synthetic-only /opt/openclub-demo-env
+```
+
+Adds four teams (Juniors U12, Juniors U17, Women 1, Men 1) and 16 invented members across age groups (minors with
+and without contacts, adult players, adult non-players in two teams, a member in no team), all with `example.invalid` addresses and
+`+41 000` placeholder numbers, ages relative to today. It runs in one transaction and refuses any database that is not
+a freshly bootstrapped club, so it cannot run twice or touch an installation in use. Seed rows are not in the audit
+trail. Grants are left to the walkthrough: give permissions in the UI, then invite members (create their Rauthy
+accounts in the Rauthy admin UI first).
 
 ## 7. Verify and record evidence
 
+The deploy script already ran the HTTPS probe. Measure resources with:
+
 ```sh
-OPENCLUB_DEMO_ORIGIN=https://club.example.ch OPENCLUB_OIDC_ISSUER=https://id.example.ch/auth/v1/ \
-  bash dev/verify-synthetic-https-demo.sh --synthetic-only
 COMPOSE_PROJECT_NAME=openclub-demo bash dev/measure-synthetic-compose.sh --synthetic-only
 ```
 
@@ -123,15 +129,28 @@ memory and disk, and the real monthly cost in #27/#28 using the [M1 evidence che
 
 ```sh
 cd /opt/openclub && git pull
-demo up -d --build --wait
+bash dev/deployment/deploy-demo.sh --synthetic-only club.example.ch id.example.ch you@example.ch
 ```
 
 Database migrations run when the API starts ([upgrade and rollback](upgrade-and-rollback.md)). Without backups a
-failed migration cannot be rolled back to the old data: for the synthetic demo the fallback is to delete the volumes
-and start over (`demo down -v`, which **destroys all demo data and the Rauthy accounts**).
+failed migration cannot be rolled back to the old data: for the synthetic demo the fallback is to start over with
+`bash dev/deployment/demo-compose.sh /opt/openclub-demo-env down -v`, which **destroys all demo data and the Rauthy
+accounts**; keep `/opt/openclub-demo-env` or delete it too for fresh secrets.
+
+## Troubleshooting
+
+- **DNS check fails:** the A records are missing or not yet propagated; `getent ahostsv4 club.example.ch` must show
+  the VPS address. Wait, or fix the records.
+- **Start does not become healthy:** `bash dev/deployment/demo-compose.sh /opt/openclub-demo-env ps` and `… logs demo-https`
+  for certificate errors (ports 80/443 closed in the Infomaniak firewall?), `… logs api` for OIDC
+  errors (the identity certificate not issued yet: rerun the deploy script after a minute).
+- **Rauthy keeps restarting after email setup:** wrong mailbox password or address; see section 4.
+- **Sign-in to the club fails with an invalid client:** the client secret in `.env` does not match Rauthy's (for example
+  after deleting only the Rauthy volume). Set `OPENCLUB_OIDC_CLIENT_SECRET=pending-` in `.env` and rerun the deploy
+  script, which fetches it again.
 
 ## What this kit does not do
 
-No backups (owner decision for the synthetic demo), no monitoring or alerting, no email, no real-data approval. M2
+No backups (owner decision for the synthetic demo), no monitoring or alerting, no real-data approval. M2
 (real member data) needs the backup, restore drill, recovery and privacy gates in [#12](https://github.com/dkoller/OpenClub/issues/12),
 [#26](https://github.com/dkoller/OpenClub/issues/26) and [#180](https://github.com/dkoller/OpenClub/issues/180).

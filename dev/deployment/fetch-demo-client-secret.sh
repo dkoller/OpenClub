@@ -7,16 +7,10 @@ set -euo pipefail
 [[ $# -eq 2 && "$1" == --synthetic-only && "$2" == /* && -f "$2/.env" ]] ||
   { echo "Usage: bash dev/deployment/fetch-demo-client-secret.sh --synthetic-only /ABSOLUTE/ENV_DIRECTORY" >&2; exit 2; }
 env_dir="$2"
-root="$(cd "$(dirname "$0")/../.." && pwd)"
-project="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$env_dir/.env")"
-[[ -n "$project" ]] || { echo "COMPOSE_PROJECT_NAME missing from $env_dir/.env" >&2; exit 1; }
-project="${OPENCLUB_DEMO_PROJECT:-$project}"
-
-demo=(docker compose --project-directory "$root" --env-file "$env_dir/.env" -p "$project"
-  -f "$root/compose.yaml" -f "$root/compose.https.demo.yaml" -f "$root/compose.rauthy.demo.yaml")
+demo=(bash "$(dirname "$0")/demo-compose.sh" "$env_dir")
 
 value=""
-for attempt in {1..60}; do
+for _ in {1..60}; do
   # The image's default config file plus the container's env overrides (encryption keys) decrypt the secret.
   if value="$("${demo[@]}" exec -T rauthy /app/rauthy bootstrap get -c /app/config.toml \
       --kind client --id openclub --field secret --format raw 2>/dev/null)" && [[ ${#value} -ge 32 ]]; then
