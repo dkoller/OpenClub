@@ -104,6 +104,11 @@ contact read is recorded.
 Once your invitation is accepted you are signed in as a club member. Without further permissions you see the club and
 its public member list (adults by full name, minors by first name and surname initial, nothing private).
 
+**My profile** shows what the club stores about you: name, date of birth, gender (if recorded), whether you play,
+your role and your teams. Change your *Email* and *Phone* there and choose *Save contacts*; adults need both. Other
+details are changed by the club administration. If the club changed your record while the page was open, nothing is
+saved and the current values are shown, so you can check and save again.
+
 ## For guardians
 
 If the club recorded you as a guardian, *My children* appears after you sign in.
