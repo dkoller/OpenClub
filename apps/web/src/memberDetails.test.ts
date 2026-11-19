@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fetchMemberDetails, memberDetailsPath, memberExportPath, parseMemberDetails } from './memberDetails'
 
-const res = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
+const res = (status: number, body?: unknown, etag?: string) => ({ ok: status >= 200 && status < 300, status, json: async () => body,
+  headers: new Headers(etag ? { ETag: etag } : {}) })
 const manager = { id: 'm1', firstName: 'Ada', lastName: 'Example', email: null, phone: '+41000000000', isPlayer: true }
 const editor = { ...manager, dateOfBirth: '1990-01-01', gender: null, archivedAt: null, hasLinkedLogin: false,
   invitation: { status: 'OPEN', expiresAt: '2026-12-01T00:00:00Z' } }
@@ -42,19 +43,30 @@ describe('member edit and reactivation', () => {
   it('replaces with CSRF and JSON, and maps every outcome', async () => {
     const { replaceMember, reactivateMember } = await import('./memberDetails')
     const ok = vi.fn().mockResolvedValue(res(204))
-    expect(await replaceMember('a/b', { firstName: 'A' }, 'c'.repeat(43), ok)).toBe('ok')
+    expect(await replaceMember('a/b', { firstName: 'A' }, '"7"', 'c'.repeat(43), ok)).toBe('ok')
     expect(ok.mock.calls[0][0]).toBe('/api/v1/members/a%2Fb')
     expect(ok.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: '{"firstName":"A"}',
-      headers: { 'X-CSRF-Token': 'c'.repeat(43), 'Content-Type': 'application/json' } })
+      headers: { 'X-CSRF-Token': 'c'.repeat(43), 'Content-Type': 'application/json', 'If-Match': '"7"' } })
     for (const [status, outcome] of [[401, 'denied'], [403, 'denied'], [400, 'invalid'], [404, 'not-found'], [409, 'conflict']] as const) {
-      expect(await replaceMember('m', {}, 'c', vi.fn().mockResolvedValue(res(status)))).toBe(outcome)
+      expect(await replaceMember('m', {}, '"1"', 'c', vi.fn().mockResolvedValue(res(status)))).toBe(outcome)
       expect(await reactivateMember('m', 'c', vi.fn().mockResolvedValue(res(status)))).toBe(outcome)
     }
-    await expect(replaceMember('m', {}, 'c', vi.fn().mockResolvedValue(res(503)))).rejects.toThrow()
+    expect(await replaceMember('m', {}, '"1"', 'c', vi.fn().mockResolvedValue(res(412)))).toBe('changed')
+    await expect(replaceMember('m', {}, '"1"', 'c', vi.fn().mockResolvedValue(res(428)))).rejects.toThrow()
+    await expect(replaceMember('m', {}, '"1"', 'c', vi.fn().mockResolvedValue(res(503)))).rejects.toThrow()
     const post = vi.fn().mockResolvedValue(res(204))
     expect(await reactivateMember('m', 'c', post)).toBe('ok')
     expect(post.mock.calls[0]).toEqual(['/api/v1/members/m/reactivate',
       { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': 'c' } }])
+  })
+
+  it('reads the version for the edit form and refuses a read without one', async () => {
+    const { fetchMemberForEdit } = await import('./memberDetails')
+    expect(await fetchMemberForEdit('m1', vi.fn().mockResolvedValue(res(200, editor, '"3"'))))
+      .toEqual({ details: editor, version: '"3"' })
+    await expect(fetchMemberForEdit('m1', vi.fn().mockResolvedValue(res(200, editor)))).rejects.toThrow()
+    expect(await fetchMemberForEdit('m1', vi.fn().mockResolvedValue(res(403)))).toBe('denied')
+    expect(await fetchMemberForEdit('m1', vi.fn().mockResolvedValue(res(404)))).toBe('not-found')
   })
 
   it('starts the edit form only from a full editor read', async () => {

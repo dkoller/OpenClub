@@ -107,7 +107,7 @@ class AuditEventsTest {
         val id = requireNotNull(creation.create(managerAccount, adult("Alice")))
         created += id
         assertTrue(update.updateNames(managerAccount, id, "Alicia", "Synthetic"))
-        assertTrue(update.update(managerAccount, id, MemberDetailsUpdate.Input(
+        assertTrue(update.replace(db, managerAccount, id, MemberDetailsUpdate.Input(
             "Alicia", "Synthetic", LocalDate.of(1990, 1, 1), "y@example.invalid", "+41000000003")))
         // Denied and missing-target changes write nothing.
         assertFalse(update.updateNames(outsiderAccount, id, "Nope", "Nope"))

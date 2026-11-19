@@ -104,7 +104,7 @@ class MemberArchiveTest {
                     "SELECT COUNT(*) FROM member_team_assignments WHERE member_id = ?", archived)?.toString()?.toInt())
                 assertTrue(MemberDirectory(db).search(account, "Target").members.isEmpty())
                 assertFalse(TeamAssignments(db).assign(account, team, archived))
-                assertFalse(MemberDetailsUpdate(db).update(account, archived,
+                assertFalse(MemberDetailsUpdate(db).replace(db, account, archived,
                     MemberDetailsUpdate.Input("Changed", "Synthetic", LocalDate.of(1990, 1, 1),
                         "changed@example.invalid", "+41000000000")))
                 assertEquals("Target", db.fetchValue(

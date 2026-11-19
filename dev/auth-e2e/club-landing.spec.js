@@ -200,7 +200,21 @@ test('verified login gains club access only after restricted operator bootstrap'
   await editForm.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByRole('region', { name: 'Manage members' }).getByRole('status')
     .filter({ hasText: 'Please check the fields' })).toBeVisible();
-  await editForm.getByRole('button', { name: 'Cancel' }).click();
+  // The edit sent the version of its read (OpenAPI 1.8.0). When someone changed the member since, the server
+  // answers 412 (covered against the real database in MemberReplaceAndReactivateHttpTest); the form closes,
+  // nothing is saved and the editor is told to edit again.
+  let ifMatch = null;
+  await page.route('**/api/v1/members/*', route => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    ifMatch = route.request().headers()['if-match'];
+    return route.fulfill({ status: 412, contentType: 'application/json', body: '{"code":"changed","message":"Request rejected"}' });
+  });
+  await editForm.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('region', { name: 'Manage members' }).getByRole('status')
+    .filter({ hasText: 'someone changed this member in the meantime' })).toBeVisible();
+  expect(ifMatch).toMatch(/^"[1-9][0-9]*"$/);
+  await expect(editForm).toHaveCount(0);
+  await page.unroute('**/api/v1/members/*');
   // Archive, undo (reactivation restores the member, without former rights), and archive again below.
   await renamed.getByRole('button', { name: 'Archive' }).click();
   await renamed.getByRole('button', { name: 'Confirm archive' }).click();

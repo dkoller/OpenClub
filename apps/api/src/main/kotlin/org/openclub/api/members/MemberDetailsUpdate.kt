@@ -8,7 +8,9 @@ import org.openclub.api.members.ClubCapabilityAccess.Capability
 /**
  * Member field updates: session-derived actor, explicit EDIT_MEMBERS grant and
  * current verified identity are checked inside the modifying SQL statement.
- * The full replacement [update] backs `PUT /api/v1/members/{id}` (OpenAPI 1.4.0, owner-approved 2026-11-19).
+ * The full replacement [update] backs `PUT /api/v1/members/{id}` (OpenAPI 1.4.0, owner-approved 2026-11-19). Since
+ * OpenAPI 1.8.0 it applies only when the row still has the version the editor read (`If-Match`), so a change made in
+ * between, such as a guardian's contact update, is never silently overwritten.
  */
 internal class MemberDetailsUpdate(private val database: DSLContext) {
     data class Input(
@@ -39,7 +41,14 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         ) == 1
     }
 
-    fun update(actorAccountId: UUID, memberId: UUID, input: Input): Boolean {
+    sealed interface Replaced {
+        data class Updated(val version: Long) : Replaced
+        data object Denied : Replaced
+        data object NotFound : Replaced
+        data object Changed : Replaced
+    }
+
+    fun update(actorAccountId: UUID, memberId: UUID, input: Input, expectedVersion: Long): Replaced {
         val first = MemberFieldValidation.name(input.firstName)
         val last = MemberFieldValidation.name(input.lastName)
         val birthDate = MemberFieldValidation.birthDate(input.dateOfBirth)
@@ -47,16 +56,24 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         val phone = MemberFieldValidation.phone(input.phone)
         val gender = MemberFieldValidation.gender(input.gender)
 
-        return database.execute(
+        val version = database.fetchOne(
             """WITH updated AS (
                  UPDATE members SET first_name = ?, last_name = ?, date_of_birth = ?,
                     email = ?, phone = ?, gender = ?, is_player = ?
-                 WHERE id = ? AND archived_at IS NULL AND ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}
-                 RETURNING id)
-               INSERT INTO audit_events (event_type, actor_account_id, target_member_id)
-               SELECT 'MEMBER_UPDATED', ?, id FROM updated""",
+                 WHERE id = ? AND archived_at IS NULL AND row_version = ?
+                   AND ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}
+                 RETURNING id, row_version),
+               audited AS (
+                 INSERT INTO audit_events (event_type, actor_account_id, target_member_id)
+                 SELECT 'MEMBER_UPDATED', ?, id FROM updated)
+               SELECT row_version FROM updated""",
             first, last, birthDate, email, phone, gender,
-            input.isPlayer, memberId, actorAccountId, actorAccountId,
-        ) == 1
+            input.isPlayer, memberId, expectedVersion, actorAccountId, actorAccountId,
+        )?.get(0, Long::class.java)
+        if (version != null) return Replaced.Updated(version)
+        // Nothing changed: the actor lost the grant, the member is unknown or archived, or it changed since it was read.
+        if (!ClubCapabilityAccess(database).has(actorAccountId, Capability.EDIT_MEMBERS)) return Replaced.Denied
+        val active = database.fetchOne("SELECT 1 FROM members WHERE id = ? AND archived_at IS NULL", memberId) != null
+        return if (active) Replaced.Changed else Replaced.NotFound
     }
 }

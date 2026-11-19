@@ -28,7 +28,8 @@ import java.util.UUID
  */
 internal class MemberDetailsRead(private val database: DSLContext) {
     sealed interface Result {
-        data class Found(val body: JsonObject) : Result
+        /** [version] is the row version for an editor's full read (the ETag for `If-Match`), null for a manager. */
+        data class Found(val body: JsonObject, val version: Long? = null) : Result
         data object Denied : Result
         data object NotFound : Result
     }
@@ -41,7 +42,7 @@ internal class MemberDetailsRead(private val database: DSLContext) {
                  AND g.capability = '${Capability.EDIT_MEMBERS.name}'""", actorAccountId) != null
         if (editor) {
             val row = db.fetchOne(
-                """SELECT first_name, last_name, date_of_birth, email, phone, gender, is_player, archived_at,
+                """SELECT first_name, last_name, date_of_birth, email, phone, gender, is_player, archived_at, row_version,
                           account_id IS NOT NULL AS linked,
                           (SELECT expires_at FROM member_invitations i WHERE i.member_id = members.id
                              AND i.used_at IS NULL AND i.revoked_at IS NULL AND i.expires_at > now()) AS open_until
@@ -63,7 +64,7 @@ internal class MemberDetailsRead(private val database: DSLContext) {
                     put("status", if (until == null) "NONE" else "OPEN")
                     if (until != null) put("expiresAt", until.toString())
                 })
-            })
+            }, row.get("row_version", Long::class.java))
         }
         val row = db.fetchOne(
             """SELECT first_name, last_name, email, phone, is_player FROM members m

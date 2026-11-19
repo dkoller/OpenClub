@@ -171,17 +171,27 @@ internal fun Application.installMemberHttpRoutes(
                         call.error(HttpStatusCode.BadRequest, "invalid")
                         return@put
                     }
+                    // OpenAPI 1.8.0: the version from the editor's detail read. Missing is 428; anything that is not
+                    // exactly the current version, including a malformed value or `*`, is 412 and changes nothing.
+                    val ifMatch = call.request.headers[HttpHeaders.IfMatch]
+                        ?: return@put call.error(HttpStatusCode.PreconditionRequired, "precondition_required")
+                    val expected = parseMemberETag(ifMatch)
+                        ?: return@put call.error(HttpStatusCode.PreconditionFailed, "changed")
                     val result = database.onDatabaseThread { db ->
                         if (!ClubCapabilityAccess(db).has(actor.accountId,
                                 ClubCapabilityAccess.Capability.EDIT_MEMBERS)) null
                         else MemberDetailsUpdate(db).update(actor.accountId, id, MemberDetailsUpdate.Input(
                             input.firstName, input.lastName, input.dateOfBirth,
-                            input.email, input.phone, input.gender, input.isPlayer))
+                            input.email, input.phone, input.gender, input.isPlayer), expected)
                     }
                     when (result) {
-                        null -> call.error(HttpStatusCode.Forbidden, "forbidden")
-                        false -> call.error(HttpStatusCode.NotFound, "not_found")
-                        true -> call.respond(HttpStatusCode.NoContent)
+                        null, MemberDetailsUpdate.Replaced.Denied -> call.error(HttpStatusCode.Forbidden, "forbidden")
+                        MemberDetailsUpdate.Replaced.NotFound -> call.error(HttpStatusCode.NotFound, "not_found")
+                        MemberDetailsUpdate.Replaced.Changed -> call.error(HttpStatusCode.PreconditionFailed, "changed")
+                        is MemberDetailsUpdate.Replaced.Updated -> {
+                            call.response.headers.append(HttpHeaders.ETag, memberETag(result.version))
+                            call.respond(HttpStatusCode.NoContent)
+                        }
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
