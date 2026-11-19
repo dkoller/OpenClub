@@ -76,9 +76,9 @@ internal class TeamEvents(private val database: DSLContext) {
             """SELECT e.id, e.team_id, team.name AS team_name, e.kind, e.title, e.starts_at, e.ends_at, e.location,
                       e.notes, e.cancelled
                FROM team_events e JOIN teams team ON team.id = e.team_id
-               WHERE e.team_id = ? AND e.ends_at > ? AND e.starts_at < ?
+               WHERE e.team_id = ? AND e.ends_at > ?::timestamptz AND e.starts_at < ?::timestamptz
                  AND ${ActorSql.holdsTeamCapability("team.id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)}
-               ORDER BY e.starts_at, e.id LIMIT ${LIMIT + 1}""", teamId, from, to, actor)
+               ORDER BY e.starts_at, e.id LIMIT ${LIMIT + 1}""", teamId, from.toString(), to.toString(), actor)
         return Listing.Found(page(rows.map { event(it) }), access.get("can_manage", Boolean::class.java) == true)
     }
 
@@ -103,9 +103,9 @@ internal class TeamEvents(private val database: DSLContext) {
                JOIN teams team ON team.id = e.team_id
                JOIN member_team_assignments a ON a.team_id = e.team_id
                JOIN people p ON p.id = a.member_id
-               WHERE e.ends_at > ? AND e.starts_at < ?
+               WHERE e.ends_at > ?::timestamptz AND e.starts_at < ?::timestamptz
                GROUP BY e.id, team.name
-               ORDER BY e.starts_at, e.id LIMIT ${LIMIT + 1}""", actor, from, to)
+               ORDER BY e.starts_at, e.id LIMIT ${LIMIT + 1}""", actor, from.toString(), to.toString())
         return page(rows.map { row ->
             val forMembers = Json.parseToJsonElement(row.get("for_members", String::class.java)).jsonArray.map {
                 val person = it.jsonObject
@@ -128,8 +128,8 @@ internal class TeamEvents(private val database: DSLContext) {
             starts.forEachIndexed { index, start ->
                 db.execute(
                     """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, location, notes)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                    ids[index], teamId, input.kind.name, input.title, start, start.plus(duration), input.location, input.notes)
+                       VALUES (?, ?, ?, ?, ?::timestamptz, ?::timestamptz, ?, ?)""",
+                    ids[index], teamId, input.kind.name, input.title, start.toString(), start.plus(duration).toString(), input.location, input.notes)
             }
             true
         }
@@ -139,9 +139,9 @@ internal class TeamEvents(private val database: DSLContext) {
 
     fun replace(actor: UUID, eventId: UUID, input: Input, cancelled: Boolean): Change {
         val changed = database.execute(
-            """UPDATE team_events e SET kind = ?, title = ?, starts_at = ?, ends_at = ?, location = ?, notes = ?, cancelled = ?
+            """UPDATE team_events e SET kind = ?, title = ?, starts_at = ?::timestamptz, ends_at = ?::timestamptz, location = ?, notes = ?, cancelled = ?
                WHERE e.id = ? AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}""",
-            input.kind.name, input.title, input.startsAt, input.endsAt, input.location, input.notes, cancelled,
+            input.kind.name, input.title, input.startsAt.toString(), input.endsAt.toString(), input.location, input.notes, cancelled,
             eventId, actor) == 1
         return if (changed) Change.DONE else missing(eventId)
     }
