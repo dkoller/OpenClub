@@ -1,6 +1,6 @@
 # Guardians signing in for a minor — design for privacy review
 
-**Status: the owner's privacy review of this design is OK (2026-11-18, [ADR-0008](../decisions/0008-owner-decisions-2026-11-18.md) addendum 4, decision 17), so its proposed defaults stand as the owner's product decisions. The controller's and counsel's points (lawful basis, notices) are still open, the guardian contract operations are not drafted, and there is no code.** On 2026-11-18 the owner decided that **a guardian signs in for a minor** ([ADR-0008](../decisions/0008-owner-decisions-2026-11-18.md), addendum 2, decision 11). The [privacy proposal](../discovery/privacy-proposal-2026-11-18.md) excludes guardian relationships until a separate requirement and privacy review, so this design must be reviewed and approved **before any code that lets one person act for a minor**. Adults signing in themselves ([invitation design](invitation-linking-design.md)) is a separate, unblocked track.
+**Status: the owner's privacy review of this design is OK (2026-11-18, [ADR-0008](../decisions/0008-owner-decisions-2026-11-18.md) addendum 4, decision 17), so its proposed defaults stand as the owner's product decisions. The controller's and counsel's points (lawful basis, notices) are still open. The six guardian contract operations are **drafted** (2026-11-19) in [`openapi-m2-draft.yaml`](../contracts/openapi-m2-draft.yaml), marked NOT IMPLEMENTED and awaiting the owner's approval of the text; there is no code.** On 2026-11-18 the owner decided that **a guardian signs in for a minor** ([ADR-0008](../decisions/0008-owner-decisions-2026-11-18.md), addendum 2, decision 11). The [privacy proposal](../discovery/privacy-proposal-2026-11-18.md) excludes guardian relationships until a separate requirement and privacy review, so this design must be reviewed and approved **before any code that lets one person act for a minor**. Adults signing in themselves ([invitation design](invitation-linking-design.md)) is a separate, unblocked track.
 
 ## What exists today
 
@@ -50,7 +50,7 @@ Access is by **relationship**, not by capability. A new check, "this account's m
 
 ## If approved: order of work
 
-1. Extend the M2 contract draft with the guardian operations; the owner approves the text.
+1. Extend the M2 contract draft with the guardian operations (**done 2026-11-19**: list, add and remove a minor's guardians for `EDIT_MEMBERS`; list my dependents, read one, replace their contacts for the guardian); the owner approves the text.
 2. A guardianship table, its checks and audit events, with synthetic PostgreSQL tests (a revoked guardian, an adult-age transition, an archived guardian, two guardians, the cascade).
 3. Authorization checks and HTTP routes with the authorize-before-validate and revocation matrices used for the M1 routes.
 4. Four-language UI and a browser journey with a second synthetic user.

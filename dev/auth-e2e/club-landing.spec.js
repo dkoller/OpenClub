@@ -120,7 +120,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.getByLabel('Last name').fill('Private');
   await page.getByLabel('Date of birth').fill('2013-01-01');
   await page.getByRole('button', { name: 'Add member' }).click();
-  const created = page.getByRole('listitem').filter({ hasText: 'Nina Private' });
+  // Scoped to the admin panel: the Archived members panel can list the same name.
+  const created = page.getByRole('region', { name: 'Manage members' }).getByRole('listitem').filter({ hasText: 'Nina Private' });
   await expect(created).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina P.' })).toBeVisible();
   // Anonymous API consumers must see only the abbreviated minor name.
@@ -187,7 +188,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const replaceResponse = page.waitForResponse(response => response.request().method() === 'PUT');
   await editForm.getByRole('button', { name: 'Save' }).click();
   expect((await replaceResponse).status()).toBe(204);
-  const renamed = page.getByRole('listitem').filter({ hasText: 'Nina Renamed' });
+  const renamed = page.getByRole('region', { name: 'Manage members' }).getByRole('listitem').filter({ hasText: 'Nina Renamed' });
   await expect(renamed).toBeVisible();
   await renamed.getByRole('button', { name: 'Details', exact: true }).click();
   await expect(renamed.getByRole('region', { name: 'Details: Nina Renamed' }).getByText('+41000000077')).toBeVisible();

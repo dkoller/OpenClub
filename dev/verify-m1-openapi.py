@@ -102,8 +102,15 @@ def implemented_routes():
 
 
 FROZEN_VERSION = "1.5.0"
-# Empty since 1.4.0 (ADR-0008 addendum 5); the draft stays for future proposals.
-M2_PROPOSALS = ()
+# Guardian proposals (docs/security/guardian-design.md), drafted 2026-11-19, not implemented.
+M2_PROPOSALS = (
+    "GET /v1/members/{memberId}/guardians",
+    "POST /v1/members/{memberId}/guardians",
+    "DELETE /v1/members/{memberId}/guardians/{guardianMemberId}",
+    "GET /v1/me/dependents",
+    "GET /v1/me/dependents/{memberId}",
+    "PUT /v1/me/dependents/{memberId}/contacts",
+)
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
 
 

@@ -20,7 +20,12 @@ info:
     eraseArchivedLocalMember followed in version 1.3.0. replaceLocalMemberDetails
     and reactivateLocalMember were approved on 2026-11-19 (ADR-0008 addendum 5)
     and moved into version 1.4.0, so this draft currently proposes no operation;
-    it is kept for the next proposals (for example guardian operations).
+    it was kept for the next proposals. GUARDIAN OPERATIONS (2026-11-19, drafted from
+    docs/security/guardian-design.md after the owner's privacy review of that design):
+    six operations below, all NOT IMPLEMENTED and awaiting the owner's approval of this text.
+    They need four new audit events (GUARDIAN_LINKED, GUARDIAN_UNLINKED, DEPENDENT_READ,
+    DEPENDENT_UPDATED). Lawful basis and notices for a guardian's access stay with the
+    controller and counsel; approving this text does not settle them or authorize real data.
     They implement the owner-approved privacy defaults (docs/discovery/
     privacy-proposal-2026-11-18.md) and the invitation design (docs/security/
     invitation-linking-design.md). When an operation is implemented it moves
@@ -32,7 +37,163 @@ security:
   - browserSession: []
 tags:
   - name: Members
-paths: {}
+  - name: Guardians
+paths:
+  # Guardian operations (docs/security/guardian-design.md; privacy review OK 2026-11-18, ADR-0008 decision 17).
+  # Lawful basis and notices for a guardian's access are for the controller and counsel and are NOT settled here.
+  /v1/members/{memberId}/guardians:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        description: The minor.
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Guardians]
+      operationId: listMemberGuardians
+      summary: Proposed list of a minor's guardians (NOT IMPLEMENTED)
+      description: >
+        For a live club-wide EDIT_MEMBERS grant with a current verified identity. Returns the
+        current guardians of an active minor: their member id and names only. Authorization before
+        validation; an unknown or adult member is 404 for editors only. Never cacheable.
+      responses:
+        '200':
+          description: Current guardians (0 to 2)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuardianList' }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      tags: [Guardians]
+      operationId: addMemberGuardian
+      summary: Proposed guardianship record, attested by an editor (NOT IMPLEMENTED)
+      description: >
+        An EDIT_MEMBERS holder records that an adult member is a guardian of a minor, after
+        verifying the relationship OUTSIDE OpenClub (the system cannot verify legal guardianship;
+        the request is the editor's attestation). Requires exact Origin and session CSRF. The minor
+        must be an active member below the club's adult age; the guardian an active adult member
+        with a linked verified account, never the minor and never archived. At most two guardians
+        per minor. A violation is 409 (not eligible, already a guardian, or two guardians already);
+        an unknown member is 404. Grants no capability. Audited as GUARDIAN_LINKED (identifiers only).
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GuardianReference' }
+      responses:
+        '204': { description: Guardianship recorded }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/members/{memberId}/guardians/{guardianMemberId}:
+    delete:
+      tags: [Guardians]
+      operationId: removeMemberGuardian
+      summary: Proposed revocation of a guardianship (NOT IMPLEMENTED)
+      description: >
+        An EDIT_MEMBERS holder ends a guardianship at any time (for example after a dispute; the
+        reason stays in the club's private register, not in OpenClub). Exact Origin and session
+        CSRF. The guardian loses access at the next request. Idempotent: an absent guardianship is
+        204. Audited as GUARDIAN_UNLINKED. Guardianships also end without a request when the minor
+        reaches the club's adult age (checked on every read) or when either member is archived,
+        unlinked or erased.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: guardianMemberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204': { description: Guardianship ended or absent }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/me/dependents:
+    get:
+      tags: [Guardians]
+      operationId: listMyDependents
+      summary: Proposed list of the signed-in guardian's minors (NOT IMPLEMENTED)
+      description: >
+        The signed-in account's own member, if it is an active adult with a current verified
+        identity, sees the minors it is currently a guardian of: id and names only. Access is by
+        relationship, not capability, checked in the same SQL statement as the read. Anyone else
+        gets an empty list (never 403), so the route reveals nothing. Never cacheable.
+      responses:
+        '200':
+          description: Current dependents
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DependentList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/me/dependents/{memberId}:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Guardians]
+      operationId: getMyDependent
+      summary: Proposed read of one dependent's record by their guardian (NOT IMPLEMENTED)
+      description: >
+        A current guardian reads the minor's names, date of birth, email, phone, player flag and
+        team names. Everything else is absent (gender, archive state, login, invitations, roles,
+        grants). Every refusal, including an unknown member, a minor who is not theirs, a minor
+        who reached the adult age and a malformed ID, is the same 403, so existence is not
+        revealed. Each successful read is audited as DEPENDENT_READ (identifiers only).
+      responses:
+        '200':
+          description: The dependent's record as far as a guardian may read it
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DependentDetails' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/me/dependents/{memberId}/contacts:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [Guardians]
+      operationId: replaceMyDependentContacts
+      summary: Proposed edit of a dependent's contacts by their guardian (NOT IMPLEMENTED)
+      description: >
+        A current guardian replaces the minor's email and phone (both optional for a minor; an
+        omitted field is cleared, so the client reads them first). Exact Origin and session CSRF.
+        Nothing else of the record can change. Every refusal is the same 403 as for the read,
+        decided before the body is validated; an invalid body from a current guardian is 400.
+        Audited as DEPENDENT_UPDATED.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DependentContacts' }
+      responses:
+        '204': { description: Contacts replaced }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
 components:
   parameters:
     CsrfToken:
@@ -184,6 +345,51 @@ components:
           enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS]
         scope: { type: string, enum: [CLUB, TEAM] }
         teamId: { type: string, format: uuid }
+    GuardianReference:
+      type: object
+      additionalProperties: false
+      required: [guardianMemberId]
+      properties:
+        guardianMemberId: { type: string, format: uuid }
+    GuardianList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 2
+          items: { $ref: '#/components/schemas/MemberSummary' }
+    DependentList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/MemberSummary' }
+    DependentDetails:
+      type: object
+      additionalProperties: false
+      required: [id, firstName, lastName, dateOfBirth, email, phone, isPlayer, teams]
+      properties:
+        id: { type: string, format: uuid }
+        firstName: { type: string, minLength: 1, maxLength: 200 }
+        lastName: { type: string, minLength: 1, maxLength: 200 }
+        dateOfBirth: { type: string, format: date }
+        email: { type: [string, 'null'], format: email, maxLength: 320 }
+        phone: { type: [string, 'null'], minLength: 1, maxLength: 40 }
+        isPlayer: { type: boolean }
+        teams:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 200 }
+    DependentContacts:
+      type: object
+      additionalProperties: false
+      properties:
+        email: { type: string, format: email, minLength: 3, maxLength: 320 }
+        phone: { type: string, minLength: 1, maxLength: 40 }
     Error:
       type: object
       additionalProperties: false
