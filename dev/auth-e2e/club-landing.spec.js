@@ -277,6 +277,18 @@ test('verified login gains club access only after restricted operator bootstrap'
   expect(JSON.stringify(await memberNames.json())).not.toContain('Synthetic test value');
   const memberAdmin = page.getByRole('region', { name: 'Manage members' });
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toBeVisible();
+  // The restricted detail read (OpenAPI 1.3.0) shows private fields only on request and is never cached.
+  const maraRow = memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' });
+  const detailsResponse = page.waitForResponse(response => /\/api\/v1\/members\/[^/]+\/details$/.test(new URL(response.url()).pathname));
+  await maraRow.getByRole('button', { name: 'Details', exact: true }).click();
+  expect((await detailsResponse).headers()['cache-control']).toBe('no-store');
+  const maraDetails = maraRow.getByRole('region', { name: 'Details: Mara Demo' });
+  await expect(maraDetails.getByText('Synthetic test value')).toBeVisible();
+  await expect(maraDetails.getByText('2015-01-01')).toBeVisible();
+  await expect(maraDetails.getByText('not set').first()).toBeVisible();
+  await expect(maraRow.getByRole('button', { name: 'Details', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await maraDetails.getByRole('button', { name: 'Close' }).click();
+  await expect(maraDetails).toHaveCount(0);
   await clubSettings.getByLabel('Require gender for players').check();
   await clubSettings.getByRole('button', { name: 'Save policy' }).click();
   await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).genderRequiredForPlayers).toBe(true);
@@ -401,6 +413,18 @@ test('verified login gains club access only after restricted operator bootstrap'
   await teams.getByRole('button', { name: 'Assign' }).click();
   await expect(teams.getByRole('button', { name: 'Remove' })).toBeVisible();
   await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
+  // Contact details open from the roster; a 403 from the server is shown as a denial, never as data.
+  await teams.getByRole('button', { name: 'Contact details' }).click();
+  await expect(teams.getByRole('region', { name: 'Details: Mara Demo' })).toBeVisible();
+  await teams.getByRole('button', { name: 'Close' }).click();
+  // Not `times: 1`: StrictMode runs the effect twice in development, and the first request is aborted.
+  await page.route('**/api/v1/members/*/details', route => route.fulfill({
+    status: 403, contentType: 'application/json', body: '{"code":"forbidden"}' }));
+  await teams.getByRole('button', { name: 'Contact details' }).click();
+  await expect(teams.getByRole('alert').filter({ hasText: 'No permission to see these details.' })).toBeVisible();
+  await expect(teams.getByRole('region', { name: 'Details: Mara Demo' })).toHaveCount(0);
+  await teams.getByRole('button', { name: 'Close' }).click();
+  await page.unroute('**/api/v1/members/*/details');
   // An obsolete roster response must not replace a fresh roster after a new assignment.
   let startedOldRoster;
   const oldRosterStarted = new Promise(resolve => { startedOldRoster = resolve; });

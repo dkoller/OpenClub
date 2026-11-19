@@ -23,6 +23,10 @@ internal class ClubCapabilityAccess(private val database: DSLContext) {
             accountId, capability.name, capability.name,
         ) != null
 
+    /** MANAGE_TEAMS held club-wide or on at least one team: the precondition for reading team members' contacts. */
+    fun holdsAnyTeamManagement(accountId: UUID): Boolean =
+        database.fetchOne("SELECT 1 WHERE ${ActorSql.holdsTeamCapability(null, Capability.MANAGE_TEAMS)}", accountId) != null
+
     /** Team grants never authorize club-level administration or member editing. */
     fun hasForTeam(accountId: UUID, teamId: UUID, capability: Capability): Boolean {
         require(capability == Capability.VIEW_TEAMS || capability == Capability.MANAGE_TEAMS) {

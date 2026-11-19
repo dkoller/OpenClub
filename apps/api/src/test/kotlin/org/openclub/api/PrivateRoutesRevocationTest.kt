@@ -39,6 +39,8 @@ class PrivateRoutesRevocationTest {
     private val holderAccount = UUID.randomUUID()
     private val holder = UUID.randomUUID()
     private val target = UUID.randomUUID()
+    /** Archived and unlinked, so the authorized pass really erases it (204). */
+    private val erasable = UUID.randomUUID()
     private val team = UUID.randomUUID()
     private val club = UUID.randomUUID()
     private val origin = "http://localhost:5173"
@@ -76,6 +78,7 @@ class PrivateRoutesRevocationTest {
                         club, "Revocation matrix club", "revocation-matrix-$club")
                     member(holder, holderAccount, "ADMIN")
                     member(target, null, "MEMBER")
+                    insertErasable(tx)
                     tx.execute("INSERT INTO teams (id, name) VALUES (?, ?)", team,
                         "Revocation team ${UUID.randomUUID().toString().take(8)}")
                     for (capability in listOf("VIEW_MEMBER_DIRECTORY", "EDIT_MEMBERS", "MANAGE_PERMISSIONS",
@@ -90,6 +93,10 @@ class PrivateRoutesRevocationTest {
         }
     }
 
+    private fun insertErasable(tx: DSLContext) = tx.execute(
+        """INSERT INTO members (id, first_name, last_name, date_of_birth, archived_at)
+           VALUES (?, 'Erasable', 'Person', DATE '2014-01-01', now()) ON CONFLICT DO NOTHING""", erasable)
+
     @AfterAll
     fun dropFixture() {
         val db = database ?: return
@@ -98,7 +105,8 @@ class PrivateRoutesRevocationTest {
                 // Also the team the authorized pass created through POST /teams: other suites count teams.
                 tx.execute("DELETE FROM teams WHERE id = ? OR name LIKE 'Revocation%'", team)
                 tx.execute("DELETE FROM members WHERE first_name = 'Denied' AND last_name = 'Person'")
-                tx.execute("DELETE FROM members WHERE id IN (?, ?)", holder, target)
+                tx.execute("DELETE FROM audit_events WHERE target_member_id = ?", erasable)
+                tx.execute("DELETE FROM members WHERE id IN (?, ?, ?)", holder, target, erasable)
                 tx.execute("DELETE FROM accounts WHERE id = ?", holderAccount)
                 tx.execute("DELETE FROM clubs WHERE id = ?", club)
             }
@@ -138,6 +146,8 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Post, "/api/v1/members/$target/invitation"),
         Route(HttpMethod.Delete, "/api/v1/members/$target/invitation"),
         Route(HttpMethod.Delete, "/api/v1/members/$target/account-link"),
+        Route(HttpMethod.Get, "/api/v1/members/$target/details"),
+        Route(HttpMethod.Post, "/api/v1/members/$erasable/erase", """{"confirmation":"Erasable Person"}"""),
         // Last: an archived target is hidden from the role and grant routes by design.
         Route(HttpMethod.Post, "/api/v1/members/$target/archive"),
     )
@@ -189,6 +199,7 @@ class PrivateRoutesRevocationTest {
                 tx.execute("DELETE FROM teams WHERE id <> ? AND name LIKE 'Revocation%'", team)
                 tx.execute("INSERT INTO teams (id, name) VALUES (?, ?) ON CONFLICT DO NOTHING", team,
                     "Revocation team again")
+                insertErasable(tx)
                 tx.execute("DELETE FROM account_identities WHERE account_id = ?", holderAccount)
             }
         }
@@ -217,6 +228,8 @@ class PrivateRoutesRevocationTest {
                     target)?.toString()?.toLong(), "grant written")
                 assertEquals(0L, tx.fetchValue("SELECT COUNT(*) FROM members WHERE first_name = 'Denied'")
                     ?.toString()?.toLong(), "member created")
+                assertEquals(1L, tx.fetchValue("SELECT COUNT(*) FROM members WHERE id = ?", erasable)
+                    ?.toString()?.toLong(), "member erased")
             }
         }
     }

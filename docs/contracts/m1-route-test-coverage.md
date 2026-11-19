@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 26 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.2.0) to the tests that exercise it. The operation list and
+Maps each of the 28 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.3.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -44,10 +44,12 @@ How to read the columns of test types:
 | `DELETE /v1/members/{memberId}/account-link` | 204, 400, 401, 403, 404, 409, 503 | `MemberInvitationHttpTest`, `PrivateRoutesRevocationTest`, `MemberInvitationsTest` |
 | `POST /v1/invitations/accept` | 204, 400, 401, 429, 503 | `MemberInvitationHttpTest` (no capability: every failure is one generic 400, rate limited), `MemberInvitationsTest` |
 | `DELETE /v1/grants` | 204, 400, 401, 403, 503 | `GrantHttpRoutesTest`, `GrantHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `ConcurrentLastManagerHttpTest`, `CapabilityGrantsTest` |
+| `GET /v1/members/{memberId}/details` | 200, 400, 401, 403, 404, 503 | `MemberDetailsAndErasureHttpTest` (fields per caller, team scoping, `CONTACT_READ` audit, archived reads by editors), `PrivateRoutesRevocationTest` |
+| `POST /v1/members/{memberId}/erase` | 204, 400, 401, 403, 503 | `MemberDetailsAndErasureHttpTest` (one generic 403 for every refusal), `PrivateRoutesRevocationTest`, `MemberErasureTest` |
 Browser coverage of the same operations is in `dev/auth-e2e/club-landing.spec.js` (real Keycloak and
 Chromium, synthetic data): member, team, grant, role and club-setting workflows in four languages, real
 database denial with grants removed, a team-scoped grant that shows one team, invalid-input handling and
-accessibility structure (#25). The anonymous and authentication routes outside the 26 operations are covered
+accessibility structure (#25). The anonymous and authentication routes outside the 28 operations are covered
 by `AuthAndPublicRoutesInputTest`, `SessionRoutesTest` and `BrowserLoginRoutesTest`.
 
 ## Known gaps in this evidence
@@ -56,7 +58,7 @@ by `AuthAndPublicRoutesInputTest`, `SessionRoutesTest` and `BrowserLoginRoutesTe
   route's code path is reviewed, but no test makes a real route answer 503 for every operation. A realistic
   fault injection is not built.
 - **Runtime payload conformance.** Response bodies are asserted exactly only for member create, search,
-  detail, the anonymous directory and the error envelope (#306). Other responses are checked for status and
+  detail, the anonymous directory, the error envelope (#306) and the key sets of the 1.3.0 detail read. Other responses are checked for status and
   for absence of private fields, not validated against the OpenAPI schema. Adding a schema validator would add a
   dependency and needs an owner decision.
 - **Statuses never produced by a test.** Where a documented status is only reachable through a race or a

@@ -93,16 +93,16 @@ internal fun Application.installMemberInvitationHttpRoutes(
     }
 }
 
-private fun ApplicationCall.memberId(): UUID? = runCatching { UUID.fromString(parameters["memberId"]) }.getOrNull()
+internal fun ApplicationCall.memberId(): UUID? = runCatching { UUID.fromString(parameters["memberId"]) }.getOrNull()
 
-private suspend fun ApplicationCall.refuse(status: HttpStatusCode, code: String) =
+internal suspend fun ApplicationCall.refuse(status: HttpStatusCode, code: String) =
     respondText("""{"code":"$code"}""", ContentType.Application.Json, status)
 
 /**
  * The shared order of answers: session (401), exact Origin and session CSRF (403), the capability if the route
  * needs one (403), and only then the route's own validation and work. Any unexpected failure is a 503.
  */
-private suspend fun ApplicationCall.guarded(
+internal suspend fun ApplicationCall.guarded(
     sessions: BrowserSessionOperations,
     cookies: AuthCookiePolicy,
     origin: String,
