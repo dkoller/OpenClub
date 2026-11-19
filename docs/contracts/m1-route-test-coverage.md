@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 30 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.4.0) to the tests that exercise it. The operation list and
+Maps each of the 31 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.5.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -24,6 +24,7 @@ How to read the columns of test types:
 | `PATCH /v1/club/adult-age-policy` | 204, 400, 401, 403, 409, 503 | `ClubSettingsHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `ClubPolicyChangeTest` |
 | `GET /v1/public/members` | 200, 503 | `PublicMemberNamesTest`, `AuthAndPublicRoutesInputTest` |
 | `GET /v1/members` | 200, 400, 401, 403, 503 | `MemberHttpRoutesTest`, `MemberHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `MemberDirectoryTest` |
+| `GET /v1/members/archived` | 200, 400, 401, 403, 503 | `ArchivedMemberSearchHttpTest` (EDIT_MEMBERS only, key set, paging, cursors bound to list and query), `PrivateRoutesRevocationTest` |
 | `POST /v1/members` | 201, 400, 401, 403, 409, 503 | `MemberHttpRoutesTest`, `MemberHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `MemberCreationTest` |
 | `GET /v1/members/{memberId}` | 200, 400, 401, 403, 404, 503 | `MemberHttpRoutesTest`, `MemberHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest` |
 | `PATCH /v1/members/{memberId}` | 204, 400, 401, 403, 404, 503 | `MemberHttpRoutesTest`, `MemberHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `MemberDetailsUpdateTest` |
@@ -51,7 +52,7 @@ How to read the columns of test types:
 Browser coverage of the same operations is in `dev/auth-e2e/club-landing.spec.js` (real Keycloak and
 Chromium, synthetic data): member, team, grant, role and club-setting workflows in four languages, real
 database denial with grants removed, a team-scoped grant that shows one team, invalid-input handling and
-accessibility structure (#25). The anonymous and authentication routes outside the 30 operations are covered
+accessibility structure (#25). The anonymous and authentication routes outside the 31 operations are covered
 by `AuthAndPublicRoutesInputTest`, `SessionRoutesTest` and `BrowserLoginRoutesTest`.
 
 ## Known gaps in this evidence

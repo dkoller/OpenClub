@@ -125,6 +125,7 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Patch, "/api/v1/club/player-gender-policy", """{"genderRequiredForPlayers":false}"""),
         Route(HttpMethod.Patch, "/api/v1/club/adult-age-policy", """{"adultAgeYears":18}"""),
         Route(HttpMethod.Get, "/api/v1/members"),
+        Route(HttpMethod.Get, "/api/v1/members/archived"),
         Route(HttpMethod.Get, "/api/v1/members/$target"),
         Route(HttpMethod.Patch, "/api/v1/members/$target", """{"firstName":"Synthetic"}"""),
         // The same values the fixture stored, so the authorized pass changes nothing visible.

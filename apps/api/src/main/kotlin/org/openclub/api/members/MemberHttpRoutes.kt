@@ -36,51 +36,12 @@ internal fun Application.installMemberHttpRoutes(
     routing {
         route("/api/v1/members") {
             get {
-                call.response.headers.append(HttpHeaders.CacheControl, "no-store")
-                try {
-                    val actor = call.requireActor(sessions, cookies) ?: return@get
-                    if (!call.requireCapability(database, actor, ClubCapabilityAccess.Capability.VIEW_MEMBER_DIRECTORY)) {
-                        return@get
-                    }
-                    val (q, limit, after) = try {
-                        val q = call.request.queryParameters["q"] ?: ""
-                        require(q.trim().length <= 100 && (q.isEmpty() || q.isNotBlank()))
-                        val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: run {
-                            require(call.request.queryParameters["limit"] == null)
-                            20
-                        }
-                        require(limit in 1..50)
-                        val after = call.request.queryParameters["cursor"]?.let {
-                            MemberPageCursor.decode(actor.accountId, q.trim(), it)
-                        }
-                        MemberQuery(q, limit, after)
-                    } catch (_: IllegalArgumentException) {
-                        call.error(HttpStatusCode.BadRequest, "invalid")
-                        return@get
-                    }
-                    val page = database.onDatabaseThread { db ->
-                        if (!ClubCapabilityAccess(db).has(actor.accountId,
-                                ClubCapabilityAccess.Capability.VIEW_MEMBER_DIRECTORY)) null
-                        else MemberDirectory(db).search(actor.accountId, q, limit, after)
-                    }
-                    if (page == null) {
-                        call.error(HttpStatusCode.Forbidden, "forbidden")
-                        return@get
-                    }
-                    val response = buildJsonObject {
-                        put("items", buildJsonArray {
-                            page.members.forEach { member ->
-                                add(memberNameResponse(member.id, member.firstName, member.lastName))
-                            }
-                        })
-                        page.next?.let { put("nextCursor", MemberPageCursor.encode(actor.accountId, q.trim(), it)) }
-                    }
-                    call.respondText(response.toString(), ContentType.Application.Json)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
-                }
+                call.memberPage(sessions, cookies, database, archived = false)
+            }
+            // Archived members for editors (OpenAPI 1.5.0, owner-approved 2026-11-19, ADR-0008 addendum 7).
+            // A literal segment, so Ktor prefers it to the /{memberId} parameter route below.
+            get("/archived") {
+                call.memberPage(sessions, cookies, database, archived = true)
             }
             post {
                 call.response.headers.append(HttpHeaders.CacheControl, "no-store")
@@ -338,6 +299,69 @@ private suspend fun ApplicationCall.requireCapability(
     if (!allowed) error(HttpStatusCode.Forbidden, "forbidden")
     return allowed
 }
+
+/**
+ * One page of member names: active members for VIEW_MEMBER_DIRECTORY, or archived members (with their
+ * archive time) for EDIT_MEMBERS. Authorization comes before validation, so a caller without the grant
+ * always gets 403. Cursors are scoped to the actor, the query and the list, so a token from one list is
+ * rejected by the other.
+ */
+private suspend fun ApplicationCall.memberPage(
+    sessions: BrowserSessionOperations,
+    cookies: AuthCookiePolicy,
+    database: DatabaseRuntime,
+    archived: Boolean,
+) {
+    response.headers.append(HttpHeaders.CacheControl, "no-store")
+    val capability = if (archived) ClubCapabilityAccess.Capability.EDIT_MEMBERS
+        else ClubCapabilityAccess.Capability.VIEW_MEMBER_DIRECTORY
+    try {
+        val actor = requireActor(sessions, cookies) ?: return
+        if (!requireCapability(database, actor, capability)) return
+        val (q, limit, after) = try {
+            val q = request.queryParameters["q"] ?: ""
+            require(q.trim().length <= 100 && (q.isEmpty() || q.isNotBlank()))
+            val limit = request.queryParameters["limit"]?.toIntOrNull() ?: run {
+                require(request.queryParameters["limit"] == null)
+                20
+            }
+            require(limit in 1..50)
+            val after = request.queryParameters["cursor"]?.let {
+                MemberPageCursor.decode(actor.accountId, cursorScope(q, archived), it)
+            }
+            MemberQuery(q, limit, after)
+        } catch (_: IllegalArgumentException) {
+            error(HttpStatusCode.BadRequest, "invalid")
+            return
+        }
+        val page = database.onDatabaseThread { db ->
+            if (!ClubCapabilityAccess(db).has(actor.accountId, capability)) null
+            else if (archived) MemberDirectory(db).searchArchived(actor.accountId, q, limit, after)
+            else MemberDirectory(db).search(actor.accountId, q, limit, after)
+        }
+        if (page == null) {
+            error(HttpStatusCode.Forbidden, "forbidden")
+            return
+        }
+        val body = buildJsonObject {
+            put("items", buildJsonArray {
+                page.members.forEach { member ->
+                    val names = memberNameResponse(member.id, member.firstName, member.lastName)
+                    add(if (!archived) names else JsonObject(names + ("archivedAt" to
+                        JsonPrimitive(requireNotNull(member.archivedAt).toInstant().toString()))))
+                }
+            })
+            page.next?.let { put("nextCursor", MemberPageCursor.encode(actor.accountId, cursorScope(q, archived), it)) }
+        }
+        respondText(body.toString(), ContentType.Application.Json)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        error(HttpStatusCode.ServiceUnavailable, "unavailable")
+    }
+}
+
+private fun cursorScope(q: String, archived: Boolean) = if (archived) "archived\u0000" + q.trim() else q.trim()
 
 private data class MemberQuery(val q: String, val limit: Int, val after: MemberDirectory.After?)
 

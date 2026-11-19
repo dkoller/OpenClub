@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fetchMemberPage, memberCreateBody, memberPagePath, type MemberDraft } from './members'
+import { archivedPagePath, fetchArchivedPage, fetchMemberPage, memberCreateBody, memberPagePath, type MemberDraft } from './members'
 
 const draft: MemberDraft = {
   firstName: 'Ada', lastName: 'Example', dateOfBirth: '2012-05-01',
@@ -41,5 +41,22 @@ describe('member create body', () => {
     expect(memberCreateBody({ ...draft, isPlayer: true, gender: '  free text  ' }))
       .toMatchObject({ isPlayer: true, gender: 'free text' })
     expect(memberCreateBody({ ...draft, isPlayer: true, gender: '   ' })).not.toHaveProperty('gender')
+  })
+})
+
+describe('archived member requests', () => {
+  it('uses the archived path with the same query and cursor rules', () => {
+    expect(archivedPagePath('Müller', 'c')).toBe('/api/v1/members/archived?q=M%C3%BCller&limit=20&cursor=c')
+  })
+
+  it('returns names with archive time, maps denial, and rejects malformed items', async () => {
+    const page = { items: [{ id: '1', firstName: 'Ada', lastName: 'Example', archivedAt: '2026-11-19T06:00:00Z' }] }
+    const ok = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => page })
+    expect(await fetchArchivedPage('', undefined, undefined, ok)).toEqual(page)
+    expect(ok.mock.calls[0][0]).toBe('/api/v1/members/archived?q=&limit=20')
+    expect(await fetchArchivedPage('', undefined, undefined, vi.fn().mockResolvedValue({ ok: false, status: 403 }))).toBe('denied')
+    const bad = { items: [{ id: '1', firstName: 'Ada', lastName: 'Example' }] }
+    await expect(fetchArchivedPage('', undefined, undefined,
+      vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => bad }))).rejects.toThrow()
   })
 })

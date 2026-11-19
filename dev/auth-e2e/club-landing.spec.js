@@ -120,7 +120,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.getByLabel('Last name').fill('Private');
   await page.getByLabel('Date of birth').fill('2013-01-01');
   await page.getByRole('button', { name: 'Add member' }).click();
-  const created = page.getByRole('listitem').filter({ hasText: 'Nina Private' });
+  // Scoped to the admin panel: the Archived members panel can list the same name.
+  const created = page.getByRole('region', { name: 'Manage members' }).getByRole('listitem').filter({ hasText: 'Nina Private' });
   await expect(created).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina P.' })).toBeVisible();
   // Anonymous API consumers must see only the abbreviated minor name.
@@ -187,7 +188,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const replaceResponse = page.waitForResponse(response => response.request().method() === 'PUT');
   await editForm.getByRole('button', { name: 'Save' }).click();
   expect((await replaceResponse).status()).toBe(204);
-  const renamed = page.getByRole('listitem').filter({ hasText: 'Nina Renamed' });
+  const renamed = page.getByRole('region', { name: 'Manage members' }).getByRole('listitem').filter({ hasText: 'Nina Renamed' });
   await expect(renamed).toBeVisible();
   await renamed.getByRole('button', { name: 'Details', exact: true }).click();
   await expect(renamed.getByRole('region', { name: 'Details: Nina Renamed' }).getByText('+41000000077')).toBeVisible();
@@ -239,6 +240,26 @@ test('verified login gains club access only after restricted operator bootstrap'
   const archivedPublicNames = await context.request.get('/api/v1/public/members');
   expect(archivedPublicNames.status()).toBe(200);
   expect(await archivedPublicNames.json()).not.toContainEqual({ displayName: 'Nina R.' });
+  // Archived members (OpenAPI 1.5.0): an editor finds the member later and reactivates them; no erase button.
+  const archivedRegion = page.getByRole('region', { name: 'Archived members' });
+  await archivedRegion.getByLabel('Search names').fill('Nina');
+  const archivedSearch = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/members/archived');
+  await archivedRegion.getByRole('button', { name: 'Search', exact: true }).click();
+  expect((await archivedSearch).headers()['cache-control']).toBe('no-store');
+  const archivedNina = archivedRegion.getByRole('listitem').filter({ hasText: 'Nina Renamed' });
+  await expect(archivedNina).toContainText('archived on');
+  await expect(archivedRegion.getByRole('button', { name: /erase/i })).toHaveCount(0);
+  await archivedNina.getByRole('button', { name: 'Reactivate' }).click();
+  await expect(archivedRegion.getByText(/Member reactivated/)).toBeVisible();
+  await expect(archivedNina).toHaveCount(0);
+  const backInList = page.getByRole('region', { name: 'Manage members' }).getByRole('listitem').filter({ hasText: 'Nina Renamed' });
+  await page.getByRole('region', { name: 'Manage members' }).getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(backInList).toBeVisible();
+  // Archive her again so the rest of the journey sees the same state as before.
+  await backInList.getByRole('button', { name: 'Archive' }).click();
+  await backInList.getByRole('button', { name: 'Confirm archive' }).click();
+  await expect(backInList).toHaveCount(0);
+  await expect(archivedNina).toBeVisible();
 
   // Adult contacts are enforced by the server, not merely by browser hints.
   const memberAdminForAdult = page.getByRole('region', { name: 'Manage members' });
