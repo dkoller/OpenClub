@@ -31,8 +31,8 @@ ROUTE_SOURCES = {
 }
 
 # A reviewed baseline makes both new unreviewed exposure and silently removed
-# routes explicit. Changing this list is a contract-review action, not approval
-# to expose the proposed private member PUT/reactivation endpoints.
+# routes explicit. Changing this list is a contract-review action and needs an
+# owner-approved contract change (PUT and reactivation: ADR-0008 addendum 5).
 EXPECTED = set("""
 GET /v1/public/members
 GET /v1/club
@@ -62,6 +62,8 @@ POST /v1/invitations/accept
 DELETE /v1/members/{memberId}/account-link
 GET /v1/members/{memberId}/details
 POST /v1/members/{memberId}/erase
+PUT /v1/members/{memberId}
+POST /v1/members/{memberId}/reactivate
 """.strip().splitlines())
 
 # A single direct-route pattern avoids interpreting JSON builder put() as an
@@ -98,11 +100,9 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.3.0"
-M2_PROPOSALS = (
-    "PUT /v1/members/{memberId}",
-    "POST /v1/members/{memberId}/reactivate",
-)
+FROZEN_VERSION = "1.4.0"
+# Empty since 1.4.0 (ADR-0008 addendum 5); the draft stays for future proposals.
+M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
 
 

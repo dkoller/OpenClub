@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 import { writeJson } from './api'
-import { fetchMemberPage, memberCreateBody, type Member } from './members'
+import { fetchMemberPage, memberCreateBody, type Member, type MemberDraft } from './members'
+import { draftFromDetails, fetchMemberDetails, reactivateMember, replaceMember } from './memberDetails'
 import { MemberDetailsView } from './MemberDetailsView'
 
 const strings = {
-  de: { heading: 'Mitglieder verwalten', search: 'Name suchen', find: 'Suchen', loading: 'Mitglieder werden geladen…', denied: 'Keine Berechtigung zur Mitgliederverwaltung.', unavailable: 'Mitgliederverwaltung nicht verfügbar.', retry: 'Erneut versuchen', first: 'Vorname', last: 'Nachname', dob: 'Geburtsdatum', email: 'E-Mail', phone: 'Telefon', create: 'Mitglied hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', archive: 'Archivieren', more: 'Weitere Mitglieder', saved: 'Mitglied aktualisiert.', empty: 'Keine Mitglieder gefunden.', problem: 'Aktion fehlgeschlagen.', player: 'Spieler', gender: 'Geschlecht (Freitext)', policy: 'Für Spieler in diesem Verein erforderlich.', adultContacts: 'Für Erwachsene sind E-Mail und Telefonnummer erforderlich; für Minderjährige sind beide freiwillig.', details: 'Details', confirmArchive: 'Mitglied wirklich archivieren?', confirm: 'Archivierung bestätigen', adultFrom: 'Erwachsen ab {age} Jahren.' },
-  en: { heading: 'Manage members', search: 'Search names', find: 'Search', loading: 'Loading members…', denied: 'No permission to manage members.', unavailable: 'Member management unavailable.', retry: 'Try again', first: 'First name', last: 'Last name', dob: 'Date of birth', email: 'Email', phone: 'Phone', create: 'Add member', edit: 'Edit', save: 'Save', cancel: 'Cancel', archive: 'Archive', more: 'More members', saved: 'Member updated.', empty: 'No members found.', problem: 'Action failed.', player: 'Player', gender: 'Gender (free text)', policy: 'Required for players in this club.', adultContacts: 'Adults must provide both email and phone; both are optional for minors.', details: 'Details', confirmArchive: 'Archive this member?', confirm: 'Confirm archive', adultFrom: 'Adult from age {age}.' },
-  fr: { heading: 'Gérer les membres', search: 'Rechercher un nom', find: 'Rechercher', loading: 'Chargement des membres…', denied: 'Accès à la gestion des membres refusé.', unavailable: 'Gestion des membres indisponible.', retry: 'Réessayer', first: 'Prénom', last: 'Nom', dob: 'Date de naissance', email: 'E-mail', phone: 'Téléphone', create: 'Ajouter un membre', edit: 'Modifier', save: 'Enregistrer', cancel: 'Annuler', archive: 'Archiver', more: 'Plus de membres', saved: 'Membre mis à jour.', empty: 'Aucun membre trouvé.', problem: 'Action échouée.', player: 'Joueur', gender: 'Genre (texte libre)', policy: 'Obligatoire pour les joueurs de ce club.', adultContacts: 'Pour les adultes, l’e-mail et le téléphone sont obligatoires ; les deux sont facultatifs pour les mineurs.', details: 'Détails', confirmArchive: 'Archiver ce membre ?', confirm: 'Confirmer l’archivage', adultFrom: 'Adulte dès {age} ans.' },
-  it: { heading: 'Gestisci membri', search: 'Cerca nomi', find: 'Cerca', loading: 'Caricamento membri…', denied: 'Nessun permesso di gestione membri.', unavailable: 'Gestione membri non disponibile.', retry: 'Riprova', first: 'Nome', last: 'Cognome', dob: 'Data di nascita', email: 'Email', phone: 'Telefono', create: 'Aggiungi membro', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', archive: 'Archivia', more: 'Altri membri', saved: 'Membro aggiornato.', empty: 'Nessun membro trovato.', problem: 'Operazione non riuscita.', player: 'Giocatore', gender: 'Genere (testo libero)', policy: 'Obbligatorio per i giocatori di questo club.', adultContacts: 'Per gli adulti sono obbligatori sia l’email sia il telefono; per i minorenni sono facoltativi.', details: 'Dettagli', confirmArchive: 'Archiviare questo membro?', confirm: 'Conferma archiviazione', adultFrom: 'Adulto da {age} anni.' },
+  de: { invalid: 'Bitte Angaben prüfen: Erwachsene brauchen E-Mail und Telefon, Spieler eventuell ein Geschlecht.', archivedNotice: 'Mitglied archiviert.', undo: 'Archivierung rückgängig machen', reactivated: 'Mitglied reaktiviert (ohne frühere Rechte, Teams oder Anmeldung).', stale: 'Reaktivierung nicht möglich: Der Eintrag erfüllt die aktuellen Vereinsregeln nicht mehr.', heading: 'Mitglieder verwalten', search: 'Name suchen', find: 'Suchen', loading: 'Mitglieder werden geladen…', denied: 'Keine Berechtigung zur Mitgliederverwaltung.', unavailable: 'Mitgliederverwaltung nicht verfügbar.', retry: 'Erneut versuchen', first: 'Vorname', last: 'Nachname', dob: 'Geburtsdatum', email: 'E-Mail', phone: 'Telefon', create: 'Mitglied hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', archive: 'Archivieren', more: 'Weitere Mitglieder', saved: 'Mitglied aktualisiert.', empty: 'Keine Mitglieder gefunden.', problem: 'Aktion fehlgeschlagen.', player: 'Spieler', gender: 'Geschlecht (Freitext)', policy: 'Für Spieler in diesem Verein erforderlich.', adultContacts: 'Für Erwachsene sind E-Mail und Telefonnummer erforderlich; für Minderjährige sind beide freiwillig.', details: 'Details', confirmArchive: 'Mitglied wirklich archivieren?', confirm: 'Archivierung bestätigen', adultFrom: 'Erwachsen ab {age} Jahren.' },
+  en: { invalid: 'Please check the fields: adults need email and phone, players may need a gender.', archivedNotice: 'Member archived.', undo: 'Undo archive', reactivated: 'Member reactivated (without former rights, teams or sign-in).', stale: 'Cannot reactivate: the record no longer meets the club’s current rules.', heading: 'Manage members', search: 'Search names', find: 'Search', loading: 'Loading members…', denied: 'No permission to manage members.', unavailable: 'Member management unavailable.', retry: 'Try again', first: 'First name', last: 'Last name', dob: 'Date of birth', email: 'Email', phone: 'Phone', create: 'Add member', edit: 'Edit', save: 'Save', cancel: 'Cancel', archive: 'Archive', more: 'More members', saved: 'Member updated.', empty: 'No members found.', problem: 'Action failed.', player: 'Player', gender: 'Gender (free text)', policy: 'Required for players in this club.', adultContacts: 'Adults must provide both email and phone; both are optional for minors.', details: 'Details', confirmArchive: 'Archive this member?', confirm: 'Confirm archive', adultFrom: 'Adult from age {age}.' },
+  fr: { invalid: 'Vérifiez les champs : les adultes ont besoin d’un e-mail et d’un téléphone, les joueurs parfois d’un genre.', archivedNotice: 'Membre archivé.', undo: 'Annuler l’archivage', reactivated: 'Membre réactivé (sans anciens droits, équipes ni connexion).', stale: 'Réactivation impossible : la fiche ne respecte plus les règles actuelles du club.', heading: 'Gérer les membres', search: 'Rechercher un nom', find: 'Rechercher', loading: 'Chargement des membres…', denied: 'Accès à la gestion des membres refusé.', unavailable: 'Gestion des membres indisponible.', retry: 'Réessayer', first: 'Prénom', last: 'Nom', dob: 'Date de naissance', email: 'E-mail', phone: 'Téléphone', create: 'Ajouter un membre', edit: 'Modifier', save: 'Enregistrer', cancel: 'Annuler', archive: 'Archiver', more: 'Plus de membres', saved: 'Membre mis à jour.', empty: 'Aucun membre trouvé.', problem: 'Action échouée.', player: 'Joueur', gender: 'Genre (texte libre)', policy: 'Obligatoire pour les joueurs de ce club.', adultContacts: 'Pour les adultes, l’e-mail et le téléphone sont obligatoires ; les deux sont facultatifs pour les mineurs.', details: 'Détails', confirmArchive: 'Archiver ce membre ?', confirm: 'Confirmer l’archivage', adultFrom: 'Adulte dès {age} ans.' },
+  it: { invalid: 'Controlla i campi: gli adulti richiedono email e telefono, i giocatori talvolta un genere.', archivedNotice: 'Membro archiviato.', undo: 'Annulla archiviazione', reactivated: 'Membro riattivato (senza diritti, squadre o accesso precedenti).', stale: 'Riattivazione impossibile: la scheda non rispetta più le regole attuali del club.', heading: 'Gestisci membri', search: 'Cerca nomi', find: 'Cerca', loading: 'Caricamento membri…', denied: 'Nessun permesso di gestione membri.', unavailable: 'Gestione membri non disponibile.', retry: 'Riprova', first: 'Nome', last: 'Cognome', dob: 'Data di nascita', email: 'Email', phone: 'Telefono', create: 'Aggiungi membro', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', archive: 'Archivia', more: 'Altri membri', saved: 'Membro aggiornato.', empty: 'Nessun membro trovato.', problem: 'Operazione non riuscita.', player: 'Giocatore', gender: 'Genere (testo libero)', policy: 'Obbligatorio per i giocatori di questo club.', adultContacts: 'Per gli adulti sono obbligatori sia l’email sia il telefono; per i minorenni sono facoltativi.', details: 'Dettagli', confirmArchive: 'Archiviare questo membro?', confirm: 'Conferma archiviazione', adultFrom: 'Adulto da {age} anni.' },
 } satisfies Record<Language, Record<string, string>>
 
 export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForPlayers, adultAgeYears }: {
@@ -25,7 +26,9 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
   const [denied, setDenied] = useState(false)
   const [failure, setFailure] = useState<'unavailable' | 'problem' | null>(null)
   const [busy, setBusy] = useState(false)
-  const [editing, setEditing] = useState<Member | null>(null)
+  const [editing, setEditing] = useState<{ id: string; draft: MemberDraft } | null>(null)
+  const [lastArchived, setLastArchived] = useState<Member | null>(null)
+  const [notice, setNotice] = useState<'invalid' | 'archivedNotice' | 'reactivated' | 'stale' | null>(null)
   const [confirmingArchive, setConfirmingArchive] = useState<string | null>(null)
   const [showing, setShowing] = useState<string | null>(null)
   const [first, setFirst] = useState('')
@@ -69,9 +72,10 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
     return () => activeLoad.current?.abort()
   }, []) // Refresh after each write, search or language change below.
 
-  async function mutation(path: string, method: 'POST' | 'PATCH', body?: object) {
+  async function mutation(path: string, method: 'POST' | 'PATCH', body?: object): Promise<boolean> {
     setBusy(true)
     setFailure(null)
+    setNotice(null)
     try {
       if (await writeJson(path, method, csrfToken, body) === 'denied') {
         setDenied(true)
@@ -85,6 +89,63 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
       if (method === 'POST' && path === '/api/v1/members') {
         setFirst(''); setLast(''); setDob(''); setEmail(''); setPhone(''); setIsPlayer(false); setGender('')
       }
+      return true
+    } catch {
+      setFailure('problem')
+      return false
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** The form starts from the editor's full read, so a save never clears a field the editor did not see. */
+  async function startEdit(member: Member) {
+    setBusy(true)
+    setFailure(null)
+    setNotice(null)
+    try {
+      const details = await fetchMemberDetails(member.id)
+      if (details === 'denied') { setDenied(true); return }
+      if (details === 'not-found') { setFailure('problem'); return }
+      setEditing({ id: member.id, draft: draftFromDetails(details) })
+    } catch {
+      setFailure('problem')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function saveEdit(id: string, draft: MemberDraft) {
+    setBusy(true)
+    setFailure(null)
+    setNotice(null)
+    try {
+      const outcome = await replaceMember(id, memberCreateBody(draft), csrfToken)
+      if (outcome === 'denied') { setDenied(true); return }
+      if (outcome === 'invalid') { setNotice('invalid'); return }
+      if (outcome !== 'ok') { setFailure('problem'); return }
+      setEditing(null)
+      await load(query)
+      onChanged()
+    } catch {
+      setFailure('problem')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function undoArchive(member: Member) {
+    setBusy(true)
+    setFailure(null)
+    try {
+      const outcome = await reactivateMember(member.id, csrfToken)
+      if (outcome === 'denied') { setDenied(true); return }
+      setLastArchived(null)
+      if (outcome === 'conflict') { setNotice('stale'); return }
+      if (outcome !== 'ok') { setFailure('problem'); return }
+      setNotice('reactivated')
+      await load(query)
+      onChanged()
     } catch {
       setFailure('problem')
     } finally {
@@ -111,6 +172,8 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
         <button type="submit">{t.find}</button>
       </form>
       {failure && <p role="alert">{t[failure]} <button type="button" onClick={() => { void load(failedPage?.q ?? query, failedPage?.cursor) }} disabled={loadingPage}>{t.retry}</button></p>}
+      {notice && <p role="status">{t[notice]}{notice === 'archivedNotice' && lastArchived && <>{' '}
+        <button type="button" disabled={busy} onClick={() => { void undoArchive(lastArchived) }}>{t.undo}</button></>}</p>}
       {items === null ? (failure ? null : <p>{t.loading}</p>) : items.length === 0 ? <p>{t.empty}</p> : (
         <ul>
           {items.map(member => (
@@ -118,25 +181,30 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
               {editing?.id === member.id ? (
                 <form onSubmit={event => {
                   event.preventDefault()
-                  void mutation('/api/v1/members/' + member.id, 'PATCH', {
-                    firstName: editing.firstName, lastName: editing.lastName,
-                  })
+                  void saveEdit(member.id, editing.draft)
                 }}>
-                  <label>{t.first}<input value={editing.firstName} required maxLength={200} onChange={e => setEditing({ ...editing, firstName: e.target.value })} /></label>
-                  <label>{t.last}<input value={editing.lastName} required maxLength={200} onChange={e => setEditing({ ...editing, lastName: e.target.value })} /></label>
+                  <label>{t.first}<input value={editing.draft.firstName} required maxLength={200} onChange={e => setEditing({ ...editing, draft: { ...editing.draft, firstName: e.target.value } })} /></label>
+                  <label>{t.last}<input value={editing.draft.lastName} required maxLength={200} onChange={e => setEditing({ ...editing, draft: { ...editing.draft, lastName: e.target.value } })} /></label>
+                  <label>{t.dob}<input type="date" value={editing.draft.dateOfBirth} required onChange={e => setEditing({ ...editing, draft: { ...editing.draft, dateOfBirth: e.target.value } })} /></label>
+                  <label>{t.email}<input type="email" value={editing.draft.email} maxLength={320} onChange={e => setEditing({ ...editing, draft: { ...editing.draft, email: e.target.value } })} /></label>
+                  <label>{t.phone}<input type="tel" value={editing.draft.phone} maxLength={40} onChange={e => setEditing({ ...editing, draft: { ...editing.draft, phone: e.target.value } })} /></label>
+                  <label>{t.player}<input type="checkbox" checked={editing.draft.isPlayer} onChange={e => setEditing({ ...editing, draft: { ...editing.draft, isPlayer: e.target.checked, gender: e.target.checked ? editing.draft.gender : '' } })} /></label>
+                  {editing.draft.isPlayer && <label>{t.gender}<input value={editing.draft.gender} maxLength={200} required={genderRequiredForPlayers} onChange={e => setEditing({ ...editing, draft: { ...editing.draft, gender: e.target.value } })} /></label>}
                   <button disabled={busy} type="submit">{t.save}</button>
                   <button type="button" onClick={() => setEditing(null)}>{t.cancel}</button>
                 </form>
               ) : (
                 <>{member.firstName} {member.lastName}{' '}
-                  <button type="button" disabled={busy} onClick={() => setEditing(member)}>{t.edit}</button>
+                  <button type="button" disabled={busy} onClick={() => { void startEdit(member) }}>{t.edit}</button>
                   <button type="button" aria-expanded={showing === member.id}
                     onClick={() => setShowing(showing === member.id ? null : member.id)}>{t.details}</button>
                   {confirmingArchive === member.id ? (
                     <span role="group" aria-label={`${t.confirmArchive} ${member.firstName} ${member.lastName}`}>
                       <span>{t.confirmArchive}</span>{' '}
                       <button type="button" disabled={busy} onClick={() => {
-                        void mutation('/api/v1/members/' + member.id + '/archive', 'POST')
+                        void mutation('/api/v1/members/' + member.id + '/archive', 'POST').then(done => {
+                          if (done) { setLastArchived(member); setNotice('archivedNotice') }
+                        })
                       }}>{t.confirm}</button>{' '}
                       <button type="button" disabled={busy} onClick={() => setConfirmingArchive(null)}>
                         {t.cancel}

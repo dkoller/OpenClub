@@ -16,5 +16,23 @@
     "email_verified": true,
     "given_name": "Synthetic",
     "family_name": "Otp"
+  },
+  {
+    "email": "openclub-rauthy-admin-ci@example.invalid",
+    "password": "generate",
+    "roles": [],
+    "enabled": true,
+    "email_verified": true,
+    "given_name": "Synthetic",
+    "family_name": "Administrator"
+  },
+  {
+    "email": "openclub-rauthy-invitee-ci@example.invalid",
+    "password": "generate",
+    "roles": [],
+    "enabled": true,
+    "email_verified": true,
+    "given_name": "Synthetic",
+    "family_name": "Invitee"
   }
 ]

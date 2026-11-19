@@ -60,3 +60,16 @@ The owner replied on pull request #338: **"Approved. And privacy review ok."** T
 
 **Consequences:** the invitation slice, unlink, the restricted detail read and erasure over HTTP are unblocked and are built one pull request at a time. Guardian operations still need their own contract draft.
 
+
+## Addendum 5 — full member edit and reactivation approved (2026-11-19)
+
+Asked in the Claude Code session that built pull request #342 whether `replaceLocalMemberDetails` (`PUT /v1/members/{memberId}`) and `reactivateLocalMember` (`POST /v1/members/{memberId}/reactivate`) may leave the draft, the owner chose **"Approve both"**. In the same session the owner decided that **erasure has no browser UI in M1** (the operator command stays the M1 erasure path) and asked for larger pull requests that bundle several steps.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 18 | Full member edit | Approved as drafted: an editor with `EDIT_MEMBERS` replaces every editable field of an active member; omitted contacts and gender clear them, so the browser reads the current values through the restricted detail read first. Database rules stay authoritative (400). |
+| 19 | Reactivation | Approved as drafted: restores only active status, never grants, teams or a login link; the record is validated against the current club policy (409 if it no longer fits); audited as the new `MEMBER_REACTIVATED` event (V18). |
+| 20 | Contract version | Both join the frozen surface as **OpenAPI 1.4.0**; the M2 draft keeps no operation for now. |
+| 21 | Erasure UI | None in M1; the HTTP route serves API clients and the operator command remains the M1 path. An archived-member listing would be a new contract change. |
+
+None of this authorizes real data.

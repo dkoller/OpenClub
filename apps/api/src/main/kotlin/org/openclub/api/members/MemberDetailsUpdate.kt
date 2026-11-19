@@ -8,7 +8,7 @@ import org.openclub.api.members.ClubCapabilityAccess.Capability
 /**
  * Member field updates: session-derived actor, explicit EDIT_MEMBERS grant and
  * current verified identity are checked inside the modifying SQL statement.
- * Full private-field updates remain internal until R03/R04 approval.
+ * The full replacement [update] backs `PUT /api/v1/members/{id}` (OpenAPI 1.4.0, owner-approved 2026-11-19).
  */
 internal class MemberDetailsUpdate(private val database: DSLContext) {
     data class Input(

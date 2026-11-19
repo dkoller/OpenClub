@@ -178,11 +178,35 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(searchForm.getByRole('listitem').filter({ hasText: 'Nina Private' })).toBeVisible();
 
   await created.getByRole('button', { name: 'Edit' }).click();
-  // The row text is replaced by editable inputs, so locate the active form.
+  // The row text is replaced by editable inputs, so locate the active form. It is filled from the
+  // restricted detail read (OpenAPI 1.4.0 full replacement), so the save never clears unseen fields.
   const editForm = page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) });
+  await expect(editForm.getByLabel('Date of birth')).toHaveValue('2013-01-01');
   await editForm.getByLabel('Last name').fill('Renamed');
+  await editForm.getByLabel('Phone').fill('+41000000077');
+  const replaceResponse = page.waitForResponse(response => response.request().method() === 'PUT');
   await editForm.getByRole('button', { name: 'Save' }).click();
+  expect((await replaceResponse).status()).toBe(204);
   const renamed = page.getByRole('listitem').filter({ hasText: 'Nina Renamed' });
+  await expect(renamed).toBeVisible();
+  await renamed.getByRole('button', { name: 'Details', exact: true }).click();
+  await expect(renamed.getByRole('region', { name: 'Details: Nina Renamed' }).getByText('+41000000077')).toBeVisible();
+  await renamed.getByRole('button', { name: 'Close' }).click();
+  // Turning a minor into an adult without email is refused by the server; nothing changes.
+  await renamed.getByRole('button', { name: 'Edit' }).click();
+  await editForm.getByLabel('Date of birth').fill('1990-01-01');
+  await editForm.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('region', { name: 'Manage members' }).getByRole('status')
+    .filter({ hasText: 'Please check the fields' })).toBeVisible();
+  await editForm.getByRole('button', { name: 'Cancel' }).click();
+  // Archive, undo (reactivation restores the member, without former rights), and archive again below.
+  await renamed.getByRole('button', { name: 'Archive' }).click();
+  await renamed.getByRole('button', { name: 'Confirm archive' }).click();
+  await expect(renamed).toHaveCount(0);
+  const memberAdminRegion = page.getByRole('region', { name: 'Manage members' });
+  await expect(memberAdminRegion.getByText('Member archived.')).toBeVisible();
+  await memberAdminRegion.getByRole('button', { name: 'Undo archive' }).click();
+  await expect(memberAdminRegion.getByText(/Member reactivated/)).toBeVisible();
   await expect(renamed).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toBeVisible();
   const renamedPublicNames = await context.request.get('/api/v1/public/members');
@@ -686,13 +710,12 @@ test('verified login gains club access only after restricted operator bootstrap'
     const adminMember = page.getByRole('region', { name: 'Manage members' })
       .getByRole('listitem').filter({ hasText: 'Synthetic Administrator' });
     await expect(adminMember).toBeVisible();
+    // Editing starts with the restricted detail read, which the server now refuses: no form, no write.
+    const readResponse = page.waitForResponse(response =>
+      /\/api\/v1\/members\/[0-9a-f-]+\/details$/.test(new URL(response.url()).pathname));
     await adminMember.getByRole('button', { name: 'Edit' }).click();
-    const writeResponse = page.waitForResponse(response =>
-      response.request().method() === 'PATCH' &&
-      /\/api\/v1\/members\/[0-9a-f-]+$/.test(new URL(response.url()).pathname));
-    await page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) })
-      .getByRole('button', { name: 'Save' }).click();
-    expect((await writeResponse).status()).toBe(403);
+    expect((await readResponse).status()).toBe(403);
+    await expect(page.locator('li form').filter({ has: page.getByRole('button', { name: 'Save' }) })).toHaveCount(0);
     const deniedMemberAdmin = page.getByRole('region', { name: 'Manage members' });
     await expect(deniedMemberAdmin.getByRole('alert'))
       .toContainText('No permission to manage members.');
@@ -952,6 +975,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   expect(visibleTeam.id).toMatch(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i);
   const answered = (path, status) => page.waitForResponse(response =>
     new URL(response.url()).pathname === path && response.status() === status, { timeout: 20000 });
+  let contactMember = '';
   try {
     // ADMIN role alone grants nothing: every private region fails closed on a real 403.
     fixtureSql('DELETE FROM club_capability_grants WHERE member_id = ' + adminMemberSql);
@@ -996,7 +1020,30 @@ test('verified login gains club access only after restricted operator bootstrap'
     }
     expect((await (await context.request.get('/api/v1/teams')).json()).items.map(team => team.id))
       .toEqual([visibleTeam.id]);
+
+    // Contact reads (OpenAPI 1.3.0) follow the same team boundary, on real grants: VIEW_TEAMS reads no
+    // contacts, a team-scoped MANAGE_TEAMS reads only the manager fields of that team's active members,
+    // every read is audited, and a member of another team stays refused.
+    contactMember = fixtureSql("INSERT INTO members (id, first_name, last_name, date_of_birth, phone) " +
+      "VALUES (gen_random_uuid(), 'Contact', 'Fixture', DATE '2014-01-01', '+41000000088') RETURNING id").split('\n')[0];
+    expect(contactMember).toMatch(/^[0-9a-f-]{36}$/);
+    fixtureSql("INSERT INTO member_team_assignments (team_id, member_id) VALUES ('" + visibleTeam.id + "', '" + contactMember + "')");
+    const detailsPath = '/api/v1/members/' + contactMember + '/details';
+    expect((await context.request.get(detailsPath)).status()).toBe(403);
+    fixtureSql("INSERT INTO team_capability_grants (team_id, member_id, capability) VALUES ('" +
+      visibleTeam.id + "', " + adminMemberSql + ", 'MANAGE_TEAMS')");
+    const auditedBefore = Number(fixtureSql("SELECT COUNT(*) FROM audit_events WHERE event_type = 'CONTACT_READ' " +
+      "AND target_member_id = '" + contactMember + "'"));
+    const managed = await context.request.get(detailsPath);
+    expect(managed.status()).toBe(200);
+    expect(managed.headers()['cache-control']).toBe('no-store');
+    expect(Object.keys(await managed.json()).sort()).toEqual(['email', 'firstName', 'id', 'isPlayer', 'lastName', 'phone']);
+    expect(Number(fixtureSql("SELECT COUNT(*) FROM audit_events WHERE event_type = 'CONTACT_READ' " +
+      "AND target_member_id = '" + contactMember + "'"))).toBe(auditedBefore + 1);
+    fixtureSql("UPDATE member_team_assignments SET team_id = '" + hiddenTeams[0].id + "' WHERE member_id = '" + contactMember + "'");
+    expect((await context.request.get(detailsPath)).status()).toBe(403);
   } finally {
+    if (contactMember) fixtureSql("DELETE FROM members WHERE id = '" + contactMember + "'");
     fixtureSql('DELETE FROM team_capability_grants WHERE member_id = ' + adminMemberSql);
     fixtureSql('DELETE FROM club_capability_grants WHERE member_id = ' + adminMemberSql);
     for (const capability of originalGrants) {

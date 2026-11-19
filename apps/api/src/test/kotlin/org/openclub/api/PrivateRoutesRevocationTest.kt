@@ -127,6 +127,8 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Get, "/api/v1/members"),
         Route(HttpMethod.Get, "/api/v1/members/$target"),
         Route(HttpMethod.Patch, "/api/v1/members/$target", """{"firstName":"Synthetic"}"""),
+        // The same values the fixture stored, so the authorized pass changes nothing visible.
+        Route(HttpMethod.Put, "/api/v1/members/$target", """{"firstName":"Synthetic","lastName":"Person","dateOfBirth":"1990-01-01","email":"person@example.invalid","phone":"+41000000000"}"""),
         Route(HttpMethod.Post, "/api/v1/members",
             """{"firstName":"Denied","lastName":"Person","dateOfBirth":"2013-01-01"}"""),
         Route(HttpMethod.Get, "/api/v1/members/$target/role"),
@@ -150,6 +152,8 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Post, "/api/v1/members/$erasable/erase", """{"confirmation":"Erasable Person"}"""),
         // Last: an archived target is hidden from the role and grant routes by design.
         Route(HttpMethod.Post, "/api/v1/members/$target/archive"),
+        // After the archive, so the authorized pass really reactivates the target (204).
+        Route(HttpMethod.Post, "/api/v1/members/$target/reactivate"),
     )
 
     private suspend fun ApplicationTestBuilder.send(route: Route) = client.request(route.path) {
