@@ -66,6 +66,9 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
     });
     fixtureSql("INSERT INTO members (id, first_name, last_name, date_of_birth, email, phone) " +
       "VALUES (gen_random_uuid(), 'Rita', 'Invitee', DATE '1990-05-05', 'rita@example.invalid', '+41000000009')");
+    // A fictional minor for the guardian steps below (OpenAPI 1.6.0).
+    fixtureSql("INSERT INTO members (id, first_name, last_name, date_of_birth) " +
+      "VALUES (gen_random_uuid(), 'Tim', 'Minor', current_date - interval '10 years')");
     await page.reload();
     await expect(page.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
 
@@ -100,6 +103,30 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
     expect((await invitee.request.get('/api/v1/club')).status()).toBe(200);
     expect((await invitee.request.get('/api/v1/members')).status()).toBe(403);
 
+    // Guardians with Rauthy accounts: the administrator records the invitee as Tim's guardian; the guardian
+    // sees only "My children", reads Tim and replaces only his contacts, and still has no administration rights.
+    const guardians = page.getByRole('region', { name: 'Guardians' });
+    await guardians.getByLabel('Find a minor').fill('Tim');
+    await guardians.getByRole('button', { name: 'Search' }).first().click();
+    await expect(guardians.getByText('No guardians recorded.')).toBeVisible();
+    await guardians.getByLabel('Find a guardian').fill('Rita Invitee');
+    await guardians.getByRole('button', { name: 'Search' }).nth(1).click();
+    await expect(guardians.getByRole('combobox', { name: 'Guardian' })).toContainText('Rita Invitee');
+    await guardians.getByRole('button', { name: 'Add as guardian' }).click();
+    await expect(guardians.getByText('Guardian added.')).toBeVisible();
+    expect(fixtureSql("SELECT COUNT(*) FROM audit_events WHERE event_type = 'GUARDIAN_LINKED'")).toBe('1');
+    await second.reload();
+    const children = second.getByRole('region', { name: 'My children' });
+    const tim = children.getByRole('listitem').filter({ hasText: 'Tim Minor' });
+    await tim.getByRole('button', { name: 'Open' }).click();
+    await expect(tim.getByText('Date of birth')).toBeVisible();
+    await tim.getByLabel('Phone').fill('+41000000066');
+    await tim.getByRole('button', { name: 'Save contacts' }).click();
+    await expect(children.getByText('Contacts saved.')).toBeVisible();
+    expect(fixtureSql("SELECT phone FROM members WHERE first_name = 'Tim' AND last_name = 'Minor'")).toBe('+41000000066');
+    expect((await invitee.request.get('/api/v1/members')).status()).toBe(403);
+    await expect(second.getByRole('region', { name: 'Guardians' })).toHaveCount(0);
+
     // Unlinking ends the member's session and access at once.
     await region.getByRole('textbox', { name: 'Find member' }).fill('Invitee');
     await region.getByRole('button', { name: 'Search' }).click();
@@ -108,6 +135,8 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
     await expect(region.getByText('Account unlinked.', { exact: true })).toBeVisible();
     expect((await invitee.request.get('/api/v1/club')).status()).toBe(401);
     expect(fixtureSql("SELECT COUNT(*) FROM members WHERE last_name = 'Invitee' AND account_id IS NOT NULL")).toBe('0');
+    // Unlinking the guardian's login ends the guardianship in the same statement (V19).
+    expect(fixtureSql('SELECT COUNT(*) FROM member_guardianships')).toBe('0');
   } finally {
     await invitee.close();
     await context.clearCookies();
