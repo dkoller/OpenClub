@@ -126,7 +126,13 @@ class MemberListHttpTest {
 
     @Test
     fun editorsExportTheActiveMembersAndEveryListedMemberIsAudited() = app {
-        val response = export("editor")
+        // A team name containing '|' and ';' arrives in one cell.
+        val team = UUID.randomUUID()
+        sql {
+            it.execute("INSERT INTO teams (id, name) VALUES (?, ?)", team, "$tag U12 | Girls; B")
+            it.execute("INSERT INTO member_team_assignments VALUES (?, ?)", team, memberOf.getValue("editor"))
+        }
+        val response = try { export("editor") } finally { sql { it.execute("DELETE FROM teams WHERE id = ?", team) } }
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
         assertEquals("nosniff", response.headers["X-Content-Type-Options"])
@@ -135,6 +141,7 @@ class MemberListHttpTest {
         val text = response.bodyAsText()
         assertTrue(text.startsWith("﻿\"Vorname\";\"Nachname\";\"Geburtsdatum\""))
         assertTrue(text.contains("\"editor\";\"$tag\";\"01.01.1980\";\"l@example.invalid\";\"'+41000000040\""))
+        assertTrue(text.contains("\"$tag U12 | Girls; B\"\r\n"), "the team name is one cell")
         assertFalse(text.contains("Archived"), "archived members are not listed")
         assertEquals(1, count("SELECT COUNT(*) FROM audit_events WHERE event_type = 'MEMBER_LISTED' AND target_member_id = ?", memberOf.getValue("plain")))
         assertEquals(0, count("SELECT COUNT(*) FROM audit_events WHERE event_type = 'MEMBER_LISTED' AND target_member_id = ?", archived))

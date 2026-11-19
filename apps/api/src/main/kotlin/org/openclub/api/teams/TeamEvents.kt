@@ -123,21 +123,18 @@ internal class TeamEvents(private val database: DSLContext) {
     fun create(actor: UUID, teamId: UUID, input: Input, starts: List<OffsetDateTime>): Created {
         val duration = Duration.between(input.startsAt, input.endsAt)
         val ids = starts.map { UUID.randomUUID() }
-        val inserted = database.transactionResult { configuration ->
-            val db = DSL.using(configuration)
-            val allowed = db.fetchOne(
-                "SELECT 1 FROM teams team WHERE team.id = ? AND ${ActorSql.holdsTeamCapability("team.id", Capability.MANAGE_TEAMS)} FOR SHARE OF team",
-                teamId, actor) != null
-            if (!allowed) return@transactionResult false
-            starts.forEachIndexed { index, start ->
-                db.execute(
-                    """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, location, notes)
-                       VALUES (?, ?, ?, ?, ?::timestamptz, ?::timestamptz, ?, ?)""",
-                    ids[index], teamId, input.kind.name, input.title, start.toString(), start.plus(duration).toString(), input.location, input.notes)
-            }
-            true
-        }
-        if (inserted) return Created.Done(ids)
+        // One statement: every copy is inserted exactly when the actor holds MANAGE_TEAMS for the team at that moment.
+        val inserted = database.execute(
+            """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, location, notes)
+               SELECT u.id::uuid, team.id, ?, ?, u.starts::timestamptz, u.ends::timestamptz, ?, ?
+               FROM unnest(?::text[], ?::text[], ?::text[]) AS u(id, starts, ends)
+               JOIN teams team ON team.id = ?
+               WHERE ${ActorSql.holdsTeamCapability("team.id", Capability.MANAGE_TEAMS)}""",
+            input.kind.name, input.title, input.location, input.notes,
+            ids.map { it.toString() }.toTypedArray(), starts.map { it.toString() }.toTypedArray(),
+            starts.map { it.plus(duration).toString() }.toTypedArray(), teamId, actor)
+        if (inserted == starts.size) return Created.Done(ids)
+        check(inserted == 0) { "Partial insert" }
         return if (teamExists(teamId)) Created.Denied else notFoundOrDenied(actor, Created.NotFound, Created.Denied)
     }
 
@@ -147,18 +144,21 @@ internal class TeamEvents(private val database: DSLContext) {
                WHERE e.id = ? AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}""",
             input.kind.name, input.title, input.startsAt.toString(), input.endsAt.toString(), input.location, input.notes, cancelled,
             eventId, actor) == 1
-        return if (changed) Change.DONE else missing(eventId)
+        return if (changed) Change.DONE else missing(eventId, actor)
     }
 
     fun delete(actor: UUID, eventId: UUID): Change {
         val deleted = database.execute(
             "DELETE FROM team_events e WHERE e.id = ? AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}",
             eventId, actor) == 1
-        return if (deleted) Change.DONE else missing(eventId)
+        return if (deleted) Change.DONE else missing(eventId, actor)
     }
 
-    private fun missing(eventId: UUID): Change =
-        if (database.fetchOne("SELECT 1 FROM team_events WHERE id = ?", eventId) != null) Change.DENIED else Change.NOT_FOUND
+    /** An unknown event is 404 only for a club-wide team holder; anyone else cannot tell it from a foreign one. */
+    private fun missing(eventId: UUID, actor: UUID): Change = when {
+        database.fetchOne("SELECT 1 FROM team_events WHERE id = ?", eventId) != null -> Change.DENIED
+        else -> notFoundOrDenied(actor, Change.NOT_FOUND, Change.DENIED)
+    }
 
     private fun teamExists(teamId: UUID) = database.fetchOne("SELECT 1 FROM teams WHERE id = ?", teamId) != null
 

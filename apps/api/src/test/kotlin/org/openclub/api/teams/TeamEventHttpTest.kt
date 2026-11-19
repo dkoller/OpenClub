@@ -182,7 +182,9 @@ class TeamEventHttpTest {
         check2.expect("cancelled as string", send(HttpMethod.Put, "/api/v1/events/$first", "teamManager", edited.replace("true}", "\"true\"}")), HttpStatusCode.BadRequest)
         check2.expect("no cancelled", send(HttpMethod.Put, "/api/v1/events/$first", "teamManager", event("x")), HttpStatusCode.BadRequest)
         check2.expect("viewer edits", send(HttpMethod.Put, "/api/v1/events/$first", "viewer", edited), HttpStatusCode.Forbidden)
-        check2.expect("unknown event", send(HttpMethod.Put, "/api/v1/events/${UUID.randomUUID()}", "teamManager", edited), HttpStatusCode.NotFound)
+        // A team-scoped manager cannot tell an unknown event from another team's (403); a club-wide one gets 404.
+        check2.expect("unknown event, team-scoped", send(HttpMethod.Put, "/api/v1/events/${UUID.randomUUID()}", "teamManager", edited), HttpStatusCode.Forbidden)
+        check2.expect("unknown event, club-wide", send(HttpMethod.Put, "/api/v1/events/${UUID.randomUUID()}", "clubManager", edited), HttpStatusCode.NotFound)
         check2.expect("edit", send(HttpMethod.Put, "/api/v1/events/$first", "teamManager", edited), HttpStatusCode.NoContent)
         check2.done()
         val row = sql { it.fetchOne("SELECT kind, title, cancelled, location FROM team_events WHERE id = ?::uuid", first)!! }
@@ -193,7 +195,8 @@ class TeamEventHttpTest {
         assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Put, "/api/v1/events/$other", "teamManager", edited).status)
         assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Delete, "/api/v1/events/$other", "teamManager").status)
         assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Delete, "/api/v1/events/${ids.last()}", "teamManager").status)
-        assertEquals(HttpStatusCode.NotFound, send(HttpMethod.Delete, "/api/v1/events/${ids.last()}", "teamManager").status)
+        assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Delete, "/api/v1/events/${ids.last()}", "teamManager").status)
+        assertEquals(HttpStatusCode.NotFound, send(HttpMethod.Delete, "/api/v1/events/${ids.last()}", "clubManager").status)
         assertEquals(3, count("SELECT COUNT(*) FROM team_events WHERE team_id = ?", teamA))
 
         // Revoking the grant takes effect at once.

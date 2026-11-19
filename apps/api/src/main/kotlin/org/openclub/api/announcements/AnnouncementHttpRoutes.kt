@@ -69,7 +69,7 @@ internal fun Application.installAnnouncementHttpRoutes(
         post("/api/v1/announcements") {
             call.changing(sessions, cookies, origin, database) { actor ->
                 val (team, content) = try {
-                    val body = call.receiveJsonObject(setOf("teamId", "title", "body"), setOf("showUntil"))
+                    val body = call.receiveJsonObject(setOf("teamId", "title", "body"), setOf("showUntil"), LARGE_BODY)
                     val team = when (val value = body["teamId"]) {
                         JsonNull -> null
                         else -> UUID.fromString(body.requiredString("teamId")).also { require(value is JsonPrimitive) }
@@ -93,7 +93,7 @@ internal fun Application.installAnnouncementHttpRoutes(
             call.changing(sessions, cookies, origin, database) { actor ->
                 val id = call.uuid() ?: return@changing call.refuse(HttpStatusCode.BadRequest, "invalid")
                 val content = try {
-                    call.receiveJsonObject(setOf("title", "body"), setOf("showUntil")).content()
+                    call.receiveJsonObject(setOf("title", "body"), setOf("showUntil"), LARGE_BODY).content()
                 } catch (_: IllegalArgumentException) {
                     return@changing call.refuse(HttpStatusCode.BadRequest, "invalid")
                 } catch (_: DateTimeException) {
@@ -110,6 +110,9 @@ internal fun Application.installAnnouncementHttpRoutes(
         }
     }
 }
+
+/** 5,000 characters of text can take up to 30 KiB as JSON (multi-byte letters, escaped line breaks). */
+private const val LARGE_BODY = 32 * 1024
 
 private class Content(val title: String, val body: String, val showUntil: LocalDate)
 

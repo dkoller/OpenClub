@@ -158,10 +158,15 @@ class AnnouncementHttpTest {
         check.expect("coach club-wide", send(HttpMethod.Post, "/api/v1/announcements", "coach", post(null, "x")), HttpStatusCode.Forbidden)
         check.expect("coach other team", send(HttpMethod.Post, "/api/v1/announcements", "coach", post(teamB, "x")), HttpStatusCode.Forbidden)
         check.expect("board for a team", send(HttpMethod.Post, "/api/v1/announcements", "board", post(teamA, "x")), HttpStatusCode.Forbidden)
-        check.expect("unknown team", send(HttpMethod.Post, "/api/v1/announcements", "coach", post(UUID.randomUUID(), "x")), HttpStatusCode.NotFound)
+        // A team-scoped coach cannot tell an unknown team from a foreign one.
+        check.expect("unknown team", send(HttpMethod.Post, "/api/v1/announcements", "coach", post(UUID.randomUUID(), "x")), HttpStatusCode.Forbidden)
         check.done()
         assertEquals(0, sql { (it.fetchValue("SELECT COUNT(*) FROM announcements WHERE title LIKE ?", "$tag%") as Number).toInt() })
 
+        val long = send(HttpMethod.Post, "/api/v1/announcements", "board",
+            """{"teamId":null,"title":"$tag Long","body":"${"ä".repeat(4999)}\n"}""")
+        assertEquals(HttpStatusCode.Created, long.status, "5,000 characters with umlauts fit")
+        sql { it.execute("DELETE FROM announcements WHERE title = ?", "$tag Long") }
         val clubWide = create("board", null, "Club")
         val teamPost = create("coach", teamA, "Team A")
         sql { it.execute("INSERT INTO announcements (id, team_id, title, body, show_until) VALUES (?, ?, ?, 'x', current_date)", UUID.randomUUID(), teamB, "$tag Team B") }
@@ -190,7 +195,8 @@ class AnnouncementHttpTest {
         val check2 = Check()
         check2.expect("coach edits club post", send(HttpMethod.Put, "/api/v1/announcements/$clubWide", "coach", edit), HttpStatusCode.Forbidden)
         check2.expect("board edits team post", send(HttpMethod.Put, "/api/v1/announcements/$teamPost", "board", edit), HttpStatusCode.Forbidden)
-        check2.expect("unknown", send(HttpMethod.Put, "/api/v1/announcements/${UUID.randomUUID()}", "coach", edit), HttpStatusCode.NotFound)
+        check2.expect("unknown, team-scoped", send(HttpMethod.Put, "/api/v1/announcements/${UUID.randomUUID()}", "coach", edit), HttpStatusCode.Forbidden)
+        check2.expect("unknown, club-wide", send(HttpMethod.Put, "/api/v1/announcements/${UUID.randomUUID()}", "board", edit), HttpStatusCode.NotFound)
         check2.expect("bad id", send(HttpMethod.Delete, "/api/v1/announcements/x", "coach"), HttpStatusCode.BadRequest)
         check2.expect("coach edits own team", send(HttpMethod.Put, "/api/v1/announcements/$teamPost", "coach", edit), HttpStatusCode.NoContent)
         check2.expect("board deletes club post", send(HttpMethod.Delete, "/api/v1/announcements/$clubWide", "board"), HttpStatusCode.NoContent)

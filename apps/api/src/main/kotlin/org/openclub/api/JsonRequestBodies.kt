@@ -23,9 +23,10 @@ internal const val MAX_JSON_BODY_BYTES = 4096
 internal suspend fun ApplicationCall.receiveJsonObject(
     required: Set<String>,
     optional: Set<String> = emptySet(),
+    maxBytes: Int = MAX_JSON_BODY_BYTES,
 ): JsonObject {
     require(isJsonContentType(request.headers.getAll(HttpHeaders.ContentType))) { "Expected application/json" }
-    return parseJsonObject(readBounded(receiveChannel(), MAX_JSON_BODY_BYTES), required, optional)
+    return parseJsonObject(readBounded(receiveChannel(), maxBytes), required, optional)
 }
 
 /** Exactly one Content-Type header whose media type is application/json (parameters allowed). */

@@ -138,7 +138,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.14.0"
+FROZEN_VERSION = "1.14.1"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
