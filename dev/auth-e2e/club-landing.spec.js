@@ -239,6 +239,26 @@ test('verified login gains club access only after restricted operator bootstrap'
   const archivedPublicNames = await context.request.get('/api/v1/public/members');
   expect(archivedPublicNames.status()).toBe(200);
   expect(await archivedPublicNames.json()).not.toContainEqual({ displayName: 'Nina R.' });
+  // Archived members (OpenAPI 1.5.0): an editor finds the member later and reactivates them; no erase button.
+  const archivedRegion = page.getByRole('region', { name: 'Archived members' });
+  await archivedRegion.getByLabel('Search names').fill('Nina');
+  const archivedSearch = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/members/archived');
+  await archivedRegion.getByRole('button', { name: 'Search', exact: true }).click();
+  expect((await archivedSearch).headers()['cache-control']).toBe('no-store');
+  const archivedNina = archivedRegion.getByRole('listitem').filter({ hasText: 'Nina Renamed' });
+  await expect(archivedNina).toContainText('archived on');
+  await expect(archivedRegion.getByRole('button', { name: /erase/i })).toHaveCount(0);
+  await archivedNina.getByRole('button', { name: 'Reactivate' }).click();
+  await expect(archivedRegion.getByText(/Member reactivated/)).toBeVisible();
+  await expect(archivedNina).toHaveCount(0);
+  const backInList = page.getByRole('region', { name: 'Manage members' }).getByRole('listitem').filter({ hasText: 'Nina Renamed' });
+  await page.getByRole('region', { name: 'Manage members' }).getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(backInList).toBeVisible();
+  // Archive her again so the rest of the journey sees the same state as before.
+  await backInList.getByRole('button', { name: 'Archive' }).click();
+  await backInList.getByRole('button', { name: 'Confirm archive' }).click();
+  await expect(backInList).toHaveCount(0);
+  await expect(archivedNina).toBeVisible();
 
   // Adult contacts are enforced by the server, not merely by browser hints.
   const memberAdminForAdult = page.getByRole('region', { name: 'Manage members' });

@@ -64,6 +64,7 @@ GET /v1/members/{memberId}/details
 POST /v1/members/{memberId}/erase
 PUT /v1/members/{memberId}
 POST /v1/members/{memberId}/reactivate
+GET /v1/members/archived
 """.strip().splitlines())
 
 # A single direct-route pattern avoids interpreting JSON builder put() as an
@@ -100,7 +101,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.4.0"
+FROZEN_VERSION = "1.5.0"
 # Empty since 1.4.0 (ADR-0008 addendum 5); the draft stays for future proposals.
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}

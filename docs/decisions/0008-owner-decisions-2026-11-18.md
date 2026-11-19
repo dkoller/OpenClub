@@ -86,3 +86,14 @@ In the Claude Code session after pull request #343 the owner stated: **"The host
 | 25 | Demo email and tooling | Asked to bundle a one-command deploy, fictional demo data and email, the owner answered **"Go with email"**: Rauthy sends email through an Infomaniak mailbox (optional overlay, configured on the host; credentials never in the repository). |
 
 None of this authorizes real data.
+
+## Addendum 7 — archived-member search (2026-11-19)
+
+Asked in the Claude Code session whether `GET /api/v1/members/archived` (name search over archived members for `EDIT_MEMBERS`, items: id, names and archive time only) may be added as OpenAPI 1.5.0, the owner chose **"Approve"**; asked whether that list should also offer *Erase permanently*, the owner chose **"Reactivate only"**.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 26 | Archived-member search | Approved as OpenAPI **1.5.0**: editors find members archived earlier; no birth dates, contacts or account data in the list (the restricted detail read serves editors those). |
+| 27 | Erasure UI | Confirms decision 21: the *Archived members* panel offers **Reactivate only**; erasure stays an operator command in M1. |
+
+None of this authorizes real data.

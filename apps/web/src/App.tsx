@@ -8,6 +8,7 @@ import { GrantAdmin } from './GrantAdmin'
 import { ClubSettings } from './ClubSettings'
 import { RoleAdmin } from './RoleAdmin'
 import { InvitationAdmin } from './InvitationAdmin'
+import { ArchivedMembers } from './ArchivedMembers'
 import { AcceptInvitation } from './AcceptInvitation'
 import { secretFromHash } from './invitations'
 
@@ -101,6 +102,8 @@ export function App() {
         genderRequiredForPlayers={access.genderRequiredForPlayers}
         adultAgeYears={access.adultAgeYears}
         onChanged={() => setDirectoryRevision(value => value + 1)} /> }
+      {access?.state === 'ready' && <ArchivedMembers language={language} csrfToken={access.csrfToken}
+        revision={directoryRevision} onChanged={() => setDirectoryRevision(value => value + 1)} />}
       <p role="status">{message}</p>
       {access?.state === 'signed-out' && <a href="/api/v1/auth/login">{words.login}</a>}
       {access?.state === 'unavailable' && <button type="button" onClick={() => { void retryAccess() }}>{words.retry}</button>}
