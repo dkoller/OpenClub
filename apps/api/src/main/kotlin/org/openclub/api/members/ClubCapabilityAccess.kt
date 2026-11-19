@@ -10,7 +10,7 @@ import java.util.UUID
  * and member-field visibility remain separate review gates.
  */
 internal class ClubCapabilityAccess(private val database: DSLContext) {
-    enum class Capability { VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS }
+    enum class Capability { VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS, MANAGE_FEES }
 
     fun has(accountId: UUID, capability: Capability): Boolean =
         database.fetchOne(

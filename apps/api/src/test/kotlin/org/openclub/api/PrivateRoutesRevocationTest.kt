@@ -82,7 +82,7 @@ class PrivateRoutesRevocationTest {
                     tx.execute("INSERT INTO teams (id, name) VALUES (?, ?)", team,
                         "Revocation team ${UUID.randomUUID().toString().take(8)}")
                     for (capability in listOf("VIEW_MEMBER_DIRECTORY", "EDIT_MEMBERS", "MANAGE_PERMISSIONS",
-                        "VIEW_TEAMS", "MANAGE_TEAMS")) {
+                        "VIEW_TEAMS", "MANAGE_TEAMS", "MANAGE_FEES")) {
                         tx.execute("INSERT INTO club_capability_grants VALUES (?, ?)", holder, capability)
                     }
                 }
@@ -104,6 +104,8 @@ class PrivateRoutesRevocationTest {
             db.onDatabaseThread { tx: DSLContext ->
                 // Also the team the authorized pass created through POST /teams: other suites count teams.
                 tx.execute("DELETE FROM teams WHERE id = ? OR name LIKE 'Revocation%'", team)
+                // And the fee period the authorized pass created through POST /fee-periods.
+                tx.execute("DELETE FROM fee_periods WHERE name LIKE 'Revocation%'")
                 tx.execute("DELETE FROM members WHERE first_name = 'Denied' AND last_name = 'Person'")
                 tx.execute("DELETE FROM audit_events WHERE target_member_id = ?", erasable)
                 tx.execute("DELETE FROM members WHERE id IN (?, ?, ?)", holder, target, erasable)
@@ -168,6 +170,15 @@ class PrivateRoutesRevocationTest {
         // The holder's own profile; without If-Match the authorized change pass stops at 428 and changes nothing.
         Route(HttpMethod.Get, "/api/v1/me/profile"),
         Route(HttpMethod.Put, "/api/v1/me/profile/contacts", """{"email":"holder@example.invalid","phone":"+41000000001"}"""),
+        // Membership fees (1.12.0): unknown periods are 404 for the holder, so nothing else changes.
+        Route(HttpMethod.Get, "/api/v1/fee-periods"),
+        Route(HttpMethod.Post, "/api/v1/fee-periods", """{"name":"Revocation fees","dueDate":"2030-01-31","amountCents":100}"""),
+        Route(HttpMethod.Patch, "/api/v1/fee-periods/${UUID(0, 2)}", """{"name":"Revocation fees","dueDate":"2030-01-31"}"""),
+        Route(HttpMethod.Delete, "/api/v1/fee-periods/${UUID(0, 2)}", """{"name":"Revocation fees"}"""),
+        Route(HttpMethod.Get, "/api/v1/fee-periods/${UUID(0, 2)}/fees"),
+        Route(HttpMethod.Put, "/api/v1/fee-periods/${UUID(0, 2)}/fees/$target", """{"amountCents":100,"paidOn":null}"""),
+        Route(HttpMethod.Delete, "/api/v1/fee-periods/${UUID(0, 2)}/fees/$target"),
+        Route(HttpMethod.Get, "/api/v1/me/fees"),
         Route(HttpMethod.Post, "/api/v1/members/$erasable/erase", """{"confirmation":"Erasable Person"}"""),
         // Last: an archived target is hidden from the role and grant routes by design.
         Route(HttpMethod.Post, "/api/v1/members/$target/archive"),

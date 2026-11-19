@@ -160,3 +160,11 @@ Shown the contract, the owner chose **"Approve + counts"** and, for who sees the
 | --- | --- | --- |
 | 38 | Attendance | Approved as OpenAPI **1.11.0**. A member answers YES, NO or MAYBE for themselves, a guardian for their current minor, for events of a team that member is in, until the event starts and not for a cancelled event; no free-text reason, so no health details are stored. Answers go with the event, the member, or the member's team assignment. Not audited. |
 | 39 | Who sees answers | Holders of `VIEW_TEAMS` or `MANAGE_TEAMS` for the team see every answer. The agent shows them by public display name only (adults' full names, minors' first name and surname initial), because a `VIEW_TEAMS` holder may lack the directory grant needed for the roster. Everyone who sees an event also sees the totals (yes, no, maybe) without names. |
+
+## Addendum 15 — membership fees (2026-11-19)
+
+Shown the contract (tracking only, no payment processing), the owner chose **"New permission"** for who manages fees.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 40 | Membership fees | Approved as OpenAPI **1.12.0**. A holder of the new club-wide capability `MANAGE_FEES` (granted explicitly; editors do not get it; the first administrator gets it at bootstrap like the other capabilities) creates fee periods (name, due date, amount in CHF) that include every active member, changes one member's amount, excludes or re-includes members and marks payments by hand (date or open), with filters all, open, paid and excluded. Members see their own fees and guardians their current minors' (`GET /v1/me/fees`). Each change to a member's fee is audited (`FEE_ASSIGNED`, `FEE_CHANGED`, `FEE_PAID`, `FEE_UNPAID`, `FEE_REMOVED`); fees are part of the member export; erasure removes them. This completes the four features of addendum 12. |

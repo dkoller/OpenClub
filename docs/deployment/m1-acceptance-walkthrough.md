@@ -29,6 +29,9 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       first name plus initial (for example "Lea B.").
 - [ ] B7 *My profile* shows the administrator's own record and role; change the phone, *Save contacts*, reload: the new
       phone is kept and nothing else changed.
+- [ ] B8 *Membership fees*: create "Season 2026/27" (due date, CHF 150): every active member is listed; *Mark paid*
+      for one, *Change amount* for another, *Exclude* a third; the totals change. After a reload *My fees* shows the
+      administrator's own fee. Only members with the `MANAGE_FEES` permission see the panel.
 
 ## C. Teams and permissions
 
@@ -75,7 +78,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 | --- | --- |
 | Operator and host | Owner; Infomaniak VPS Lite \_ vCPU / \_ GB; Ubuntu \_ ; date \_ |
 | HTTPS probe (A1), identity provider | pass / fail, Rauthy, date \_ |
-| Members, languages and own profile (B1–B7) | pass / fail, notes \_ |
+| Members, languages, own profile and fees (B1–B8) | pass / fail, notes \_ |
 | Teams, invitations, scoped permissions, schedule (C1–C5) | pass / fail, notes \_ |
 | Guardians (D1–D4) | pass / fail, notes \_ |
 | Denial and sessions (E1–E3) | pass / fail, notes \_ |
