@@ -26,6 +26,7 @@ ROUTE_SOURCES = {
     "members/MemberErasureHttpRoute.kt": "installMemberErasureHttpRoute",
     "members/MemberDetailsHttpRoute.kt": "installMemberDetailsHttpRoute",
     "members/GuardianHttpRoutes.kt": "installGuardianHttpRoutes",
+    "members/MyProfileHttpRoutes.kt": "installMyProfileHttpRoutes",
     "members/GrantHttpRoutes.kt": "installGrantHttpRoutes",
     "teams/TeamHttpRoutes.kt": "installTeamHttpRoutes",
     "teams/TeamMemberHttpRoutes.kt": "installTeamMemberHttpRoutes",
@@ -72,6 +73,8 @@ DELETE /v1/members/{memberId}/guardians/{guardianMemberId}
 GET /v1/me/dependents
 GET /v1/me/dependents/{memberId}
 PUT /v1/me/dependents/{memberId}/contacts
+GET /v1/me/profile
+PUT /v1/me/profile/contacts
 GET /v1/members/{memberId}/export
 """.strip().splitlines())
 
@@ -109,7 +112,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.8.0"
+FROZEN_VERSION = "1.9.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
@@ -154,7 +157,7 @@ def verify_contract(spec):
         denial = {"401"} if entry == "GET /v1/me/dependents" else {"401", "403"}
         if operation.get("security") == [] or not denial <= responses.keys():
             fail(f"Private endpoint has incomplete authentication/denial contract: {entry}")
-        if method not in {"POST", "PATCH", "DELETE"}:
+        if method not in {"POST", "PUT", "PATCH", "DELETE"}:
             continue
         parameters = paths[path].get("parameters", []) + operation.get("parameters", [])
         csrf = any(

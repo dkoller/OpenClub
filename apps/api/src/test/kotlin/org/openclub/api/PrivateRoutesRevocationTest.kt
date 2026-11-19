@@ -155,6 +155,9 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Get, "/api/v1/members/$target/guardians"),
         Route(HttpMethod.Post, "/api/v1/members/$target/guardians", """{"guardianMemberId":"$holder"}"""),
         Route(HttpMethod.Delete, "/api/v1/members/$target/guardians/$holder"),
+        // The holder's own profile; without If-Match the authorized change pass stops at 428 and changes nothing.
+        Route(HttpMethod.Get, "/api/v1/me/profile"),
+        Route(HttpMethod.Put, "/api/v1/me/profile/contacts", """{"email":"holder@example.invalid","phone":"+41000000001"}"""),
         Route(HttpMethod.Post, "/api/v1/members/$erasable/erase", """{"confirmation":"Erasable Person"}"""),
         // Last: an archived target is hidden from the role and grant routes by design.
         Route(HttpMethod.Post, "/api/v1/members/$target/archive"),

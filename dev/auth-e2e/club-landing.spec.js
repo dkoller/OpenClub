@@ -110,6 +110,18 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // Complete the real authorized browser journey with fictional member data.
   await expect(page.getByRole('heading', { name: 'Manage members' })).toBeVisible();
+
+  // My profile (OpenAPI 1.9.0): the administrator changes their own phone; the form keeps the email it read.
+  const myProfile = page.getByRole('region', { name: 'My profile' });
+  await expect(myProfile.getByText('Administrator', { exact: true })).toBeVisible();
+  const ownEmail = await myProfile.getByLabel('Email').inputValue();
+  expect(ownEmail).toContain('@');
+  await myProfile.getByLabel('Phone').fill('+41 79 000 00 01');
+  await myProfile.getByRole('button', { name: 'Save contacts' }).click();
+  await expect(myProfile.getByRole('status')).toHaveText('Contacts saved.');
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'My profile' }).getByLabel('Phone')).toHaveValue('+41 79 000 00 01');
+  await expect(page.getByRole('region', { name: 'My profile' }).getByLabel('Email')).toHaveValue(ownEmail);
   // Native required-field validation prevents an incomplete browser write.
   await page.getByLabel('First name').fill('Incomplete');
   await page.getByLabel('Last name').fill('Synthetic');

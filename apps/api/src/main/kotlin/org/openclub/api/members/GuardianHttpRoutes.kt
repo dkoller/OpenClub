@@ -124,7 +124,7 @@ internal fun Application.installGuardianHttpRoutes(
 }
 
 /** A read: session (401), then the route's own checks; no Origin or CSRF; never cacheable; faults are 503. */
-private suspend fun ApplicationCall.readSession(
+internal suspend fun ApplicationCall.readSession(
     sessions: BrowserSessionOperations,
     cookies: AuthCookiePolicy,
     block: suspend (ActiveSession) -> Unit,
@@ -148,7 +148,7 @@ private suspend fun ApplicationCall.answer(result: MemberGuardianships.Change) =
     MemberGuardianships.Change.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
 }
 
-private suspend fun ApplicationCall.respondJson(body: JsonObject) = respondText(body.toString(), ContentType.Application.Json)
+internal suspend fun ApplicationCall.respondJson(body: JsonObject) = respondText(body.toString(), ContentType.Application.Json)
 
 private fun names(members: List<MemberDirectory.Summary>) = buildJsonObject {
     put("items", buildJsonArray {
@@ -157,7 +157,7 @@ private fun names(members: List<MemberDirectory.Summary>) = buildJsonObject {
 }
 
 /** An optional string field; JSON null and an absent key both mean "clear". */
-private fun JsonObject.optionalText(key: String): String? = when (val value = this[key]) {
+internal fun JsonObject.optionalText(key: String): String? = when (val value = this[key]) {
     null, JsonNull -> null
     is JsonPrimitive -> if (value.isString) value.content else throw IllegalArgumentException("Expected a string")
     else -> throw IllegalArgumentException("Expected a string")

@@ -134,3 +134,12 @@ change), the owner answered **"Yes"**.
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 34 | Conditional replacement | Approved as OpenAPI **1.8.0**: every member row has a version (V21) that every change advances. The editor's `GET /v1/members/{id}/details` returns it as a strong `ETag`; `PUT /v1/members/{id}` requires it in `If-Match` (428 when missing; 412 `changed`, with nothing changed, for any other value) and returns the new `ETag`. A team manager's read carries no version. The UI tells the editor to edit again. No other route changes. |
+
+## Addendum 12 — features before pilot feedback; My profile (2026-11-19)
+
+Offered an upgrade path and resource measurements for #27, the owner answered **"No, keep them for later. Do some features"**, then selected **My profile, Trainings & events, Attendance and Membership fees** from a list that said #31 defers new features until pilot feedback and that the choice would be recorded as overriding it. Each feature's contract is approved separately before it is built.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 35 | Feature order | The four features are built before #28 pilot feedback, in the order My profile, Trainings & events, Attendance, Membership fees. This overrides the "after pilot feedback" rule of #31 for these four only; other post-MVP features stay deferred. #27 upgrade path and resource figures are postponed, not dropped. |
+| 36 | My profile | Approved as OpenAPI **1.9.0**: `GET /v1/me/profile` returns the signed-in, active, verified member's own name, birth date, email, phone, gender, player flag, role and teams with the row version as `ETag` (not audited); `PUT /v1/me/profile/contacts` replaces only their own email and phone with `If-Match` (428/412 as in 1.8.0), audited as `SELF_CONTACTS_UPDATED`. Names, birth date, gender, player and role stay editor-only. No own export (offered, not chosen). |
