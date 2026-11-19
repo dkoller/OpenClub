@@ -81,6 +81,7 @@ internal fun Application.installGuardianHttpRoutes(
         }
         get("/api/v1/me/dependents/{memberId}") {
             call.readSession(sessions, cookies) { actor ->
+                if (call.isCrossSiteRequest()) return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 val minor = call.memberId() ?: return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 val details = database.onDatabaseThread { Dependents(it).read(actor.accountId, minor) }
                     ?: return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")

@@ -52,7 +52,8 @@ clubName: Demo Club              # optional; the club created by bootstrap-demo-
 
 It holds **no secrets**: passwords and keys are generated into `envDirectory`. Every script validates it first
 (`python3 dev/deployment/demo-config.py check`), and an unknown key or invalid value stops it instead of falling back to
-a default. To keep the file elsewhere, set `OPENCLUB_DEMO_CONFIG=/path/to/demo.yaml` for every command.
+a default. A setting written twice is an error too, and `envDirectory` may only contain letters, digits, `.`, `_`, `-`
+and `/` (it is written into the `.env` file and used as a Compose mount). To keep the file elsewhere, set `OPENCLUB_DEMO_CONFIG=/path/to/demo.yaml` for every command.
 
 ## 4. Deploy with one command
 

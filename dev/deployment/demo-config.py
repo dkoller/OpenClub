@@ -15,6 +15,7 @@ import sys
 DEFAULT_PATH = "/etc/openclub/demo.yaml"
 HOST = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$")
 EMAIL = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+PATH = re.compile(r"^/[A-Za-z0-9._/-]+$")
 KEYS = {"clubHost", "idHost", "adminEmail", "envDirectory", "clubName", "email"}
 
 
@@ -31,8 +32,19 @@ def load(path):
     if not os.path.isfile(path):
         fail(f"{path} not found; copy dev/deployment/demo.example.yaml there and edit it")
     with open(path, encoding="utf-8") as handle:
+        class UniqueKeyLoader(yaml.SafeLoader):
+            """Rejects a setting written twice, where plain YAML would silently keep the last one."""
+
+        def unique_mapping(loader, node, deep=False):
+            keys = [loader.construct_object(key, deep=deep) for key, _ in node.value]
+            duplicates = sorted({str(key) for key in keys if keys.count(key) > 1})
+            if duplicates:
+                fail(f"setting(s) written twice: {', '.join(duplicates)}")
+            return loader.construct_mapping(node, deep=deep)
+
+        UniqueKeyLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, unique_mapping)
         try:
-            data = yaml.safe_load(handle)
+            data = yaml.load(handle, Loader=UniqueKeyLoader)
         except yaml.YAMLError as error:
             fail(f"{path} is not valid YAML ({error.__class__.__name__})")
     if not isinstance(data, dict):
@@ -64,8 +76,9 @@ def load(path):
         fail("clubHost and idHost must differ")
     if not EMAIL.match(config["adminEmail"]):
         fail("adminEmail must be an email address")
-    if not config["envDirectory"].startswith("/") or "\n" in config["envDirectory"]:
-        fail("envDirectory must be an absolute path")
+    # Written unquoted into .env and used as a Compose bind-mount source: no spaces, $, # or quotes.
+    if not PATH.match(config["envDirectory"]) or "/../" in config["envDirectory"] + "/":
+        fail("envDirectory must be an absolute path of letters, digits, '.', '_', '-' and '/'")
     if not 1 <= len(config["clubName"]) <= 200 or "\n" in config["clubName"]:
         fail("clubName must be 1 to 200 characters on one line")
     email = data.get("email")

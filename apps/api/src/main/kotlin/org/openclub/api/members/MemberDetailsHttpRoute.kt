@@ -34,6 +34,7 @@ internal fun Application.installMemberDetailsHttpRoute(
             try {
                 val actor = sessions.read(call.request.cookies[cookies.sessionName])
                     ?: return@get call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
+                if (call.isCrossSiteRequest()) return@get call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 val mayRead = database.onDatabaseThread { db ->
                     val access = ClubCapabilityAccess(db)
                     access.has(actor.accountId, ClubCapabilityAccess.Capability.EDIT_MEMBERS) ||
@@ -58,6 +59,7 @@ internal fun Application.installMemberDetailsHttpRoute(
             try {
                 val actor = sessions.read(call.request.cookies[cookies.sessionName])
                     ?: return@get call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
+                if (call.isCrossSiteRequest()) return@get call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 if (!database.onDatabaseThread {
                         ClubCapabilityAccess(it).has(actor.accountId, ClubCapabilityAccess.Capability.EDIT_MEMBERS) }) {
                     return@get call.refuse(HttpStatusCode.Forbidden, "forbidden")

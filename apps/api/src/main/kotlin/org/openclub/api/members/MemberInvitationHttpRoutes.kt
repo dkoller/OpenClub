@@ -95,6 +95,15 @@ internal fun Application.installMemberInvitationHttpRoutes(
 
 internal fun ApplicationCall.memberId(): UUID? = runCatching { UUID.fromString(parameters["memberId"]) }.getOrNull()
 
+/**
+ * True for a request another site started, such as a link or form on a third-party page. Reads that write an audit
+ * event (details, export, a dependent's record) refuse these, so no other site can make a member's browser
+ * produce a false audit entry or a download. Browsers without Fetch Metadata send no header and are allowed:
+ * the session cookie is `SameSite=Lax` and these responses are never readable cross-origin.
+ */
+internal fun ApplicationCall.isCrossSiteRequest(): Boolean =
+    request.headers["Sec-Fetch-Site"]?.let { it != "same-origin" && it != "none" } ?: false
+
 internal suspend fun ApplicationCall.refuse(status: HttpStatusCode, code: String) =
     respondText("""{"code":"$code"}""", ContentType.Application.Json, status)
 
