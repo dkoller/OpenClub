@@ -30,6 +30,7 @@ ROUTE_SOURCES = {
     "teams/TeamEventHttpRoutes.kt": "installTeamEventHttpRoutes",
     "teams/EventShiftHttpRoutes.kt": "installEventShiftHttpRoutes",
     "calendar/CalendarHttpRoutes.kt": "installCalendarHttpRoutes",
+    "notifications/NotificationHttpRoutes.kt": "installNotificationHttpRoutes",
     "fees/FeeHttpRoutes.kt": "installFeeHttpRoutes",
     "members/MemberListHttpRoutes.kt": "installMemberListHttpRoutes",
     "announcements/AnnouncementHttpRoutes.kt": "installAnnouncementHttpRoutes",
@@ -83,6 +84,8 @@ GET /v1/me/profile
 PUT /v1/me/profile/contacts
 PUT /v1/me/profile/public-listing
 GET /v1/me/calendar-feed
+GET /v1/me/notifications
+PUT /v1/me/notifications
 POST /v1/me/calendar-feed
 DELETE /v1/me/calendar-feed
 GET /v1/calendar/{secret}
@@ -153,7 +156,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.18.0"
+FROZEN_VERSION = "1.19.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}

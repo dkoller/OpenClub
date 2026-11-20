@@ -26,6 +26,8 @@ dependencies {
     implementation("com.zaxxer:HikariCP:6.3.3")
     implementation("com.nimbusds:oauth2-oidc-sdk:11.39")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    // SMTP for email notifications (OpenAPI 1.19.0, ADR-0008 addendum 23): the Jakarta Mail implementation.
+    implementation("org.eclipse.angus:angus-mail:2.0.5")
 
     jooqGenerator("org.jooq:jooq-codegen:$jooqVersion")
     jooqGenerator("org.postgresql:postgresql:42.7.8")

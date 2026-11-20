@@ -186,6 +186,10 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Put, "/api/v1/me/profile/public-listing", """{"listedPublicly":false}"""),
         // The holder's own calendar feed (1.17.0); the feed itself has no session and is covered in CalendarFeedHttpTest.
         Route(HttpMethod.Get, "/api/v1/me/calendar-feed"),
+        // Email notification settings (1.19.0): the holder's own switches.
+        Route(HttpMethod.Get, "/api/v1/me/notifications"),
+        Route(HttpMethod.Put, "/api/v1/me/notifications",
+            """{"eventChanges":true,"newEvents":true,"announcements":true,"shiftReminders":true,"language":"de"}"""),
         Route(HttpMethod.Post, "/api/v1/me/calendar-feed"),
         Route(HttpMethod.Delete, "/api/v1/me/calendar-feed"),
         Route(HttpMethod.Put, "/api/v1/members/$target/public-listing", """{"listedPublicly":false}"""),

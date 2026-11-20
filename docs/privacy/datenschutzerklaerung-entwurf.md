@@ -20,6 +20,9 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
 - **Anmeldung:** Eine Kennung beim Anmeldedienst des Vereins (auf demselben Server) und Ihre Sitzung.
 - **Teams, Trainings und Anlässe:** Wann und wo trainiert oder gespielt wird.
 - **Anwesenheit:** Ihre Antwort «Ja», «Nein» oder «Vielleicht» pro Anlass, ohne Begründung.
+- **E-Mail-Benachrichtigungen:** Wenn Sie sich angemeldet haben, senden wir Ihnen E-Mails zu geänderten, abgesagten
+  oder neuen Terminen Ihres Teams (oder der Teams Ihrer Kinder), zu Mitteilungen und als Erinnerung vor Helfereinsätzen.
+  Sie können jede Art unter «Mein Profil» abbestellen. Versendete Nachrichten löschen wir nach 7 Tagen.
 - **Kalender-Abo (freiwillig):** Wenn Sie unter «Mein Programm» einen Kalender-Link erstellen, lädt Ihre
   Kalender-App (z. B. Google oder Apple) Ihre Termine samt Ort und Notizen über diesen Link und speichert sie in Ihrem
   Konto bei diesem Anbieter. Sie können den Link jederzeit widerrufen.

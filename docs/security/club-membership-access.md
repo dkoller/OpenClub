@@ -382,6 +382,10 @@ Owner-approved (ADR-0008 addendum 21). The feed read `GET /v1/calendar/{secret}`
 
 Owner-approved (ADR-0008 addendum 22). The same people who see each answer per event (`VIEW_TEAMS` or `MANAGE_TEAMS` for the team, checked in the statement that reads the rows) see per-member totals for a bounded range of past, not cancelled events, by public display name only. No new data is stored or exposed; strict query parsing (only `from`/`to`, once each, strict ISO dates, at most 366 days). Unknown teams are 404 only for club-wide holders. Tests: `TeamEventHttpTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
 
+## Email notifications (OpenAPI 1.19.0)
+
+Owner-approved (ADR-0008 addendum 23). Messages are queued inside the transaction of the authorized change (event create/replace/delete, announcement create) or of the reminder run, so nothing is queued for a refused or rolled-back change. Recipients are computed in SQL: the team's members and the guardians of its current minor members (all members for club-wide announcements), restricted to active members with a current verified identity (`ActorSql.activeVerified`), an address and the kind switched on. The outbox stores the member ID, not the address; the address is read and re-checked when sending, so archiving, losing the sign-in, removing the address or erasure (cascade) stops delivery. Messages hold no other member's name; subjects cannot carry line breaks (CHECK and code), and the mail library encodes headers. SMTP always uses implicit TLS or required STARTTLS with server identity checks; credentials come only from the environment and are never logged; failures are logged without addresses or content. Settings routes follow the usual session, Origin/CSRF and membership order. Tests: `NotificationsTest`, `MailConfigTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
+
 ## Second independent security review (2026-11-19, OpenAPI 1.14.1)
 
 A separate review agent read PRs #355–#361 (profile, events, attendance, fees, member list CSV, announcements) and found nothing critical or important. Fixed in the follow-up PR:

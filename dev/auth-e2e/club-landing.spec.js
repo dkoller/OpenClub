@@ -114,14 +114,19 @@ test('verified login gains club access only after restricted operator bootstrap'
   // My profile (OpenAPI 1.9.0): the administrator changes their own phone; the form keeps the email it read.
   const myProfile = page.getByRole('region', { name: 'My profile' });
   await expect(myProfile.getByText('Administrator', { exact: true })).toBeVisible();
-  const ownEmail = await myProfile.getByLabel('Email').inputValue();
+  const ownEmail = await myProfile.getByLabel('Email', { exact: true }).inputValue();
   expect(ownEmail).toContain('@');
   await myProfile.getByLabel('Phone').fill('+41 79 000 00 01');
   await myProfile.getByRole('button', { name: 'Save contacts' }).click();
   await expect(myProfile.getByRole('status')).toHaveText('Contacts saved.');
   await page.reload();
   await expect(page.getByRole('region', { name: 'My profile' }).getByLabel('Phone')).toHaveValue('+41 79 000 00 01');
-  await expect(page.getByRole('region', { name: 'My profile' }).getByLabel('Email')).toHaveValue(ownEmail);
+  await expect(page.getByRole('region', { name: 'My profile' }).getByLabel('Email', { exact: true })).toHaveValue(ownEmail);
+  // Email notifications (OpenAPI 1.19.0): this test installation has no SMTP server, so the switches are shown off.
+  const mailSettings = page.getByRole('region', { name: 'Email notifications' });
+  await expect(mailSettings.getByText('This club does not send emails.')).toBeVisible();
+  await expect(mailSettings.getByLabel('New events')).toBeChecked();
+  await expect(mailSettings.getByLabel('New events')).toBeDisabled();
   // The public-list switch (OpenAPI 1.15.0, controller decision C5): hidden, then shown again.
   const listing = page.getByRole('region', { name: 'My profile' }).getByLabel('Show my name on the public member list');
   await expect(listing).toBeChecked();

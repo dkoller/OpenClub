@@ -11,6 +11,7 @@ import org.jooq.impl.DSL
 import org.openclub.api.members.ActorSql
 import org.openclub.api.members.AgeSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
+import org.openclub.api.notifications.Notifier
 import java.time.Duration
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -24,7 +25,11 @@ import java.util.UUID
  * member also sees the events of their own teams and of their current minors' teams ([mine]). Each write checks the
  * actor's grant inside the same SQL statement. Events hold no personal data and are not audited.
  */
-internal class TeamEvents(private val database: DSLContext) {
+internal class TeamEvents(
+    private val database: DSLContext,
+    /** Queues email notifications in the same transaction (OpenAPI 1.19.0); off by default. */
+    private val notifier: Notifier = Notifier.DISABLED,
+) {
     enum class Kind { TRAINING, MATCH, OTHER }
 
     data class Input(
@@ -133,25 +138,38 @@ internal class TeamEvents(private val database: DSLContext) {
             input.kind.name, input.title, input.location, input.notes,
             ids.map { it.toString() }.toTypedArray(), starts.map { it.toString() }.toTypedArray(),
             starts.map { it.plus(duration).toString() }.toTypedArray(), teamId, actor)
-        if (inserted == starts.size) return Created.Done(ids)
+        if (inserted == starts.size) return Created.Done(ids).also { notifier.eventsCreated(database, ids) }
         check(inserted == 0) { "Partial insert" }
         return if (teamExists(teamId)) Created.Denied else notFoundOrDenied(actor, Created.NotFound, Created.Denied)
     }
 
     fun replace(actor: UUID, eventId: UUID, input: Input, cancelled: Boolean): Change {
-        val changed = database.execute(
-            """UPDATE team_events e SET kind = ?, title = ?, starts_at = ?::timestamptz, ends_at = ?::timestamptz, location = ?, notes = ?, cancelled = ?
-               WHERE e.id = ? AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}""",
-            input.kind.name, input.title, input.startsAt.toString(), input.endsAt.toString(), input.location, input.notes, cancelled,
-            eventId, actor) == 1
-        return if (changed) Change.DONE else missing(eventId, actor)
+        // The old row comes along so a notification says "changed" or "cancelled" only when something did change.
+        val row = database.fetchOne(
+            """WITH old AS (SELECT * FROM team_events WHERE id = ? FOR NO KEY UPDATE)
+               UPDATE team_events e SET kind = ?, title = ?, starts_at = ?::timestamptz, ends_at = ?::timestamptz, location = ?, notes = ?, cancelled = ?
+               FROM old
+               WHERE e.id = old.id AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}
+               RETURNING (old.kind, old.title, old.starts_at, old.ends_at, old.location, old.notes, old.cancelled)
+                         IS DISTINCT FROM (e.kind, e.title, e.starts_at, e.ends_at, e.location, e.notes, e.cancelled) AS changed,
+                         old.cancelled AS was_cancelled""",
+            eventId, input.kind.name, input.title, input.startsAt.toString(), input.endsAt.toString(), input.location, input.notes,
+            cancelled, actor) ?: return missing(eventId, actor)
+        val wasCancelled = row.get("was_cancelled", Boolean::class.java)
+        // Editing an event that stays cancelled tells nobody anything new.
+        if (row.get("changed", Boolean::class.java) && !(cancelled && wasCancelled)) notifier.eventChanged(database, eventId, cancelled)
+        return Change.DONE
     }
 
     fun delete(actor: UUID, eventId: UUID): Change {
-        val deleted = database.execute(
-            "DELETE FROM team_events e WHERE e.id = ? AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}",
-            eventId, actor) == 1
-        return if (deleted) Change.DONE else missing(eventId, actor)
+        val deleted = database.fetchOne(
+            """DELETE FROM team_events e USING teams t
+               WHERE e.id = ? AND t.id = e.team_id AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}
+               RETURNING e.team_id, t.name AS team_name, e.title, e.starts_at, e.ends_at, e.location, e.notes, e.cancelled""",
+            eventId, actor) ?: return missing(eventId, actor)
+        // A deleted event that was not already cancelled is reported as cancelled.
+        if (!deleted.get("cancelled", Boolean::class.java)) notifier.eventCancelled(database, Notifier.details(deleted))
+        return Change.DONE
     }
 
     /** An unknown event is 404 only for a club-wide team holder; anyone else cannot tell it from a foreign one. */

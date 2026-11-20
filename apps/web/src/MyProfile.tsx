@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Language } from './language'
+import { NotificationSettings } from './NotificationSettings'
 import { fetchMyProfile, replaceMyContacts, setMyPublicListing, type MyProfile as Profile } from './myProfile'
 
 const words = {
@@ -83,6 +84,7 @@ export function MyProfile({ language, csrfToken }: { language: Language; csrfTok
       <p>{t.listedHint}</p>
       <p>{t.hint}</p>
       {notice && <p role={notice === 'error' ? 'alert' : 'status'}>{t[notice]}</p>}
+      <NotificationSettings language={language} csrfToken={csrfToken} />
     </section>
   )
 }
