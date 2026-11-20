@@ -16,6 +16,8 @@ export type MemberDetails = {
   isPlayer?: boolean
   archivedAt?: string | null
   hasLinkedLogin?: boolean
+  /** Editors only (OpenAPI 1.15.0): whether the name is on the public member list. */
+  listedPublicly?: boolean
   invitation?: { status: 'NONE' | 'OPEN'; expiresAt?: string }
 }
 
@@ -29,7 +31,7 @@ export function memberExportPath(memberId: string): string {
 }
 
 const optionalText = ['dateOfBirth', 'email', 'phone', 'gender', 'archivedAt'] as const
-const optionalFlag = ['isPlayer', 'hasLinkedLogin'] as const
+const optionalFlag = ['isPlayer', 'hasLinkedLogin', 'listedPublicly'] as const
 const known = new Set<string>(['id', 'firstName', 'lastName', 'invitation', ...optionalText, ...optionalFlag])
 
 /** Validates the response shape strictly, so an unexpected field is never rendered. */
@@ -109,6 +111,29 @@ async function memberWrite(path: string, method: 'PUT' | 'POST', csrfToken: stri
 export function replaceMember(memberId: string, body: object, version: string, csrfToken: string,
   request: typeof fetch = fetch) {
   return memberWrite('/api/v1/members/' + encodeURIComponent(memberId), 'PUT', csrfToken, body, request, version)
+}
+
+/**
+ * PUT /api/v1/members/{id}/public-listing (OpenAPI 1.15.0, EDIT_MEMBERS): show or hide a member's name on the public
+ * list, at the version of the edit read. On success the new version is returned for the following replacement.
+ */
+export async function setMemberPublicListing(memberId: string, listed: boolean, version: string, csrfToken: string,
+  request: typeof fetch = fetch): Promise<{ outcome: 'ok'; version: string } | { outcome: Exclude<EditOutcome, 'ok'> }> {
+  const response = await request('/api/v1/members/' + encodeURIComponent(memberId) + '/public-listing', {
+    method: 'PUT', credentials: 'same-origin',
+    headers: { 'X-CSRF-Token': csrfToken, 'Content-Type': 'application/json', 'If-Match': version },
+    body: JSON.stringify({ listedPublicly: listed }),
+  })
+  if (response.ok) {
+    const next = response.headers.get('ETag')
+    if (!next) throw new Error('No version')
+    return { outcome: 'ok', version: next }
+  }
+  if (response.status === 401 || response.status === 403) return { outcome: 'denied' }
+  if (response.status === 400) return { outcome: 'invalid' }
+  if (response.status === 404) return { outcome: 'not-found' }
+  if (response.status === 412) return { outcome: 'changed' }
+  throw new Error('Request failed')
 }
 
 /** POST /api/v1/members/{id}/reactivate: 'conflict' means the record no longer fits the club's current policy. */

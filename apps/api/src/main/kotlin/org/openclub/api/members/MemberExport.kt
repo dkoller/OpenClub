@@ -59,7 +59,7 @@ internal class MemberExport(private val database: DSLContext) {
 
     private fun build(db: DSLContext, memberId: UUID, exportedAt: Instant): JsonObject? {
             val member = db.fetchOne(
-                """SELECT first_name, last_name, date_of_birth, email, phone, gender, is_player, role, created_at,
+                """SELECT first_name, last_name, date_of_birth, email, phone, gender, is_player, role, listed_publicly, created_at,
                           archived_at, account_id IS NOT NULL AS has_login
                    FROM members WHERE id = ?""", memberId,
             ) ?: return null
@@ -110,6 +110,7 @@ internal class MemberExport(private val database: DSLContext) {
                     put("createdAt", text("created_at"))
                     put("archivedAt", text("archived_at"))
                     put("hasLinkedLogin", member.get("has_login", Boolean::class.java))
+                    put("listedPublicly", member.get("listed_publicly", Boolean::class.java))
                 })
                 put("teams", buildJsonArray {
                     teams.forEach { add(buildJsonObject { put("id", it.get(0).toString()); put("name", it.get(1).toString()) }) }

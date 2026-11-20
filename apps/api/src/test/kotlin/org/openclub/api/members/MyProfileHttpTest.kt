@@ -13,6 +13,7 @@ import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -134,7 +135,7 @@ class MyProfileHttpTest {
         assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
         assertEquals(version("me"), response.headers[HttpHeaders.ETag])
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertEquals(setOf("id", "firstName", "lastName", "dateOfBirth", "email", "phone", "gender", "isPlayer", "role", "teams"), body.keys)
+        assertEquals(setOf("id", "firstName", "lastName", "dateOfBirth", "email", "phone", "gender", "isPlayer", "role", "teams", "listedPublicly"), body.keys)
         assertEquals(memberOf.getValue("me").toString(), body.getValue("id").jsonPrimitive.content)
         assertEquals("1985-05-06", body.getValue("dateOfBirth").jsonPrimitive.content)
         assertEquals("diverse", body.getValue("gender").jsonPrimitive.content)
@@ -192,5 +193,74 @@ class MyProfileHttpTest {
         sql { it.execute("UPDATE members SET last_name = 'Edited' WHERE id = ?", me) }
         assertEquals(HttpStatusCode.PreconditionFailed, change("me", contacts, next).status)
         assertEquals(1, count("SELECT COUNT(*) FROM audit_events WHERE event_type = 'SELF_CONTACTS_UPDATED' AND target_member_id = ?", me))
+    }
+
+    private suspend fun ApplicationTestBuilder.listing(
+        handle: String?, path: String, body: String, ifMatch: String?, withCsrf: String? = csrf,
+    ): HttpResponse = client.request(path) {
+        method = HttpMethod.Put
+        if (handle != null) header(HttpHeaders.Cookie, "${cookies.sessionName}=$handle")
+        header(HttpHeaders.Origin, origin)
+        if (withCsrf != null) header("X-CSRF-Token", withCsrf)
+        if (ifMatch != null) header(HttpHeaders.IfMatch, ifMatch)
+        header(HttpHeaders.ContentType, "application/json"); setBody(body)
+    }
+
+    private suspend fun ApplicationTestBuilder.publicNames(): List<String> =
+        Json.parseToJsonElement(client.request("/api/v1/public/members").bodyAsText()).jsonArray
+            .map { it.jsonObject.getValue("displayName").jsonPrimitive.content }
+
+    @Test
+    fun aMemberOrAnEditorTakesANameOffThePublicList() = app {
+        // OpenAPI 1.15.0, controller decision C5. "other" hides themself; as an editor, "other" also hides a minor
+        // who cannot sign in. Never "me", whose audit trail another test expects to be empty.
+        val other = memberOf.getValue("other")
+        val minor = UUID.randomUUID().also { memberOf["listing-minor"] = it }
+        sql { it.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth)
+                            VALUES (?, 'Listingminor', 'Child', CURRENT_DATE - 3650)""", minor) }
+        val self = "/api/v1/me/profile/public-listing"
+        val forMinor = "/api/v1/members/$minor/public-listing"
+        val hide = """{"listedPublicly":false}"""
+        try {
+            assertTrue("other Profile" in publicNames() && "Listingminor C." in publicNames(), "listed by default")
+            assertTrue(Json.parseToJsonElement(read("other").bodyAsText()).jsonObject.getValue("listedPublicly").jsonPrimitive.boolean)
+
+            val check = Check()
+            check.expect("no session", listing(null, self, hide, version("other")), HttpStatusCode.Unauthorized)
+            check.expect("no CSRF", listing("other", self, hide, version("other"), withCsrf = null), HttpStatusCode.Forbidden)
+            check.expect("no member record", listing("stranger", self, hide, "\"1\""), HttpStatusCode.Forbidden)
+            check.expect("a string is not a boolean", listing("other", self, """{"listedPublicly":"false"}""", version("other")), HttpStatusCode.BadRequest)
+            check.expect("extra key", listing("other", self, """{"listedPublicly":false,"email":null}""", version("other")), HttpStatusCode.BadRequest)
+            check.expect("no If-Match", listing("other", self, hide, null), HttpStatusCode.PreconditionRequired)
+            check.expect("stale If-Match", listing("other", self, hide, "\"999999\""), HttpStatusCode.PreconditionFailed)
+            check.expect("not an editor", listing("other", forMinor, hide, version("listing-minor")), HttpStatusCode.Forbidden)
+            check.done()
+            assertEquals(0, count("SELECT COUNT(*) FROM audit_events WHERE event_type = 'PUBLIC_LISTING_CHANGED' AND target_member_id = ANY(?::uuid[])",
+                arrayOf(other, minor)), "a refusal changes nothing")
+
+            val hidden = listing("other", self, hide, version("other"))
+            assertEquals(HttpStatusCode.NoContent, hidden.status)
+            assertEquals(version("other"), hidden.headers[HttpHeaders.ETag])
+            assertFalse("other Profile" in publicNames(), "a hidden member is not on the public list")
+            assertFalse(Json.parseToJsonElement(read("other").bodyAsText()).jsonObject.getValue("listedPublicly").jsonPrimitive.boolean)
+
+            sql { it.execute("INSERT INTO club_capability_grants (member_id, capability) VALUES (?, 'EDIT_MEMBERS')", other) }
+            check.expect("editor, stale", listing("other", forMinor, hide, "\"999999\""), HttpStatusCode.PreconditionFailed)
+            check.expect("editor, unknown member", listing("other", "/api/v1/members/${UUID.randomUUID()}/public-listing", hide, "\"1\""), HttpStatusCode.NotFound)
+            check.expect("editor", listing("other", forMinor, hide, version("listing-minor")), HttpStatusCode.NoContent)
+            check.done()
+            assertFalse("Listingminor C." in publicNames())
+            assertEquals(HttpStatusCode.NoContent,
+                listing("other", forMinor, """{"listedPublicly":true}""", version("listing-minor")).status)
+            assertTrue("Listingminor C." in publicNames(), "the editor can list the member again")
+            assertEquals(1, count("SELECT COUNT(*) FROM audit_events WHERE event_type = 'PUBLIC_LISTING_CHANGED' AND target_member_id = ? AND actor_account_id = ?",
+                other, accounts.getValue("other")))
+            assertEquals(2, count("SELECT COUNT(*) FROM audit_events WHERE event_type = 'PUBLIC_LISTING_CHANGED' AND target_member_id = ?", minor))
+        } finally {
+            sql {
+                it.execute("DELETE FROM club_capability_grants WHERE member_id = ?", other)
+                it.execute("UPDATE members SET listed_publicly = TRUE WHERE id = ?", other)
+            }
+        }
     }
 }

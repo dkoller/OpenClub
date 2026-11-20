@@ -162,6 +162,57 @@ class RetentionCleanupTest {
     }
 
     @Test
+    fun clubRecordsExpireAsTheControllerDecided() {
+        // Controller decision C10 (2026-11-20): attendance 12 months after the event, events 24 months, fee periods
+        // 24 months after the due date, announcements 6 months after show-until. Each just past and just inside.
+        val team = UUID.randomUUID()
+        val member = UUID.randomUUID().also { members += it }
+        db.execute("INSERT INTO teams (id, name) VALUES (?, ?)", team, "Retention team ${team.toString().take(8)}")
+        db.execute("INSERT INTO members (id, first_name, last_name, date_of_birth) VALUES (?, 'Retention', 'Records', DATE '2012-01-01')", member)
+        db.execute("INSERT INTO member_team_assignments VALUES (?, ?)", team, member)
+        fun event(monthsAgo: Int): UUID = UUID.randomUUID().also {
+            db.execute(
+                """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at)
+                   VALUES (?, ?, 'TRAINING', 'Retention', now() - make_interval(months => ?, days => 1, hours => 2),
+                           now() - make_interval(months => ?, days => 1))""", it, team, monthsAgo, monthsAgo)
+            db.execute("INSERT INTO event_attendance (event_id, member_id, response) VALUES (?, ?, 'YES')", it, member)
+        }
+        fun period(monthsAgo: Int): UUID = UUID.randomUUID().also {
+            db.execute("""INSERT INTO fee_periods (id, name, due_date, amount_cents)
+                          VALUES (?, ?, (CURRENT_DATE - make_interval(months => ?, days => 1))::date, 100)""", it, "Retention $it", monthsAgo)
+            db.execute("INSERT INTO member_fees (period_id, member_id, amount_cents) VALUES (?, ?, 100)", it, member)
+        }
+        fun announcement(monthsAgo: Int): UUID = UUID.randomUUID().also {
+            db.execute("""INSERT INTO announcements (id, title, body, show_until)
+                          VALUES (?, 'Retention', 'x', (CURRENT_DATE - make_interval(months => ?, days => 1))::date)""", it, monthsAgo)
+        }
+        val expiredEvent = event(24); val keptEvent = event(23)
+        val answerOnly = event(12); val keptAnswer = event(11)
+        val expiredPeriod = period(24); val keptPeriod = period(23)
+        val expiredNews = announcement(6); val keptNews = announcement(5)
+        fun count(table: String, column: String, id: UUID) = db.fetchCount(DSL.table(table), DSL.field(column).eq(id))
+
+        try {
+            repeat(3) { RetentionCleanup.pruneBatch(db) }
+            assertEquals(0, count("team_events", "id", expiredEvent), "an event over 24 months past is deleted")
+            assertEquals(1, count("team_events", "id", keptEvent))
+            assertEquals(1, count("team_events", "id", answerOnly), "the event itself stays for 24 months")
+            assertEquals(0, count("event_attendance", "event_id", answerOnly), "its answers go after 12 months")
+            assertEquals(1, count("event_attendance", "event_id", keptAnswer))
+            assertEquals(0, count("fee_periods", "id", expiredPeriod))
+            assertEquals(0, count("member_fees", "period_id", expiredPeriod), "the fees go with the period")
+            assertEquals(1, count("member_fees", "period_id", keptPeriod))
+            assertEquals(0, count("announcements", "id", expiredNews))
+            assertEquals(1, count("announcements", "id", keptNews))
+            assertEquals(1, db.fetchCount(DSL.table("members"), DSL.field("id").eq(member)), "the member is untouched")
+        } finally {
+            db.execute("DELETE FROM teams WHERE id = ?", team)
+            db.execute("DELETE FROM fee_periods WHERE id IN (?, ?)", expiredPeriod, keptPeriod)
+            db.execute("DELETE FROM announcements WHERE id IN (?, ?)", expiredNews, keptNews)
+        }
+    }
+
+    @Test
     fun signingInRecordsTheLastLogin() {
         val id = account(daysSinceLogin = 760)
         AuthSessions(db).create(id)

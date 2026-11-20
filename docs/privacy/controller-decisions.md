@@ -1,7 +1,10 @@
 # Controller decisions for real member data (#12) — sign-off sheet
 
-**Status: DRAFT for the controller's decision, 2026-11-19.** Not legal advice. Nothing here authorizes real member
-data until every row below is decided and the M2 gates (#180 recovery drill, production backups) are met.
+**Status: DECIDED by the controller on 2026-11-20** (owner for the club: C1–C16 approved as written; C5 "keep with
+the right to object"; C10 as proposed; C2 membership-based, no consent). Recorded in
+[ADR-0008 addendum 19](../decisions/0008-owner-decisions-2026-11-18.md#addendum-19--controller-decisions-for-real-member-data-2026-11-20).
+Not legal advice. Real member data still waits for the M2 gates (#180 recovery drill, production backups, the
+Infomaniak data processing agreement of C8) and the club's own entries in the privacy notice (name, address, contact).
 
 - **Controller:** the pilot club (Verein). The owner decides for the club as its authorized representative (owner
   answer of 2026-11-19, "I decide for the club").
@@ -28,6 +31,6 @@ addendum to [ADR-0008](../decisions/0008-owner-decisions-2026-11-18.md) and impl
 | C11 | Backups | Production: encrypted, off-site, rolling **30 days**; an erasure reaches backups by expiry. The synthetic demo has none (ADR-0008 addendum 6). | Operator task for M2 (#27). |
 | C12 | Requests (access, correction, deletion, portability) | Answered within **30 days** (Art. 25 nDSG) by the owner as contact person; identity checked before export; export via the app (JSON) | Export and erasure exist (OpenAPI 1.3.0, 1.7.0). |
 | C13 | Breaches | The owner is the incident contact; a breach likely to cause a high risk is reported to the FDPIC (EDÖB) as soon as possible and affected people are informed where needed (Art. 24 nDSG); every incident is noted in a private register | No automatic reporting in the app. |
-| C14 | Code changes needed for this sheet | (a) automatic deletion for C10; (b) an "excluded from the public list" flag per member (C5) | Small; each with its own contract approval. |
+| C14 | Code changes needed for this sheet | (a) automatic deletion for C10; (b) an "excluded from the public list" flag per member (C5) | **Done:** (a) in the hourly retention job (V13 job, extended); (b) OpenAPI 1.15.0 (V28): the member's own switch in *My profile* and the editor's for anyone (for example a child). |
 | C15 | Impact assessment (Art. 22) | Not required: no sensitive data, no profiling, a small number of people, no new technology risk. Re-check if health data or photos are ever added. | Recorded so the decision is visible. |
 | C16 | Processing record | Kept voluntarily ([processing record](processing-record.md)); not required for a club under 250 employees with low-risk processing (Art. 12 nDSG, Art. 24 DSV) | Good practice and the basis of the notice. |

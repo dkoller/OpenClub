@@ -76,4 +76,27 @@ internal class MemberDetailsUpdate(private val database: DSLContext) {
         val active = database.fetchOne("SELECT 1 FROM members WHERE id = ? AND archived_at IS NULL", memberId) != null
         return if (active) Replaced.Changed else Replaced.NotFound
     }
+
+    /**
+     * Shows or hides an active member's name on the public member list (OpenAPI 1.15.0, controller decision C5: the
+     * club honours a member's objection, including for minors who cannot sign in). Same version rule as [update].
+     */
+    fun setListing(actorAccountId: UUID, memberId: UUID, listed: Boolean, expectedVersion: Long): Replaced {
+        val version = database.fetchOne(
+            """WITH updated AS (
+                 UPDATE members SET listed_publicly = ?
+                 WHERE id = ? AND archived_at IS NULL AND row_version = ?
+                   AND ${ActorSql.holdsClubCapability(Capability.EDIT_MEMBERS)}
+                 RETURNING id, row_version),
+               audited AS (
+                 INSERT INTO audit_events (event_type, actor_account_id, target_member_id)
+                 SELECT 'PUBLIC_LISTING_CHANGED', ?, id FROM updated)
+               SELECT row_version FROM updated""",
+            listed, memberId, expectedVersion, actorAccountId, actorAccountId,
+        )?.get(0, Long::class.java)
+        if (version != null) return Replaced.Updated(version)
+        if (!ClubCapabilityAccess(database).has(actorAccountId, Capability.EDIT_MEMBERS)) return Replaced.Denied
+        val active = database.fetchOne("SELECT 1 FROM members WHERE id = ? AND archived_at IS NULL", memberId) != null
+        return if (active) Replaced.Changed else Replaced.NotFound
+    }
 }

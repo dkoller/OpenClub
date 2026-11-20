@@ -189,3 +189,19 @@ Shown the contract, the owner chose **"New permission"** for who posts club-wide
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 43 | Announcements | Approved as OpenAPI **1.14.0**. An announcement has a title (200), plain text (5,000, no formatting or images) and a show-until date (default 60 days, at most a year ahead), for the whole club or one team. Club-wide ones need the new club-wide capability `POST_ANNOUNCEMENTS` (granted explicitly; the first administrator gets it at bootstrap); team ones `MANAGE_TEAMS` for that team. Members see club-wide ones, their teams', their current minors' teams' and the teams they manage, newest first. The UI warns against private details in the text. Not audited (club content). The agent added the list of audiences a caller may post to, so the form offers only allowed choices. This completes addendum 16. |
+
+## Addendum 19 — controller decisions for real member data (2026-11-20)
+
+For issue #12 the owner decided **as the club's authorized representative** (the club is the controller), under Swiss
+law only (nDSG/DSV; members live in Switzerland). Shown the [decision sheet](../privacy/controller-decisions.md), the
+owner approved C1–C16 as written, with these answers: C5 **"Keep + right to object"**, C10 **"Approve as proposed"**,
+C2 **"Approve"** and **"Approve all"** for the rest. The sheet is now DECIDED; the
+[processing record](../privacy/processing-record.md) and the German [privacy notice draft](../privacy/datenschutzerklaerung-entwurf.md)
+carry the decided values. Real member data still waits for the M2 gates and the Infomaniak data processing agreement.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 44 | Public member list (C5) | Kept as it is (adults' full names, minors' first name and surname initial, nothing else), with the right to object. Approved as OpenAPI **1.15.0** (V28, `members.listed_publicly`, default on): a member hides or shows their own name in *My profile* (`PUT /v1/me/profile/public-listing`) and an editor does it for any active member, for example a child at a guardian's request (`PUT /v1/members/{memberId}/public-listing`). Both need `If-Match` on the member's version and are audited as `PUBLIC_LISTING_CHANGED`. My profile, the editor's detail read and the member export carry `listedPublicly`. |
+| 45 | Retention of new data (C10) | Deleted automatically by the hourly retention job: attendance answers 12 months after the event, events 24 months after the event, fee periods with their fees 24 months after the due date (the club's bookkeeping keeps its records for 10 years outside OpenClub, Art. 958f OR), announcements 6 months after their show-until date. Not audited (routine expiry of club records). |
+| 46 | Basis and the rest (C1–C4, C6–C9, C11–C13, C15, C16) | As written in the sheet: membership-based processing without consent, data minimised, no sensitive data, Infomaniak as the only processor with an agreement, backups 30 days, requests within 30 days, breaches reported to the FDPIC where required, no impact assessment, a voluntary processing record. |
+

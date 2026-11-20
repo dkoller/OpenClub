@@ -4,7 +4,7 @@ import { fetchMemberDetails, memberDetailsPath, memberExportPath, parseMemberDet
 const res = (status: number, body?: unknown, etag?: string) => ({ ok: status >= 200 && status < 300, status, json: async () => body,
   headers: new Headers(etag ? { ETag: etag } : {}) })
 const manager = { id: 'm1', firstName: 'Ada', lastName: 'Example', email: null, phone: '+41000000000', isPlayer: true }
-const editor = { ...manager, dateOfBirth: '1990-01-01', gender: null, archivedAt: null, hasLinkedLogin: false,
+const editor = { ...manager, dateOfBirth: '1990-01-01', gender: null, archivedAt: null, hasLinkedLogin: false, listedPublicly: true,
   invitation: { status: 'OPEN', expiresAt: '2026-12-01T00:00:00Z' } }
 
 describe('member details', () => {
@@ -74,5 +74,19 @@ describe('member edit and reactivation', () => {
     expect(draftFromDetails(editor as never)).toEqual({ firstName: 'Ada', lastName: 'Example', dateOfBirth: '1990-01-01',
       email: '', phone: '+41000000000', isPlayer: true, gender: '' })
     expect(() => draftFromDetails(manager as never)).toThrow()
+  })
+
+  it('switches the public listing at the read version and returns the new one', async () => {
+    const { setMemberPublicListing } = await import('./memberDetails')
+    const request = vi.fn().mockResolvedValue(res(204, undefined, '"4"'))
+    expect(await setMemberPublicListing('a/b', false, '"3"', 'c', request)).toEqual({ outcome: 'ok', version: '"4"' })
+    expect(request.mock.calls[0][0]).toBe('/api/v1/members/a%2Fb/public-listing')
+    expect(request.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: '{"listedPublicly":false}',
+      headers: { 'X-CSRF-Token': 'c', 'Content-Type': 'application/json', 'If-Match': '"3"' } })
+    for (const [status, outcome] of [[400, 'invalid'], [404, 'not-found'], [412, 'changed'], [403, 'denied']] as const) {
+      expect(await setMemberPublicListing('m1', true, '"1"', 'c', vi.fn().mockResolvedValue(res(status)))).toEqual({ outcome })
+    }
+    await expect(setMemberPublicListing('m1', true, '"1"', 'c', vi.fn().mockResolvedValue(res(204)))).rejects.toThrow()
+    expect(() => parseMemberDetails({ ...editor, listedPublicly: 'yes' })).toThrow()
   })
 })

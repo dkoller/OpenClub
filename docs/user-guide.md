@@ -37,7 +37,8 @@ alone allows nothing, and each panel needs its permission (see *Permissions* bel
   recorded.
 - **Edit:** *Edit* opens a form with all current values; change what you need and *Save*. Values you did not change
   stay as they are. If someone else changed the member while your form was open (for example a guardian updating a
-  phone number), nothing is saved and you are asked to edit again, so their change is not overwritten.
+  phone number), nothing is saved and you are asked to edit again, so their change is not overwritten. Untick *Show on
+  public member list* when a member (or a child's guardian) objects to being on the public list.
 - **Archive:** *Archive*, then *Confirm archive*. Archived members disappear from lists and lose their permissions,
   team places and guardianships. Only members with the *Member* role and no linked sign-in can be archived: unlink
   their sign-in first (see *Invitations*). Right after archiving, *Undo archive* brings them back.
@@ -155,7 +156,8 @@ are a guardian). Questions about a fee go to the club's treasurer.
 **My profile** shows what the club stores about you: name, date of birth, gender (if recorded), whether you play,
 your role and your teams. Change your *Email* and *Phone* there and choose *Save contacts*; adults need both. Other
 details are changed by the club administration. If the club changed your record while the page was open, nothing is
-saved and the current values are shown, so you can check and save again.
+saved and the current values are shown, so you can check and save again. Untick *Show my name on the public member
+list* to take your name off the list anyone can see; tick it to show it again.
 
 ## For guardians
 

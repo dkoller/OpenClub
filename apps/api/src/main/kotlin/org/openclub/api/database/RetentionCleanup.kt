@@ -13,14 +13,70 @@ import java.util.UUID
  * batches: audit events are deleted after 12 months, and an account that is not linked to any member and
  * has not signed in for 2 years is deleted together with its identity bindings and sessions, and an archived
  * member is erased 24 months after archiving. Erasing earlier on request is [MemberErasure].
+ *
+ * Since the controller's decision of 2026-11-20 (ADR-0008 addendum 19, decision C10) also: attendance answers 12 months
+ * after the event, events 24 months after they end, fee periods with all their fees 24 months after the due date (the
+ * club's own bookkeeping keeps what it needs for 10 years, outside OpenClub), and announcements 6 months after their
+ * show-until date. These deletions are routine expiry of club records, not decisions about one member, and are not
+ * audited.
  */
 internal object RetentionCleanup {
-    internal data class Counts(val auditEvents: Int, val orphanAccounts: Int, val erasedMembers: Int)
+    internal data class Counts(
+        val auditEvents: Int, val orphanAccounts: Int, val erasedMembers: Int,
+        val attendance: Int = 0, val events: Int = 0, val feePeriods: Int = 0, val announcements: Int = 0,
+    ) {
+        /** True when any rule filled its batch, so another batch may find more. */
+        fun full(batchSize: Int) = listOf(auditEvents, orphanAccounts, erasedMembers, attendance, events, feePeriods, announcements)
+            .any { it >= batchSize }
+    }
 
     fun pruneBatch(db: DSLContext, batchSize: Int = 100): Counts {
         require(batchSize in 1..1000)
-        return Counts(pruneAuditEvents(db, batchSize), pruneOrphanAccounts(db, batchSize), eraseArchivedMembers(db, batchSize))
+        return Counts(pruneAuditEvents(db, batchSize), pruneOrphanAccounts(db, batchSize), eraseArchivedMembers(db, batchSize),
+            pruneAttendance(db, batchSize), pruneEvents(db, batchSize), pruneFeePeriods(db, batchSize),
+            pruneAnnouncements(db, batchSize))
     }
+
+    /** Attendance answers 12 months after the event ended. */
+    private fun pruneAttendance(db: DSLContext, batchSize: Int): Int = db.execute(
+        """WITH batch AS MATERIALIZED (
+            SELECT ea.event_id, ea.member_id FROM event_attendance ea JOIN team_events e ON e.id = ea.event_id
+            WHERE e.ends_at < CURRENT_TIMESTAMP - INTERVAL '12 months'
+            ORDER BY e.ends_at LIMIT ? FOR UPDATE OF ea SKIP LOCKED
+        )
+        DELETE FROM event_attendance ea USING batch b WHERE ea.event_id = b.event_id AND ea.member_id = b.member_id""",
+        batchSize,
+    )
+
+    /** Events 24 months after they ended (any remaining answers go with them). */
+    private fun pruneEvents(db: DSLContext, batchSize: Int): Int = db.execute(
+        """WITH batch AS MATERIALIZED (
+            SELECT id FROM team_events WHERE ends_at < CURRENT_TIMESTAMP - INTERVAL '24 months'
+            ORDER BY ends_at LIMIT ? FOR UPDATE SKIP LOCKED
+        )
+        DELETE FROM team_events WHERE id IN (SELECT id FROM batch)""",
+        batchSize,
+    )
+
+    /** Fee periods, with every member's fee in them, 24 months after the due date. */
+    private fun pruneFeePeriods(db: DSLContext, batchSize: Int): Int = db.execute(
+        """WITH batch AS MATERIALIZED (
+            SELECT id FROM fee_periods WHERE due_date < CURRENT_DATE - INTERVAL '24 months'
+            ORDER BY due_date LIMIT ? FOR UPDATE SKIP LOCKED
+        )
+        DELETE FROM fee_periods WHERE id IN (SELECT id FROM batch)""",
+        batchSize,
+    )
+
+    /** Announcements 6 months after their show-until date. */
+    private fun pruneAnnouncements(db: DSLContext, batchSize: Int): Int = db.execute(
+        """WITH batch AS MATERIALIZED (
+            SELECT id FROM announcements WHERE show_until < CURRENT_DATE - INTERVAL '6 months'
+            ORDER BY show_until LIMIT ? FOR UPDATE SKIP LOCKED
+        )
+        DELETE FROM announcements WHERE id IN (SELECT id FROM batch)""",
+        batchSize,
+    )
 
     /**
      * Archived members are erased 24 months after archiving (owner-approved default). Deleting the row is the
@@ -80,7 +136,7 @@ internal object RetentionCleanup {
             try {
                 for (batch in 1..10) {
                     val counts = database.onDatabaseThread { pruneBatch(it) }
-                    if (counts.auditEvents < 100 && counts.orphanAccounts < 100 && counts.erasedMembers < 100) break
+                    if (!counts.full(100)) break
                 }
             } catch (cancel: CancellationException) {
                 throw cancel

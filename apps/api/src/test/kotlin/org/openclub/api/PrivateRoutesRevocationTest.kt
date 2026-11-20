@@ -173,6 +173,9 @@ class PrivateRoutesRevocationTest {
         // The holder's own profile; without If-Match the authorized change pass stops at 428 and changes nothing.
         Route(HttpMethod.Get, "/api/v1/me/profile"),
         Route(HttpMethod.Put, "/api/v1/me/profile/contacts", """{"email":"holder@example.invalid","phone":"+41000000001"}"""),
+        // The public-list switch (1.15.0), also stopping at 428 without If-Match.
+        Route(HttpMethod.Put, "/api/v1/me/profile/public-listing", """{"listedPublicly":false}"""),
+        Route(HttpMethod.Put, "/api/v1/members/$target/public-listing", """{"listedPublicly":false}"""),
         // Membership fees (1.12.0): unknown periods are 404 for the holder, so nothing else changes.
         Route(HttpMethod.Get, "/api/v1/fee-periods"),
         Route(HttpMethod.Post, "/api/v1/fee-periods", """{"name":"Revocation fees","dueDate":"2030-01-31","amountCents":100}"""),
