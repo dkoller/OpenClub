@@ -370,6 +370,10 @@ Controller decision C5 (ADR-0008 addendum 19). `members.listed_publicly` (V28, d
 
 The hourly retention job also deletes attendance answers 12 months after the event, events 24 months after they end, fee periods with their fees 24 months after the due date and announcements 6 months after show-until, in bounded `SKIP LOCKED` batches ([retention cleanup](retention-cleanup.md)). These deletions are not audited: they are routine expiry, not decisions about a member.
 
+## Volunteer shifts (OpenAPI 1.16.0)
+
+Owner-approved (ADR-0008 addendum 20). Shift management checks `MANAGE_TEAMS` for the event's team inside the changing statement (`ActorSql.holdsTeamCapability`); create locks the event (the 50-per-event limit) and a change locks the shift (no sign-up slips in before the places check). Reading needs `VIEW_TEAMS`/`MANAGE_TEAMS` for the team, a team assignment of the caller or of one of their current minors; volunteers appear only by public display name, and member IDs only for the caller's own people. Signing up reuses the attendance pattern: oneself or one's current minor, only for an assigned team, assignment locked `FOR SHARE`, closed after the shift start or for a cancelled event; the shift row is locked first and the places are counted in a fresh statement, so concurrent sign-ups cannot overfill it. Unknown IDs are 403 except for club-wide team holders (404). A trigger (V29) ends sign-ups when a member leaves the team (and so on archiving); erasure cascades; the export lists sign-ups; retention deletes them 12 months after the shift. Not audited, like attendance. Tests: `EventShiftHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
+
 ## Second independent security review (2026-11-19, OpenAPI 1.14.1)
 
 A separate review agent read PRs #355–#361 (profile, events, attendance, fees, member list CSV, announcements) and found nothing critical or important. Fixed in the follow-up PR:

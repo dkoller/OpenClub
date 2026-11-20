@@ -129,6 +129,12 @@ schedule without these buttons. Each event shows the totals (*Answers: 5 Yes, 1 
 every team member's answer, or *no answer*, by first and last name (minors by first name and initial). Times are entered and shown in your device's time zone; weekly repeats keep the same
 local time across the change to and from summer time.
 
+**Volunteer shifts.** *Show volunteer shifts* under an event lists its helper jobs (for example *Bar*, 14:00–16:00,
+*2 of 3 filled*) with the names of who signed up. With `MANAGE_TEAMS` for the team you add a shift: *Task*, *Date*,
+*Start*, *End* (prefilled with the event's times, at most 24 hours and within a day of the event) and *People needed*,
+then *Add shift*. *Edit* changes a shift (you cannot lower the places below the people already signed up), *Delete*
+followed by the confirmation removes it with its sign-ups.
+
 With `MANAGE_TEAMS` for a team you manage its assignments and can open *Contact details* of its **active** members
 (name, email, phone, player). Members of other teams, archived members and everyone's birth date stay hidden. Each
 contact read is recorded.
@@ -149,6 +155,9 @@ its public member list (adults by full name, minors by first name and surname in
 **My schedule** lists the next eight weeks of trainings, matches and events of your teams, and of your children's
 teams if you are a guardian (marked *For* and the child's name). Answer *Yes*, *No* or *Maybe* for each event until
 it starts; choosing your answer again clears it. You see the totals, but never other members' answers.
+*Show volunteer shifts* lists the event's helper jobs with who signed up; *Sign up* puts you (or your child) on a
+shift while places are free, *Withdraw* takes you off, both until the shift starts. Your team sees your name on the
+shift so everyone can coordinate.
 
 **My fees** lists your membership fees with amount, due date and whether they are paid (and your children's, if you
 are a guardian). Questions about a fee go to the club's treasurer.

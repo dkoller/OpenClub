@@ -377,7 +377,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/^member-[0-9a-f-]{36}\.json$/);
   const exported = JSON.parse(readFileSync(await file.path(), 'utf8'));
-  expect(Object.keys(exported).sort()).toEqual(['attendance', 'clubGrants', 'exportedAt', 'fees', 'guardianships', 'invitations', 'member', 'teamGrants', 'teams']);
+  expect(Object.keys(exported).sort()).toEqual(['attendance', 'clubGrants', 'exportedAt', 'fees', 'guardianships', 'invitations', 'member', 'shifts', 'teamGrants', 'teams']);
   expect(exported.member.firstName).toBe('Mara');
   expect(exported.member).not.toHaveProperty('accountId');
   await maraDetails.getByRole('button', { name: 'Close' }).click();
@@ -608,6 +608,21 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(trainings.last().getByRole('list', { name: 'Answers Juniors training' }).getByRole('listitem'))
     .toHaveText(['Mara D.: no answer']);
   await trainings.last().getByRole('button', { name: 'Hide answers' }).click();
+  // Volunteer shifts (OpenAPI 1.16.0): the manager adds a shift with the event's times as defaults and changes it.
+  await trainings.last().getByRole('button', { name: 'Show volunteer shifts' }).click();
+  const shifts = trainings.last().getByRole('region', { name: 'Volunteer shifts: Juniors training' });
+  await expect(shifts.getByText('No volunteer shifts.')).toBeVisible();
+  await shifts.getByLabel('Task').fill('Bar');
+  await shifts.getByLabel('People needed').fill('2');
+  await shifts.getByRole('button', { name: 'Add shift' }).click();
+  const bar = shifts.getByRole('listitem').first(); // by position: while edited, the title is an input value
+  await expect(bar).toContainText('0 of 2 filled (nobody yet)');
+  await bar.getByRole('button', { name: 'Edit' }).click();
+  await bar.getByLabel('People needed').fill('3');
+  await bar.getByRole('button', { name: 'Save' }).click();
+  await expect(bar).toContainText('Bar · ');
+  await expect(bar).toContainText('0 of 3 filled');
+  await trainings.last().getByRole('button', { name: 'Hide volunteer shifts' }).click();
   await juniors.getByRole('button', { name: 'Close schedule' }).click();
   await expect(schedule).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'My schedule' }).getByText('No events in the next eight weeks.')).toBeVisible();

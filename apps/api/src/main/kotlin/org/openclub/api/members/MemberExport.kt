@@ -20,7 +20,7 @@ import java.util.UUID
  * by an editor (`GET /api/v1/members/{id}/export`, owner-approved 2026-11-19, ADR-0008 addendum 10). It contains
  * the member's own stored fields, their team assignments, their invitation timestamps, their grants and their
  * guardianships (the other member only as an ID, with the date), membership fees (since OpenAPI 1.12.0),
- * attendance answers (since 1.14.1). It deliberately leaves out the login binding
+ * attendance answers (since 1.14.1), volunteer shifts (since 1.16.0). It deliberately leaves out the login binding
  * (issuer and subject), sessions, other people's names and contacts, and the audit trail, whose actor identifiers
  * belong to other people; whether a login is linked is reported only as a yes or no. The read and its
  * `MEMBER_EXPORTED` audit event happen in one transaction, so every export that produced data is audited. Active,
@@ -90,6 +90,12 @@ internal class MemberExport(private val database: DSLContext) {
                    FROM event_attendance a JOIN team_events e ON e.id = a.event_id
                    WHERE a.member_id = ? ORDER BY e.starts_at, e.id""", memberId)
 
+            // Volunteer shifts (since OpenAPI 1.16.0): the shift, its event and times, and when the member signed up.
+            val shifts = db.fetch(
+                """SELECT s.id, s.event_id, s.title, s.starts_at, s.ends_at, v.signed_up_at
+                   FROM shift_volunteers v JOIN event_shifts s ON s.id = v.shift_id
+                   WHERE v.member_id = ? ORDER BY s.starts_at, s.id""", memberId)
+
             val invitations = db.fetch(
                 "SELECT created_at, expires_at, used_at, revoked_at FROM member_invitations WHERE member_id = ? ORDER BY created_at, id",
                 memberId)
@@ -148,6 +154,18 @@ internal class MemberExport(private val database: DSLContext) {
                             put("startsAt", it.get(1, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
                             put("response", it.get(2).toString())
                             put("answeredAt", it.get(3, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
+                        })
+                    }
+                })
+                put("shifts", buildJsonArray {
+                    shifts.forEach {
+                        add(buildJsonObject {
+                            put("shiftId", it.get(0).toString())
+                            put("eventId", it.get(1).toString())
+                            put("title", it.get(2).toString())
+                            put("startsAt", it.get(3, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
+                            put("endsAt", it.get(4, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
+                            put("signedUpAt", it.get(5, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
                         })
                     }
                 })

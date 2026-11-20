@@ -161,7 +161,7 @@ class MemberExportHttpTest {
         assertEquals("attachment; filename=\"member-$minor.json\"", response.headers[HttpHeaders.ContentDisposition])
         assertEquals("nosniff", response.headers["X-Content-Type-Options"])
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertEquals(setOf("exportedAt", "member", "teams", "invitations", "guardianships", "fees", "attendance", "clubGrants", "teamGrants"), body.keys)
+        assertEquals(setOf("exportedAt", "member", "teams", "invitations", "guardianships", "fees", "attendance", "shifts", "clubGrants", "teamGrants"), body.keys)
         val member = body["member"]!!.jsonObject
         assertEquals("2015-02-02", member["dateOfBirth"]!!.jsonPrimitive.content)
         assertEquals("+41000000055", member["phone"]!!.jsonPrimitive.content)

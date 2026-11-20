@@ -158,6 +158,14 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Delete, "/api/v1/events/${UUID(0, 1)}"),
         // An unknown event is 404 for the holder; answering is covered in TeamEventHttpTest (403 for unknown events).
         Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/attendance"),
+        // Volunteer shifts (1.16.0): unknown events and shifts are 404 for the club-wide holder. Signing up is covered in
+        // EventShiftHttpTest (the holder belongs to no team, so it is 403 there by design).
+        Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/shifts"),
+        Route(HttpMethod.Post, "/api/v1/events/${UUID(0, 1)}/shifts",
+            """{"title":"Revocation shift","startsAt":"2030-01-01T10:00:00Z","endsAt":"2030-01-01T11:00:00Z","needed":1}"""),
+        Route(HttpMethod.Put, "/api/v1/shifts/${UUID(0, 4)}",
+            """{"title":"Revocation shift","startsAt":"2030-01-01T10:00:00Z","endsAt":"2030-01-01T11:00:00Z","needed":1}"""),
+        Route(HttpMethod.Delete, "/api/v1/shifts/${UUID(0, 4)}"),
         Route(HttpMethod.Delete, "/api/v1/teams/$team"),
         Route(HttpMethod.Post, "/api/v1/members/$target/invitation"),
         Route(HttpMethod.Delete, "/api/v1/members/$target/invitation"),
