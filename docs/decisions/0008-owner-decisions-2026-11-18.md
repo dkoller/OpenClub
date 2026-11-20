@@ -216,3 +216,13 @@ Shown the shifts contract, the owner chose **"Team members"** for who sees volun
 | 47 | Volunteer shifts | Approved as OpenAPI **1.16.0** (V29). A shift belongs to one team event (title, start, end at most 24 hours and within a day of the event, 1–100 places, at most 50 per event) and is deleted with it. `MANAGE_TEAMS` for the event's team creates, changes and deletes shifts; a change may not leave fewer places than volunteers. Team viewers, managers, members and the guardians of its minor members see each shift with its volunteers' public display names. A member signs up themselves and a guardian their current minor, only for their team's shifts, until the shift starts (not for a cancelled event) and while places are free; the shift is locked, so two people never take the last place. Leaving the team ends the sign-ups. Not audited; sign-ups are in the member export. |
 | 48 | Retention of sign-ups | The agent applied the decided attendance rule by analogy (C10): sign-ups are deleted 12 months after the shift, shifts with their event after 24 months. The owner can change this. |
 
+## Addendum 21 — calendar feeds (2026-11-20)
+
+Shown the calendar feed contract, the owner chose **"With notes"** (over leaving notes out, the recommendation, or
+only team and time).
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 49 | Calendar feeds | Approved as OpenAPI **1.17.0** (V30). An active, verified member creates one private feed link in *My schedule*; it holds a 256-bit secret, is shown once and only its SHA-256 is stored. Creating a new link replaces the old one; the member can revoke it. Calendar apps load `GET /v1/calendar/{secret}` without a session: iCalendar with the events of My schedule (own and current minors' teams), four weeks back to six months ahead, with team, title, times, place, **notes** and cancelled status, never names, answers, counts or shifts. Every refusal is one 404. The link stops answering while the member has no verified identity and is deleted on archiving or when the login link changes. The web proxy does not log feed requests. Not audited. |
+| 50 | What this means for privacy | Calendar services (for example Google or Apple) keep a copy of the feed, including notes, under the member's own account. The member chooses this; the privacy notice says so, and the UI warns not to share the link and to keep private details out of notes. |
+

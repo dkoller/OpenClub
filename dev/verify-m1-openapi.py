@@ -29,6 +29,7 @@ ROUTE_SOURCES = {
     "members/MyProfileHttpRoutes.kt": "installMyProfileHttpRoutes",
     "teams/TeamEventHttpRoutes.kt": "installTeamEventHttpRoutes",
     "teams/EventShiftHttpRoutes.kt": "installEventShiftHttpRoutes",
+    "calendar/CalendarHttpRoutes.kt": "installCalendarHttpRoutes",
     "fees/FeeHttpRoutes.kt": "installFeeHttpRoutes",
     "members/MemberListHttpRoutes.kt": "installMemberListHttpRoutes",
     "announcements/AnnouncementHttpRoutes.kt": "installAnnouncementHttpRoutes",
@@ -81,6 +82,10 @@ PUT /v1/me/dependents/{memberId}/contacts
 GET /v1/me/profile
 PUT /v1/me/profile/contacts
 PUT /v1/me/profile/public-listing
+GET /v1/me/calendar-feed
+POST /v1/me/calendar-feed
+DELETE /v1/me/calendar-feed
+GET /v1/calendar/{secret}
 GET /v1/events/{eventId}/shifts
 POST /v1/events/{eventId}/shifts
 PUT /v1/shifts/{shiftId}
@@ -147,7 +152,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.16.0"
+FROZEN_VERSION = "1.17.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
@@ -179,7 +184,7 @@ def verify_contract(spec):
         if not operation:
             fail(f"Missing implemented operation in OpenAPI: {entry}")
         responses = operation.get("responses", {})
-        success = "201" if entry in {"POST /v1/members", "POST /v1/teams", "POST /v1/members/{memberId}/invitation", "POST /v1/teams/{teamId}/events", "POST /v1/fee-periods", "POST /v1/announcements", "POST /v1/events/{eventId}/shifts"} else (
+        success = "201" if entry in {"POST /v1/members", "POST /v1/teams", "POST /v1/members/{memberId}/invitation", "POST /v1/teams/{teamId}/events", "POST /v1/fee-periods", "POST /v1/announcements", "POST /v1/events/{eventId}/shifts", "POST /v1/me/calendar-feed"} else (
             "200" if method == "GET" or entry == "POST /v1/members/import" else "204"
         )
         if success not in responses or "503" not in responses:
@@ -187,6 +192,11 @@ def verify_contract(spec):
         if entry == "GET /v1/public/members":
             if operation.get("security") != []:
                 fail("Public display names must explicitly override session security")
+            continue
+        # The calendar feed's secret path is its credential (1.17.0): no session, one 404 for every refusal.
+        if entry == "GET /v1/calendar/{secret}":
+            if operation.get("security") != [] or "404" not in responses or {"401", "403"} & responses.keys():
+                fail("The calendar feed must be session-free with a single 404 refusal")
             continue
         # A guardian's own list answers an empty list to everyone else (never 403), so it reveals nothing.
         denial = {"401"} if entry == "GET /v1/me/dependents" else {"401", "403"}
