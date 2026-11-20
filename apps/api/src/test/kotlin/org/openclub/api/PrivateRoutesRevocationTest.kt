@@ -190,6 +190,10 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Get, "/api/v1/me/notifications"),
         // Absences (1.20.0); entering and deleting are covered in AbsenceHttpTest.
         Route(HttpMethod.Get, "/api/v1/me/absences"),
+        // Join requests (1.22.0): the switch and the list; accepting is covered in JoinRequestHttpTest.
+        Route(HttpMethod.Get, "/api/v1/club/join-requests/settings"),
+        Route(HttpMethod.Get, "/api/v1/join-requests"),
+        Route(HttpMethod.Delete, "/api/v1/join-requests/${UUID(0, 4)}"),
         // Carpooling (1.21.0): unknown events and rides are 404 for the club-wide holder; booking is in RideHttpTest.
         Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/rides"),
         Route(HttpMethod.Post, "/api/v1/events/${UUID(0, 1)}/rides",

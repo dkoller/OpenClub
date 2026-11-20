@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { loadClubAccess, signOut, type ClubAccess } from './auth'
 import { readPreferredLanguage, type Language } from './language'
 import { PublicMembers } from './PublicMembers'
+import { JoinForm } from './JoinForm'
+import { JoinRequestsAdmin } from './JoinRequestsAdmin'
 import { MemberAdmin } from './MemberAdmin'
 import { TeamDirectory } from './TeamDirectory'
 import { GrantAdmin } from './GrantAdmin'
@@ -100,6 +102,7 @@ export function App() {
         onAdultAgeChanged={years => setAccess(current => current?.state === 'ready' ? { ...current, adultAgeYears: years } : current)}
         onChanged={name => setAccess(current => current?.state === 'ready' ? { ...current, clubName: name } : current)} />}
       <PublicMembers language={language} revision={directoryRevision} />
+      {access?.state !== 'ready' && <JoinForm language={language} />}
       {access?.state === 'ready' && <GrantAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <RoleAdmin language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <InvitationAdmin language={language} csrfToken={access.csrfToken} />}
@@ -113,6 +116,8 @@ export function App() {
       {access?.state === 'not-member' && <AcceptInvitation language={language} csrfToken={access.csrfToken} initial={invite}
         onAccepted={() => { try { window.sessionStorage.removeItem('openclub.invite') } catch { /* storage may be disabled */ } void retryAccess() }} />}
       {access?.state === 'ready' && <TeamDirectory language={language} csrfToken={access.csrfToken} />}
+      {access?.state === 'ready' && <JoinRequestsAdmin language={language} csrfToken={access.csrfToken}
+        onChanged={() => setDirectoryRevision(value => value + 1)} />}
       {access?.state === 'ready' && <MemberListTransfer language={language} csrfToken={access.csrfToken} />}
       {access?.state === 'ready' && <MemberAdmin language={language} csrfToken={access.csrfToken}
         genderRequiredForPlayers={access.genderRequiredForPlayers}

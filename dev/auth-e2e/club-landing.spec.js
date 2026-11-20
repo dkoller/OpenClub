@@ -662,6 +662,27 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(absences.getByRole('listitem')).toHaveText(`Me: ${todayLocal} Delete`);
   await absences.getByRole('button', { name: 'Delete' }).click();
   await expect(absences.getByText('No absences.')).toBeVisible();
+  // Join requests (OpenAPI 1.22.0): the form is off by default; the administrator opens it, an anonymous visitor
+  // applies, the administrator declines.
+  const applications = page.getByRole('region', { name: 'Membership applications' });
+  const formSwitch = applications.getByLabel('Public application form is on');
+  await expect(formSwitch).not.toBeChecked();
+  await formSwitch.click();
+  await expect(formSwitch).toBeChecked();
+  const visitor = await playwrightRequest.newContext({ baseURL: 'http://localhost:5173' });
+  expect((await (await visitor.get('/api/v1/public/join-requests')).json()).open).toBe(true);
+  const applied = await visitor.post('/api/v1/public/join-requests', { headers: { Origin: 'http://localhost:5173' }, data: {
+    kind: 'SELF', firstName: 'Vera', lastName: 'Visitor', dateOfBirth: '1990-04-01', email: 'vera@example.invalid',
+    phone: '+41 79 000 00 09', acceptedPrivacyNotice: true, website: '' } });
+  expect(applied.status()).toBe(202);
+  // Closing the form again reloads the list; open applications stay until handled.
+  await formSwitch.click();
+  await expect(formSwitch).not.toBeChecked();
+  const vera = applications.getByRole('listitem').filter({ hasText: 'Vera Visitor' });
+  await expect(vera).toContainText('vera@example.invalid');
+  await vera.getByRole('button', { name: 'Decline' }).click();
+  await vera.getByRole('button', { name: 'Really decline and delete' }).click();
+  await expect(applications.getByText('No open applications.')).toBeVisible();
 
   // Membership fees (OpenAPI 1.12.0): the first administrator holds MANAGE_FEES from the bootstrap. A new period
   // includes every active member; marking Mara's fee paid updates the totals; the administrator sees their own fee.

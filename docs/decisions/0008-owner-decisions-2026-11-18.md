@@ -264,3 +264,12 @@ who booked for a child), and only while the booking exists.
 | --- | --- | --- |
 | 55 | Carpooling | Approved as OpenAPI **1.21.0** (V33). A signed-in adult in an event's team, or a guardian of a current minor in it, offers one ride per event (there, back or both; 1–8 seats; meeting point; departure from a day before the start to the end). Team members book a seat for themselves, guardians for their current minors, until departure (not for a cancelled event) and while seats are free; the ride is locked, so the last seat goes to one person. The driver changes the ride (not below the booked seats) or withdraws it; `MANAGE_TEAMS` for the team removes it. The team (members, guardians, viewers, managers) sees rides with display names. The driver sees each passenger's phone (for a minor, the booking guardian's); whoever booked sees the driver's; nobody else sees phones. Leaving the team ends one's bookings and offers; not audited; rides are deleted 12 months after the event; offers and seats are in the member export. |
 
+## Addendum 26 — join requests (2026-11-20)
+
+Shown the join request contract, the owner chose **"Adults + parents"**.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 56 | Join requests | Approved as OpenAPI **1.22.0** (V34). A public form, **off** until a holder of `EDIT_MEMBERS` switches it on; while on, the signed-out landing page shows *Join the club*. An adult applies for themselves; a parent applies for a child (the child's name and birth date, the parent's name, email and phone); the club's adult age decides which applies. Optional wished team (names listed only while the form is open) and a message of up to 500 characters; the privacy notice must be confirmed. Abuse limits without third parties: exact Origin, a hidden honeypot field (silently dropped), at most 5 submissions per client address and hour (in memory only, never stored), at most 200 open requests, the same person (address, first name, birth date) once while open (a repeat is answered like a success). No email to applicants. `EDIT_MEMBERS` lists requests (with contacts, to get in touch), accepts (creates the member with the usual checks and audit, a child without contacts, plus the wished team; the request is deleted) or declines (deletes). Open requests are deleted after 60 days. |
+| 57 | Small additions while building | `GET /v1/public/join-requests` (is the form open, which teams) was added so the form can list teams; the "once while open" rule keys on address, first name and birth date, so a parent can apply for two children. |
+

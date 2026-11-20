@@ -26,6 +26,9 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
 - **Kalender-Abo (freiwillig):** Wenn Sie unter «Mein Programm» einen Kalender-Link erstellen, lädt Ihre
   Kalender-App (z. B. Google oder Apple) Ihre Termine samt Ort und Notizen über diesen Link und speichert sie in Ihrem
   Konto bei diesem Anbieter. Sie können den Link jederzeit widerrufen.
+- **Aufnahmegesuche:** Wenn Sie sich über das Formular auf unserer Website bewerben, speichern wir Ihre Angaben
+  (bei Kindern auch die der Eltern) bis wir das Gesuch bearbeitet haben, höchstens 60 Tage. Ihre IP-Adresse speichern
+  wir nicht. Nehmen wir Sie auf, werden Sie Mitglied mit den oben beschriebenen Daten.
 - **Fahrgemeinschaften:** Fahrten, die Sie anbieten, und Plätze, die Sie (oder für Ihr Kind) buchen. Ihr Team sieht
   Ihren Namen bei der Fahrt. Fahrerin oder Fahrer und die gebuchten Mitfahrenden sehen gegenseitig ihre
   Telefonnummer (bei Kindern die der buchenden erziehungsberechtigten Person), sonst niemand.

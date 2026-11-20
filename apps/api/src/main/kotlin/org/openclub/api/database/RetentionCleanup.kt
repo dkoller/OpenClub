@@ -24,10 +24,10 @@ internal object RetentionCleanup {
     internal data class Counts(
         val auditEvents: Int, val orphanAccounts: Int, val erasedMembers: Int,
         val attendance: Int = 0, val events: Int = 0, val feePeriods: Int = 0, val announcements: Int = 0,
-        val volunteers: Int = 0, val absences: Int = 0, val rides: Int = 0,
+        val volunteers: Int = 0, val absences: Int = 0, val rides: Int = 0, val joinRequests: Int = 0,
     ) {
         /** True when any rule filled its batch, so another batch may find more. */
-        fun full(batchSize: Int) = listOf(auditEvents, orphanAccounts, erasedMembers, attendance, events, feePeriods, announcements, volunteers, absences, rides)
+        fun full(batchSize: Int) = listOf(auditEvents, orphanAccounts, erasedMembers, attendance, events, feePeriods, announcements, volunteers, absences, rides, joinRequests)
             .any { it >= batchSize }
     }
 
@@ -35,7 +35,7 @@ internal object RetentionCleanup {
         require(batchSize in 1..1000)
         return Counts(pruneAuditEvents(db, batchSize), pruneOrphanAccounts(db, batchSize), eraseArchivedMembers(db, batchSize),
             pruneAttendance(db, batchSize), pruneEvents(db, batchSize), pruneFeePeriods(db, batchSize),
-            pruneAnnouncements(db, batchSize), pruneVolunteers(db, batchSize), pruneAbsences(db, batchSize), pruneRides(db, batchSize))
+            pruneAnnouncements(db, batchSize), pruneVolunteers(db, batchSize), pruneAbsences(db, batchSize), pruneRides(db, batchSize), pruneJoinRequests(db, batchSize))
     }
 
     /** Attendance answers 12 months after the event ended. */
@@ -98,6 +98,16 @@ internal object RetentionCleanup {
             ORDER BY e.ends_at LIMIT ? FOR UPDATE OF r SKIP LOCKED
         )
         DELETE FROM event_rides WHERE id IN (SELECT id FROM batch)""",
+        batchSize,
+    )
+
+    /** Open join requests 60 days after they arrived (ADR-0008 addendum 26). */
+    private fun pruneJoinRequests(db: DSLContext, batchSize: Int): Int = db.execute(
+        """WITH batch AS MATERIALIZED (
+            SELECT id FROM join_requests WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '60 days'
+            ORDER BY created_at LIMIT ? FOR UPDATE SKIP LOCKED
+        )
+        DELETE FROM join_requests WHERE id IN (SELECT id FROM batch)""",
         batchSize,
     )
 
