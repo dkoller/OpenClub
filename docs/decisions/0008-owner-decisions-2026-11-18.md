@@ -226,3 +226,11 @@ only team and time).
 | 49 | Calendar feeds | Approved as OpenAPI **1.17.0** (V30). An active, verified member creates one private feed link in *My schedule*; it holds a 256-bit secret, is shown once and only its SHA-256 is stored. Creating a new link replaces the old one; the member can revoke it. Calendar apps load `GET /v1/calendar/{secret}` without a session: iCalendar with the events of My schedule (own and current minors' teams), four weeks back to six months ahead, with team, title, times, place, **notes** and cancelled status, never names, answers, counts or shifts. Every refusal is one 404. The link stops answering while the member has no verified identity and is deleted on archiving or when the login link changes. The web proxy does not log feed requests. Not audited. |
 | 50 | What this means for privacy | Calendar services (for example Google or Apple) keep a copy of the feed, including notes, under the member's own account. The member chooses this; the privacy notice says so, and the UI warns not to share the link and to keep private details out of notes. |
 
+## Addendum 22 — attendance statistics (2026-11-20)
+
+Shown the contract, the owner chose **"Viewers + managers"**.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 51 | Attendance statistics | Approved as OpenAPI **1.18.0**. `GET /v1/teams/{teamId}/attendance-statistics` for holders of `VIEW_TEAMS` or `MANAGE_TEAMS` for the team (the people who already see each answer): for a range of UTC dates (default the last 12 months, at most 366 days), the number of the team's events held (started, not cancelled) and, per active team member by public display name, their Yes, No and Maybe answers and the events without an answer, plus totals. Uses stored answers only: no new data, not audited. Because answers are deleted after 12 months and assignments carry no dates, older events and events before a member joined count as unanswered; the UI says so. |
+

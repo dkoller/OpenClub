@@ -87,6 +87,7 @@ POST /v1/me/calendar-feed
 DELETE /v1/me/calendar-feed
 GET /v1/calendar/{secret}
 GET /v1/events/{eventId}/shifts
+GET /v1/teams/{teamId}/attendance-statistics
 POST /v1/events/{eventId}/shifts
 PUT /v1/shifts/{shiftId}
 DELETE /v1/shifts/{shiftId}
@@ -152,7 +153,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.17.0"
+FROZEN_VERSION = "1.18.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}

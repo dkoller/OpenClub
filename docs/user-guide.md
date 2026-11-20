@@ -129,6 +129,11 @@ schedule without these buttons. Each event shows the totals (*Answers: 5 Yes, 1 
 every team member's answer, or *no answer*, by first and last name (minors by first name and initial). Times are entered and shown in your device's time zone; weekly repeats keep the same
 local time across the change to and from summer time.
 
+**Attendance statistics.** With `VIEW_TEAMS` or `MANAGE_TEAMS` for a team, *Attendance statistics* in its schedule
+shows, for the last 12 months (change *From* and *To*, at most a year, then *Show*), how many events took place and
+how each member answered them: *Yes*, *No*, *Maybe* and *No answer*, with totals. Cancelled events do not count.
+Answers are deleted 12 months after an event, and members who joined later show earlier events as *No answer*.
+
 **Volunteer shifts.** *Show volunteer shifts* under an event lists its helper jobs (for example *Bar*, 14:00–16:00,
 *2 of 3 filled*) with the names of who signed up. With `MANAGE_TEAMS` for the team you add a shift: *Task*, *Date*,
 *Start*, *End* (prefilled with the event's times, at most 24 hours and within a day of the event) and *People needed*,

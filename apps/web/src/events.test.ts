@@ -93,3 +93,27 @@ describe('events client', () => {
     expect(answerable(event, Date.parse('2026-11-26T17:00:00Z'))).toBe(false)
   })
 })
+
+describe('attendance statistics', () => {
+  const stats = { from: '2025-03-01', to: '2025-03-31', held: 2,
+    items: [{ displayName: 'Ada Example', yes: 1, no: 0, maybe: 0, noAnswer: 1 }],
+    totals: { yes: 1, no: 0, maybe: 0, noAnswer: 1 } }
+  const res = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
+
+  it('reads the range uncached and validates the shape', async () => {
+    const { readAttendanceStatistics } = await import('./events')
+    const request = vi.fn().mockResolvedValue(res(200, stats))
+    expect(await readAttendanceStatistics('t/1', '2025-03-01', '2025-03-31', request)).toEqual(stats)
+    expect(request.mock.calls[0]).toEqual(['/api/v1/teams/t%2F1/attendance-statistics?from=2025-03-01&to=2025-03-31',
+      { credentials: 'same-origin', cache: 'no-store' }])
+    const defaults = vi.fn().mockResolvedValue(res(200, stats))
+    await readAttendanceStatistics('t1', undefined, undefined, defaults)
+    expect(defaults.mock.calls[0][0]).toBe('/api/v1/teams/t1/attendance-statistics')
+    expect(await readAttendanceStatistics('t1', 'x', undefined, vi.fn().mockResolvedValue(res(400)))).toBe('invalid')
+    expect(await readAttendanceStatistics('t1', undefined, undefined, vi.fn().mockResolvedValue(res(403)))).toBe('denied')
+    for (const broken of [{ ...stats, extra: 1 }, { ...stats, held: -1 }, { ...stats, totals: { yes: 1 } },
+      { ...stats, items: [{ displayName: 'A', yes: 1, no: 0, maybe: 0, noAnswer: 0, email: 'x' }] }]) {
+      await expect(readAttendanceStatistics('t1', undefined, undefined, vi.fn().mockResolvedValue(res(200, broken)))).rejects.toThrow()
+    }
+  })
+})

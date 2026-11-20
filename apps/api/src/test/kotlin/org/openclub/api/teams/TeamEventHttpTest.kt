@@ -16,6 +16,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
 import org.jooq.DSLContext
 import org.junit.jupiter.api.AfterAll
@@ -333,6 +334,55 @@ class TeamEventHttpTest {
             assertEquals(0, count("SELECT COUNT(*) FROM event_attendance WHERE member_id = ?", kid))
         } finally {
             sql { it.execute("INSERT INTO member_team_assignments VALUES (?, ?)", teamB, kid) }
+        }
+    }
+
+    @Test
+    fun viewersAndManagersSeeAttendanceStatisticsForTheirTeamOnly() = app {
+        // OpenAPI 1.18.0. A fixed month in the past, so events of the other tests never fall into the range.
+        val path = "/api/v1/teams/$teamA/attendance-statistics?from=2025-03-01&to=2025-03-31"
+        val player = memberOf.getValue("player")
+        val events = listOf("2025-03-03T17:00:00Z" to false, "2025-03-10T17:00:00Z" to false, "2025-03-17T17:00:00Z" to true,
+            "2025-04-01T17:00:00Z" to false).map { (at, cancelled) ->
+            UUID.randomUUID().also { sql { db -> db.execute(
+                """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, cancelled)
+                   VALUES (?, ?, 'TRAINING', 'Stats', ?::timestamptz, ?::timestamptz + INTERVAL '1 hour', ?)""",
+                it, teamA, at, at, cancelled) } }
+        }
+        try {
+            sql { db ->
+                db.execute("INSERT INTO event_attendance (event_id, member_id, response) VALUES (?, ?, 'YES')", events[0], player)
+                db.execute("INSERT INTO event_attendance (event_id, member_id, response) VALUES (?, ?, 'NO')", events[2], player)   // cancelled
+                db.execute("INSERT INTO event_attendance (event_id, member_id, response) VALUES (?, ?, 'MAYBE')", events[3], player) // outside
+            }
+            val body = send(HttpMethod.Get, path, "viewer").json()
+            assertEquals(setOf("from", "to", "held", "items", "totals"), body.keys)
+            assertEquals(2, body.getValue("held").jsonPrimitive.int, "cancelled events and events outside the range do not count")
+            val row = body.getValue("items").jsonArray.single().jsonObject
+            assertEquals(setOf("displayName", "yes", "no", "maybe", "noAnswer"), row.keys)
+            assertEquals("player Events", row.getValue("displayName").jsonPrimitive.content)
+            assertEquals(listOf(1, 0, 0, 1), listOf("yes", "no", "maybe", "noAnswer").map { row.getValue(it).jsonPrimitive.int })
+            val totals = body.getValue("totals").jsonObject
+            assertEquals(listOf(1, 0, 0, 1), listOf("yes", "no", "maybe", "noAnswer").map { totals.getValue(it).jsonPrimitive.int })
+            assertEquals(HttpStatusCode.OK, send(HttpMethod.Get, path, "teamManager").status)
+            assertEquals(HttpStatusCode.OK, send(HttpMethod.Get, path, "clubManager").status)
+            val defaults = send(HttpMethod.Get, "/api/v1/teams/$teamA/attendance-statistics", "viewer").json()
+            assertEquals(java.time.LocalDate.now(ZoneOffset.UTC).toString(), defaults.getValue("to").jsonPrimitive.content)
+
+            val check = Check()
+            check.expect("no session", send(HttpMethod.Get, path, null), HttpStatusCode.Unauthorized)
+            check.expect("player", send(HttpMethod.Get, path, "player"), HttpStatusCode.Forbidden)
+            check.expect("plain member", send(HttpMethod.Get, path, "plain"), HttpStatusCode.Forbidden)
+            check.expect("other team", send(HttpMethod.Get, "/api/v1/teams/$teamB/attendance-statistics", "viewer"), HttpStatusCode.Forbidden)
+            check.expect("unknown team, team-scoped", send(HttpMethod.Get, "/api/v1/teams/${UUID.randomUUID()}/attendance-statistics", "viewer"), HttpStatusCode.Forbidden)
+            check.expect("unknown team, club-wide", send(HttpMethod.Get, "/api/v1/teams/${UUID.randomUUID()}/attendance-statistics", "clubManager"), HttpStatusCode.NotFound)
+            for (query in listOf("from=2025-03-31&to=2025-03-01", "from=2024-01-01&to=2025-03-01", "from=2025-02-30", "to=2025-3-1",
+                "from=2025-03-01&from=2025-03-02", "other=1", "from=1999-12-31&to=2000-01-01")) {
+                check.expect(query, send(HttpMethod.Get, "/api/v1/teams/$teamA/attendance-statistics?$query", "viewer"), HttpStatusCode.BadRequest)
+            }
+            check.done()
+        } finally {
+            sql { db -> db.execute("DELETE FROM team_events WHERE id = ANY(?::uuid[])", events.toTypedArray()) }
         }
     }
 }
