@@ -54,7 +54,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       four dates appear. *Cancel event* on one (marked *Cancelled*), *Delete* and *Confirm delete* another. *My
       schedule* (reload) lists the remaining U12 dates, because Peter is in that team; answer *Yes* for one. In the
       team's *Schedule*, *Show answers* lists Peter Zürcher with *Yes* and the minors as first name plus initial.
-      *Show volunteer shifts* on one date: add "Bar" with 1 person; *Sign up: Me* fills it; the button for anyone else
+      *Show shifts and rides* on one date: add "Bar" with 1 person; *Sign up: Me* fills it; the button for anyone else
       is disabled (full). *Attendance statistics* shows the team's members with no events held yet (dates lie ahead).
 - [ ] C5 Revoke the grant: the coach loses the team at the next reload. *Unlink account* for Peter: the coach's session ends.
 
@@ -65,7 +65,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       refused after a second one.
 - [ ] D3 As `parent@…` (reload): *My children* lists Lea; *Open* shows birth date, player flag and team; change her email;
       it is saved. *My schedule* lists the U12 trainings from C4 marked *For Lea*; answer *No* for Lea and see the totals
-      change, but no other member's answer. Nothing else about other members is visible. *Show volunteer shifts* on a U12
+      change, but no other member's answer. Nothing else about other members is visible. *Show shifts and rides* on a U12
       date offers *Sign up: Lea*.
 - [ ] D4 Remove Sandra as guardian: *My children* disappears for `parent@…` after a reload.
 

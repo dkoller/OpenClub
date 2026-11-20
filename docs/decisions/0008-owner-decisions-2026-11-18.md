@@ -253,3 +253,14 @@ Shown the absence contract, the owner chose **"Plain 'No'"** for what coaches se
 | --- | --- | --- |
 | 54 | Absences | Approved as OpenAPI **1.20.0** (V32). In *My schedule* a member enters calendar days away (club time zone, `OPENCLUB_TIME_ZONE`, default Europe/Zurich) for themselves, a guardian for their current minor: from today, at most 366 days, ending within two years, at most 20 current or future absences per member; no reason is stored (an injury would be health data). Every event of the member's teams starting on such a day without an explicit answer counts as **No** in My schedule, answer totals, coaches' answer lists and statistics (view `effective_attendance`); coaches cannot tell it from a typed No; an explicit answer wins. Deleting the absence removes the implied No. Not audited; deleted 12 months after the last day; in the member export. |
 
+## Addendum 25 — carpooling (2026-11-20)
+
+Shown the carpooling contract, the owner chose **"Phone to passengers"**: a driver and the people they carry see each
+other's phone number. This is a deliberate, narrow exception to "only explicitly granted roles may read member
+contacts" (ADR-0007): it covers only the phone, only between a driver and their booked passengers (or the guardian
+who booked for a child), and only while the booking exists.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 55 | Carpooling | Approved as OpenAPI **1.21.0** (V33). A signed-in adult in an event's team, or a guardian of a current minor in it, offers one ride per event (there, back or both; 1–8 seats; meeting point; departure from a day before the start to the end). Team members book a seat for themselves, guardians for their current minors, until departure (not for a cancelled event) and while seats are free; the ride is locked, so the last seat goes to one person. The driver changes the ride (not below the booked seats) or withdraws it; `MANAGE_TEAMS` for the team removes it. The team (members, guardians, viewers, managers) sees rides with display names. The driver sees each passenger's phone (for a minor, the booking guardian's); whoever booked sees the driver's; nobody else sees phones. Leaving the team ends one's bookings and offers; not audited; rides are deleted 12 months after the event; offers and seats are in the member export. |
+

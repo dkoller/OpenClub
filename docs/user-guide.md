@@ -134,7 +134,7 @@ shows, for the last 12 months (change *From* and *To*, at most a year, then *Sho
 how each member answered them: *Yes*, *No*, *Maybe* and *No answer*, with totals. Cancelled events do not count.
 Answers are deleted 12 months after an event, and members who joined later show earlier events as *No answer*.
 
-**Volunteer shifts.** *Show volunteer shifts* under an event lists its helper jobs (for example *Bar*, 14:00–16:00,
+**Volunteer shifts.** *Show shifts and rides* under an event lists its helper jobs (for example *Bar*, 14:00–16:00,
 *2 of 3 filled*) with the names of who signed up. With `MANAGE_TEAMS` for the team you add a shift: *Task*, *Date*,
 *Start*, *End* (prefilled with the event's times, at most 24 hours and within a day of the event) and *People needed*,
 then *Add shift*. *Edit* changes a shift (you cannot lower the places below the people already signed up), *Delete*
@@ -160,7 +160,7 @@ its public member list (adults by full name, minors by first name and surname in
 **My schedule** lists the next eight weeks of trainings, matches and events of your teams, and of your children's
 teams if you are a guardian (marked *For* and the child's name). Answer *Yes*, *No* or *Maybe* for each event until
 it starts; choosing your answer again clears it. You see the totals, but never other members' answers.
-*Show volunteer shifts* lists the event's helper jobs with who signed up; *Sign up* puts you (or your child) on a
+*Show shifts and rides* lists the event's helper jobs with who signed up; *Sign up* puts you (or your child) on a
 shift while places are free, *Withdraw* takes you off, both until the shift starts. Your team sees your name on the
 shift so everyone can coordinate.
 
@@ -168,6 +168,12 @@ shift so everyone can coordinate.
 child's team) is changed or cancelled, when new events are added, when an announcement is posted for you, and a
 reminder the day before a volunteer shift you signed up for. Untick what you do not want and choose the language of
 the emails; changes save at once. You need a sign-in and an email address to receive them.
+
+**Carpooling.** *Show shifts and rides* under an event also lists the rides offered to it: driver, direction, departure,
+meeting point and seats. If you are in the team (or your child is), *Offer a ride* with direction, seats, meeting
+point, date and time; change it later with *Save changes* or *Withdraw ride*. *Book seat* reserves a seat for you or
+your child until departure. Once booked, you see the driver's phone number and the driver sees yours; nobody else
+does.
 
 **Absences** (under *My schedule*): enter the days you (or your child) are away, *From* and optionally *To*, then
 *Add absence*. Every event on those days that you have not answered counts as *No*; answering *Yes* still works if

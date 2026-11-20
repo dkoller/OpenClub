@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import type { Language } from './language'
 import { ShiftsPanel } from './ShiftsPanel'
+import { RidesPanel } from './RidesPanel'
 import { CalendarFeed } from './CalendarFeed'
 import { Absences } from './Absences'
 import { answerable, answerAttendance, clearAttendance, formatWhen, readMyEvents, type AttendanceResponse, type MyEvent } from './events'
 import { fetchMyProfile } from './myProfile'
 
 const words = {
-  de: { showShifts: 'Helfereinsätze zeigen', hideShifts: 'Helfereinsätze ausblenden', title: 'Mein Programm', loading: 'Wird geladen…', empty: 'Keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', error: 'Termine nicht verfügbar.', cancelled: 'Abgesagt', for: 'Für', TRAINING: 'Training', MATCH: 'Spiel', OTHER: 'Termin', you: 'Du', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', answers: 'Antworten', closed: 'Antworten nicht mehr möglich.', denied: 'Keine Berechtigung.', failed: 'Antwort nicht gespeichert.' },
-  en: { showShifts: 'Show volunteer shifts', hideShifts: 'Hide volunteer shifts', title: 'My schedule', loading: 'Loading…', empty: 'No events in the next eight weeks.', more: 'More events follow later.', error: 'Events unavailable.', cancelled: 'Cancelled', for: 'For', TRAINING: 'Training', MATCH: 'Match', OTHER: 'Event', you: 'You', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', answers: 'Answers', closed: 'Answers are closed for this event.', denied: 'No permission.', failed: 'Answer not saved.' },
-  fr: { showShifts: 'Afficher le bénévolat', hideShifts: 'Masquer le bénévolat', title: 'Mon programme', loading: 'Chargement…', empty: 'Aucun événement dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', error: 'Événements indisponibles.', cancelled: 'Annulé', for: 'Pour', TRAINING: 'Entraînement', MATCH: 'Match', OTHER: 'Événement', you: 'Vous', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', answers: 'Réponses', closed: 'Les réponses sont closes pour cet événement.', denied: 'Pas d’autorisation.', failed: 'Réponse non enregistrée.' },
-  it: { showShifts: 'Mostra turni di volontariato', hideShifts: 'Nascondi turni di volontariato', title: 'Il mio programma', loading: 'Caricamento…', empty: 'Nessun evento nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', error: 'Eventi non disponibili.', cancelled: 'Annullato', for: 'Per', TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', you: 'Tu', YES: 'Sì', NO: 'No', MAYBE: 'Forse', answers: 'Risposte', closed: 'Le risposte sono chiuse per questo evento.', denied: 'Nessuna autorizzazione.', failed: 'Risposta non salvata.' },
+  de: { showShifts: 'Helfereinsätze und Fahrten zeigen', hideShifts: 'Helfereinsätze und Fahrten ausblenden', title: 'Mein Programm', loading: 'Wird geladen…', empty: 'Keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', error: 'Termine nicht verfügbar.', cancelled: 'Abgesagt', for: 'Für', TRAINING: 'Training', MATCH: 'Spiel', OTHER: 'Termin', you: 'Du', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', answers: 'Antworten', closed: 'Antworten nicht mehr möglich.', denied: 'Keine Berechtigung.', failed: 'Antwort nicht gespeichert.' },
+  en: { showShifts: 'Show shifts and rides', hideShifts: 'Hide shifts and rides', title: 'My schedule', loading: 'Loading…', empty: 'No events in the next eight weeks.', more: 'More events follow later.', error: 'Events unavailable.', cancelled: 'Cancelled', for: 'For', TRAINING: 'Training', MATCH: 'Match', OTHER: 'Event', you: 'You', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', answers: 'Answers', closed: 'Answers are closed for this event.', denied: 'No permission.', failed: 'Answer not saved.' },
+  fr: { showShifts: 'Afficher bénévolat et covoiturage', hideShifts: 'Masquer bénévolat et covoiturage', title: 'Mon programme', loading: 'Chargement…', empty: 'Aucun événement dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', error: 'Événements indisponibles.', cancelled: 'Annulé', for: 'Pour', TRAINING: 'Entraînement', MATCH: 'Match', OTHER: 'Événement', you: 'Vous', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', answers: 'Réponses', closed: 'Les réponses sont closes pour cet événement.', denied: 'Pas d’autorisation.', failed: 'Réponse non enregistrée.' },
+  it: { showShifts: 'Mostra turni e passaggi', hideShifts: 'Nascondi turni e passaggi', title: 'Il mio programma', loading: 'Caricamento…', empty: 'Nessun evento nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', error: 'Eventi non disponibili.', cancelled: 'Annullato', for: 'Per', TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', you: 'Tu', YES: 'Sì', NO: 'No', MAYBE: 'Forse', answers: 'Risposte', closed: 'Le risposte sono chiuse per questo evento.', denied: 'Nessuna autorizzazione.', failed: 'Risposta non salvata.' },
 } satisfies Record<Language, Record<string, string>>
 
 /**
@@ -84,6 +85,7 @@ export function MySchedule({ language, csrfToken }: { language: Language; csrfTo
             onClick={() => setShiftsFor(shiftsFor === event.id ? null : event.id)}>
             {shiftsFor === event.id ? t.hideShifts : t.showShifts}</button>
           {shiftsFor === event.id && <ShiftsPanel event={event} language={language} csrfToken={csrfToken} self={self} />}
+          {shiftsFor === event.id && <RidesPanel event={event} language={language} csrfToken={csrfToken} self={self} />}
         </li>
       })}</ul>}
       {truncated && <p>{t.more}</p>}

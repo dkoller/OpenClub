@@ -26,6 +26,9 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
 - **Kalender-Abo (freiwillig):** Wenn Sie unter «Mein Programm» einen Kalender-Link erstellen, lädt Ihre
   Kalender-App (z. B. Google oder Apple) Ihre Termine samt Ort und Notizen über diesen Link und speichert sie in Ihrem
   Konto bei diesem Anbieter. Sie können den Link jederzeit widerrufen.
+- **Fahrgemeinschaften:** Fahrten, die Sie anbieten, und Plätze, die Sie (oder für Ihr Kind) buchen. Ihr Team sieht
+  Ihren Namen bei der Fahrt. Fahrerin oder Fahrer und die gebuchten Mitfahrenden sehen gegenseitig ihre
+  Telefonnummer (bei Kindern die der buchenden erziehungsberechtigten Person), sonst niemand.
 - **Abwesenheiten:** die Tage, an denen Sie (oder Ihr Kind) abwesend sind, ohne Grund. Für Termine an diesen Tagen
   gilt «Nein»; Trainerinnen und Trainer sehen nur dieses «Nein».
 - **Helfereinsätze:** für welche Einsätze bei Anlässen Ihres Teams Sie sich eingetragen haben. Ihr Team sieht Ihren
