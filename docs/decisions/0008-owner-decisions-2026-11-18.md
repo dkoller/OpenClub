@@ -244,3 +244,12 @@ without email) and all four kinds of email. Shown the contract, the owner chose 
 | 52 | Email notifications | Approved as OpenAPI **1.19.0** (V31). Four kinds: event changed or cancelled (a deletion counts as cancelled; editing an event that stays cancelled sends nothing), new events (a weekly series is one message), announcements, and a reminder within 24 hours before a volunteer shift. Every kind is on by default; each member turns kinds off and chooses the language (DE/EN/FR/IT) in *My profile* (`GET`/`PUT /v1/me/notifications`). Mail goes only to active members with a verified sign-in and an address; guardians get their current minors' team messages and reminders. Messages carry club, team and event or announcement details and a link, never other members' names (a guardian's reminder names their own child). Events that have ended are not reported. |
 | 53 | Sending | Messages are queued in the same transaction as the change and sent once a minute from a database outbox (`SKIP LOCKED`), looking the address up at sending time; up to three tries; sent rows deleted after 7 days, unsent ones after 2 days. The SMTP server comes only from the environment written by the operator's config (`OPENCLUB_SMTP_*`, implicit TLS or STARTTLS, never plain text); without one nothing is queued. New dependency: Eclipse Angus Mail (free, EPL-2.0/GPL-2.0 with Classpath Exception), the Jakarta Mail implementation. |
 
+## Addendum 24 — absences (2026-11-20)
+
+Asked for more features, the owner chose **absences, carpooling and join requests** (match results not chosen).
+Shown the absence contract, the owner chose **"Plain 'No'"** for what coaches see.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 54 | Absences | Approved as OpenAPI **1.20.0** (V32). In *My schedule* a member enters calendar days away (club time zone, `OPENCLUB_TIME_ZONE`, default Europe/Zurich) for themselves, a guardian for their current minor: from today, at most 366 days, ending within two years, at most 20 current or future absences per member; no reason is stored (an injury would be health data). Every event of the member's teams starting on such a day without an explicit answer counts as **No** in My schedule, answer totals, coaches' answer lists and statistics (view `effective_attendance`); coaches cannot tell it from a typed No; an explicit answer wins. Deleting the absence removes the implied No. Not audited; deleted 12 months after the last day; in the member export. |
+

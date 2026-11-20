@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Language } from './language'
 import { ShiftsPanel } from './ShiftsPanel'
 import { CalendarFeed } from './CalendarFeed'
+import { Absences } from './Absences'
 import { answerable, answerAttendance, clearAttendance, formatWhen, readMyEvents, type AttendanceResponse, type MyEvent } from './events'
 import { fetchMyProfile } from './myProfile'
 
@@ -87,6 +88,8 @@ export function MySchedule({ language, csrfToken }: { language: Language; csrfTo
       })}</ul>}
       {truncated && <p>{t.more}</p>}
       {notice && <p role="alert">{t[notice]}</p>}
+      {state === 'ready' && <Absences language={language} csrfToken={csrfToken} self={self}
+        onChange={() => setRevision(value => value + 1)} />}
       {state === 'ready' && <CalendarFeed language={language} csrfToken={csrfToken} />}
     </section>
   )

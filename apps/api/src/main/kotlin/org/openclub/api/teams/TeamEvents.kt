@@ -105,7 +105,7 @@ internal class TeamEvents(
                SELECT e.id, e.team_id, team.name AS team_name, e.kind, e.title, e.starts_at, e.ends_at, e.location,
                       e.notes, e.cancelled, ${EventAttendance.COUNTS},
                       json_agg(json_build_object('id', p.id, 'firstName', p.first_name,
-                          'response', (SELECT ea.response FROM event_attendance ea WHERE ea.event_id = e.id AND ea.member_id = p.id))
+                          'response', (SELECT ea.response FROM effective_attendance ea WHERE ea.event_id = e.id AND ea.member_id = p.id))
                           ORDER BY p.first_name, p.id)::text AS for_members
                FROM team_events e
                JOIN teams team ON team.id = e.team_id

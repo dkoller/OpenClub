@@ -20,7 +20,7 @@ import java.util.UUID
  * by an editor (`GET /api/v1/members/{id}/export`, owner-approved 2026-11-19, ADR-0008 addendum 10). It contains
  * the member's own stored fields, their team assignments, their invitation timestamps, their grants and their
  * guardianships (the other member only as an ID, with the date), membership fees (since OpenAPI 1.12.0),
- * attendance answers (since 1.14.1), volunteer shifts (since 1.16.0). It deliberately leaves out the login binding
+ * attendance answers (since 1.14.1), volunteer shifts (since 1.16.0), absences (since 1.20.0). It deliberately leaves out the login binding
  * (issuer and subject), sessions, other people's names and contacts, and the audit trail, whose actor identifiers
  * belong to other people; whether a login is linked is reported only as a yes or no. The read and its
  * `MEMBER_EXPORTED` audit event happen in one transaction, so every export that produced data is audited. Active,
@@ -96,6 +96,9 @@ internal class MemberExport(private val database: DSLContext) {
                    FROM shift_volunteers v JOIN event_shifts s ON s.id = v.shift_id
                    WHERE v.member_id = ? ORDER BY s.starts_at, s.id""", memberId)
 
+            val absences = db.fetch(
+                "SELECT from_date, to_date FROM member_absences WHERE member_id = ? ORDER BY from_date, to_date, id", memberId)
+
             val invitations = db.fetch(
                 "SELECT created_at, expires_at, used_at, revoked_at FROM member_invitations WHERE member_id = ? ORDER BY created_at, id",
                 memberId)
@@ -168,6 +171,9 @@ internal class MemberExport(private val database: DSLContext) {
                             put("signedUpAt", it.get(5, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
                         })
                     }
+                })
+                put("absences", buildJsonArray {
+                    absences.forEach { add(buildJsonObject { put("from", it.get(0).toString()); put("to", it.get(1).toString()) }) }
                 })
                 put("clubGrants", buildJsonArray { clubGrants.forEach { add(JsonPrimitive(it.get(0).toString())) } })
                 put("teamGrants", buildJsonArray {

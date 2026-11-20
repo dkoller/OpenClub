@@ -169,6 +169,10 @@ child's team) is changed or cancelled, when new events are added, when an announ
 reminder the day before a volunteer shift you signed up for. Untick what you do not want and choose the language of
 the emails; changes save at once. You need a sign-in and an email address to receive them.
 
+**Absences** (under *My schedule*): enter the days you (or your child) are away, *From* and optionally *To*, then
+*Add absence*. Every event on those days that you have not answered counts as *No*; answering *Yes* still works if
+your plans change. No reason is asked or stored. *Delete* removes an absence again.
+
 **Calendar subscription** (under *My schedule*): *Create link* shows a private link once; copy it into your phone's
 calendar or Google/Apple Calendar ("subscribe to calendar" / "add from URL"). It then shows your and your children's
 events, four weeks back to six months ahead, including place and notes, and updates by itself every few hours.

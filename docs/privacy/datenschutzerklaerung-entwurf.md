@@ -26,6 +26,8 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
 - **Kalender-Abo (freiwillig):** Wenn Sie unter «Mein Programm» einen Kalender-Link erstellen, lädt Ihre
   Kalender-App (z. B. Google oder Apple) Ihre Termine samt Ort und Notizen über diesen Link und speichert sie in Ihrem
   Konto bei diesem Anbieter. Sie können den Link jederzeit widerrufen.
+- **Abwesenheiten:** die Tage, an denen Sie (oder Ihr Kind) abwesend sind, ohne Grund. Für Termine an diesen Tagen
+  gilt «Nein»; Trainerinnen und Trainer sehen nur dieses «Nein».
 - **Helfereinsätze:** für welche Einsätze bei Anlässen Ihres Teams Sie sich eingetragen haben. Ihr Team sieht Ihren
   Namen beim Einsatz, damit sich alle absprechen können.
 - **Mitgliederbeiträge:** Betrag, Fälligkeit und Zahlungsdatum. Zahlungen laufen nicht über OpenClub; wir speichern

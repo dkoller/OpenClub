@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 77 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.19.0) to the tests that exercise it. The operation list and
+Maps each of the 80 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.20.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -56,6 +56,9 @@ How to read the columns of test types:
 | `PUT /v1/me/dependents/{memberId}/contacts` | 204, 400, 401, 403, 503 | `GuardianHttpTest` (relationship before body, cleared fields, audit) |
 | `GET /v1/me/profile` | 200, 401, 403, 503 | `MyProfileHttpTest` (exact keys, teams, ETag, not audited; no member record or no verified identity 403), `PrivateRoutesRevocationTest` |
 | `GET /v1/teams/{teamId}/attendance-statistics` | 200, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (viewer, team and club managers; held excludes cancelled and out-of-range events; per member and totals; default range; player, plain member and other team 403; unknown team 404 only club-wide; malformed, repeated, unknown, reversed and over-a-year ranges 400), `PrivateRoutesRevocationTest`, Keycloak journey |
+| `GET /v1/me/absences` | 200, 401, 403, 503 | `AbsenceHttpTest` (own and minors' absences only, `people`), `PrivateRoutesRevocationTest`, Keycloak journey |
+| `POST /v1/me/absences` | 201, 400, 401, 403, 503 | `AbsenceHttpTest` (self and guardian; someone else, a coach for a player 403; past, reversed, over a year, too far ahead, bad date, extra key 400; implied No, explicit answer wins, coaches see a plain No), Keycloak journey |
+| `DELETE /v1/absences/{absenceId}` | 204, 400, 401, 403, 503 | `AbsenceHttpTest` (someone else's and unknown alike 403, deleting removes the implied No), Keycloak journey |
 | `GET /v1/me/notifications` | 200, 401, 403, 503 | `NotificationsTest` (defaults, `emailEnabled`, `hasEmail`, no member 403), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `PUT /v1/me/notifications` | 204, 400, 401, 403, 503 | `NotificationsTest` (CSRF, own row only, strict booleans and languages, extra key 400), `PrivateRoutesRevocationTest`; recipients, switches, outbox sending, retries and cleanup in `NotificationsTest`, configuration in `MailConfigTest` |
 | `GET /v1/me/calendar-feed` | 200, 401, 403, 503 | `CalendarFeedHttpTest` (status without the link, no member 403), `PrivateRoutesRevocationTest` |
@@ -98,7 +101,7 @@ How to read the columns of test types:
 Browser coverage of the same operations is in `dev/auth-e2e/club-landing.spec.js` (real Keycloak and
 Chromium, synthetic data): member, team, grant, role and club-setting workflows in four languages, real
 database denial with grants removed, a team-scoped grant that shows one team, invalid-input handling and
-accessibility structure (#25). The anonymous and authentication routes outside the 77 operations are covered
+accessibility structure (#25). The anonymous and authentication routes outside the 80 operations are covered
 by `AuthAndPublicRoutesInputTest`, `SessionRoutesTest` and `BrowserLoginRoutesTest`.
 
 ## Known gaps in this evidence

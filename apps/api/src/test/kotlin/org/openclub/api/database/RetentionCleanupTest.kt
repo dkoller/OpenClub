@@ -195,6 +195,13 @@ class RetentionCleanupTest {
         val answerOnly = event(12); val keptAnswer = event(11)
         val expiredPeriod = period(24); val keptPeriod = period(23)
         val expiredNews = announcement(6); val keptNews = announcement(5)
+        // Absences (since OpenAPI 1.20.0): 12 months after their last day.
+        fun absence(monthsAgo: Int): UUID = UUID.randomUUID().also {
+            db.execute("""INSERT INTO member_absences (id, member_id, from_date, to_date)
+                          VALUES (?, ?, (CURRENT_DATE - make_interval(months => ?, days => 3))::date,
+                                  (CURRENT_DATE - make_interval(months => ?, days => 1))::date)""", it, member, monthsAgo, monthsAgo)
+        }
+        val expiredAbsence = absence(12); val keptAbsence = absence(11)
         fun count(table: String, column: String, id: UUID) = db.fetchCount(DSL.table(table), DSL.field(column).eq(id))
 
         try {
@@ -213,6 +220,8 @@ class RetentionCleanupTest {
             assertEquals(1, count("member_fees", "period_id", keptPeriod))
             assertEquals(0, count("announcements", "id", expiredNews))
             assertEquals(1, count("announcements", "id", keptNews))
+            assertEquals(0, count("member_absences", "id", expiredAbsence))
+            assertEquals(1, count("member_absences", "id", keptAbsence))
             assertEquals(1, db.fetchCount(DSL.table("members"), DSL.field("id").eq(member)), "the member is untouched")
         } finally {
             db.execute("DELETE FROM teams WHERE id = ?", team)

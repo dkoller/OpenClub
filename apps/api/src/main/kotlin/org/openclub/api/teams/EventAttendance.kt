@@ -93,7 +93,7 @@ internal class EventAttendance(private val database: DSLContext) {
                JOIN member_team_assignments a ON a.team_id = e.team_id
                JOIN members m ON m.id = a.member_id AND m.archived_at IS NULL
                JOIN clubs c ON TRUE
-               LEFT JOIN event_attendance ea ON ea.event_id = e.id AND ea.member_id = m.id
+               LEFT JOIN effective_attendance ea ON ea.event_id = e.id AND ea.member_id = m.id
                WHERE e.id = ? AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)}
                ORDER BY display_name, m.id""", eventId, actor).map {
             Answer(it.get("display_name", String::class.java), it.get("response", String::class.java)?.let(Response::valueOf))
@@ -145,7 +145,7 @@ internal class EventAttendance(private val database: DSLContext) {
                FROM member_team_assignments a
                JOIN members m ON m.id = a.member_id AND m.archived_at IS NULL
                JOIN clubs c ON TRUE
-               LEFT JOIN event_attendance ea ON ea.member_id = m.id AND ea.event_id IN (SELECT id FROM held)
+               LEFT JOIN effective_attendance ea ON ea.member_id = m.id AND ea.event_id IN (SELECT id FROM held)
                WHERE a.team_id = ? AND ${ActorSql.holdsTeamCapability("a.team_id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)}
                GROUP BY m.id, display_name
                ORDER BY display_name, m.id""",
@@ -160,11 +160,11 @@ internal class EventAttendance(private val database: DSLContext) {
     companion object {
         /** SQL columns `yes_count`, `no_count`, `maybe_count` for the event aliased `e`. Binds nothing. */
         const val COUNTS = """
-            (SELECT count(*) FROM event_attendance ea JOIN member_team_assignments ta ON ta.team_id = e.team_id AND ta.member_id = ea.member_id
+            (SELECT count(*) FROM effective_attendance ea JOIN member_team_assignments ta ON ta.team_id = e.team_id AND ta.member_id = ea.member_id
              WHERE ea.event_id = e.id AND ea.response = 'YES') AS yes_count,
-            (SELECT count(*) FROM event_attendance ea JOIN member_team_assignments ta ON ta.team_id = e.team_id AND ta.member_id = ea.member_id
+            (SELECT count(*) FROM effective_attendance ea JOIN member_team_assignments ta ON ta.team_id = e.team_id AND ta.member_id = ea.member_id
              WHERE ea.event_id = e.id AND ea.response = 'NO') AS no_count,
-            (SELECT count(*) FROM event_attendance ea JOIN member_team_assignments ta ON ta.team_id = e.team_id AND ta.member_id = ea.member_id
+            (SELECT count(*) FROM effective_attendance ea JOIN member_team_assignments ta ON ta.team_id = e.team_id AND ta.member_id = ea.member_id
              WHERE ea.event_id = e.id AND ea.response = 'MAYBE') AS maybe_count"""
     }
 }
