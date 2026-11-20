@@ -190,6 +190,13 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Get, "/api/v1/me/notifications"),
         // Absences (1.20.0); entering and deleting are covered in AbsenceHttpTest.
         Route(HttpMethod.Get, "/api/v1/me/absences"),
+        // Carpooling (1.21.0): unknown events and rides are 404 for the club-wide holder; booking is in RideHttpTest.
+        Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/rides"),
+        Route(HttpMethod.Post, "/api/v1/events/${UUID(0, 1)}/rides",
+            """{"direction":"THERE","seats":2,"meetingPoint":"Revocation","departsAt":"2030-01-01T10:00:00Z"}"""),
+        Route(HttpMethod.Put, "/api/v1/rides/${UUID(0, 4)}",
+            """{"direction":"THERE","seats":2,"meetingPoint":"Revocation","departsAt":"2030-01-01T10:00:00Z"}"""),
+        Route(HttpMethod.Delete, "/api/v1/rides/${UUID(0, 4)}"),
         Route(HttpMethod.Put, "/api/v1/me/notifications",
             """{"eventChanges":true,"newEvents":true,"announcements":true,"shiftReminders":true,"language":"de"}"""),
         Route(HttpMethod.Post, "/api/v1/me/calendar-feed"),

@@ -382,7 +382,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/^member-[0-9a-f-]{36}\.json$/);
   const exported = JSON.parse(readFileSync(await file.path(), 'utf8'));
-  expect(Object.keys(exported).sort()).toEqual(['absences', 'attendance', 'clubGrants', 'exportedAt', 'fees', 'guardianships', 'invitations', 'member', 'shifts', 'teamGrants', 'teams']);
+  expect(Object.keys(exported).sort()).toEqual(['absences', 'attendance', 'clubGrants', 'exportedAt', 'fees', 'guardianships', 'invitations', 'member', 'rides', 'shifts', 'teamGrants', 'teams']);
   expect(exported.member.firstName).toBe('Mara');
   expect(exported.member).not.toHaveProperty('accountId');
   await maraDetails.getByRole('button', { name: 'Close' }).click();
@@ -614,7 +614,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     .toHaveText(['Mara D.: no answer']);
   await trainings.last().getByRole('button', { name: 'Hide answers' }).click();
   // Volunteer shifts (OpenAPI 1.16.0): the manager adds a shift with the event's times as defaults and changes it.
-  await trainings.last().getByRole('button', { name: 'Show volunteer shifts' }).click();
+  await trainings.last().getByRole('button', { name: 'Show shifts and rides' }).click();
   const shifts = trainings.last().getByRole('region', { name: 'Volunteer shifts: Juniors training' });
   await expect(shifts.getByText('No volunteer shifts.')).toBeVisible();
   await shifts.getByLabel('Task').fill('Bar');
@@ -627,7 +627,11 @@ test('verified login gains club access only after restricted operator bootstrap'
   await bar.getByRole('button', { name: 'Save' }).click();
   await expect(bar).toContainText('Bar · ');
   await expect(bar).toContainText('0 of 3 filled');
-  await trainings.last().getByRole('button', { name: 'Hide volunteer shifts' }).click();
+  // Carpooling (OpenAPI 1.21.0): a manager outside the team sees the rides but cannot offer one.
+  const rides = trainings.last().getByRole('region', { name: 'Carpooling: Juniors training' });
+  await expect(rides.getByText('No rides offered yet.')).toBeVisible();
+  await expect(rides.getByRole('button', { name: 'Offer a ride' })).toHaveCount(0);
+  await trainings.last().getByRole('button', { name: 'Hide shifts and rides' }).click();
   // Attendance statistics (OpenAPI 1.18.0): the last 12 months by default; the new trainings lie ahead, so none held.
   await schedule.getByRole('button', { name: 'Attendance statistics' }).click();
   const statistics = schedule.getByRole('region', { name: 'Attendance statistics Juniors' });

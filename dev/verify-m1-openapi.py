@@ -30,6 +30,7 @@ ROUTE_SOURCES = {
     "teams/TeamEventHttpRoutes.kt": "installTeamEventHttpRoutes",
     "teams/EventShiftHttpRoutes.kt": "installEventShiftHttpRoutes",
     "teams/AbsenceHttpRoutes.kt": "installAbsenceHttpRoutes",
+    "teams/RideHttpRoutes.kt": "installRideHttpRoutes",
     "calendar/CalendarHttpRoutes.kt": "installCalendarHttpRoutes",
     "notifications/NotificationHttpRoutes.kt": "installNotificationHttpRoutes",
     "fees/FeeHttpRoutes.kt": "installFeeHttpRoutes",
@@ -87,6 +88,12 @@ PUT /v1/me/profile/public-listing
 GET /v1/me/calendar-feed
 GET /v1/me/notifications
 GET /v1/me/absences
+GET /v1/events/{eventId}/rides
+POST /v1/events/{eventId}/rides
+PUT /v1/rides/{rideId}
+DELETE /v1/rides/{rideId}
+PUT /v1/rides/{rideId}/passengers/{memberId}
+DELETE /v1/rides/{rideId}/passengers/{memberId}
 POST /v1/me/absences
 DELETE /v1/absences/{absenceId}
 PUT /v1/me/notifications
@@ -160,7 +167,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.20.0"
+FROZEN_VERSION = "1.21.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
@@ -192,7 +199,7 @@ def verify_contract(spec):
         if not operation:
             fail(f"Missing implemented operation in OpenAPI: {entry}")
         responses = operation.get("responses", {})
-        success = "201" if entry in {"POST /v1/members", "POST /v1/teams", "POST /v1/members/{memberId}/invitation", "POST /v1/teams/{teamId}/events", "POST /v1/fee-periods", "POST /v1/announcements", "POST /v1/events/{eventId}/shifts", "POST /v1/me/calendar-feed", "POST /v1/me/absences"} else (
+        success = "201" if entry in {"POST /v1/members", "POST /v1/teams", "POST /v1/members/{memberId}/invitation", "POST /v1/teams/{teamId}/events", "POST /v1/fee-periods", "POST /v1/announcements", "POST /v1/events/{eventId}/shifts", "POST /v1/me/calendar-feed", "POST /v1/me/absences", "POST /v1/events/{eventId}/rides"} else (
             "200" if method == "GET" or entry == "POST /v1/members/import" else "204"
         )
         if success not in responses or "503" not in responses:

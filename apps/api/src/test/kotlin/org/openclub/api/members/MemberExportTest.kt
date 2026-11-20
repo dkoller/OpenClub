@@ -108,7 +108,7 @@ class MemberExportTest {
         for (secret in listOf(subject, "issuer.example.invalid", account.toString(), other.toString(), "Other", "VIEW_TEAMS", "actor")) {
             assertFalse(text.contains(secret), "must not contain $secret")
         }
-        assertEquals(setOf("exportedAt", "member", "teams", "invitations", "guardianships", "fees", "attendance", "shifts", "absences", "clubGrants", "teamGrants"), export.keys)
+        assertEquals(setOf("exportedAt", "member", "teams", "invitations", "guardianships", "fees", "attendance", "shifts", "absences", "rides", "clubGrants", "teamGrants"), export.keys)
     }
 
     @Test

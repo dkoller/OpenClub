@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
   title: OpenClub single-club management API — synthetic M1
-  version: 1.20.0
+  version: 1.21.0
   description: >
     Frozen contract for the implemented synthetic M1 HTTP surface, accepted by
     the owner on 2026-11-17 (ADR-0007, #13). 1.1.0 adds the per-club adult-age
     setting (PATCH /v1/club/adult-age-policy and adultAgeYears in GET /v1/club, #17). 1.2.0 adds invitations
     and account unlinking (owner-approved 2026-11-18, ADR-0008 addendum 4): create and revoke an invitation,
-    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). 1.11.0 adds attendance: members and guardians answer YES, NO or MAYBE until an event starts, team viewers and managers see the answers by public display name, and every event carries the totals, owner-approved 2026-11-19 (ADR-0008 addendum 14). 1.12.0 adds membership fees: the club-wide MANAGE_FEES capability, fee periods and each member's fee and payment (tracking only), each member's own and children's fees (GET /v1/me/fees), and fees in the member export, owner-approved 2026-11-19 (ADR-0008 addendum 15). 1.13.0 adds the member list as CSV for editors: an audited export (GET /v1/members/export.csv) and an import that is previewed, creates only new valid members and skips duplicates (POST /v1/members/import), owner-approved 2026-11-19 (ADR-0008 addendum 17). 1.14.0 adds announcements: club-wide with the new POST_ANNOUNCEMENTS capability, per team with MANAGE_TEAMS, and each member's current announcements (GET /v1/me/announcements), owner-approved 2026-11-19 (ADR-0008 addendum 18). 1.14.1 (security review of 1.9.0–1.14.0) adds the member's attendance answers to the member export and answers 404 for an unknown event, announcement or team only to club-wide holders (403 otherwise), so team-scoped holders learn nothing about IDs they cannot reach. 1.15.0 adds the public member list opt-out decided by the club as controller (ADR-0008 addendum 19, decision C5): a member hides or shows their own name (PUT /v1/me/profile/public-listing) and an editor does it for any active member (PUT /v1/members/{memberId}/public-listing); My profile, the editor's detail read and the member export carry listedPublicly. 1.16.0 adds volunteer shifts (ADR-0008 addendum 20): team managers add shifts with a number of places to a team event, the team sees them with the volunteers' public display names, members and guardians sign up or withdraw until a shift starts and while places are free, and the member export lists a member's sign-ups. 1.17.0 adds private calendar feeds (ADR-0008 addendum 21): a member creates, replaces or revokes one secret feed link (shown once, only its hash stored) that calendar apps load without a session (GET /v1/calendar/{secret}, iCalendar with the events of My schedule, four weeks back to six months ahead, including notes, never names). 1.18.0 adds attendance statistics per team for VIEW_TEAMS and MANAGE_TEAMS holders (GET /v1/teams/{teamId}/attendance-statistics, ADR-0008 addendum 22). 1.19.0 adds email notifications (ADR-0008 addendum 23): a member's own switches for event changes, new events, announcements and shift reminders, all on by default, and the email language (GET and PUT /v1/me/notifications); messages go only to members with a verified sign-in, through the operator's SMTP server. 1.20.0 adds absences (ADR-0008 addendum 24): a member, or a guardian for their minor, enters days away, and every unanswered event of their teams on those days counts as No everywhere answers are shown or counted. It contains exactly the operations
+    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). 1.11.0 adds attendance: members and guardians answer YES, NO or MAYBE until an event starts, team viewers and managers see the answers by public display name, and every event carries the totals, owner-approved 2026-11-19 (ADR-0008 addendum 14). 1.12.0 adds membership fees: the club-wide MANAGE_FEES capability, fee periods and each member's fee and payment (tracking only), each member's own and children's fees (GET /v1/me/fees), and fees in the member export, owner-approved 2026-11-19 (ADR-0008 addendum 15). 1.13.0 adds the member list as CSV for editors: an audited export (GET /v1/members/export.csv) and an import that is previewed, creates only new valid members and skips duplicates (POST /v1/members/import), owner-approved 2026-11-19 (ADR-0008 addendum 17). 1.14.0 adds announcements: club-wide with the new POST_ANNOUNCEMENTS capability, per team with MANAGE_TEAMS, and each member's current announcements (GET /v1/me/announcements), owner-approved 2026-11-19 (ADR-0008 addendum 18). 1.14.1 (security review of 1.9.0–1.14.0) adds the member's attendance answers to the member export and answers 404 for an unknown event, announcement or team only to club-wide holders (403 otherwise), so team-scoped holders learn nothing about IDs they cannot reach. 1.15.0 adds the public member list opt-out decided by the club as controller (ADR-0008 addendum 19, decision C5): a member hides or shows their own name (PUT /v1/me/profile/public-listing) and an editor does it for any active member (PUT /v1/members/{memberId}/public-listing); My profile, the editor's detail read and the member export carry listedPublicly. 1.16.0 adds volunteer shifts (ADR-0008 addendum 20): team managers add shifts with a number of places to a team event, the team sees them with the volunteers' public display names, members and guardians sign up or withdraw until a shift starts and while places are free, and the member export lists a member's sign-ups. 1.17.0 adds private calendar feeds (ADR-0008 addendum 21): a member creates, replaces or revokes one secret feed link (shown once, only its hash stored) that calendar apps load without a session (GET /v1/calendar/{secret}, iCalendar with the events of My schedule, four weeks back to six months ahead, including notes, never names). 1.18.0 adds attendance statistics per team for VIEW_TEAMS and MANAGE_TEAMS holders (GET /v1/teams/{teamId}/attendance-statistics, ADR-0008 addendum 22). 1.19.0 adds email notifications (ADR-0008 addendum 23): a member's own switches for event changes, new events, announcements and shift reminders, all on by default, and the email language (GET and PUT /v1/me/notifications); messages go only to members with a verified sign-in, through the operator's SMTP server. 1.20.0 adds absences (ADR-0008 addendum 24): a member, or a guardian for their minor, enters days away, and every unanswered event of their teams on those days counts as No everywhere answers are shown or counted. 1.21.0 adds carpooling (ADR-0008 addendum 25): adults of an event's team or guardians of its minors offer rides, team members and guardians book seats, and a driver and the people they carry see each other's phone. It contains exactly the operations
     registered in Ktor and checked by `dev/verify-m1-openapi.py`. Authentication
     routes (/v1/auth) are documented separately in auth-api-proposal.yaml.
     Version 1.0.0 covers synthetic data only. It does not approve real member
@@ -34,6 +34,7 @@ tags:
   - name: Calendar
   - name: Notifications
   - name: Absences
+  - name: Rides
   - name: Fees
   - name: Announcements
 paths:
@@ -2086,6 +2087,170 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/events/{eventId}/rides:
+    parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Rides]
+      operationId: listEventRides
+      summary: The ride offers of one event (since 1.21.0)
+      description: >
+        Who may see them, and the order of refusals, are as for volunteer shifts: VIEW_TEAMS or
+        MANAGE_TEAMS for the team, the team's members and the guardians of its current minor
+        members (403 otherwise; an unknown event is 404 only for a club-wide team holder). Drivers
+        and passengers appear by display name. Phones (owner decision): `driverPhone` only for a
+        caller who booked a seat on that ride (for themselves or a minor); each passenger's `phone`
+        only for the driver (for a minor, the phone of the guardian who booked); null otherwise.
+        `people` are the caller and their minors in the team (whom they may book for), `booked`
+        which of them hold a seat, `canOffer` whether the caller may offer a ride. Never cacheable.
+      responses:
+        '200':
+          description: The rides
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RideList' }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      tags: [Rides]
+      operationId: offerRide
+      summary: Offer a ride to an event (since 1.21.0)
+      description: >
+        Session (401), exact Origin and session CSRF (403), an active membership (403), the ID and
+        body (400), then 403 unless the caller is an adult in the event's team or the guardian of a
+        current minor in it (an unknown event is 404 only for a club-wide team holder), 400 for a
+        departure outside a day before the event's start to its end, 409 "exists" when the caller
+        already offers a ride to this event. Not audited.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RideInput' }
+      responses:
+        '201':
+          description: Offered
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [id]
+                properties:
+                  id: { type: string, format: uuid }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The caller already offers a ride to this event (code "exists")
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/rides/{rideId}:
+    parameters:
+      - name: rideId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [Rides]
+      operationId: replaceRide
+      summary: Change one's own ride offer (since 1.21.0)
+      description: >
+        Only the driver (403 otherwise; an unknown ride is 404 only for a club-wide team holder).
+        Same rules as offering; 409 "conflict" for fewer seats than bookings. The ride is locked,
+        so no booking slips in between.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RideInput' }
+      responses:
+        '204': { description: Changed }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Fewer seats than bookings (code "conflict")
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      tags: [Rides]
+      operationId: deleteRide
+      summary: Withdraw a ride (the driver) or remove it (MANAGE_TEAMS for the team) (since 1.21.0)
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204': { description: Deleted with its bookings }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/rides/{rideId}/passengers/{memberId}:
+    parameters:
+      - name: rideId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [Rides]
+      operationId: bookRideSeat
+      summary: Book a seat for oneself or one's minor (since 1.21.0)
+      description: >
+        Only for a member of the event's team: oneself, or a guardian for their current minor. One
+        403 for every ride or member the caller may not book for; 409 "closed" after departure or
+        for a cancelled event; 409 "full" without a free seat (the ride is locked, so the last seat
+        goes to one person). Booking again is 204. Leaving the team ends the booking.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204': { description: Booked }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Departed or cancelled ("closed"), or no free seat ("full")
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      tags: [Rides]
+      operationId: cancelRideSeat
+      summary: Cancel a seat for oneself or one's minor (since 1.21.0)
+      description: Same rules as booking; 409 "closed" after departure; cancelling a seat not held is 204.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204': { description: Cancelled }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Departed or cancelled (code "closed")
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /v1/events/{eventId}/attendance:
     parameters:
       - name: eventId
@@ -3067,6 +3232,57 @@ components:
         announcements: { type: boolean }
         shiftReminders: { type: boolean }
         language: { type: string, enum: [de, en, fr, it] }
+    RideInput:
+      type: object
+      additionalProperties: false
+      required: [direction, seats, meetingPoint, departsAt]
+      properties:
+        direction: { type: string, enum: [THERE, BACK, BOTH] }
+        seats: { type: integer, minimum: 1, maximum: 8 }
+        meetingPoint: { type: string, minLength: 1, maxLength: 200, description: Trimmed; no control characters }
+        departsAt: { type: string, format: date-time, description: RFC 3339 with offset; from a day before the event's start to its end }
+    RideList:
+      type: object
+      additionalProperties: false
+      required: [items, people, canOffer]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, driver, mine, direction, seats, meetingPoint, departsAt, driverPhone, passengers, booked]
+            properties:
+              id: { type: string, format: uuid }
+              driver: { type: string, description: The driver's full name }
+              mine: { type: boolean, description: Whether the caller is the driver }
+              direction: { type: string, enum: [THERE, BACK, BOTH] }
+              seats: { type: integer }
+              meetingPoint: { type: string }
+              departsAt: { type: string, format: date-time }
+              driverPhone: { type: [string, 'null'], description: Only for a caller who booked a seat on this ride }
+              passengers:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [displayName, phone]
+                  properties:
+                    displayName: { type: string }
+                    phone: { type: [string, 'null'], description: Only for the driver; a minor's is the booking guardian's }
+              booked:
+                type: array
+                items: { type: string, format: uuid }
+        people:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, firstName]
+            properties:
+              id: { type: string, format: uuid }
+              firstName: { type: string }
+        canOffer: { type: boolean }
     ShiftInput:
       type: object
       additionalProperties: false
@@ -3121,7 +3337,7 @@ components:
     MemberExport:
       type: object
       additionalProperties: false
-      required: [exportedAt, member, teams, invitations, guardianships, fees, attendance, shifts, absences, clubGrants, teamGrants]
+      required: [exportedAt, member, teams, invitations, guardianships, fees, attendance, shifts, absences, rides, clubGrants, teamGrants]
       properties:
         exportedAt: { type: string, format: date-time }
         member:
@@ -3219,6 +3435,19 @@ components:
             properties:
               from: { type: string, format: date }
               to: { type: string, format: date }
+        rides:
+          description: The member's ride offers (DRIVER) and seats (PASSENGER) (since 1.21.0), by departure
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [rideId, eventId, role, direction, departsAt]
+            properties:
+              rideId: { type: string, format: uuid }
+              eventId: { type: string, format: uuid }
+              role: { type: string, enum: [DRIVER, PASSENGER] }
+              direction: { type: string, enum: [THERE, BACK, BOTH] }
+              departsAt: { type: string, format: date-time }
         clubGrants: { type: array, items: { type: string } }
         teamGrants:
           type: array

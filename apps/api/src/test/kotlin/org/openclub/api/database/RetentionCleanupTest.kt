@@ -181,6 +181,9 @@ class RetentionCleanupTest {
             db.execute("""INSERT INTO event_shifts (id, event_id, title, starts_at, ends_at, needed)
                           SELECT ?, id, 'Bar', starts_at, ends_at, 1 FROM team_events WHERE id = ?""", shift, it)
             db.execute("INSERT INTO shift_volunteers (shift_id, member_id) VALUES (?, ?)", shift, member)
+            // A ride on the same event (since OpenAPI 1.21.0).
+            db.execute("""INSERT INTO event_rides (id, event_id, driver_member_id, direction, seats, meeting_point, departs_at)
+                          SELECT gen_random_uuid(), id, ?, 'THERE', 2, 'Station', starts_at FROM team_events WHERE id = ?""", member, it)
         }
         fun period(monthsAgo: Int): UUID = UUID.randomUUID().also {
             db.execute("""INSERT INTO fee_periods (id, name, due_date, amount_cents)
@@ -214,6 +217,8 @@ class RetentionCleanupTest {
             fun volunteers(event: UUID) = db.fetchCount(DSL.table("shift_volunteers v JOIN event_shifts s ON s.id = v.shift_id"),
                 DSL.field("s.event_id").eq(event))
             assertEquals(0, volunteers(answerOnly), "sign-ups go 12 months after the shift")
+            assertEquals(0, count("event_rides", "event_id", answerOnly), "rides go 12 months after the event")
+            assertEquals(1, count("event_rides", "event_id", keptAnswer))
             assertEquals(1, volunteers(keptAnswer))
             assertEquals(0, count("fee_periods", "id", expiredPeriod))
             assertEquals(0, count("member_fees", "period_id", expiredPeriod), "the fees go with the period")
