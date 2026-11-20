@@ -1,6 +1,7 @@
 # Datenschutzerklärung — ENTWURF
 
-> **Entwurf vom 19.11.2026, keine Rechtsberatung.** Grundlage: [Entscheidungsblatt](controller-decisions.md) und
+> **Entwurf vom 19.11.2026, Fristen und Ausblenden der öffentlichen Liste am 20.11.2026 vom Verein entschieden, keine
+> Rechtsberatung.** Grundlage: [Entscheidungsblatt](controller-decisions.md) und
 > [Bearbeitungsverzeichnis](processing-record.md). Platzhalter stehen in eckigen Klammern. Erst verwenden, wenn der
 > Verein alle Entscheide bestätigt hat; für französisch- oder italienischsprachige Mitglieder eine Übersetzung
 > bereitstellen.
@@ -35,7 +36,8 @@ im Sinne des Vereins wird.
 ## Wer sieht Ihre Daten?
 
 - **Alle, auch ohne Anmeldung:** Die öffentliche Mitgliederliste mit dem vollen Namen von Erwachsenen und dem Vornamen
-  mit Initiale des Nachnamens bei Kindern, sonst nichts. Sie können verlangen, dort nicht zu erscheinen.
+  mit Initiale des Nachnamens bei Kindern, sonst nichts. Sie können Ihren Namen unter «Mein Profil» selbst ausblenden; für Kinder erledigt das der Verein
+  auf Wunsch der Erziehungsberechtigten.
 - **Vorstand und berechtigte Funktionäre:** nur, was sie für ihre Aufgabe brauchen (z. B. Trainerinnen und Trainer die
   Kontaktdaten der Mitglieder ihres Teams; jeder solche Zugriff wird protokolliert; die Kassierin oder der Kassier die
   Beiträge).
@@ -46,10 +48,11 @@ im Sinne des Vereins wird.
 
 ## Wie lange bewahren wir Daten auf?
 
-Solange Sie Mitglied sind. Nach dem Austritt löschen wir Ihre Daten nach [24 Monaten]. Antworten zur Anwesenheit
-löschen wir [12 Monate] nach dem Anlass, Beitragsdaten [24 Monate] nach der Fälligkeit (die Buchhaltung des Vereins
-bewahrt ihre Belege gesetzlich 10 Jahre auf), Mitteilungen [6 Monate] nach Ablauf. Das Protokoll der Zugriffe enthält
-keine Namen und wird nach 12 Monaten gelöscht. Sicherungskopien werden nach [30 Tagen] überschrieben.
+Solange Sie Mitglied sind. Nach dem Austritt löschen wir Ihre Daten nach 24 Monaten. Antworten zur Anwesenheit
+löschen wir 12 Monate nach dem Anlass, Trainings und Anlässe 24 Monate danach, Beitragsdaten 24 Monate nach der
+Fälligkeit (die Buchhaltung des Vereins bewahrt ihre Belege gesetzlich 10 Jahre auf), Mitteilungen 6 Monate nach
+Ablauf. OpenClub löscht diese Daten automatisch. Das Protokoll der Zugriffe enthält keine Namen und wird nach 12
+Monaten gelöscht. Sicherungskopien werden nach 30 Tagen überschrieben.
 
 ## Ihre Rechte
 

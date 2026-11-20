@@ -4,7 +4,8 @@ import org.jooq.DSLContext
 
 /**
  * Anonymous display-only directory. PostgreSQL formats and JSON-escapes each
- * name before anything leaves the database: no IDs, DOBs or minor surnames.
+ * name before anything leaves the database: no IDs, DOBs or minor surnames. A member who switched off
+ * `listed_publicly` (OpenAPI 1.15.0, controller decision C5) is left out.
  */
 internal class PublicMemberNames(private val database: DSLContext) {
     fun listJson(): String = database.fetchOne(
@@ -18,7 +19,7 @@ internal class PublicMemberNames(private val database: DSLContext) {
                 THEN m.first_name || ' ' || left(m.last_name, 1) || '.'
                 ELSE m.first_name || ' ' || m.last_name END AS display_name
             FROM members m CROSS JOIN clubs c
-            WHERE m.archived_at IS NULL
+            WHERE m.archived_at IS NULL AND m.listed_publicly
         ) public
         """.trimIndent(),
     )?.get(0, String::class.java) ?: "[]"

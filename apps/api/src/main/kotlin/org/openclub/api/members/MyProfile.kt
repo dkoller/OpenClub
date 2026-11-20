@@ -22,7 +22,7 @@ internal class MyProfile(private val database: DSLContext) {
     data class Profile(
         val id: UUID, val firstName: String, val lastName: String, val dateOfBirth: LocalDate,
         val email: String?, val phone: String?, val gender: String?, val isPlayer: Boolean,
-        val role: String, val teams: List<Team>, val version: Long,
+        val role: String, val teams: List<Team>, val version: Long, val listedPublicly: Boolean = true,
     )
 
     sealed interface Replaced {
@@ -34,7 +34,7 @@ internal class MyProfile(private val database: DSLContext) {
     fun read(actor: UUID): Profile? {
         val row = database.fetchOne(
             """SELECT me.id, me.first_name, me.last_name, me.date_of_birth, me.email, me.phone, me.gender,
-                      me.is_player, me.role, me.row_version,
+                      me.is_player, me.role, me.row_version, me.listed_publicly,
                       (SELECT COALESCE(json_agg(json_build_object('id', t.id, 'name', t.name) ORDER BY t.name, t.id),
                                        '[]'::json)::text
                        FROM member_team_assignments a JOIN teams t ON t.id = a.team_id
@@ -51,7 +51,30 @@ internal class MyProfile(private val database: DSLContext) {
             row.get("email", String::class.java), row.get("phone", String::class.java),
             row.get("gender", String::class.java), row.get("is_player", Boolean::class.java),
             row.get("role", String::class.java), teams, row.get("row_version", Long::class.java),
+            row.get("listed_publicly", Boolean::class.java),
         )
+    }
+
+    /**
+     * Shows or hides the actor's own name on the public member list (OpenAPI 1.15.0, controller decision C5), at
+     * [expectedVersion], audited as PUBLIC_LISTING_CHANGED in the same statement.
+     */
+    fun setListing(actor: UUID, listed: Boolean, expectedVersion: Long): Replaced {
+        val version = database.fetchOne(
+            """WITH updated AS (
+                 UPDATE members me SET listed_publicly = ?
+                 WHERE me.account_id = ? AND ${ActorSql.activeVerified("me")} AND me.row_version = ?
+                 RETURNING me.id, me.row_version),
+               audited AS (
+                 INSERT INTO audit_events (event_type, actor_account_id, target_member_id)
+                 SELECT 'PUBLIC_LISTING_CHANGED', ?, id FROM updated)
+               SELECT row_version FROM updated""",
+            listed, actor, expectedVersion, actor,
+        )?.get(0, Long::class.java)
+        if (version != null) return Replaced.Updated(version)
+        val member = database.fetchOne(
+            "SELECT 1 FROM members me WHERE me.account_id = ? AND ${ActorSql.activeVerified("me")}", actor)
+        return if (member != null) Replaced.Changed else Replaced.Denied
     }
 
     /** Replaces only the actor's own email and phone, at [expectedVersion], audited in the same statement. */

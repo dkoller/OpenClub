@@ -59,6 +59,13 @@ internal fun parseJsonObject(bytes: ByteArray, required: Set<String>, optional: 
     return fields
 }
 
+/** A field that must be a JSON boolean (not a string such as "true"). */
+internal fun JsonObject.requiredBoolean(key: String): Boolean {
+    val value = this[key] as? JsonPrimitive ?: throw IllegalArgumentException("Missing field")
+    require(!value.isString && (value.content == "true" || value.content == "false")) { "Expected a boolean" }
+    return value.content == "true"
+}
+
 /** A field that must be a JSON string (not a number, boolean or null). */
 internal fun JsonObject.requiredString(key: String): String {
     val value = this[key] as? JsonPrimitive ?: throw IllegalArgumentException("Missing field")

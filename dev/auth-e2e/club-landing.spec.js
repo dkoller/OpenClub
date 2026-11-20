@@ -122,6 +122,18 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.reload();
   await expect(page.getByRole('region', { name: 'My profile' }).getByLabel('Phone')).toHaveValue('+41 79 000 00 01');
   await expect(page.getByRole('region', { name: 'My profile' }).getByLabel('Email')).toHaveValue(ownEmail);
+  // The public-list switch (OpenAPI 1.15.0, controller decision C5): hidden, then shown again.
+  const listing = page.getByRole('region', { name: 'My profile' }).getByLabel('Show my name on the public member list');
+  await expect(listing).toBeChecked();
+  // A controlled box: click, then wait for the saved state (uncheck() would expect an immediate change).
+  await listing.click();
+  await expect(listing).not.toBeChecked();
+  await expect(page.getByRole('region', { name: 'My profile' }).getByRole('status')).toHaveText('Setting saved.');
+  expect(await (await context.request.get('/api/v1/public/members')).json()).toEqual([]);
+  await page.getByRole('region', { name: 'My profile' }).getByLabel('Show my name on the public member list').click();
+  await expect(page.getByRole('region', { name: 'My profile' }).getByLabel('Show my name on the public member list')).toBeChecked();
+  await expect.poll(async () => (await context.request.get('/api/v1/public/members')).json())
+    .toEqual([{ displayName: 'Synthetic Administrator' }]);
   // Native required-field validation prevents an incomplete browser write.
   await page.getByLabel('First name').fill('Incomplete');
   await page.getByLabel('Last name').fill('Synthetic');
