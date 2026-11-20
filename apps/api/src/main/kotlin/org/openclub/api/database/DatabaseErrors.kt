@@ -11,6 +11,6 @@ import org.jooq.exception.DataAccessException
  * rejected request.
  */
 internal fun DataAccessException.rejectedTheData(): Boolean {
-    val state = sqlState() ?: return false
+    val state = sqlState()
     return state.startsWith("22") || state.startsWith("23") || state == "P0001"
 }
