@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 86 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.21.0) to the tests that exercise it. The operation list and
+Maps each of the 93 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.22.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -56,6 +56,13 @@ How to read the columns of test types:
 | `PUT /v1/me/dependents/{memberId}/contacts` | 204, 400, 401, 403, 503 | `GuardianHttpTest` (relationship before body, cleared fields, audit) |
 | `GET /v1/me/profile` | 200, 401, 403, 503 | `MyProfileHttpTest` (exact keys, teams, ETag, not audited; no member record or no verified identity 403), `PrivateRoutesRevocationTest` |
 | `GET /v1/teams/{teamId}/attendance-statistics` | 200, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (viewer, team and club managers; held excludes cancelled and out-of-range events; per member and totals; default range; player, plain member and other team 403; unknown team 404 only club-wide; malformed, repeated, unknown, reversed and over-a-year ranges 400), `PrivateRoutesRevocationTest`, Keycloak journey |
+| `GET /v1/public/join-requests` (no session) | 200, 503 | `JoinRequestHttpTest` (closed: no teams; open: team names), Keycloak journey |
+| `POST /v1/public/join-requests` (no session) | 202, 400, 403, 409, 429, 503 | `JoinRequestHttpTest` (Origin 403; privacy notice, age per kind, parent fields, unknown key and team, bad email 400 and nothing stored; honeypot and repeat 202 stored once; closed 409; 5 per address and hour 429, per last forwarded address; no address column), Keycloak journey |
+| `GET /v1/club/join-requests/settings` | 200, 401, 403, 503 | `JoinRequestHttpTest` (`EDIT_MEMBERS` only), `PrivateRoutesRevocationTest` |
+| `PUT /v1/club/join-requests/settings` | 204, 400, 401, 403, 503 | `JoinRequestHttpTest` (CSRF, `EDIT_MEMBERS`, boolean only), Keycloak journey |
+| `GET /v1/join-requests` | 200, 401, 403, 503 | `JoinRequestHttpTest`, `PrivateRoutesRevocationTest`, Keycloak journey |
+| `POST /v1/join-requests/{requestId}/accept` | 201, 400, 401, 403, 404, 409, 503 | `JoinRequestHttpTest` (CSRF, `EDIT_MEMBERS`; adult with contacts and wished team, `MEMBER_CREATED`; child without contacts; gone afterwards 404) |
+| `DELETE /v1/join-requests/{requestId}` | 204, 400, 401, 403, 404, 503 | `JoinRequestHttpTest`, `PrivateRoutesRevocationTest`, Keycloak journey |
 | `GET /v1/events/{eventId}/rides` | 200, 400, 401, 403, 404, 503 | `RideHttpTest` (phones only between driver and booked passengers, a minor's via the booking guardian; viewers, managers and other members see none; other team 403), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `POST /v1/events/{eventId}/rides` | 201, 400, 401, 403, 404, 409, 503 | `RideHttpTest` (team adults and guardians only; viewer, other team, unknown event 403; seats, departure window, direction, text bounds 400; second offer 409), `PrivateRoutesRevocationTest` |
 | `PUT /v1/rides/{rideId}` | 204, 400, 401, 403, 404, 409, 503 | `RideHttpTest` (driver only, fewer seats than bookings 409), `PrivateRoutesRevocationTest` |
@@ -107,7 +114,7 @@ How to read the columns of test types:
 Browser coverage of the same operations is in `dev/auth-e2e/club-landing.spec.js` (real Keycloak and
 Chromium, synthetic data): member, team, grant, role and club-setting workflows in four languages, real
 database denial with grants removed, a team-scoped grant that shows one team, invalid-input handling and
-accessibility structure (#25). The anonymous and authentication routes outside the 86 operations are covered
+accessibility structure (#25). The anonymous and authentication routes outside the 93 operations are covered
 by `AuthAndPublicRoutesInputTest`, `SessionRoutesTest` and `BrowserLoginRoutesTest`.
 
 ## Known gaps in this evidence

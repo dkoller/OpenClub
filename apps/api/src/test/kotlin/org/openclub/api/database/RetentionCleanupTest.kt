@@ -205,6 +205,13 @@ class RetentionCleanupTest {
                                   (CURRENT_DATE - make_interval(months => ?, days => 1))::date)""", it, member, monthsAgo, monthsAgo)
         }
         val expiredAbsence = absence(12); val keptAbsence = absence(11)
+        // Join requests (since OpenAPI 1.22.0): 60 days after they arrived.
+        fun joinRequest(daysAgo: Int): UUID = UUID.randomUUID().also {
+            db.execute("""INSERT INTO join_requests (id, kind, first_name, last_name, date_of_birth, email, phone, created_at)
+                          VALUES (?, 'SELF', 'Retention', 'Applicant', DATE '1990-01-01', ?, '+41000000099', now() - make_interval(days => ?))""",
+                it, "retention-$it@example.invalid", daysAgo)
+        }
+        val expiredRequest = joinRequest(61); val keptRequest = joinRequest(59)
         fun count(table: String, column: String, id: UUID) = db.fetchCount(DSL.table(table), DSL.field(column).eq(id))
 
         try {
@@ -227,11 +234,14 @@ class RetentionCleanupTest {
             assertEquals(1, count("announcements", "id", keptNews))
             assertEquals(0, count("member_absences", "id", expiredAbsence))
             assertEquals(1, count("member_absences", "id", keptAbsence))
+            assertEquals(0, count("join_requests", "id", expiredRequest))
+            assertEquals(1, count("join_requests", "id", keptRequest))
             assertEquals(1, db.fetchCount(DSL.table("members"), DSL.field("id").eq(member)), "the member is untouched")
         } finally {
             db.execute("DELETE FROM teams WHERE id = ?", team)
             db.execute("DELETE FROM fee_periods WHERE id IN (?, ?)", expiredPeriod, keptPeriod)
             db.execute("DELETE FROM announcements WHERE id IN (?, ?)", expiredNews, keptNews)
+            db.execute("DELETE FROM join_requests WHERE id IN (?, ?)", expiredRequest, keptRequest)
         }
     }
 

@@ -169,6 +169,12 @@ child's team) is changed or cancelled, when new events are added, when an announ
 reminder the day before a volunteer shift you signed up for. Untick what you do not want and choose the language of
 the emails; changes save at once. You need a sign-in and an email address to receive them.
 
+**Membership applications** (with `EDIT_MEMBERS`): tick *Public application form is on* to show *Join the club* on
+the signed-out start page, where adults apply for themselves and parents for a child. Open applications are listed
+with contact details; *Accept* creates the member (a child without contacts: link the parent as guardian afterwards)
+and puts them in the wished team; *Decline* and the confirmation delete the application. Untick the switch to stop
+new applications. Unhandled applications are deleted after 60 days.
+
 **Carpooling.** *Show shifts and rides* under an event also lists the rides offered to it: driver, direction, departure,
 meeting point and seats. If you are in the team (or your child is), *Offer a ride* with direction, seats, meeting
 point, date and time; change it later with *Save changes* or *Withdraw ride*. *Book seat* reserves a seat for you or

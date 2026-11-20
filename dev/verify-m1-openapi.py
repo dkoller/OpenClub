@@ -31,6 +31,7 @@ ROUTE_SOURCES = {
     "teams/EventShiftHttpRoutes.kt": "installEventShiftHttpRoutes",
     "teams/AbsenceHttpRoutes.kt": "installAbsenceHttpRoutes",
     "teams/RideHttpRoutes.kt": "installRideHttpRoutes",
+    "join/JoinRequestHttpRoutes.kt": "installJoinRequestHttpRoutes",
     "calendar/CalendarHttpRoutes.kt": "installCalendarHttpRoutes",
     "notifications/NotificationHttpRoutes.kt": "installNotificationHttpRoutes",
     "fees/FeeHttpRoutes.kt": "installFeeHttpRoutes",
@@ -89,6 +90,13 @@ GET /v1/me/calendar-feed
 GET /v1/me/notifications
 GET /v1/me/absences
 GET /v1/events/{eventId}/rides
+GET /v1/public/join-requests
+POST /v1/public/join-requests
+GET /v1/club/join-requests/settings
+PUT /v1/club/join-requests/settings
+GET /v1/join-requests
+POST /v1/join-requests/{requestId}/accept
+DELETE /v1/join-requests/{requestId}
 POST /v1/events/{eventId}/rides
 PUT /v1/rides/{rideId}
 DELETE /v1/rides/{rideId}
@@ -167,7 +175,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.21.0"
+FROZEN_VERSION = "1.22.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
@@ -199,14 +207,23 @@ def verify_contract(spec):
         if not operation:
             fail(f"Missing implemented operation in OpenAPI: {entry}")
         responses = operation.get("responses", {})
-        success = "201" if entry in {"POST /v1/members", "POST /v1/teams", "POST /v1/members/{memberId}/invitation", "POST /v1/teams/{teamId}/events", "POST /v1/fee-periods", "POST /v1/announcements", "POST /v1/events/{eventId}/shifts", "POST /v1/me/calendar-feed", "POST /v1/me/absences", "POST /v1/events/{eventId}/rides"} else (
+        success = "201" if entry in {"POST /v1/members", "POST /v1/teams", "POST /v1/members/{memberId}/invitation", "POST /v1/teams/{teamId}/events", "POST /v1/fee-periods", "POST /v1/announcements", "POST /v1/events/{eventId}/shifts", "POST /v1/me/calendar-feed", "POST /v1/me/absences", "POST /v1/events/{eventId}/rides", "POST /v1/join-requests/{requestId}/accept"} else (
             "200" if method == "GET" or entry == "POST /v1/members/import" else "204"
         )
+        if entry == "POST /v1/public/join-requests":
+            success = "202"
         if success not in responses or "503" not in responses:
             fail(f"Expected success/unavailable statuses missing: {entry}")
         if entry == "GET /v1/public/members":
             if operation.get("security") != []:
                 fail("Public display names must explicitly override session security")
+            continue
+        # The public join-request form (1.22.0): no session; the POST is limited by Origin and rate (403/429).
+        if entry in ("GET /v1/public/join-requests", "POST /v1/public/join-requests"):
+            if operation.get("security") != []:
+                fail(f"{entry} must explicitly override session security")
+            if entry.startswith("POST") and not {"202", "403", "429"} <= responses.keys():
+                fail("The public join-request POST must document 202, 403 and 429")
             continue
         # The calendar feed's secret path is its credential (1.17.0): no session, one 404 for every refusal.
         if entry == "GET /v1/calendar/{secret}":

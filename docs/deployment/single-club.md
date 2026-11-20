@@ -258,6 +258,10 @@ It is covered by synthetic migration tests, not by a witnessed production drill.
 - [R04/#13](https://github.com/dkoller/OpenClub/issues/13): approved versioned contract. Server authorization ([R06/#15](https://github.com/dkoller/OpenClub/issues/15)) is implemented and closed; its remaining edge cases are tracked in [#24](https://github.com/dkoller/OpenClub/issues/24).
 - [R15/#24](https://github.com/dkoller/OpenClub/issues/24), [R18/#27](https://github.com/dkoller/OpenClub/issues/27): local security tests and operational validation.
 
+## Public join form behind a proxy
+
+Since OpenAPI 1.22.0 the public join form limits submissions per client address. The API takes the address from the last `X-Forwarded-For` entry, which the bundled Caddy sets from the real connection (and `apps/web/nginx.conf` passes on unchanged). If you put the web container behind another proxy, make sure that proxy replaces (not appends to) client-supplied `X-Forwarded-For`; if you expose nginx or the API directly, clients can choose that value and only the global limits (200 open requests, one per person) remain. The form is off until an editor switches it on.
+
 ## Calendar feed links in logs
 
 Since OpenAPI 1.17.0 a member's calendar feed link carries its secret in the path (`/api/v1/calendar/<secret>`). The API does not log request paths and the bundled `apps/web/nginx.conf` disables the access log for `/api/v1/calendar/`. If you put another proxy or load balancer in front, turn its access log off for that path too (Caddy as configured in `dev/deployment/Caddyfile` keeps no access log). A leaked link is revoked by the member in *My schedule*.
