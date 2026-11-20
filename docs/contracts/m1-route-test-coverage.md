@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 64 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.15.0) to the tests that exercise it. The operation list and
+Maps each of the 70 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.16.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -55,6 +55,12 @@ How to read the columns of test types:
 | `GET /v1/me/dependents/{memberId}` | 200, 401, 403, 503 | `GuardianHttpTest` (exact fields, identical refusals, adult age, archive, revoked identity, audit) |
 | `PUT /v1/me/dependents/{memberId}/contacts` | 204, 400, 401, 403, 503 | `GuardianHttpTest` (relationship before body, cleared fields, audit) |
 | `GET /v1/me/profile` | 200, 401, 403, 503 | `MyProfileHttpTest` (exact keys, teams, ETag, not audited; no member record or no verified identity 403), `PrivateRoutesRevocationTest` |
+| `GET /v1/events/{eventId}/shifts` | 200, 400, 401, 403, 404, 503 | `EventShiftHttpTest` (team members, guardians, viewers and managers see shifts; display names only, minors by initial; `signedUp` only for the caller's people; other teams and members without a team 403; unknown 404 only club-wide), `PrivateRoutesRevocationTest` |
+| `POST /v1/events/{eventId}/shifts` | 201, 400, 401, 403, 404, 503 | `EventShiftHttpTest` (CSRF, `MANAGE_TEAMS` for the team only, input bounds, window around the event, trimmed title), `PrivateRoutesRevocationTest`, Keycloak journey |
+| `PUT /v1/shifts/{shiftId}` | 204, 400, 401, 403, 404, 409, 503 | `EventShiftHttpTest` (viewer 403, places below volunteers 409 and unchanged), `PrivateRoutesRevocationTest`, Keycloak journey |
+| `DELETE /v1/shifts/{shiftId}` | 204, 401, 403, 404, 503 | `EventShiftHttpTest` (sign-ups go with the shift, shifts with the event), `PrivateRoutesRevocationTest` |
+| `PUT /v1/shifts/{shiftId}/volunteers/{memberId}` | 204, 400, 401, 403, 409, 503 | `EventShiftHttpTest` (only oneself or one's minor in the team; two concurrent sign-ups for the last place, exactly one wins, other 409 `full`; again is 204; 409 `closed` after the start or for a cancelled event) |
+| `DELETE /v1/shifts/{shiftId}/volunteers/{memberId}` | 204, 400, 401, 403, 409, 503 | `EventShiftHttpTest` (withdraw twice is 204, 409 after the start; leaving the team ends sign-ups) |
 | `PUT /v1/me/profile/public-listing` | 204, 400, 401, 403, 412, 428, 503 | `MyProfileHttpTest` (CSRF, membership, boolean-only body, `If-Match` 428/412, hidden from and back on the public list, `PUBLIC_LISTING_CHANGED`), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `PUT /v1/members/{memberId}/public-listing` | 204, 400, 401, 403, 404, 412, 428, 503 | `MyProfileHttpTest` (`EDIT_MEMBERS` 403, stale 412, unknown 404, a minor hidden and listed again, audited per change), `PrivateRoutesRevocationTest` |
 | `PUT /v1/me/profile/contacts` | 204, 400, 401, 403, 412, 428, 503 | `MyProfileHttpTest` (Origin/CSRF and membership before body, only email/phone, adult rule 400, `If-Match` 428/412, stale after an editor's change, `SELF_CONTACTS_UPDATED`, other members untouched), `PrivateRoutesRevocationTest` |
@@ -85,7 +91,7 @@ How to read the columns of test types:
 Browser coverage of the same operations is in `dev/auth-e2e/club-landing.spec.js` (real Keycloak and
 Chromium, synthetic data): member, team, grant, role and club-setting workflows in four languages, real
 database denial with grants removed, a team-scoped grant that shows one team, invalid-input handling and
-accessibility structure (#25). The anonymous and authentication routes outside the 64 operations are covered
+accessibility structure (#25). The anonymous and authentication routes outside the 70 operations are covered
 by `AuthAndPublicRoutesInputTest`, `SessionRoutesTest` and `BrowserLoginRoutesTest`.
 
 ## Known gaps in this evidence

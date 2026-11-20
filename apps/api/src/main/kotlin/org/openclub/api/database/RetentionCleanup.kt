@@ -24,9 +24,10 @@ internal object RetentionCleanup {
     internal data class Counts(
         val auditEvents: Int, val orphanAccounts: Int, val erasedMembers: Int,
         val attendance: Int = 0, val events: Int = 0, val feePeriods: Int = 0, val announcements: Int = 0,
+        val volunteers: Int = 0,
     ) {
         /** True when any rule filled its batch, so another batch may find more. */
-        fun full(batchSize: Int) = listOf(auditEvents, orphanAccounts, erasedMembers, attendance, events, feePeriods, announcements)
+        fun full(batchSize: Int) = listOf(auditEvents, orphanAccounts, erasedMembers, attendance, events, feePeriods, announcements, volunteers)
             .any { it >= batchSize }
     }
 
@@ -34,7 +35,7 @@ internal object RetentionCleanup {
         require(batchSize in 1..1000)
         return Counts(pruneAuditEvents(db, batchSize), pruneOrphanAccounts(db, batchSize), eraseArchivedMembers(db, batchSize),
             pruneAttendance(db, batchSize), pruneEvents(db, batchSize), pruneFeePeriods(db, batchSize),
-            pruneAnnouncements(db, batchSize))
+            pruneAnnouncements(db, batchSize), pruneVolunteers(db, batchSize))
     }
 
     /** Attendance answers 12 months after the event ended. */
@@ -65,6 +66,17 @@ internal object RetentionCleanup {
             ORDER BY due_date LIMIT ? FOR UPDATE SKIP LOCKED
         )
         DELETE FROM fee_periods WHERE id IN (SELECT id FROM batch)""",
+        batchSize,
+    )
+
+    /** Volunteer sign-ups 12 months after the shift ended, like attendance answers (ADR-0008 addendum 20). */
+    private fun pruneVolunteers(db: DSLContext, batchSize: Int): Int = db.execute(
+        """WITH batch AS MATERIALIZED (
+            SELECT v.shift_id, v.member_id FROM shift_volunteers v JOIN event_shifts s ON s.id = v.shift_id
+            WHERE s.ends_at < CURRENT_TIMESTAMP - INTERVAL '12 months'
+            ORDER BY s.ends_at LIMIT ? FOR UPDATE OF v SKIP LOCKED
+        )
+        DELETE FROM shift_volunteers v USING batch b WHERE v.shift_id = b.shift_id AND v.member_id = b.member_id""",
         batchSize,
     )
 

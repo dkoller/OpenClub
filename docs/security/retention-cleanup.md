@@ -12,8 +12,9 @@ The API runs `RetentionCleanup` once an hour while a PostgreSQL database is conf
 | `team_events` | Deleted **24 months** after the event ended; any remaining answers go with it (`ON DELETE CASCADE`) | C10, not audited. |
 | `fee_periods` with their `member_fees` | Deleted **24 months** after the due date (cascade). The club's bookkeeping keeps what it needs for 10 years (Art. 958f OR) outside OpenClub, so export what you need first. | C10, not audited. |
 | `announcements` | Deleted **6 months** after the show-until date | C10, not audited. |
+| `shift_volunteers` | Deleted **12 months** after the shift ended; shifts go with their event after 24 months | By analogy with attendance answers (ADR-0008 addendum 20), not audited. |
 
-All seven rules use the same pattern: a batch of at most 100 chosen in a `MATERIALIZED` CTE in date order and locked with `FOR UPDATE SKIP LOCKED`, so a row locked by a running change is left for the next run. Another batch runs while any rule filled its batch (at most 10 per run). `RetentionCleanupTest` covers each new rule just past and just inside its period.
+All eight rules use the same pattern: a batch of at most 100 chosen in a `MATERIALIZED` CTE in date order and locked with `FOR UPDATE SKIP LOCKED`, so a row locked by a running change is left for the next run. Another batch runs while any rule filled its batch (at most 10 per run). `RetentionCleanupTest` covers each new rule just past and just inside its period.
 
 **Linked accounts are never deleted**, however old: `members.account_id` is `ON DELETE SET NULL`, so deleting a linked account would silently unlink a member. The job therefore locks its candidates in one statement and deletes them in a second statement with a fresh snapshot that re-checks for a linked member. An account locked by a linking or recovery transaction is skipped. Tests cover both rules, the batch limit, a linked old account, an account locked by another transaction and the cascade.
 

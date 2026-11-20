@@ -176,6 +176,11 @@ class RetentionCleanupTest {
                    VALUES (?, ?, 'TRAINING', 'Retention', now() - make_interval(months => ?, days => 1, hours => 2),
                            now() - make_interval(months => ?, days => 1))""", it, team, monthsAgo, monthsAgo)
             db.execute("INSERT INTO event_attendance (event_id, member_id, response) VALUES (?, ?, 'YES')", it, member)
+            // A volunteer shift over the same hours, with the member signed up (since OpenAPI 1.16.0).
+            val shift = UUID.randomUUID()
+            db.execute("""INSERT INTO event_shifts (id, event_id, title, starts_at, ends_at, needed)
+                          SELECT ?, id, 'Bar', starts_at, ends_at, 1 FROM team_events WHERE id = ?""", shift, it)
+            db.execute("INSERT INTO shift_volunteers (shift_id, member_id) VALUES (?, ?)", shift, member)
         }
         fun period(monthsAgo: Int): UUID = UUID.randomUUID().also {
             db.execute("""INSERT INTO fee_periods (id, name, due_date, amount_cents)
@@ -199,6 +204,10 @@ class RetentionCleanupTest {
             assertEquals(1, count("team_events", "id", answerOnly), "the event itself stays for 24 months")
             assertEquals(0, count("event_attendance", "event_id", answerOnly), "its answers go after 12 months")
             assertEquals(1, count("event_attendance", "event_id", keptAnswer))
+            fun volunteers(event: UUID) = db.fetchCount(DSL.table("shift_volunteers v JOIN event_shifts s ON s.id = v.shift_id"),
+                DSL.field("s.event_id").eq(event))
+            assertEquals(0, volunteers(answerOnly), "sign-ups go 12 months after the shift")
+            assertEquals(1, volunteers(keptAnswer))
             assertEquals(0, count("fee_periods", "id", expiredPeriod))
             assertEquals(0, count("member_fees", "period_id", expiredPeriod), "the fees go with the period")
             assertEquals(1, count("member_fees", "period_id", keptPeriod))

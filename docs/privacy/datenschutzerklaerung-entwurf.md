@@ -20,6 +20,8 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
 - **Anmeldung:** Eine Kennung beim Anmeldedienst des Vereins (auf demselben Server) und Ihre Sitzung.
 - **Teams, Trainings und Anlässe:** Wann und wo trainiert oder gespielt wird.
 - **Anwesenheit:** Ihre Antwort «Ja», «Nein» oder «Vielleicht» pro Anlass, ohne Begründung.
+- **Helfereinsätze:** für welche Einsätze bei Anlässen Ihres Teams Sie sich eingetragen haben. Ihr Team sieht Ihren
+  Namen beim Einsatz, damit sich alle absprechen können.
 - **Mitgliederbeiträge:** Betrag, Fälligkeit und Zahlungsdatum. Zahlungen laufen nicht über OpenClub; wir speichern
   keine Bankdaten.
 - **Mitteilungen** des Vereins und Ihrer Teams.
@@ -49,7 +51,7 @@ im Sinne des Vereins wird.
 ## Wie lange bewahren wir Daten auf?
 
 Solange Sie Mitglied sind. Nach dem Austritt löschen wir Ihre Daten nach 24 Monaten. Antworten zur Anwesenheit
-löschen wir 12 Monate nach dem Anlass, Trainings und Anlässe 24 Monate danach, Beitragsdaten 24 Monate nach der
+und Eintragungen für Helfereinsätze löschen wir 12 Monate nach dem Anlass, Trainings und Anlässe 24 Monate danach, Beitragsdaten 24 Monate nach der
 Fälligkeit (die Buchhaltung des Vereins bewahrt ihre Belege gesetzlich 10 Jahre auf), Mitteilungen 6 Monate nach
 Ablauf. OpenClub löscht diese Daten automatisch. Das Protokoll der Zugriffe enthält keine Namen und wird nach 12
 Monaten gelöscht. Sicherungskopien werden nach 30 Tagen überschrieben.

@@ -205,3 +205,14 @@ carry the decided values. Real member data still waits for the M2 gates and the 
 | 45 | Retention of new data (C10) | Deleted automatically by the hourly retention job: attendance answers 12 months after the event, events 24 months after the event, fee periods with their fees 24 months after the due date (the club's bookkeeping keeps its records for 10 years outside OpenClub, Art. 958f OR), announcements 6 months after their show-until date. Not audited (routine expiry of club records). |
 | 46 | Basis and the rest (C1–C4, C6–C9, C11–C13, C15, C16) | As written in the sheet: membership-based processing without consent, data minimised, no sensitive data, Infomaniak as the only processor with an agreement, backups 30 days, requests within 30 days, breaches reported to the FDPIC where required, no impact assessment, a voluntary processing record. |
 
+## Addendum 20 — volunteer shifts (2026-11-20)
+
+Asked what next, the owner chose **all four** of volunteer shifts, a calendar feed, attendance statistics and email
+notifications (in that order; each contract is approved separately, email additionally needs approval for any cost).
+Shown the shifts contract, the owner chose **"Team members"** for who sees volunteers' names.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 47 | Volunteer shifts | Approved as OpenAPI **1.16.0** (V29). A shift belongs to one team event (title, start, end at most 24 hours and within a day of the event, 1–100 places, at most 50 per event) and is deleted with it. `MANAGE_TEAMS` for the event's team creates, changes and deletes shifts; a change may not leave fewer places than volunteers. Team viewers, managers, members and the guardians of its minor members see each shift with its volunteers' public display names. A member signs up themselves and a guardian their current minor, only for their team's shifts, until the shift starts (not for a cancelled event) and while places are free; the shift is locked, so two people never take the last place. Leaving the team ends the sign-ups. Not audited; sign-ups are in the member export. |
+| 48 | Retention of sign-ups | The agent applied the decided attendance rule by analogy (C10): sign-ups are deleted 12 months after the shift, shifts with their event after 24 months. The owner can change this. |
+
