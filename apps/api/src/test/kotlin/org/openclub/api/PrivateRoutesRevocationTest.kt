@@ -183,6 +183,10 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Put, "/api/v1/me/profile/contacts", """{"email":"holder@example.invalid","phone":"+41000000001"}"""),
         // The public-list switch (1.15.0), also stopping at 428 without If-Match.
         Route(HttpMethod.Put, "/api/v1/me/profile/public-listing", """{"listedPublicly":false}"""),
+        // The holder's own calendar feed (1.17.0); the feed itself has no session and is covered in CalendarFeedHttpTest.
+        Route(HttpMethod.Get, "/api/v1/me/calendar-feed"),
+        Route(HttpMethod.Post, "/api/v1/me/calendar-feed"),
+        Route(HttpMethod.Delete, "/api/v1/me/calendar-feed"),
         Route(HttpMethod.Put, "/api/v1/members/$target/public-listing", """{"listedPublicly":false}"""),
         // Membership fees (1.12.0): unknown periods are 404 for the holder, so nothing else changes.
         Route(HttpMethod.Get, "/api/v1/fee-periods"),

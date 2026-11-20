@@ -159,6 +159,12 @@ it starts; choosing your answer again clears it. You see the totals, but never o
 shift while places are free, *Withdraw* takes you off, both until the shift starts. Your team sees your name on the
 shift so everyone can coordinate.
 
+**Calendar subscription** (under *My schedule*): *Create link* shows a private link once; copy it into your phone's
+calendar or Google/Apple Calendar ("subscribe to calendar" / "add from URL"). It then shows your and your children's
+events, four weeks back to six months ahead, including place and notes, and updates by itself every few hours.
+Anyone with the link sees your schedule, so keep it to yourself. *Create a new link* replaces it (the old one stops
+working) and *Revoke link* ends it.
+
 **My fees** lists your membership fees with amount, due date and whether they are paid (and your children's, if you
 are a guardian). Questions about a fee go to the club's treasurer.
 

@@ -20,6 +20,9 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
 - **Anmeldung:** Eine Kennung beim Anmeldedienst des Vereins (auf demselben Server) und Ihre Sitzung.
 - **Teams, Trainings und Anlässe:** Wann und wo trainiert oder gespielt wird.
 - **Anwesenheit:** Ihre Antwort «Ja», «Nein» oder «Vielleicht» pro Anlass, ohne Begründung.
+- **Kalender-Abo (freiwillig):** Wenn Sie unter «Mein Programm» einen Kalender-Link erstellen, lädt Ihre
+  Kalender-App (z. B. Google oder Apple) Ihre Termine samt Ort und Notizen über diesen Link und speichert sie in Ihrem
+  Konto bei diesem Anbieter. Sie können den Link jederzeit widerrufen.
 - **Helfereinsätze:** für welche Einsätze bei Anlässen Ihres Teams Sie sich eingetragen haben. Ihr Team sieht Ihren
   Namen beim Einsatz, damit sich alle absprechen können.
 - **Mitgliederbeiträge:** Betrag, Fälligkeit und Zahlungsdatum. Zahlungen laufen nicht über OpenClub; wir speichern

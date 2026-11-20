@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { test, expect } from '@playwright/test';
+import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -626,6 +626,18 @@ test('verified login gains club access only after restricted operator bootstrap'
   await juniors.getByRole('button', { name: 'Close schedule' }).click();
   await expect(schedule).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'My schedule' }).getByText('No events in the next eight weeks.')).toBeVisible();
+  // Calendar feed (OpenAPI 1.17.0): the link is shown once, serves iCalendar without a session and ends when revoked.
+  const feedSection = page.getByRole('region', { name: 'Calendar subscription' });
+  await feedSection.getByRole('button', { name: 'Create link' }).click();
+  const feedLink = await feedSection.getByLabel('Your link (shown only now)').inputValue();
+  expect(feedLink).toMatch(/\/api\/v1\/calendar\/[A-Za-z0-9_-]{43}$/);
+  const feed = await playwrightRequest.newContext().then(anonymous => anonymous.get(feedLink));
+  expect(feed.status()).toBe(200);
+  expect(await feed.text()).toContain('BEGIN:VCALENDAR');
+  await expect(feedSection.getByRole('button', { name: 'Revoke link' })).toBeVisible();
+  await feedSection.getByRole('button', { name: 'Revoke link' }).click();
+  await expect(feedSection.getByRole('status')).toHaveText('Link revoked.');
+  expect((await (await playwrightRequest.newContext()).get(feedLink)).status()).toBe(404);
 
   // Membership fees (OpenAPI 1.12.0): the first administrator holds MANAGE_FEES from the bootstrap. A new period
   // includes every active member; marking Mara's fee paid updates the totals; the administrator sees their own fee.
