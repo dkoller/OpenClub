@@ -234,3 +234,13 @@ Shown the contract, the owner chose **"Viewers + managers"**.
 | --- | --- | --- |
 | 51 | Attendance statistics | Approved as OpenAPI **1.18.0**. `GET /v1/teams/{teamId}/attendance-statistics` for holders of `VIEW_TEAMS` or `MANAGE_TEAMS` for the team (the people who already see each answer): for a range of UTC dates (default the last 12 months, at most 366 days), the number of the team's events held (started, not cancelled) and, per active team member by public display name, their Yes, No and Maybe answers and the events without an answer, plus totals. Uses stored answers only: no new data, not audited. Because answers are deleted after 12 months and assignments carry no dates, older events and events before a member joined count as unanswered; the UI says so. |
 
+## Addendum 23 — email notifications (2026-11-20)
+
+Asked for the mail sender, the owner chose **"Any SMTP, config only"** (no new cost; the synthetic demo stays
+without email) and all four kinds of email. Shown the contract, the owner chose **"All on, can opt out"**.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 52 | Email notifications | Approved as OpenAPI **1.19.0** (V31). Four kinds: event changed or cancelled (a deletion counts as cancelled; editing an event that stays cancelled sends nothing), new events (a weekly series is one message), announcements, and a reminder within 24 hours before a volunteer shift. Every kind is on by default; each member turns kinds off and chooses the language (DE/EN/FR/IT) in *My profile* (`GET`/`PUT /v1/me/notifications`). Mail goes only to active members with a verified sign-in and an address; guardians get their current minors' team messages and reminders. Messages carry club, team and event or announcement details and a link, never other members' names (a guardian's reminder names their own child). Events that have ended are not reported. |
+| 53 | Sending | Messages are queued in the same transaction as the change and sent once a minute from a database outbox (`SKIP LOCKED`), looking the address up at sending time; up to three tries; sent rows deleted after 7 days, unsent ones after 2 days. The SMTP server comes only from the environment written by the operator's config (`OPENCLUB_SMTP_*`, implicit TLS or STARTTLS, never plain text); without one nothing is queued. New dependency: Eclipse Angus Mail (free, EPL-2.0/GPL-2.0 with Classpath Exception), the Jakarta Mail implementation. |
+

@@ -164,6 +164,11 @@ it starts; choosing your answer again clears it. You see the totals, but never o
 shift while places are free, *Withdraw* takes you off, both until the shift starts. Your team sees your name on the
 shift so everyone can coordinate.
 
+**Email notifications** (in *My profile*): if your club sends email, you get one when an event of your team (or your
+child's team) is changed or cancelled, when new events are added, when an announcement is posted for you, and a
+reminder the day before a volunteer shift you signed up for. Untick what you do not want and choose the language of
+the emails; changes save at once. You need a sign-in and an email address to receive them.
+
 **Calendar subscription** (under *My schedule*): *Create link* shows a private link once; copy it into your phone's
 calendar or Google/Apple Calendar ("subscribe to calendar" / "add from URL"). It then shows your and your children's
 events, four weeks back to six months ahead, including place and notes, and updates by itself every few hours.

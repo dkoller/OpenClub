@@ -19,7 +19,9 @@ import kotlinx.serialization.json.put
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
+import org.jooq.impl.DSL
 import org.openclub.api.members.ClubCapabilityAccess.Capability
+import org.openclub.api.notifications.Notifier
 import org.openclub.api.members.guarded
 import org.openclub.api.members.optionalText
 import org.openclub.api.members.readSession
@@ -50,6 +52,7 @@ internal fun Application.installTeamEventHttpRoutes(
     cookies: AuthCookiePolicy,
     origin: String,
     database: DatabaseRuntime,
+    notifier: Notifier = Notifier.DISABLED,
 ) {
     routing {
         get("/api/v1/me/events") {
@@ -104,7 +107,7 @@ internal fun Application.installTeamEventHttpRoutes(
                 } catch (_: DateTimeException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 }
-                when (val result = database.onDatabaseThread { TeamEvents(it).create(actor.accountId, team, input, starts) }) {
+                when (val result = database.onDatabaseThread { db -> db.transactionResult { c -> TeamEvents(DSL.using(c), notifier).create(actor.accountId, team, input, starts) } }) {
                     is TeamEvents.Created.Done -> call.respondText(buildJsonObject {
                         put("ids", buildJsonArray { result.ids.forEach { add(JsonPrimitive(it.toString())) } })
                     }.toString(), ContentType.Application.Json, HttpStatusCode.Created)
@@ -129,7 +132,7 @@ internal fun Application.installTeamEventHttpRoutes(
                 } catch (_: DateTimeException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 }
-                call.answer(database.onDatabaseThread { TeamEvents(it).replace(actor.accountId, event, input, cancelled) })
+                call.answer(database.onDatabaseThread { db -> db.transactionResult { c -> TeamEvents(DSL.using(c), notifier).replace(actor.accountId, event, input, cancelled) } })
             }
         }
         get("/api/v1/events/{eventId}/attendance") {
@@ -197,7 +200,7 @@ internal fun Application.installTeamEventHttpRoutes(
                     return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 }
                 val event = call.uuid("eventId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
-                call.answer(database.onDatabaseThread { TeamEvents(it).delete(actor.accountId, event) })
+                call.answer(database.onDatabaseThread { db -> db.transactionResult { c -> TeamEvents(DSL.using(c), notifier).delete(actor.accountId, event) } })
             }
         }
     }

@@ -262,3 +262,22 @@ It is covered by synthetic migration tests, not by a witnessed production drill.
 
 Since OpenAPI 1.17.0 a member's calendar feed link carries its secret in the path (`/api/v1/calendar/<secret>`). The API does not log request paths and the bundled `apps/web/nginx.conf` disables the access log for `/api/v1/calendar/`. If you put another proxy or load balancer in front, turn its access log off for that path too (Caddy as configured in `dev/deployment/Caddyfile` keeps no access log). A leaked link is revoked by the member in *My schedule*.
 
+## Email notifications (optional)
+
+Since OpenAPI 1.19.0 the API can send notification emails through any SMTP server the club already uses (for example a mailbox in the club's Infomaniak plan). Without `OPENCLUB_SMTP_HOST` email is off and nothing is queued; the synthetic demo stays that way, because its members have made-up addresses. To turn it on for a real-data installation (after the M2 gates), add the settings to the `api` service through a compose override file kept with the server's other configuration, never on a command line:
+
+```yaml
+# compose.email.yaml (on the server, next to the other override files; the password comes from the private env file)
+services:
+  api:
+    environment:
+      OPENCLUB_SMTP_HOST: mail.example.ch        # the provider's SMTP host name
+      OPENCLUB_SMTP_PORT: "465"                  # 465 = implicit TLS (default); 587 = STARTTLS
+      OPENCLUB_SMTP_USERNAME: club@example.ch
+      OPENCLUB_SMTP_PASSWORD: ${OPENCLUB_SMTP_PASSWORD:?set in the private env file}
+      OPENCLUB_SMTP_FROM: "FC Example <club@example.ch>"
+      OPENCLUB_TIME_ZONE: Europe/Zurich          # times in emails (default)
+```
+
+The API refuses to start with a partial or invalid email setup. It needs the OIDC settings (the browser origin is the link in every message). Plain-text SMTP is never used. The SMTP provider processes members' addresses and message contents for the club: list it in the processing record (C8) and conclude a data processing agreement before real data. Messages wait at most 2 days in the database; failures are logged as a count only.
+

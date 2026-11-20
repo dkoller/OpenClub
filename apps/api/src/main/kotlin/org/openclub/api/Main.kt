@@ -12,6 +12,11 @@ import org.openclub.api.members.installGrantHttpRoutes
 import org.openclub.api.members.installGuardianHttpRoutes
 import org.openclub.api.members.installMyProfileHttpRoutes
 import org.openclub.api.calendar.installCalendarHttpRoutes
+import org.openclub.api.notifications.MailConfig
+import org.openclub.api.notifications.MailWorker
+import org.openclub.api.notifications.Notifier
+import org.openclub.api.notifications.SmtpMailer
+import org.openclub.api.notifications.installNotificationHttpRoutes
 import org.openclub.api.teams.installEventShiftHttpRoutes
 import org.openclub.api.teams.installTeamEventHttpRoutes
 import org.openclub.api.fees.installFeeHttpRoutes
@@ -49,8 +54,13 @@ fun main() {
         "OIDC authentication requires a PostgreSQL session database"
     }
     val database = DatabaseRuntime.openIfConfigured(environment)
+    // Email (OpenAPI 1.19.0): only with an SMTP server, a database and a browser origin for the links in messages.
+    val mail = MailConfig.fromEnvironment(environment)
+    require(mail == null || (database != null && authConfig != null)) { "Email notifications need the database and OIDC settings" }
+    val notifier = if (mail != null && authConfig != null) Notifier(mail, authConfig.browserOrigin) else Notifier.DISABLED
     var cleanup: Job? = null
     var retention: Job? = null
+    var mailer: Job? = null
     try {
         // Fail startup rather than exposing partially working auth routes.
         // Discovery runs before starting Netty, not on a request event loop.
@@ -71,15 +81,20 @@ fun main() {
                 RetentionCleanup.run(database)
             }
         }
+        if (mail != null && database != null) {
+            mailer = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                MailWorker.run(database, notifier, SmtpMailer(mail))
+            }
+        }
         val port = environment["PORT"]?.toIntOrNull() ?: 8080
         embeddedServer(Netty, port = port, host = "0.0.0.0") {
             module(login, authConfig?.cookies,
                 authConfig?.let { PostgresBrowserSessions(requireNotNull(database)) },
                 authConfig?.browserOrigin,
-                database = database)
+                database = database, notifier = notifier)
         }.start(wait = true)
     } finally {
-        runBlocking { cleanup?.cancelAndJoin(); retention?.cancelAndJoin() }
+        runBlocking { cleanup?.cancelAndJoin(); retention?.cancelAndJoin(); mailer?.cancelAndJoin() }
         database?.close()
     }
 }
@@ -91,6 +106,7 @@ internal fun Application.module(
     publicOrigin: String? = null,
     authAdmission: AuthAdmissionLimiter = AuthAdmissionLimiter(),
     database: DatabaseRuntime? = null,
+    notifier: Notifier = Notifier.DISABLED,
 ) {
     routing {
         // Anonymous names are deliberately separate from authenticated member administration.
@@ -152,11 +168,12 @@ internal fun Application.module(
         installMemberDetailsHttpRoute(sessions, requireNotNull(cookiePolicy), database)
         installGuardianHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installMyProfileHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
-        installTeamEventHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
+        installTeamEventHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, notifier)
         installEventShiftHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installCalendarHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installFeeHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installMemberListHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
-        installAnnouncementHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
+        installAnnouncementHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, notifier)
+        installNotificationHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, notifier)
     }
 }

@@ -16,6 +16,8 @@ The API runs `RetentionCleanup` once an hour while a PostgreSQL database is conf
 
 All eight rules use the same pattern: a batch of at most 100 chosen in a `MATERIALIZED` CTE in date order and locked with `FOR UPDATE SKIP LOCKED`, so a row locked by a running change is left for the next run. Another batch runs while any rule filled its batch (at most 10 per run). `RetentionCleanupTest` covers each new rule just past and just inside its period.
 
+The email outbox (OpenAPI 1.19.0) is cleaned by the mail worker, not this job: sent messages are deleted after 7 days, unsent ones after 2 days.
+
 **Linked accounts are never deleted**, however old: `members.account_id` is `ON DELETE SET NULL`, so deleting a linked account would silently unlink a member. The job therefore locks its candidates in one statement and deletes them in a second statement with a fresh snapshot that re-checks for a linked member. An account locked by a linking or recovery transaction is skipped. Tests cover both rules, the batch limit, a linked old account, an account locked by another transaction and the cascade.
 
 **Not done by this job:** database backups, application logs, expired sessions and login transactions (`AuthRecordCleanup`, every minute). Failures are logged without data and the job tries again at the next run.

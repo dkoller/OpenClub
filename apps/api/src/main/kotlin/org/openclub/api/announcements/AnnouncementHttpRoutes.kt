@@ -16,7 +16,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import org.jooq.impl.DSL
 import org.openclub.api.auth.AuthCookiePolicy
+import org.openclub.api.notifications.Notifier
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.members.guarded
@@ -40,6 +42,7 @@ internal fun Application.installAnnouncementHttpRoutes(
     cookies: AuthCookiePolicy,
     origin: String,
     database: DatabaseRuntime,
+    notifier: Notifier = Notifier.DISABLED,
 ) {
     routing {
         get("/api/v1/me/announcements") {
@@ -80,8 +83,11 @@ internal fun Application.installAnnouncementHttpRoutes(
                 } catch (_: DateTimeException) {
                     return@changing call.refuse(HttpStatusCode.BadRequest, "invalid")
                 }
-                when (val result = database.onDatabaseThread {
-                    Announcements(it).create(actor, team, content.title, content.body, content.showUntil) }) {
+                // The email notification (OpenAPI 1.19.0) is queued in the same transaction as the announcement.
+                when (val result = database.onDatabaseThread { db -> db.transactionResult { c ->
+                    val tx = DSL.using(c)
+                    Announcements(tx).create(actor, team, content.title, content.body, content.showUntil)
+                        .also { if (it is Announcements.Created.Done) notifier.announcementPosted(tx, it.id) } } }) {
                     is Announcements.Created.Done -> call.respondText(buildJsonObject { put("id", result.id.toString()) }.toString(),
                         ContentType.Application.Json, HttpStatusCode.Created)
                     Announcements.Created.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
