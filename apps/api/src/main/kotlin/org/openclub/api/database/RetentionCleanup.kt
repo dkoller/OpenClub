@@ -24,10 +24,10 @@ internal object RetentionCleanup {
     internal data class Counts(
         val auditEvents: Int, val orphanAccounts: Int, val erasedMembers: Int,
         val attendance: Int = 0, val events: Int = 0, val feePeriods: Int = 0, val announcements: Int = 0,
-        val volunteers: Int = 0,
+        val volunteers: Int = 0, val absences: Int = 0,
     ) {
         /** True when any rule filled its batch, so another batch may find more. */
-        fun full(batchSize: Int) = listOf(auditEvents, orphanAccounts, erasedMembers, attendance, events, feePeriods, announcements, volunteers)
+        fun full(batchSize: Int) = listOf(auditEvents, orphanAccounts, erasedMembers, attendance, events, feePeriods, announcements, volunteers, absences)
             .any { it >= batchSize }
     }
 
@@ -35,7 +35,7 @@ internal object RetentionCleanup {
         require(batchSize in 1..1000)
         return Counts(pruneAuditEvents(db, batchSize), pruneOrphanAccounts(db, batchSize), eraseArchivedMembers(db, batchSize),
             pruneAttendance(db, batchSize), pruneEvents(db, batchSize), pruneFeePeriods(db, batchSize),
-            pruneAnnouncements(db, batchSize), pruneVolunteers(db, batchSize))
+            pruneAnnouncements(db, batchSize), pruneVolunteers(db, batchSize), pruneAbsences(db, batchSize))
     }
 
     /** Attendance answers 12 months after the event ended. */
@@ -77,6 +77,16 @@ internal object RetentionCleanup {
             ORDER BY s.ends_at LIMIT ? FOR UPDATE OF v SKIP LOCKED
         )
         DELETE FROM shift_volunteers v USING batch b WHERE v.shift_id = b.shift_id AND v.member_id = b.member_id""",
+        batchSize,
+    )
+
+    /** Absences 12 months after their last day, like attendance answers (ADR-0008 addendum 24). */
+    private fun pruneAbsences(db: DSLContext, batchSize: Int): Int = db.execute(
+        """WITH batch AS MATERIALIZED (
+            SELECT id FROM member_absences WHERE to_date < CURRENT_DATE - INTERVAL '12 months'
+            ORDER BY to_date LIMIT ? FOR UPDATE SKIP LOCKED
+        )
+        DELETE FROM member_absences WHERE id IN (SELECT id FROM batch)""",
         batchSize,
     )
 

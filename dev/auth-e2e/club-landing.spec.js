@@ -382,7 +382,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/^member-[0-9a-f-]{36}\.json$/);
   const exported = JSON.parse(readFileSync(await file.path(), 'utf8'));
-  expect(Object.keys(exported).sort()).toEqual(['attendance', 'clubGrants', 'exportedAt', 'fees', 'guardianships', 'invitations', 'member', 'shifts', 'teamGrants', 'teams']);
+  expect(Object.keys(exported).sort()).toEqual(['absences', 'attendance', 'clubGrants', 'exportedAt', 'fees', 'guardianships', 'invitations', 'member', 'shifts', 'teamGrants', 'teams']);
   expect(exported.member.firstName).toBe('Mara');
   expect(exported.member).not.toHaveProperty('accountId');
   await maraDetails.getByRole('button', { name: 'Close' }).click();
@@ -649,6 +649,15 @@ test('verified login gains club access only after restricted operator bootstrap'
   await feedSection.getByRole('button', { name: 'Revoke link' }).click();
   await expect(feedSection.getByRole('status')).toHaveText('Link revoked.');
   expect((await (await playwrightRequest.newContext()).get(feedLink)).status()).toBe(404);
+  // Absences (OpenAPI 1.20.0): enter one for today, see it listed, delete it again.
+  const absences = page.getByRole('region', { name: 'Absences' });
+  await expect(absences.getByText('No absences.')).toBeVisible();
+  const todayLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  await absences.getByLabel('From').fill(todayLocal);
+  await absences.getByRole('button', { name: 'Add absence' }).click();
+  await expect(absences.getByRole('listitem')).toHaveText(`Me: ${todayLocal} Delete`);
+  await absences.getByRole('button', { name: 'Delete' }).click();
+  await expect(absences.getByText('No absences.')).toBeVisible();
 
   // Membership fees (OpenAPI 1.12.0): the first administrator holds MANAGE_FEES from the bootstrap. A new period
   // includes every active member; marking Mara's fee paid updates the totals; the administrator sees their own fee.

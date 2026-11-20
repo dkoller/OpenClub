@@ -188,6 +188,8 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Get, "/api/v1/me/calendar-feed"),
         // Email notification settings (1.19.0): the holder's own switches.
         Route(HttpMethod.Get, "/api/v1/me/notifications"),
+        // Absences (1.20.0); entering and deleting are covered in AbsenceHttpTest.
+        Route(HttpMethod.Get, "/api/v1/me/absences"),
         Route(HttpMethod.Put, "/api/v1/me/notifications",
             """{"eventChanges":true,"newEvents":true,"announcements":true,"shiftReminders":true,"language":"de"}"""),
         Route(HttpMethod.Post, "/api/v1/me/calendar-feed"),
