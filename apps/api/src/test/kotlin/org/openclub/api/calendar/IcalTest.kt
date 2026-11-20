@@ -22,7 +22,7 @@ class IcalTest {
         assertTrue(text.startsWith("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"))
         assertTrue(text.endsWith("END:VCALENDAR\r\n"))
         for (line in listOf("UID:00000000-0000-0000-0000-000000000001@openclub", "DTSTAMP:20261120T080000Z",
-            "DTSTART:20261125T170000Z", "DTEND:20261125T183000Z", "SUMMARY:U18: Training\; hall\\, B",
+            "DTSTART:20261125T170000Z", "DTEND:20261125T183000Z", "SUMMARY:U18: Training\\; hall\\, B",
             "LOCATION:Hall\\\\2", "DESCRIPTION:Bring\\nshoes", "STATUS:CONFIRMED", "X-WR-CALNAME:FC Example")) {
             assertTrue("$line\r\n" in text, line)
         }
