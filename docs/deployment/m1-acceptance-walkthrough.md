@@ -38,6 +38,10 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] B10 *Announcements*: post one to the whole club with two lines of text; it shows with *Whole club* and both lines.
       As `coach@…` in C3 post one for Juniors U12 only; `parent@…` in D3 sees both, a member of another team only the
       club-wide one.
+- [ ] B11 *My profile*: untick *Show my name on the public member list*; the anonymous list (B6) no longer shows the
+      administrator; tick it again. *Email notifications* says the club sends no emails (the demo has no SMTP server).
+- [ ] B12 *My schedule* → *Calendar subscription*: *Create link*, add it to a phone or desktop calendar ("subscribe" /
+      "from URL"); the U12 dates from C4 appear after the next refresh. *Revoke link*: the calendar stops updating.
 
 ## C. Teams and permissions
 
@@ -50,6 +54,8 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       four dates appear. *Cancel event* on one (marked *Cancelled*), *Delete* and *Confirm delete* another. *My
       schedule* (reload) lists the remaining U12 dates, because Peter is in that team; answer *Yes* for one. In the
       team's *Schedule*, *Show answers* lists Peter Zürcher with *Yes* and the minors as first name plus initial.
+      *Show volunteer shifts* on one date: add "Bar" with 1 person; *Sign up: Me* fills it; the button for anyone else
+      is disabled (full). *Attendance statistics* shows the team's members with no events held yet (dates lie ahead).
 - [ ] C5 Revoke the grant: the coach loses the team at the next reload. *Unlink account* for Peter: the coach's session ends.
 
 ## D. Guardians
@@ -59,7 +65,8 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       refused after a second one.
 - [ ] D3 As `parent@…` (reload): *My children* lists Lea; *Open* shows birth date, player flag and team; change her email;
       it is saved. *My schedule* lists the U12 trainings from C4 marked *For Lea*; answer *No* for Lea and see the totals
-      change, but no other member's answer. Nothing else about other members is visible.
+      change, but no other member's answer. Nothing else about other members is visible. *Show volunteer shifts* on a U12
+      date offers *Sign up: Lea*.
 - [ ] D4 Remove Sandra as guardian: *My children* disappears for `parent@…` after a reload.
 
 ## E. Denial and sessions
@@ -84,7 +91,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 | --- | --- |
 | Operator and host | Owner; Infomaniak VPS Lite \_ vCPU / \_ GB; Ubuntu \_ ; date \_ |
 | HTTPS probe (A1), identity provider | pass / fail, Rauthy, date \_ |
-| Members, languages, own profile, fees, Excel and announcements (B1–B10) | pass / fail, notes \_ |
+| Members, languages, own profile, fees, Excel, announcements, public list and calendar (B1–B12) | pass / fail, notes \_ |
 | Teams, invitations, scoped permissions, schedule (C1–C5) | pass / fail, notes \_ |
 | Guardians (D1–D4) | pass / fail, notes \_ |
 | Denial and sessions (E1–E3) | pass / fail, notes \_ |
