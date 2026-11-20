@@ -4,6 +4,7 @@ import org.jooq.DSLContext
 import org.openclub.api.members.ActorSql
 import org.openclub.api.members.AgeSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
+import java.time.LocalDate
 import java.util.UUID
 
 /**
@@ -100,6 +101,60 @@ internal class EventAttendance(private val database: DSLContext) {
         return Listing.Found(answers, Counts(
             answers.count { it.response == Response.YES }, answers.count { it.response == Response.NO },
             answers.count { it.response == Response.MAYBE }))
+    }
+
+    data class Row(val displayName: String, val yes: Int, val no: Int, val maybe: Int, val noAnswer: Int)
+
+    sealed interface Statistics {
+        data class Found(val held: Int, val rows: List<Row>) : Statistics
+        data object NotFound : Statistics
+        data object Denied : Statistics
+    }
+
+    /**
+     * Attendance statistics (OpenAPI 1.18.0, ADR-0008 addendum 22) for holders of `VIEW_TEAMS` or `MANAGE_TEAMS` for
+     * the team: for each active team member, by public display name, how they answered the team's events that took
+     * place in [from]..[to] (UTC dates; started, not cancelled). Assignments carry no dates, so a member who joined
+     * later counts the earlier events as unanswered. Uses only stored answers; not audited.
+     */
+    fun statistics(actor: UUID, teamId: UUID, from: LocalDate, to: LocalDate): Statistics {
+        val access = database.fetchOne(
+            "SELECT ${ActorSql.holdsTeamCapability("t.id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)} FROM teams t WHERE t.id = ?",
+            actor, teamId) ?: return if (database.fetchOne(
+                """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
+                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS') LIMIT 1""",
+                actor) != null) Statistics.NotFound else Statistics.Denied
+        if (access.get(0, Boolean::class.java) != true) return Statistics.Denied
+        val held = (database.fetchValue(
+            """SELECT count(*) FROM team_events e WHERE e.team_id = ? AND NOT e.cancelled AND e.starts_at <= now()
+                 AND e.starts_at >= (?::date)::timestamp AT TIME ZONE 'UTC'
+                 AND e.starts_at < ((?::date) + 1)::timestamp AT TIME ZONE 'UTC'""",
+            teamId, from.toString(), to.toString()) as Number).toInt()
+        val rows = database.fetch(
+            """WITH held AS (
+                 SELECT e.id FROM team_events e WHERE e.team_id = ? AND NOT e.cancelled AND e.starts_at <= now()
+                   AND e.starts_at >= (?::date)::timestamp AT TIME ZONE 'UTC'
+                   AND e.starts_at < ((?::date) + 1)::timestamp AT TIME ZONE 'UTC')
+               SELECT CASE WHEN ${AgeSql.minor("m")}
+                           THEN m.first_name || ' ' || left(m.last_name, 1) || '.'
+                           ELSE m.first_name || ' ' || m.last_name END AS display_name,
+                      count(ea.response) FILTER (WHERE ea.response = 'YES') AS yes_count,
+                      count(ea.response) FILTER (WHERE ea.response = 'NO') AS no_count,
+                      count(ea.response) FILTER (WHERE ea.response = 'MAYBE') AS maybe_count,
+                      count(ea.response) AS answered
+               FROM member_team_assignments a
+               JOIN members m ON m.id = a.member_id AND m.archived_at IS NULL
+               JOIN clubs c ON TRUE
+               LEFT JOIN event_attendance ea ON ea.member_id = m.id AND ea.event_id IN (SELECT id FROM held)
+               WHERE a.team_id = ? AND ${ActorSql.holdsTeamCapability("a.team_id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)}
+               GROUP BY m.id, display_name
+               ORDER BY display_name, m.id""",
+            teamId, from.toString(), to.toString(), teamId, actor).map {
+            val answered = it.get("answered", Int::class.java)
+            Row(it.get("display_name", String::class.java), it.get("yes_count", Int::class.java),
+                it.get("no_count", Int::class.java), it.get("maybe_count", Int::class.java), held - answered)
+        }
+        return Statistics.Found(held, rows)
     }
 
     companion object {

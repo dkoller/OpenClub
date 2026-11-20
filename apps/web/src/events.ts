@@ -192,3 +192,31 @@ export async function readAttendance(eventId: string, request: typeof fetch = fe
   }
   return body as AttendanceList
 }
+
+export type AttendanceTally = { yes: number; no: number; maybe: number; noAnswer: number }
+export type AttendanceStatistics = {
+  from: string; to: string; held: number
+  items: (AttendanceTally & { displayName: string })[]
+  totals: AttendanceTally
+}
+
+const tally = (value: unknown, extra: string[] = []): boolean => record(value) &&
+  Object.keys(value).length === 4 + extra.length && ['yes', 'no', 'maybe', 'noAnswer'].every(key => count(value[key]))
+
+/** How each team member answered the team's past events (OpenAPI 1.18.0); dates are YYYY-MM-DD (UTC), both optional. */
+export async function readAttendanceStatistics(teamId: string, from?: string, to?: string,
+  request: typeof fetch = fetch): Promise<AttendanceStatistics | 'denied' | 'invalid'> {
+  const query = new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) }).toString()
+  const response = await request('/api/v1/teams/' + encodeURIComponent(teamId) + '/attendance-statistics' +
+    (query ? '?' + query : ''), { credentials: 'same-origin', cache: 'no-store' })
+  if (response.status === 401 || response.status === 403 || response.status === 404) return 'denied'
+  if (response.status === 400) return 'invalid'
+  if (!response.ok) throw new Error('Statistics unavailable')
+  const body: unknown = await response.json()
+  if (!record(body) || Object.keys(body).length !== 5 || !text(body.from) || !text(body.to) || !count(body.held) ||
+    !tally(body.totals) || !Array.isArray(body.items) ||
+    !body.items.every(item => tally(item, ['displayName']) && text((item as Record<string, unknown>).displayName))) {
+    throw new Error('Invalid statistics')
+  }
+  return body as AttendanceStatistics
+}

@@ -623,6 +623,12 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(bar).toContainText('Bar · ');
   await expect(bar).toContainText('0 of 3 filled');
   await trainings.last().getByRole('button', { name: 'Hide volunteer shifts' }).click();
+  // Attendance statistics (OpenAPI 1.18.0): the last 12 months by default; the new trainings lie ahead, so none held.
+  await schedule.getByRole('button', { name: 'Attendance statistics' }).click();
+  const statistics = schedule.getByRole('region', { name: 'Attendance statistics Juniors' });
+  await expect(statistics.getByText('Events held: 0')).toBeVisible();
+  await expect(statistics.getByRole('row', { name: /Mara D\./ })).toContainText('0');
+  await schedule.getByRole('button', { name: 'Close statistics' }).click();
   await juniors.getByRole('button', { name: 'Close schedule' }).click();
   await expect(schedule).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'My schedule' }).getByText('No events in the next eight weeks.')).toBeVisible();

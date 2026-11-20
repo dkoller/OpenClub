@@ -32,6 +32,10 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.ResolverStyle
+import java.time.temporal.ChronoUnit
 import java.time.format.DateTimeParseException
 import java.util.UUID
 
@@ -150,6 +154,37 @@ internal fun Application.installTeamEventHttpRoutes(
                 }
             }
         }
+        get("/api/v1/teams/{teamId}/attendance-statistics") {
+            call.readSession(sessions, cookies) { actor ->
+                if (!database.onDatabaseThread {
+                        TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS) }) {
+                    return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+                val team = call.uuid("teamId")
+                val dates = call.dateRange()
+                if (team == null || dates == null) return@readSession call.refuse(HttpStatusCode.BadRequest, "invalid")
+                val (from, to) = dates
+                when (val result = database.onDatabaseThread { EventAttendance(it).statistics(actor.accountId, team, from, to) }) {
+                    is EventAttendance.Statistics.Found -> call.respondJson(buildJsonObject {
+                        put("from", from.toString())
+                        put("to", to.toString())
+                        put("held", result.held)
+                        put("items", buildJsonArray {
+                            result.rows.forEach { add(buildJsonObject {
+                                put("displayName", it.displayName)
+                                put("yes", it.yes); put("no", it.no); put("maybe", it.maybe); put("noAnswer", it.noAnswer)
+                            }) }
+                        })
+                        put("totals", buildJsonObject {
+                            put("yes", result.rows.sumOf { it.yes }); put("no", result.rows.sumOf { it.no })
+                            put("maybe", result.rows.sumOf { it.maybe }); put("noAnswer", result.rows.sumOf { it.noAnswer })
+                        })
+                    })
+                    EventAttendance.Statistics.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    EventAttendance.Statistics.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+            }
+        }
         put("/api/v1/events/{eventId}/attendance/{memberId}") {
             call.attendance(sessions, cookies, origin, database, clear = false)
         }
@@ -192,6 +227,27 @@ private fun ApplicationCall.range(): Pair<OffsetDateTime, OffsetDateTime>? = try
 } catch (_: DateTimeParseException) {
     null
 }
+
+/**
+ * `from` and `to` as ISO dates (UTC), both optional: `to` defaults to today, `from` to 12 months before `to`.
+ * `from` is not after `to`, the range spans at most 366 days, and both lie between 2000 and 2099.
+ */
+private fun ApplicationCall.dateRange(): Pair<LocalDate, LocalDate>? = try {
+    val query = request.queryParameters
+    require(query.names().all { it == "from" || it == "to" } && query.names().all { query.getAll(it)?.size == 1 })
+    val to = query["to"]?.let(::strictDate) ?: LocalDate.now(ZoneOffset.UTC)
+    val from = query["from"]?.let(::strictDate) ?: to.minusMonths(12)
+    require(!from.isAfter(to) && ChronoUnit.DAYS.between(from, to) <= 366)
+    require(from.year in 2000..2099 && to.year in 2000..2099)
+    from to to
+} catch (_: IllegalArgumentException) {
+    null
+} catch (_: DateTimeException) {
+    null
+}
+
+private fun strictDate(value: String): LocalDate =
+    LocalDate.parse(value, DateTimeFormatter.ofPattern("uuuu-MM-dd").withResolverStyle(ResolverStyle.STRICT))
 
 /** Trimmed text: blank optional text is absent; titles 1–200, places 1–200, notes 1–2000 characters, no control characters. */
 private fun text(value: String?, max: Int, multiline: Boolean = false): String? = value?.trim()?.takeIf(String::isNotEmpty)?.also {

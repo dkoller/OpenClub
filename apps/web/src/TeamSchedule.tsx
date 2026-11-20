@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 import { ShiftsPanel } from './ShiftsPanel'
+import { AttendanceStatistics } from './AttendanceStatistics'
 import {
   createEvents, deleteEvent, formatWhen, instants, localParts, readAttendance, readTeamEvents, replaceEvent,
   type AttendanceList, type EventKind, type EventOutcome, type TeamEvent,
@@ -114,6 +115,7 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
         {state === 'loading' && <p role="status">…</p>}
         {state === 'error' && <p role="alert">{t.error}</p>}
         {state === 'denied' && <p role="alert">{t.denied}</p>}
+        {state === 'ready' && <AttendanceStatistics teamId={teamId} teamName={teamName} language={language} />}
         {state === 'ready' && events?.length === 0 && <p>{t.empty}</p>}
         {state === 'ready' && events && events.length > 0 && <ul>{events.map(item => <li key={item.id}>
           {editing?.id === item.id ? <form onSubmit={event => { void save(event) }}>
