@@ -19,6 +19,8 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 
 ## B. Languages and members (as the administrator)
 
+- [ ] B0 On a phone (or a narrow window): the menu sits at the bottom with *Start*, *Schedule*, *Family*, *Team* and
+      *Administration*; *Administration* opens on *Waiting for you*. A reload keeps the open page.
 - [ ] B1 Switch DE, EN, FR, IT: headings, buttons and messages change; nothing stays in another language.
 - [ ] B2 *Manage members*: search "Keller" finds Noah Keller; *Details* shows his birth date and no contacts.
 - [ ] B3 *Add member*: an adult without email or phone is refused; with both it is created.
@@ -40,19 +42,20 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       club-wide one.
 - [ ] B11 *My profile*: untick *Show my name on the public member list*; the anonymous list (B6) no longer shows the
       administrator; tick it again. *Email notifications* says the club sends no emails (the demo has no SMTP server).
-- [ ] B12 *My schedule* → *Calendar subscription*: *Create link*, add it to a phone or desktop calendar ("subscribe" /
+- [ ] B12 *Family* → *Calendar subscription*: *Create link*, add it to a phone or desktop calendar ("subscribe" /
       "from URL"); the U12 dates from C4 appear after the next refresh. *Revoke link*: the calendar stops updating.
 
 ## C. Teams and permissions
 
 - [ ] C1 *Teams*: Juniors U12 lists its members; assign and remove a member.
 - [ ] C2 *Invitations*: create an invitation for Peter Zürcher (adult); open the link in a second private window, sign in
-      as `coach@…` and accept. The coach sees the club but no administration.
-- [ ] C3 As administrator, give Peter a **team** grant `MANAGE_TEAMS` for Juniors U12 only. As `coach@…` (reload): only
-      Juniors U12 is visible; *Contact details* of a U12 member works; another team's member is not reachable.
+      as `coach@…` and accept. The coach sees *Start*, *Schedule* and *Family*, but no *Team* or *Administration* in the menu.
+- [ ] C3 As administrator, give Peter a **team** grant `MANAGE_TEAMS` for Juniors U12 only. As `coach@…` (reload): *Team* appears in the
+      menu and only Juniors U12 is visible there; *Contact details* of a U12 member works; another team's member is not reachable.
 - [ ] C4 Still as `coach@…`: *Schedule* under Juniors U12, add a training with *Repeat weekly until* three weeks later:
-      four dates appear. *Cancel event* on one (marked *Cancelled*), *Delete* and *Confirm delete* another. *My
-      schedule* (reload) lists the remaining U12 dates, because Peter is in that team; answer *Yes* for one. In the
+      four dates appear. *Cancel event* on one (marked *Cancelled*), *Delete* and *Confirm delete* another. *Start*
+      (reload) lists the remaining U12 dates under *Things for you to do*, because Peter is in that team; answer *Yes*
+      for one with one tap: it leaves the list. In the
       team's *Schedule*, *Show answers* lists Peter Zürcher with *Yes* and the minors as first name plus initial.
       *Show shifts and rides* on one date: add "Bar" with 1 person; *Sign up: Me* fills it; the button for anyone else
       is disabled (full). *Attendance statistics* shows the team's members with no events held yet (dates lie ahead).
@@ -63,10 +66,10 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] D1 Invite Sandra Gerber (adult) and accept as `parent@…`.
 - [ ] D2 As administrator, *Guardians*: find Lea Brunner, add Sandra (the attestation text is shown). A third guardian is
       refused after a second one.
-- [ ] D3 As `parent@…` (reload): *My children* lists Lea; *Open* shows birth date, player flag and team; change her email;
-      it is saved. *My schedule* lists the U12 trainings from C4 marked *For Lea*; answer *No* for Lea and see the totals
-      change, but no other member's answer. Nothing else about other members is visible. *Show shifts and rides* on a U12
-      date offers *Sign up: Lea*.
+- [ ] D3 As `parent@…` (reload): *Family* → *My children* lists Lea; *Open* shows birth date, player flag and team; change her email;
+      it is saved. *Start* asks *Is Lea coming?* for the U12 trainings from C4; answer *No* for Lea, open the
+      event and see the totals change, but no other member's answer. *Schedule* with the *Lea* button shows only her
+      events. Nothing else about other members is visible. The event's page offers *Sign up: Lea* for the shift.
 - [ ] D4 Remove Sandra as guardian: *My children* disappears for `parent@…` after a reload.
 
 ## E. Denial and sessions

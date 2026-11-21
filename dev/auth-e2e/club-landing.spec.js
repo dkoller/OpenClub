@@ -3,6 +3,12 @@ import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+// The app shows one page at a time (Start, Schedule, Family, Team, Administration); tests open a page by its
+// address, which a reload keeps.
+async function show(page, hash) {
+  await page.evaluate(target => { window.location.hash = target; }, hash);
+}
+
 test('real frontend shows session, membership denial, language and logout states', async ({ page, context }) => {
   const password = process.env.OPENCLUB_E2E_USER_PASSWORD;
   if (!password) throw new Error('Disposable synthetic login password required');
@@ -93,16 +99,18 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   await page.reload();
   await expect(page.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Synthetic Browser Club' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Synthetic Browser Club' })).toBeVisible();
+  await show(page, '#/admin/settings');
   const clubSettings = page.getByRole('region', { name: 'Edit club name' });
   await clubSettings.getByRole('textbox', { name: 'Club name' }).fill('Synthetic Updated Club');
   await clubSettings.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Synthetic Updated Club' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Synthetic Updated Club' })).toBeVisible();
   const updatedClub = await context.request.get('/api/v1/club');
   expect(updatedClub.status()).toBe(200);
   expect((await updatedClub.json()).name).toBe('Synthetic Updated Club');
 
-  // The public directory renders the synthetic adult name, even after logout.
+  // The public directory renders the synthetic adult name, even after logout (editors see it under Members).
+  await show(page, '#/admin/members');
   await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
   const publicNames = await context.request.get('/api/v1/public/members');
   expect(publicNames.status()).toBe(200);
@@ -112,6 +120,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(page.getByRole('heading', { name: 'Manage members' })).toBeVisible();
 
   // My profile (OpenAPI 1.9.0): the administrator changes their own phone; the form keeps the email it read.
+  await show(page, '#/family');
   const myProfile = page.getByRole('region', { name: 'My profile' });
   await expect(myProfile.getByText('Administrator', { exact: true })).toBeVisible();
   const ownEmail = await myProfile.getByLabel('Email', { exact: true }).inputValue();
@@ -140,6 +149,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect.poll(async () => (await context.request.get('/api/v1/public/members')).json())
     .toEqual([{ displayName: 'Synthetic Administrator' }]);
   // Native required-field validation prevents an incomplete browser write.
+  await show(page, '#/admin/members');
   await page.getByLabel('First name').fill('Incomplete');
   await page.getByLabel('Last name').fill('Synthetic');
   await page.getByRole('button', { name: 'Add member' }).click();
@@ -404,6 +414,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await guardiansRegion.getByRole('button', { name: 'Add as guardian' }).click();
   await expect(guardiansRegion.getByText(/Not possible/)).toBeVisible();
   await page.reload();
+  await show(page, '#/family');
   const children = page.getByRole('region', { name: 'My children' });
   const maraChild = children.getByRole('listitem').filter({ hasText: 'Mara Demo' });
   const dependentRead = page.waitForResponse(response => /\/api\/v1\/me\/dependents\/[^/]+$/.test(new URL(response.url()).pathname));
@@ -414,15 +425,19 @@ test('verified login gains club access only after restricted operator bootstrap'
   await maraChild.getByRole('button', { name: 'Save contacts' }).click();
   await expect(children.getByText('Contacts saved.')).toBeVisible();
   await expect(maraChild.getByLabel('Email')).toHaveValue('mara.parent@example.invalid');
+  await show(page, '#/admin/members');
   const guardianRegion = page.getByRole('region', { name: 'Guardians' });
   await guardianRegion.getByLabel('Find a minor').fill('Mara');
   await guardianRegion.getByRole('button', { name: 'Search' }).first().click();
   await guardianRegion.getByRole('listitem').filter({ hasText: 'Synthetic Administrator' }).getByRole('button', { name: 'Remove' }).click();
   await expect(guardianRegion.getByText('Guardian removed.')).toBeVisible();
   await page.reload();
+  await show(page, '#/family');
+  await expect(page.getByRole('heading', { level: 1, name: 'Family' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'My children' })).toHaveCount(0);
   const mineAfter = await context.request.get('/api/v1/me/dependents');
   expect((await mineAfter.json()).items).toEqual([]);
+  await show(page, '#/admin/settings');
   await clubSettings.getByLabel('Require gender for players').check();
   await clubSettings.getByRole('button', { name: 'Save policy' }).click();
   await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).genderRequiredForPlayers).toBe(true);
@@ -434,10 +449,13 @@ test('verified login gains club access only after restricted operator bootstrap'
   await adultAge.fill('20');
   await clubSettings.getByRole('button', { name: 'Save adult age' }).click();
   await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).adultAgeYears).toBe(20);
+  await show(page, '#/admin/members');
   await expect(memberAdmin.getByText('Adult from age 20.')).toBeVisible();
+  await show(page, '#/admin/settings');
   await adultAge.fill('18');
   await clubSettings.getByRole('button', { name: 'Save adult age' }).click();
   await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).adultAgeYears).toBe(18);
+  await show(page, '#/admin/members');
   await expect(memberAdmin.getByText('Adult from age 18.')).toBeVisible();
 
   // When the club enables this rule, player creation cannot omit gender.
@@ -501,6 +519,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.unroute('**/api/v1/members/*/role');
 
 
+  await show(page, '#/team');
   const teams = page.getByRole('region', { name: 'Teams', exact: true });
   // A failed initial roster read must not leave a permanent loading message.
   let failedRoster = false;
@@ -640,7 +659,9 @@ test('verified login gains club access only after restricted operator bootstrap'
   await schedule.getByRole('button', { name: 'Close statistics' }).click();
   await juniors.getByRole('button', { name: 'Close schedule' }).click();
   await expect(schedule).toHaveCount(0);
-  await expect(page.getByRole('region', { name: 'My schedule' }).getByText('No events in the next eight weeks.')).toBeVisible();
+  await show(page, '#/schedule');
+  await expect(page.getByRole('main').getByText('No events in the next eight weeks.')).toBeVisible();
+  await show(page, '#/family');
   // Calendar feed (OpenAPI 1.17.0): the link is shown once, serves iCalendar without a session and ends when revoked.
   const feedSection = page.getByRole('region', { name: 'Calendar subscription' });
   await feedSection.getByRole('button', { name: 'Create link' }).click();
@@ -664,6 +685,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(absences.getByText('No absences.')).toBeVisible();
   // Join requests (OpenAPI 1.22.0): the form is off by default; the administrator opens it, an anonymous visitor
   // applies, the administrator declines.
+  await show(page, '#/admin/join-requests');
   const applications = page.getByRole('region', { name: 'Membership applications' });
   const formSwitch = applications.getByLabel('Public application form is on');
   await expect(formSwitch).not.toBeChecked();
@@ -686,6 +708,7 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // Membership fees (OpenAPI 1.12.0): the first administrator holds MANAGE_FEES from the bootstrap. A new period
   // includes every active member; marking Mara's fee paid updates the totals; the administrator sees their own fee.
+  await show(page, '#/admin/fees');
   const feeAdmin = page.getByRole('region', { name: 'Membership fees' });
   await feeAdmin.getByLabel('Name').fill('Season 2026/27');
   await feeAdmin.getByLabel('Due date').fill('2026-12-31');
@@ -700,10 +723,12 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(maraFee).toContainText('Paid on');
   await expect(season).toContainText(/1 of \d+ paid/);
   await page.reload();
+  await show(page, '#/family');
   await expect(page.getByRole('region', { name: 'My fees' })).toContainText('Season 2026/27');
 
   // Excel import and export (OpenAPI 1.13.0): the list downloads as CSV; an import is checked first, skips the
   // existing Mara Demo and creates only the new rows.
+  await show(page, '#/admin/members');
   const transfer = page.getByRole('region', { name: 'Excel import and export' });
   const listDownload = page.waitForEvent('download');
   await transfer.getByRole('link', { name: 'Download member list (CSV for Excel)' }).click();
@@ -727,6 +752,7 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // Announcements (OpenAPI 1.14.0): the first administrator holds POST_ANNOUNCEMENTS from the bootstrap and posts to
   // the whole club; the text keeps its line breaks and is never interpreted as HTML.
+  await show(page, '#/');
   const news = page.getByRole('region', { name: 'Announcements' });
   await expect(news.getByLabel('For')).toHaveValue('');
   await news.getByLabel('Title').fill('Training starts again');
@@ -739,6 +765,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(posted.locator('b')).toHaveCount(0);
   await expect(posted.locator('br')).toHaveCount(1);
 
+  await show(page, '#/admin/permissions');
   const permissionAdmin = page.getByRole('region', { name: 'Manage permissions' });
   // Superseded permission-member lookups must not replace newer selection/grants.
   let notifySlowGrant;
@@ -804,6 +831,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
   await expect(permissionAdmin.getByRole('alert')).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
+  await show(page, '#/team');
   await teams.getByRole('button', { name: 'Remove' }).click();
   await expect(teams.getByText('No assignments.')).toBeVisible();
   // A rename preserves the team's ID, membership relationship and permissions.
@@ -841,9 +869,12 @@ test('verified login gains club access only after restricted operator bootstrap'
     { code: 'en', member: 'Manage members', team: 'Teams', grant: 'Manage permissions', search: 'Search names', find: 'Search' },
   ]) {
     await page.locator('#language').selectOption(locale.code);
-    await expect(page.getByRole('heading', { name: locale.member })).toBeVisible();
+    await show(page, '#/team');
     await expect(page.getByRole('region', { name: locale.team, exact: true })).toBeVisible();
+    await show(page, '#/admin/permissions');
     await expect(page.getByRole('region', { name: locale.grant, exact: true })).toBeVisible();
+    await show(page, '#/admin/members');
+    await expect(page.getByRole('heading', { name: locale.member })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', locale.code);
     // Real Chromium keyboard semantics in each locale: visible label,
     // predictable Tab order and Enter-submitted member search.
@@ -857,6 +888,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   }
 
   // Policy conflicts stay localized even if language changes after a failed save.
+  await show(page, '#/admin/settings');
   const settings = page.getByRole('region', { name: 'Edit club name' });
   await settings.getByLabel('Require gender for players').uncheck();
   await settings.getByRole('button', { name: 'Save policy' }).click();
@@ -902,12 +934,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(settings.getByRole('alert')).toHaveCount(0);
 
   // Revoked member-directory access must hide names and controls in an existing roster.
+  await show(page, '#/team');
   const youthTeam = teams.getByRole('listitem').filter({ hasText: 'Youth Team' }).first();
   await page.route('**/api/v1/members?**', route => route.fulfill({ status: 403, body: 'Forbidden' }), { times: 1 });
   await youthTeam.getByLabel('Find member').fill('Mara');
   await youthTeam.getByRole('button', { name: 'Search' }).click();
   await expect(youthTeam.getByLabel('Find member')).toHaveCount(0);
 
+  await show(page, '#/admin/members');
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
     .getByRole('button', { name: 'Archive' }).click();
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
@@ -915,6 +949,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(0);
 
   // A transient permission-init failure must offer a recoverable localized retry.
+  await show(page, '#/admin/permissions');
   await page.route('**/api/v1/grants?**', async route => {
     if (route.request().method() === 'GET' &&
         new URL(route.request().url()).searchParams.get('memberId') === '00000000-0000-0000-0000-000000000000') {
@@ -970,6 +1005,7 @@ test('verified login gains club access only after restricted operator bootstrap'
           "ON CONFLICT DO NOTHING";
     fixtureSql(command);
   };
+  await show(page, '#/admin/members');
   fixtureGrant('remove');
   try {
     expect((await context.request.get('/api/v1/members?q=Synthetic')).status()).toBe(200);
@@ -1062,7 +1098,8 @@ test('verified login gains club access only after restricted operator bootstrap'
       .toBeVisible({ timeout: 20000 });
   };
 
-  // A genuine capability denial must not be turned into a retryable grant editor.
+  // A genuine capability denial must not be turned into a retryable grant editor (nor offer the page).
+  await show(page, '#/admin/permissions');
   await page.route('**/api/v1/grants?**', async route => {
     if (route.request().method() === 'GET' &&
         new URL(route.request().url()).searchParams.get('memberId') === '00000000-0000-0000-0000-000000000000') {
@@ -1073,6 +1110,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   });
   await reloadAndWaitForPermissionProbe();
   await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Administration' }).getByRole('link', { name: 'Permissions' })).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
 
   // Authentication expiry on the permission bootstrap must not expose a retryable editor.
@@ -1092,6 +1130,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.route('**/api/v1/members?**', route =>
     new URL(route.request().url()).searchParams.get('q') === 'Synthetic'
       ? route.fulfill({ status: 401, body: 'Unauthorized' }) : route.continue());
+  await show(page, '#/admin/members');
   const privateMembers = page.getByRole('region', { name: 'Manage members' });
   await expect(privateMembers).toBeVisible({ timeout: 20000 });
   await privateMembers.getByLabel('Search names').fill('Synthetic');
@@ -1104,6 +1143,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.route('**/api/v1/teams', route =>
     route.request().method() === 'POST'
       ? route.fulfill({ status: 401, body: 'Unauthorized' }) : route.continue());
+  await show(page, '#/team');
   await teams.getByLabel('Team name').fill('Expired Session Team');
   await teams.getByRole('button', { name: 'Add team' }).click();
   await expect(teams).toHaveCount(0);
@@ -1111,6 +1151,7 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // A lost session on role-member search hides all privileged role controls.
   await page.reload();
+  await show(page, '#/admin/members');
   const rolesAfterReload = page.getByRole('region', { name: 'Manage club roles' });
   await page.route('**/api/v1/members?**', route =>
     new URL(route.request().url()).searchParams.get('q') === 'Mara'
@@ -1159,6 +1200,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     expect(await membersNamed(last), label).toBe(0);
   }
   // Duplicate (ignoring case and padding) and whitespace-only team names are rejected the same way.
+  await show(page, '#/team');
   const teamsForm = page.getByRole('region', { name: 'Teams', exact: true });
   const teamsBeforeInvalid = (await (await context.request.get('/api/v1/teams')).json()).items;
   for (const [label, name] of [
@@ -1175,6 +1217,7 @@ test('verified login gains club access only after restricted operator bootstrap'
       .toBe(teamsBeforeInvalid.length);
   }
   // The adult age accepts only whole numbers inside its range; anything else leaves Save disabled.
+  await show(page, '#/admin/settings');
   const adultAgeInput = page.getByRole('region', { name: 'Edit club name' }).getByLabel('Adult from age', { exact: false });
   const saveAgeButton = page.getByRole('region', { name: 'Edit club name' })
     .locator('form').filter({ has: page.getByLabel('Adult from age') }).getByRole('button');
@@ -1188,13 +1231,18 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // Assistive technology (#25): structure, names and references that screen readers rely on. This
   // checks what is machine-checkable; it is not a substitute for a manual screen-reader audit.
-  await expect(page.getByRole('main')).toHaveCount(1);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
-  for (const name of ['Edit club name', 'Manage permissions', 'Manage club roles', 'Manage members']) {
-    await expect(page.getByRole('region', { name }), name).toBeVisible();
-  }
-  for (const name of ['Teams', 'Members']) {
-    await expect(page.getByRole('region', { name, exact: true }), name).toBeVisible();
+  // Every page has one main region and one level-1 heading, and shows its own sections.
+  for (const [hash, names] of [
+    ['#/', ['Announcements']],
+    ['#/admin/settings', ['Edit club name']],
+    ['#/admin/permissions', ['Manage permissions']],
+    ['#/team', ['Teams']],
+    ['#/admin/members', ['Manage club roles', 'Manage members', 'Members']],
+  ]) {
+    await show(page, hash);
+    await expect(page.getByRole('main'), hash).toHaveCount(1);
+    for (const name of names) await expect(page.getByRole('region', { name, exact: true }), name).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 }), hash).toHaveCount(1);
   }
   // The document language follows the selected language (screen readers pick pronunciation from it).
   for (const [code, label] of [['de', 'Deutsch'], ['fr', 'Français'], ['it', 'Italiano'], ['en', 'English']]) {
@@ -1249,33 +1297,26 @@ test('verified login gains club access only after restricted operator bootstrap'
       answered('/api/v1/grants', 403)];
     await page.reload();
     await Promise.all(denied);
-    await expect(page.getByRole('region', { name: 'Manage members' }).getByRole('alert'))
-      .toContainText('No permission to manage members.');
-    await expect(page.getByRole('region', { name: 'Manage permissions' })).toHaveCount(0);
+    // Without any grant, Team and Administration are not offered, and their addresses open Start.
+    const mainNav = page.getByRole('navigation', { name: 'Main navigation' });
+    await expect(mainNav.getByRole('link', { name: 'Start' })).toBeVisible();
+    await expect(mainNav.getByRole('link', { name: 'Administration' })).toHaveCount(0);
+    await expect(mainNav.getByRole('link', { name: 'Team' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1, name: 'Start' })).toBeVisible();
+    // Private panels never render for a member without the grants (not even an empty form).
+    for (const name of ['Manage members', 'Manage permissions', 'Invitations and account links', 'Guardians',
+      'Archived members', 'Manage club roles', 'Edit club name']) {
+      await expect(page.getByRole('region', { name }), name).toHaveCount(0);
+    }
     await expect(page.getByRole('region', { name: 'Teams', exact: true })).toHaveCount(0);
-    // Editor-only panels never render for a member without the grants (not even an empty form).
-    await expect(page.getByRole('region', { name: 'Invitations and account links' })).toHaveCount(0);
-    await expect(page.getByRole('region', { name: 'Guardians' })).toHaveCount(0);
-    await expect(page.getByRole('region', { name: 'Archived members' })).toHaveCount(0);
     expect((await context.request.get('/api/v1/members/00000000-0000-0000-0000-000000000000/export')).status()).toBe(403);
     for (const path of ['/api/v1/members', '/api/v1/teams', '/api/v1/grants?memberId=00000000-0000-0000-0000-000000000000']) {
       expect((await context.request.get(path)).status()).toBe(403);
     }
     // Membership alone still shows the club and the approved anonymous directory.
     expect((await context.request.get('/api/v1/club')).status()).toBe(200);
-    await expect(page.getByRole('region', { name: 'Members', exact: true })
-      .getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
-    // Editors that render before any request are hidden by their first denied write or search.
-    const roles = page.getByRole('region', { name: 'Manage club roles' });
-    await roles.getByLabel('Find member').fill('Mara');
-    await roles.getByRole('button', { name: 'Search' }).click();
-    await expect(roles).toHaveCount(0);
-    const clubName = page.getByRole('region', { name: 'Edit club name' });
-    const deniedRename = page.waitForResponse(response => response.request().method() === 'PATCH' &&
-      new URL(response.url()).pathname === '/api/v1/club');
-    await clubName.getByRole('button', { name: 'Save', exact: true }).click();
-    expect((await deniedRename).status()).toBe(403);
-    await expect(clubName).toHaveCount(0);
+    expect(await (await context.request.get('/api/v1/public/members')).json())
+      .toContainEqual({ displayName: 'Synthetic Administrator' });
 
     // Cross-team boundary: a grant for one team shows that team and no other.
     fixtureSql("INSERT INTO team_capability_grants (team_id, member_id, capability) VALUES ('" +
@@ -1283,6 +1324,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     const listed = answered('/api/v1/teams', 200);
     await page.reload();
     await listed;
+    await show(page, '#/team');
     const teamsRegion = page.getByRole('region', { name: 'Teams', exact: true });
     await expect(teamsRegion.getByRole('listitem').filter({ hasText: visibleTeam.name })).toHaveCount(1);
     for (const hidden of hiddenTeams) {
@@ -1323,7 +1365,9 @@ test('verified login gains club access only after restricted operator bootstrap'
     }
   }
   await page.reload();
+  await show(page, '#/admin/permissions');
   await expect(page.getByRole('region', { name: 'Manage permissions' })).toBeVisible();
+  await show(page, '#/admin/settings');
   await expect(page.getByRole('region', { name: 'Edit club name' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Sign out' }).click();
@@ -1377,6 +1421,7 @@ test('an administrator invites a member, a second synthetic user accepts, and un
   const invitee = await browser.newContext({ baseURL: 'http://localhost:5173' });
   try {
     await signIn(page, 'openclub-ci-user');
+    await show(page, '#/admin/members');
     const region = page.getByRole('region', { name: 'Invitations and account links' });
     await expect(region).toBeVisible();
     await region.getByRole('textbox', { name: 'Find member' }).fill('Invitee');
