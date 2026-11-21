@@ -2,6 +2,12 @@ import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+// The app shows one page at a time (Start, Schedule, Family, Team, Administration); tests open a page by its
+// address, which a reload keeps.
+async function show(page, hash) {
+  await page.evaluate(target => { window.location.hash = target; }, hash);
+}
+
 // The same invitation journey as the Keycloak suite, against real Rauthy (ADR-0006: both providers stay
 // supported). It bootstraps a disposable club through the real operator CLI and removes it afterwards, so
 // the other Rauthy specs still see accounts that are not club members, whatever order the files run in.
@@ -71,6 +77,7 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
       "VALUES (gen_random_uuid(), 'Tim', 'Minor', current_date - interval '10 years')");
     await page.reload();
     await expect(page.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
+    await show(page, '#/admin/members');
 
     const region = page.getByRole('region', { name: 'Invitations and account links' });
     await region.getByRole('textbox', { name: 'Find member' }).fill('Invitee');
@@ -116,6 +123,7 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
     await expect(guardians.getByText('Guardian added.')).toBeVisible();
     expect(fixtureSql("SELECT COUNT(*) FROM audit_events WHERE event_type = 'GUARDIAN_LINKED'")).toBe('1');
     await second.reload();
+    await show(second, '#/family');
     const children = second.getByRole('region', { name: 'My children' });
     const tim = children.getByRole('listitem').filter({ hasText: 'Tim Minor' });
     await tim.getByRole('button', { name: 'Open' }).click();
@@ -127,6 +135,7 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
     expect((await invitee.request.get('/api/v1/members')).status()).toBe(403);
     await expect(second.getByRole('region', { name: 'Guardians' })).toHaveCount(0);
     await expect(second.getByRole('region', { name: 'Invitations and account links' })).toHaveCount(0);
+    await expect(second.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Administration' })).toHaveCount(0);
 
     // Unlinking ends the member's session and access at once.
     await region.getByRole('textbox', { name: 'Find member' }).fill('Invitee');

@@ -1,12 +1,28 @@
 # OpenClub user guide
 
 For the people who use a club's OpenClub: administrators, team managers, members and guardians. Button and field names
-are the English ones; switch the language (German, English, French, Italian) with *Language* at the top of the page.
+are the English ones; switch the language (German, English, French, Italian) with the language box (*EN*, *DE*, *FR*,
+*IT*) at the top of the page.
 
 > **Fictional data only.** OpenClub is in a synthetic-data test phase. Do not enter real people's names, birth dates,
 > addresses or phone numbers until the club's privacy approval is complete (see the [README](../README.md)).
 
-What you see depends on your permissions: panels you cannot use are not shown at all. Every action is checked by the
+## Finding your way
+
+The app shows one page at a time. At the top are the club's name (back to *Start*), the language box and *Sign out*.
+The main menu sits at the bottom of a phone screen and on the left of a computer screen:
+
+| Page | What it is for |
+| --- | --- |
+| *Start* | *Things for you to do*: every event that still needs your answer, or your child's, with *Yes*, *No* and *Maybe* right there; then what else is on in the next 7 days, and the announcements |
+| *Schedule* | The next eight weeks by day. With children, choose *Everyone*, *Me* or one child. Each event opens its own page with the answers, helper shifts and rides |
+| *Family* | *My profile* (with email notifications), *My children*, *Absences*, *My fees* and the calendar subscription |
+| *Team* | Only for coaches and team managers (`VIEW_TEAMS` or `MANAGE_TEAMS`): teams, rosters, schedules and statistics |
+| *Administration* | Only with an administration permission: *Waiting for you* (open join requests and unpaid fees), *Members*, *Join requests*, *Fees*, *Permissions* and *Settings*, each shown only to people who may use it |
+
+Every page has its own address, so the browser's back button and bookmarks work (for example `#/schedule`).
+
+What you see depends on your permissions: menu entries and panels you cannot use are not shown at all. Every action is checked by the
 server. Every change to member data and every read of someone's private details is also recorded in an audit trail
 that holds identifiers only (team schedules hold no personal data and are not recorded).
 
@@ -14,7 +30,7 @@ that holds identifiers only (team schedules hold no personal data and are not re
 
 Choose *Sign in*. You are sent to the club's sign-in service (Keycloak or Rauthy), then back to the club page.
 
-- *Signed in and authorized for this club.* You are a member; the panels you may use appear below.
+- You are a member: *Start* opens with what needs your answer.
 - *This account is not yet a club member.* Your account works, but no member record is linked to it. Ask the club for
   an invitation, or paste one you received into *Accept an invitation*.
 
@@ -25,7 +41,10 @@ Choose *Sign in*. You are sent to the club's sign-in service (Keycloak or Rauthy
 Administrators are members who hold permissions. Permissions are separate from the *Administrator* role: the role
 alone allows nothing, and each panel needs its permission (see *Permissions* below).
 
-### Members (*Manage members*, permission `EDIT_MEMBERS`)
+All of this is under *Administration*. It opens on *Waiting for you*, which lists what needs a decision (open join
+requests, fee periods with unpaid fees) with a button straight to the right section.
+
+### Members (*Administration* → *Members*, panel *Manage members*, permission `EDIT_MEMBERS`)
 
 - **Find:** type into *Search names* and choose *Search*.
 - **Add:** fill *First name*, *Last name*, *Date of birth* and, for adults, *Email* and *Phone*, then *Add member*.
@@ -54,7 +73,7 @@ alone allows nothing, and each panel needs its permission (see *Permissions* bel
   problems* with the reason (left out). Nothing is created until you choose *Import N members*. Existing members are
   never changed. Every export and import is recorded.
 
-### Teams (*Teams*, *Team members*)
+### Teams (*Team* page, panels *Teams* and *Team members*)
 
 - *Team name* and *Add team* create a team; *Rename* and *Delete team* (type its name to confirm) change it. Deleting
   a team also deletes its schedule.
@@ -62,7 +81,7 @@ alone allows nothing, and each panel needs its permission (see *Permissions* bel
 - Open a team to see *Team members*. Find a member and *Assign*; *Remove* takes them out of the team.
 - *Contact details* shows a team member's email and phone (see *For team managers*).
 
-### Permissions (*Manage permissions*, permission `MANAGE_PERMISSIONS`)
+### Permissions (*Administration* → *Permissions*, permission `MANAGE_PERMISSIONS`)
 
 Find a member, choose the *Scope* (*Club*, or one *Team*) and the *Capability*, then *Grant*. *Current grants* lists
 what they hold; *Revoke* removes one. A change applies to the member's next action.
@@ -79,7 +98,7 @@ what they hold; *Revoke* removes one. A change applies to the member's next acti
 
 *Manage club roles* switches a member between *Member* and *Administrator*. The last administrator cannot be demoted.
 
-### Invitations (*Invitations and account links*)
+### Invitations (*Administration* → *Members*, panel *Invitations and account links*)
 
 1. Find the member and choose *Create invitation*.
 2. Copy the *Invitation link (shown only once)* and send it to the member through a channel you trust. It is valid for
@@ -89,7 +108,7 @@ what they hold; *Revoke* removes one. A change applies to the member's next acti
 
 Minors and archived members cannot be invited, and an administrator's sign-in cannot be unlinked here.
 
-### Guardians (*Guardians*)
+### Guardians (*Administration* → *Members*, panel *Guardians*)
 
 1. *Find a minor*, then *Search*; the minor's current guardians are listed.
 2. *Find a guardian* (an adult member who already signs in), select them and choose *Add as guardian*. By doing so you
@@ -99,7 +118,7 @@ Minors and archived members cannot be invited, and an administrator's sign-in ca
 
 Being a guardian gives no other permission in the club.
 
-### Membership fees (*Membership fees*, permission `MANAGE_FEES`)
+### Membership fees (*Administration* → *Fees*, permission `MANAGE_FEES`)
 
 Tracking only: OpenClub records who paid, it does not collect money.
 
@@ -111,7 +130,7 @@ Tracking only: OpenClub records who paid, it does not collect money.
 - *Delete period* removes the period with all its fees; type its name to confirm.
 - Every change is recorded in the audit trail. Fees are part of a member's data export.
 
-### Club settings
+### Club settings (*Administration* → *Settings*, permission `MANAGE_PERMISSIONS`)
 
 - *Edit club name*.
 - *Adult age*: from which age members count as adults (13 to 25, default 18). Adults need email and phone, so raising
@@ -120,7 +139,7 @@ Tracking only: OpenClub records who paid, it does not collect money.
 
 ## For team managers
 
-**Schedule.** In *Teams*, choose *Schedule* under a team to see its next eight weeks. With `MANAGE_TEAMS` for the
+**Schedule.** On the *Team* page, choose *Schedule* under a team to see its next eight weeks. With `MANAGE_TEAMS` for the
 team you add events: *Kind* (Training, Match or Event), *Title*, *Date*, *Start*, *End*, optionally *Place* and
 *Notes*, then *Add event*. Fill *Repeat weekly until* to create the same event every week up to that date (at most
 52). *Edit* changes one date, *Cancel event* marks it cancelled (members still see it, marked *Cancelled*;
@@ -134,7 +153,7 @@ shows, for the last 12 months (change *From* and *To*, at most a year, then *Sho
 how each member answered them: *Yes*, *No*, *Maybe* and *No answer*, with totals. Cancelled events do not count.
 Answers are deleted 12 months after an event, and members who joined later show earlier events as *No answer*.
 
-**Volunteer shifts.** *Show shifts and rides* under an event lists its helper jobs (for example *Bar*, 14:00–16:00,
+**Volunteer shifts.** *Show shifts and rides* under an event in the team schedule lists its helper jobs (for example *Bar*, 14:00–16:00,
 *2 of 3 filled*) with the names of who signed up. With `MANAGE_TEAMS` for the team you add a shift: *Task*, *Date*,
 *Start*, *End* (prefilled with the event's times, at most 24 hours and within a day of the event) and *People needed*,
 then *Add shift*. *Edit* changes a shift (you cannot lower the places below the people already signed up), *Delete*
@@ -146,7 +165,7 @@ contact read is recorded.
 
 ## Announcements
 
-*Announcements* at the top lists what is currently posted for you: club-wide news, news for your teams and, for
+*Announcements* on *Start* lists what is currently posted for you: club-wide news, news for your teams and, for
 guardians, your children's teams, newest first, until each one's show-until date. With `POST_ANNOUNCEMENTS` (whole
 club) or `MANAGE_TEAMS` for a team, choose *For*, write a *Title* and *Text* (plain text, line breaks are kept),
 optionally *Show until* (default 60 days, at most a year), and *Post*. *Edit* and *Delete* (then *Confirm delete*)
@@ -157,44 +176,51 @@ appear on the ones you may change. Do not put private details such as health or 
 Once your invitation is accepted you are signed in as a club member. Without further permissions you see the club and
 its public member list (adults by full name, minors by first name and surname initial, nothing private).
 
-**My schedule** lists the next eight weeks of trainings, matches and events of your teams, and of your children's
-teams if you are a guardian (marked *For* and the child's name). Answer *Yes*, *No* or *Maybe* for each event until
-it starts; choosing your answer again clears it. You see the totals, but never other members' answers.
-*Show shifts and rides* lists the event's helper jobs with who signed up; *Sign up* puts you (or your child) on a
+**Start** shows *Things for you to do*: each event that still needs an answer from you or your child, soonest first,
+with *Yes*, *No* and *Maybe* in the card. One tap answers; the card then leaves the list. Below it, *Also in the next 7
+days* lists what is already answered, and the announcements follow.
+
+**Schedule** lists the next eight weeks of trainings, matches and events of your teams, and of your children's
+teams if you are a guardian, grouped by day. With children, the buttons at the top show *Everyone*, *Me* or one child.
+Events still waiting for an answer are marked *Answer missing*. Answer *Yes*, *No* or *Maybe* until the event starts;
+choosing your answer again clears it. You see the totals, but never other members' answers.
+
+**One event.** Tap an event (or *Rides, helpers and details*) to open its page: when and where, notes, the answers for
+you and your children, the team's totals, helper shifts and rides. *Sign up* puts you (or your child) on a
 shift while places are free, *Withdraw* takes you off, both until the shift starts. Your team sees your name on the
 shift so everyone can coordinate.
 
-**Email notifications** (in *My profile*): if your club sends email, you get one when an event of your team (or your
+**Email notifications** (on *Family*, in *My profile*): if your club sends email, you get one when an event of your team (or your
 child's team) is changed or cancelled, when new events are added, when an announcement is posted for you, and a
 reminder the day before a volunteer shift you signed up for. Untick what you do not want and choose the language of
 the emails; changes save at once. You need a sign-in and an email address to receive them.
 
-**Membership applications** (with `EDIT_MEMBERS`): tick *Public application form is on* to show *Join the club* on
+**Membership applications** (*Administration* → *Join requests*, with `EDIT_MEMBERS`): tick *Public application form is on* to show *Join the club* on
 the signed-out start page, where adults apply for themselves and parents for a child. Open applications are listed
 with contact details; *Accept* creates the member (a child without contacts: link the parent as guardian afterwards)
 and puts them in the wished team; *Decline* and the confirmation delete the application. Untick the switch to stop
 new applications. Unhandled applications are deleted after 60 days.
 
-**Carpooling.** *Show shifts and rides* under an event also lists the rides offered to it: driver, direction, departure,
+**Carpooling.** An event's page also lists the rides offered to it: driver, direction, departure,
 meeting point and seats. If you are in the team (or your child is), *Offer a ride* with direction, seats, meeting
 point, date and time; change it later with *Save changes* or *Withdraw ride*. *Book seat* reserves a seat for you or
 your child until departure. Once booked, you see the driver's phone number and the driver sees yours; nobody else
 does.
 
-**Absences** (under *My schedule*): enter the days you (or your child) are away, *From* and optionally *To*, then
+**Absences** (on *Family*): enter the days you (or your child) are away, *From* and optionally *To*, then
 *Add absence*. Every event on those days that you have not answered counts as *No*; answering *Yes* still works if
 your plans change. No reason is asked or stored. *Delete* removes an absence again.
 
-**Calendar subscription** (under *My schedule*): *Create link* shows a private link once; copy it into your phone's
+**Calendar subscription** (on *Family*): *Create link* shows a private link once; copy it into your phone's
 calendar or Google/Apple Calendar ("subscribe to calendar" / "add from URL"). It then shows your and your children's
 events, four weeks back to six months ahead, including place and notes, and updates by itself every few hours.
 Anyone with the link sees your schedule, so keep it to yourself. *Create a new link* replaces it (the old one stops
 working) and *Revoke link* ends it.
 
-**My fees** lists your membership fees with amount, due date and whether they are paid (and your children's, if you
+**My fees** (on *Family*) lists your membership fees with amount, due date and whether they are paid (and your children's, if you
 are a guardian). Questions about a fee go to the club's treasurer.
 
-**My profile** shows what the club stores about you: name, date of birth, gender (if recorded), whether you play,
+**My profile** (on *Family*) shows what the club stores about you: name, date of birth, gender (if recorded), whether you play,
 your role and your teams. Change your *Email* and *Phone* there and choose *Save contacts*; adults need both. Other
 details are changed by the club administration. If the club changed your record while the page was open, nothing is
 saved and the current values are shown, so you can check and save again. Untick *Show my name on the public member
@@ -202,13 +228,14 @@ list* to take your name off the list anyone can see; tick it to show it again.
 
 ## For guardians
 
-If the club recorded you as a guardian, *My children* appears after you sign in.
+If the club recorded you as a guardian, *My children* appears on *Family*, and your children's events appear on *Start*
+and *Schedule*.
 
 - *Open* shows the child's date of birth, whether they play and their teams.
 - Change the child's *Email* and *Phone* and choose *Save contacts*. Clearing a field removes it. Nothing else about
   the child, and nothing about other members, can be seen or changed here.
-- *My schedule* also lists the trainings and events of the child's teams, marked *For* and the child's first name,
-  and you answer for the child there.
+- *Start* and *Schedule* also list the trainings and events of the child's teams (*Is Lea coming?*), and you answer
+  for the child there; on *Schedule* the child's button shows only their events.
 - *My fees* also lists the child's membership fees, marked *for* and the child's first name.
 - If the child reaches the club's adult age, or the club removes you as guardian, the child disappears from the list
   and from your schedule.
