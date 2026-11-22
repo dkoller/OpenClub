@@ -1,4 +1,5 @@
 import { answerable, type MyEvent } from './events'
+import type { Ride, RideList } from './rides'
 
 export type Person = { id: string; firstName: string }
 
@@ -45,4 +46,20 @@ export function byDay(events: MyEvent[]): { day: string; events: MyEvent[] }[] {
 export function nextSevenDays(events: MyEvent[], now = Date.now()): MyEvent[] {
   const end = now + 7 * 24 * 3600 * 1000
   return events.filter(event => Date.parse(event.endsAt) > now && Date.parse(event.startsAt) < end)
+}
+
+/**
+ * A ride worth offering on Start: the member or a child answered Yes and has no seat yet, nobody of the family drives
+ * to the event, and a ride there (or both ways) still has a free seat before it leaves. The earliest one wins.
+ */
+export function rideSuggestion(event: MyEvent, rides: RideList, now = Date.now()): { person: Person; ride: Ride; free: number } | null {
+  if (event.cancelled || rides.items.some(ride => ride.mine)) return null
+  const booked = new Set(rides.items.flatMap(ride => ride.booked))
+  const mayBook = new Set(rides.people.map(person => person.id))
+  const going = event.for.find(person => person.response === 'YES' && mayBook.has(person.id) && !booked.has(person.id))
+  if (!going) return null
+  const ride = rides.items
+    .filter(item => item.direction !== 'BACK' && item.seats > item.passengers.length && Date.parse(item.departsAt) > now)
+    .sort((a, b) => Date.parse(a.departsAt) - Date.parse(b.departsAt))[0]
+  return ride ? { person: { id: going.id, firstName: going.firstName }, ride, free: ride.seats - ride.passengers.length } : null
 }

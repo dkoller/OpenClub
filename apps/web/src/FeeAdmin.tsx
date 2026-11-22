@@ -115,17 +115,17 @@ export function FeeAdmin({ language, csrfToken }: { language: Language; csrfToke
           <option value="paid">{t.paid}</option><option value="excluded">{t.excluded}</option>
         </select></label>
         {fees === null ? <p role="status">…</p> : fees.length === 0 ? <p>{t.empty}</p>
-          : <table><thead><tr><th scope="col">{t.member}</th><th scope="col">{t.amount}</th><th scope="col">{t.status}</th><td /></tr></thead>
+          : <table className="cards"><thead><tr><th scope="col">{t.member}</th><th scope="col">{t.amount}</th><th scope="col">{t.status}</th><td /></tr></thead>
             <tbody>{fees.map(fee => <tr key={fee.memberId}>
               <th scope="row">{fee.lastName} {fee.firstName}{fee.archived && <> ({t.archived})</>}</th>
-              <td>{fee.amountCents === null ? '–' : editing?.memberId === fee.memberId
+              <td data-label={t.amount}>{fee.amountCents === null ? '–' : editing?.memberId === fee.memberId
                 ? <form onSubmit={event => { void saveAmount(event, fee) }}>
                   <label>{t.amount}<input inputMode="decimal" value={editing.amount} required
                     onChange={event => setEditing({ memberId: fee.memberId, amount: event.target.value })} /></label>
                   <button type="submit" disabled={busy}>{t.save}</button>
                   <button type="button" onClick={() => setEditing(null)}>{t.cancel}</button>
                 </form> : formatFrancs(fee.amountCents, language)}</td>
-              <td>{fee.amountCents === null ? t.excluded : fee.paidOn ? `${t.paidOn} ${fee.paidOn}` : t.unpaid}</td>
+              <td data-label={t.status}>{fee.amountCents === null ? t.excluded : fee.paidOn ? `${t.paidOn} ${fee.paidOn}` : t.unpaid}</td>
               <td>{fee.amountCents === null
                 ? <button type="button" disabled={busy}
                   onClick={() => { void run(() => setFee(period.id, fee.memberId, period.amountCents, null, csrfToken)) }}>{t.include}</button>

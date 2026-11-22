@@ -45,13 +45,13 @@ export function AttendanceStatistics({ teamId, teamName, language }: { teamId: s
         {(result === 'denied' || result === 'invalid' || result === 'error') && <p role="alert">{t[result]}</p>}
         {typeof result === 'object' && result !== null && <>
           <p>{t.held}: {result.held}</p>
-          {result.items.length === 0 ? <p>{t.empty}</p> : <table>
+          {result.items.length === 0 ? <p>{t.empty}</p> : <table className="cards">
             <caption>{`${t.title} ${teamName}`}</caption>
             <thead><tr><th scope="col">{t.member}</th><th scope="col">{t.yes}</th><th scope="col">{t.no}</th><th scope="col">{t.maybe}</th><th scope="col">{t.noAnswer}</th></tr></thead>
             <tbody>{result.items.map((item, index) => <tr key={index}>
-              <th scope="row">{item.displayName}</th><td>{item.yes}</td><td>{item.no}</td><td>{item.maybe}</td><td>{item.noAnswer}</td>
+              <th scope="row">{item.displayName}</th><td data-label={t.yes}>{item.yes}</td><td data-label={t.no}>{item.no}</td><td data-label={t.maybe}>{item.maybe}</td><td data-label={t.noAnswer}>{item.noAnswer}</td>
             </tr>)}</tbody>
-            <tfoot><tr><th scope="row">{t.total}</th><td>{result.totals.yes}</td><td>{result.totals.no}</td><td>{result.totals.maybe}</td><td>{result.totals.noAnswer}</td></tr></tfoot>
+            <tfoot><tr><th scope="row">{t.total}</th><td data-label={t.yes}>{result.totals.yes}</td><td data-label={t.no}>{result.totals.no}</td><td data-label={t.maybe}>{result.totals.maybe}</td><td data-label={t.noAnswer}>{result.totals.noAnswer}</td></tr></tfoot>
           </table>}
           <p>{t.note}</p>
         </>}

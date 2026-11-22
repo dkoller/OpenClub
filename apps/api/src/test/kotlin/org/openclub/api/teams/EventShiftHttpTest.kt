@@ -39,7 +39,7 @@ import java.time.ZoneOffset
 import java.util.UUID
 
 /**
- * Volunteer shifts (OpenAPI 1.16.0): who manages, who sees names, who signs up whom, capacity, closing, the order of
+ * Volunteer shifts (OpenAPI 1.16.0, unfilled overview 1.23.0): who manages, who sees names, who signs up whom, capacity, closing, the order of
  * answers and leaving the team. Each test creates its own event, so the tests do not depend on each other's order.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -159,6 +159,51 @@ class EventShiftHttpTest {
     }
 
     private fun volunteer(shift: String, member: UUID) = "/api/v1/shifts/$shift/volunteers/$member"
+
+    @Test
+    fun unfilledOverviewListsOpenPlacesOfManagedTeamsOnly() = app {
+        val soon = event()
+        val otherTeam = event(team = teamB)
+        val later = event(from = start.plusDays(15))
+        val cancelled = event()
+        val open = create(soon, shift(title = "Bar", needed = 2))
+        val full = create(soon, shift(title = "Kasse", needed = 1))
+        val foreign = create(otherTeam, shift(title = "Grill"), handle = "clubManager")
+        val tooLate = create(later, shift(title = "Bar", from = start.plusDays(15)))
+        val dropped = create(cancelled, shift(title = "Bar"))
+        sql { it.execute("UPDATE team_events SET cancelled = TRUE WHERE id = ?", cancelled) }
+        val check = Check()
+        check.expect("sign up", send(HttpMethod.Put, volunteer(open, memberOf.getValue("player")), "player"), HttpStatusCode.NoContent)
+        check.expect("fill", send(HttpMethod.Put, volunteer(full, memberOf.getValue("second")), "second"), HttpStatusCode.NoContent)
+        check.expect("no session", send(HttpMethod.Get, "/api/v1/shifts/unfilled", null), HttpStatusCode.Unauthorized)
+        for (handle in listOf("stranger", "plain", "player", "viewer", "guardian")) {
+            check.expect(handle, send(HttpMethod.Get, "/api/v1/shifts/unfilled", handle), HttpStatusCode.Forbidden)
+        }
+        check.done()
+
+        suspend fun listed(handle: String): Map<String, JsonObject> {
+            val response = send(HttpMethod.Get, "/api/v1/shifts/unfilled", handle)
+            assertEquals(HttpStatusCode.OK, response.status, response.bodyAsText())
+            assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
+            val body = response.json()
+            assertEquals(setOf("items", "truncated"), body.keys)
+            assertFalse(body.getValue("truncated").jsonPrimitive.boolean)
+            return body.getValue("items").jsonArray.map { it.jsonObject }.associateBy { it.getValue("id").jsonPrimitive.content }
+        }
+        val teamView = listed("teamManager")
+        assertTrue(open in teamView, "a shift with a free place is listed")
+        for (absent in listOf(full, foreign, tooLate, dropped)) assertFalse(absent in teamView, "not listed: $absent")
+        val item = teamView.getValue(open)
+        assertEquals(setOf("id", "title", "startsAt", "endsAt", "needed", "filled", "eventId", "eventTitle", "teamId", "teamName"), item.keys,
+            "counts only, never who signed up")
+        assertEquals(2, item.getValue("needed").jsonPrimitive.int)
+        assertEquals(1, item.getValue("filled").jsonPrimitive.int)
+        assertEquals(soon.toString(), item.getValue("eventId").jsonPrimitive.content)
+        assertEquals(teamA.toString(), item.getValue("teamId").jsonPrimitive.content)
+        val clubView = listed("clubManager")
+        assertTrue(open in clubView && foreign in clubView, "a club-wide manager sees every team")
+        for (absent in listOf(full, tooLate, dropped)) assertFalse(absent in clubView, "not listed: $absent")
+    }
 
     @Test
     fun managersCreateChangeAndDeleteShiftsOfTheirTeamOnly() = app {

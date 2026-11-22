@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
 Maps each of the 93 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.22.0) to the tests that exercise it. The operation list and
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.23.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -79,6 +79,7 @@ How to read the columns of test types:
 | `DELETE /v1/me/calendar-feed` | 204, 401, 403, 503 | `CalendarFeedHttpTest` (revoked link 404, revoking twice 204), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `GET /v1/calendar/{secret}` (no session) | 200, 404, 503 | `CalendarFeedHttpTest` (own and children's teams only, window, notes, no names; unknown, malformed, hash-as-secret, revoked, replaced, unverified and unlinked all 404; `private, no-store`), `IcalTest` (escaping, folding, UTC), Keycloak journey |
 | `GET /v1/events/{eventId}/shifts` | 200, 400, 401, 403, 404, 503 | `EventShiftHttpTest` (team members, guardians, viewers and managers see shifts; display names only, minors by initial; `signedUp` only for the caller's people; other teams and members without a team 403; unknown 404 only club-wide), `PrivateRoutesRevocationTest` |
+| `GET /v1/shifts/unfilled` | 200, 401, 403, 503 | `EventShiftHttpTest` (only `MANAGE_TEAMS` holders; viewers, players, guardians and members without grants 403; only managed teams, free places, next 14 days, not cancelled; counts only, no names), `PrivateRoutesRevocationTest` |
 | `POST /v1/events/{eventId}/shifts` | 201, 400, 401, 403, 404, 503 | `EventShiftHttpTest` (CSRF, `MANAGE_TEAMS` for the team only, input bounds, window around the event, trimmed title), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `PUT /v1/shifts/{shiftId}` | 204, 400, 401, 403, 404, 409, 503 | `EventShiftHttpTest` (viewer 403, places below volunteers 409 and unchanged), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `DELETE /v1/shifts/{shiftId}` | 204, 401, 403, 404, 503 | `EventShiftHttpTest` (sign-ups go with the shift, shifts with the event), `PrivateRoutesRevocationTest` |
@@ -114,7 +115,7 @@ How to read the columns of test types:
 Browser coverage of the same operations is in `dev/auth-e2e/club-landing.spec.js` (real Keycloak and
 Chromium, synthetic data): member, team, grant, role and club-setting workflows in four languages, real
 database denial with grants removed, a team-scoped grant that shows one team, invalid-input handling and
-accessibility structure (#25). The anonymous and authentication routes outside the 93 operations are covered
+accessibility structure (#25). The anonymous and authentication routes outside the 94 operations are covered
 by `AuthAndPublicRoutesInputTest`, `SessionRoutesTest` and `BrowserLoginRoutesTest`.
 
 ## Known gaps in this evidence

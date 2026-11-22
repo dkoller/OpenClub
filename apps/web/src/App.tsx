@@ -7,6 +7,7 @@ import { fetchMyProfile } from './myProfile'
 import { PublicMembers } from './PublicMembers'
 import { JoinForm } from './JoinForm'
 import { TeamDirectory } from './TeamDirectory'
+import { HelpersMissing } from './HelpersMissing'
 import { AcceptInvitation } from './AcceptInvitation'
 import { StartPage } from './StartPage'
 import { SchedulePage } from './SchedulePage'
@@ -145,7 +146,7 @@ export function App() {
         {ready && shown.page === 'event' && <EventPage key={shown.eventId} eventId={shown.eventId} language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && shown.page === 'family' && <FamilyPage language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && waiting && <p role="status">{words.loading}</p>}
-        {ready && !waiting && shown.page === 'team' && <><h1>{words.team}</h1><TeamDirectory language={language} csrfToken={access.csrfToken} /></>}
+        {ready && !waiting && shown.page === 'team' && <><h1>{words.team}</h1><HelpersMissing language={language} /><TeamDirectory language={language} csrfToken={access.csrfToken} /></>}
         {ready && !waiting && shown.page === 'admin' && <AdminPage section={shown.section} language={language} csrfToken={access.csrfToken}
           access={can} club={access} onClubChanged={updateClub} revision={directoryRevision}
           onDirectoryChanged={() => setDirectoryRevision(value => value + 1)} />}

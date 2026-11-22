@@ -273,3 +273,15 @@ Shown the join request contract, the owner chose **"Adults + parents"**.
 | 56 | Join requests | Approved as OpenAPI **1.22.0** (V34). A public form, **off** until a holder of `EDIT_MEMBERS` switches it on; while on, the signed-out landing page shows *Join the club*. An adult applies for themselves; a parent applies for a child (the child's name and birth date, the parent's name, email and phone); the club's adult age decides which applies. Optional wished team (names listed only while the form is open) and a message of up to 500 characters; the privacy notice must be confirmed. Abuse limits without third parties: exact Origin, a hidden honeypot field (silently dropped), at most 5 submissions per client address and hour (in memory only, never stored), at most 200 open requests, the same person (address, first name, birth date) once while open (a repeat is answered like a success). No email to applicants. `EDIT_MEMBERS` lists requests (with contacts, to get in touch), accepts (creates the member with the usual checks and audit, a child without contacts, plus the wished team; the request is deleted) or declines (deletes). Open requests are deleted after 60 days. |
 | 57 | Small additions while building | `GET /v1/public/join-requests` (is the form open, which teams) was added so the form can list teams; the "once while open" rule keys on address, first name and birth date, so a parent can apply for two children. |
 
+## Addendum 27 — task-based navigation and the unfilled-shifts overview (2026-11-21/22)
+
+Shown three layout mockups and a combined one, the owner chose the **combined layout** (2026-11-21): one page at a
+time, *Start* with the missing answers first, *Schedule* with a per-child filter, *Family*, and *Team* or
+*Administration* only for people who can use them. Asked whether to add an endpoint listing a member's own rights for
+the menu, the owner chose **"No API change"**: the web app probes existing read-only endpoints instead. Asked how to
+show helper shifts that still need people, the owner chose **"Add the endpoint"** (2026-11-22).
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 58 | Navigation | Web only, no contract change (PR #373). Menu entries come from existing read-only requests; only a denial hides one. |
+| 59 | Unfilled shifts | Approved as OpenAPI **1.23.0**: `GET /v1/shifts/unfilled` for holders of `MANAGE_TEAMS` (club-wide or for a team) lists the shifts of the next 14 days with free places, of events that are not cancelled, only for the teams the caller manages, at most 100. Counts only, never who signed up. Shown on *Administration* → *Waiting for you* and on the *Team* page. |
