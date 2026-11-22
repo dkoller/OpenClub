@@ -39,7 +39,10 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
 - **Helfereinsätze:** für welche Einsätze bei Anlässen Ihres Teams Sie sich eingetragen haben. Ihr Team sieht Ihren
   Namen beim Einsatz, damit sich alle absprechen können.
 - **Mitgliederbeiträge:** Betrag, Fälligkeit und Zahlungsdatum. Zahlungen laufen nicht über OpenClub; wir speichern
-  keine Bankdaten.
+  keine Bankdaten von Mitgliedern. Für offene Beiträge können Sie unter «Familie → Beiträge» eine QR-Rechnung (PDF)
+  herunterladen: Sie enthält Betrag, Fälligkeit, eine Zahlungsreferenz, Ihren Namen (bzw. den Ihres Kindes) und das
+  Konto des Vereins. Die Rechnung wird beim Herunterladen erstellt und nicht gespeichert; Ihre Adresse steht nicht
+  darauf, weil wir keine Adressen erfassen. Mit der Referenz ordnet die Kassierin oder der Kassier Ihre Zahlung zu.
 - **Mitteilungen** des Vereins und Ihrer Teams.
 
 Gesundheitsdaten oder Gründe für Abwesenheiten erfassen wir nicht. Bitte schreiben Sie solche Angaben auch nicht in

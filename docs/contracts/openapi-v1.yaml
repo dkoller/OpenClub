@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
   title: OpenClub single-club management API — synthetic M1
-  version: 1.25.0
+  version: 1.26.0
   description: >
     Frozen contract for the implemented synthetic M1 HTTP surface, accepted by
     the owner on 2026-11-17 (ADR-0007, #13). 1.1.0 adds the per-club adult-age
     setting (PATCH /v1/club/adult-age-policy and adultAgeYears in GET /v1/club, #17). 1.2.0 adds invitations
     and account unlinking (owner-approved 2026-11-18, ADR-0008 addendum 4): create and revoke an invitation,
-    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). 1.11.0 adds attendance: members and guardians answer YES, NO or MAYBE until an event starts, team viewers and managers see the answers by public display name, and every event carries the totals, owner-approved 2026-11-19 (ADR-0008 addendum 14). 1.12.0 adds membership fees: the club-wide MANAGE_FEES capability, fee periods and each member's fee and payment (tracking only), each member's own and children's fees (GET /v1/me/fees), and fees in the member export, owner-approved 2026-11-19 (ADR-0008 addendum 15). 1.13.0 adds the member list as CSV for editors: an audited export (GET /v1/members/export.csv) and an import that is previewed, creates only new valid members and skips duplicates (POST /v1/members/import), owner-approved 2026-11-19 (ADR-0008 addendum 17). 1.14.0 adds announcements: club-wide with the new POST_ANNOUNCEMENTS capability, per team with MANAGE_TEAMS, and each member's current announcements (GET /v1/me/announcements), owner-approved 2026-11-19 (ADR-0008 addendum 18). 1.14.1 (security review of 1.9.0–1.14.0) adds the member's attendance answers to the member export and answers 404 for an unknown event, announcement or team only to club-wide holders (403 otherwise), so team-scoped holders learn nothing about IDs they cannot reach. 1.15.0 adds the public member list opt-out decided by the club as controller (ADR-0008 addendum 19, decision C5): a member hides or shows their own name (PUT /v1/me/profile/public-listing) and an editor does it for any active member (PUT /v1/members/{memberId}/public-listing); My profile, the editor's detail read and the member export carry listedPublicly. 1.16.0 adds volunteer shifts (ADR-0008 addendum 20): team managers add shifts with a number of places to a team event, the team sees them with the volunteers' public display names, members and guardians sign up or withdraw until a shift starts and while places are free, and the member export lists a member's sign-ups. 1.17.0 adds private calendar feeds (ADR-0008 addendum 21): a member creates, replaces or revokes one secret feed link (shown once, only its hash stored) that calendar apps load without a session (GET /v1/calendar/{secret}, iCalendar with the events of My schedule, four weeks back to six months ahead, including notes, never names). 1.18.0 adds attendance statistics per team for VIEW_TEAMS and MANAGE_TEAMS holders (GET /v1/teams/{teamId}/attendance-statistics, ADR-0008 addendum 22). 1.19.0 adds email notifications (ADR-0008 addendum 23): a member's own switches for event changes, new events, announcements and shift reminders, all on by default, and the email language (GET and PUT /v1/me/notifications); messages go only to members with a verified sign-in, through the operator's SMTP server. 1.20.0 adds absences (ADR-0008 addendum 24): a member, or a guardian for their minor, enters days away, and every unanswered event of their teams on those days counts as No everywhere answers are shown or counted. 1.21.0 adds carpooling (ADR-0008 addendum 25): adults of an event's team or guardians of its minors offer rides, team members and guardians book seats, and a driver and the people they carry see each other's phone. 1.22.0 adds join requests (ADR-0008 addendum 26): a public form, off until an EDIT_MEMBERS holder switches it on, where adults apply for themselves and parents for a child; editors accept (creating the member) or decline. 1.23.0 adds the managers' overview of helper shifts that still need people (GET /v1/shifts/unfilled, ADR-0008 addendum 27): counts only, for the teams the caller manages, the next 14 days. 1.24.0 adds the helpers-wanted email (ADR-0008 addendum 28): seven days before a helper shift that still has free places, the team and the guardians of its minors are asked once, counts only, with the member's own `helpersWanted` switch in the notification settings (on by default; optional in PUT, where leaving it out keeps the stored value). 1.25.0 adds answer reminders (ADR-0008 addendum 29): an automatic email two days before an event to team members without an answer (guardians for their minors), a coach's reminder (POST /v1/events/{eventId}/attendance-reminders, MANAGE_TEAMS, at most every 12 hours) and the member's own `answerReminders` switch. It contains exactly the operations
+    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). 1.11.0 adds attendance: members and guardians answer YES, NO or MAYBE until an event starts, team viewers and managers see the answers by public display name, and every event carries the totals, owner-approved 2026-11-19 (ADR-0008 addendum 14). 1.12.0 adds membership fees: the club-wide MANAGE_FEES capability, fee periods and each member's fee and payment (tracking only), each member's own and children's fees (GET /v1/me/fees), and fees in the member export, owner-approved 2026-11-19 (ADR-0008 addendum 15). 1.13.0 adds the member list as CSV for editors: an audited export (GET /v1/members/export.csv) and an import that is previewed, creates only new valid members and skips duplicates (POST /v1/members/import), owner-approved 2026-11-19 (ADR-0008 addendum 17). 1.14.0 adds announcements: club-wide with the new POST_ANNOUNCEMENTS capability, per team with MANAGE_TEAMS, and each member's current announcements (GET /v1/me/announcements), owner-approved 2026-11-19 (ADR-0008 addendum 18). 1.14.1 (security review of 1.9.0–1.14.0) adds the member's attendance answers to the member export and answers 404 for an unknown event, announcement or team only to club-wide holders (403 otherwise), so team-scoped holders learn nothing about IDs they cannot reach. 1.15.0 adds the public member list opt-out decided by the club as controller (ADR-0008 addendum 19, decision C5): a member hides or shows their own name (PUT /v1/me/profile/public-listing) and an editor does it for any active member (PUT /v1/members/{memberId}/public-listing); My profile, the editor's detail read and the member export carry listedPublicly. 1.16.0 adds volunteer shifts (ADR-0008 addendum 20): team managers add shifts with a number of places to a team event, the team sees them with the volunteers' public display names, members and guardians sign up or withdraw until a shift starts and while places are free, and the member export lists a member's sign-ups. 1.17.0 adds private calendar feeds (ADR-0008 addendum 21): a member creates, replaces or revokes one secret feed link (shown once, only its hash stored) that calendar apps load without a session (GET /v1/calendar/{secret}, iCalendar with the events of My schedule, four weeks back to six months ahead, including notes, never names). 1.18.0 adds attendance statistics per team for VIEW_TEAMS and MANAGE_TEAMS holders (GET /v1/teams/{teamId}/attendance-statistics, ADR-0008 addendum 22). 1.19.0 adds email notifications (ADR-0008 addendum 23): a member's own switches for event changes, new events, announcements and shift reminders, all on by default, and the email language (GET and PUT /v1/me/notifications); messages go only to members with a verified sign-in, through the operator's SMTP server. 1.20.0 adds absences (ADR-0008 addendum 24): a member, or a guardian for their minor, enters days away, and every unanswered event of their teams on those days counts as No everywhere answers are shown or counted. 1.21.0 adds carpooling (ADR-0008 addendum 25): adults of an event's team or guardians of its minors offer rides, team members and guardians book seats, and a driver and the people they carry see each other's phone. 1.22.0 adds join requests (ADR-0008 addendum 26): a public form, off until an EDIT_MEMBERS holder switches it on, where adults apply for themselves and parents for a child; editors accept (creating the member) or decline. 1.23.0 adds the managers' overview of helper shifts that still need people (GET /v1/shifts/unfilled, ADR-0008 addendum 27): counts only, for the teams the caller manages, the next 14 days. 1.24.0 adds the helpers-wanted email (ADR-0008 addendum 28): seven days before a helper shift that still has free places, the team and the guardians of its minors are asked once, counts only, with the member's own `helpersWanted` switch in the notification settings (on by default; optional in PUT, where leaving it out keeps the stored value). 1.25.0 adds answer reminders (ADR-0008 addendum 29): an automatic email two days before an event to team members without an answer (guardians for their minors), a coach's reminder (POST /v1/events/{eventId}/attendance-reminders, MANAGE_TEAMS, at most every 12 hours) and the member's own `answerReminders` switch. 1.26.0 adds Swiss QR bills for fees (ADR-0008 addendum 30): MANAGE_FEES holders read and replace the club's payment details (GET and PUT /v1/club/payment-details: a Swiss or Liechtenstein IBAN or QR-IBAN, the account holder and their postal address), a member or guardian downloads the A4 PDF QR bill of their own or their current minor's open fee (GET /v1/me/fees/{periodId}/{memberId}/qr-bill, generated on demand, never stored, the payer's address left empty), GET /v1/me/fees says per fee whether a bill is available (qrBill), and the treasurer's fee list shows each member's payment reference (reference). It contains exactly the operations
     registered in Ktor and checked by `dev/verify-m1-openapi.py`. Authentication
     routes (/v1/auth) are documented separately in auth-api-proposal.yaml.
     Version 1.0.0 covers synthetic data only. It does not approve real member
@@ -2786,7 +2786,7 @@ paths:
                     items:
                       type: object
                       additionalProperties: false
-                      required: [memberId, firstName, lastName, archived, amountCents, paidOn]
+                      required: [memberId, firstName, lastName, archived, amountCents, paidOn, reference]
                       properties:
                         memberId: { type: string, format: uuid }
                         firstName: { type: string }
@@ -2794,6 +2794,13 @@ paths:
                         archived: { type: boolean }
                         amountCents: { type: [integer, 'null'], minimum: 0 }
                         paidOn: { type: [string, 'null'], format: date }
+                        reference:
+                          type: [string, 'null']
+                          description: >
+                            Since 1.26.0. The payment reference printed on this member's QR bill, formatted as on the
+                            bill (a 27-digit QR reference for a QR-IBAN, otherwise an ISO 11649 creditor reference
+                            RFxx P<period>M<fee>); null for an excluded member or while no payment details are set.
+                          examples: ['RF79 P12M 345', '00 00001 20000 00000 00000 03450']
         '400': { $ref: '#/components/responses/Invalid' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -2879,7 +2886,7 @@ paths:
                     items:
                       type: object
                       additionalProperties: false
-                      required: [periodId, periodName, dueDate, amountCents, paidOn, for]
+                      required: [periodId, periodName, dueDate, amountCents, paidOn, for, qrBill]
                       properties:
                         periodId: { type: string, format: uuid }
                         periodName: { type: string }
@@ -2893,6 +2900,93 @@ paths:
                           properties:
                             id: { type: string, format: uuid }
                             firstName: { type: string }
+                        qrBill:
+                          type: boolean
+                          description: >
+                            Since 1.26.0. True when a QR bill can be downloaded: the fee is open, its amount is above
+                            zero and the club has payment details.
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/me/fees/{periodId}/{memberId}/qr-bill:
+    parameters:
+      - name: periodId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Fees]
+      operationId: downloadQrBill
+      summary: The Swiss QR bill of an open fee as an A4 PDF (since 1.26.0)
+      description: >
+        Order: session (401), an active verified member (403), the input (400), then the member must be
+        the caller or the caller's current minor (the rule of GET /v1/me/fees, 403 otherwise), a fee in
+        that period (404 for an unknown period or an excluded member), an open fee above zero (409
+        not_open for a paid fee or nothing to pay) and the club's payment details (409
+        no_payment_details). The bill carries the amount in CHF, the club's account and address, the
+        payment reference (a QR reference for a QR-IBAN, otherwise an ISO 11649 creditor reference,
+        the same as in the treasurer's list) and the message "<period name> - <first name> <last name>"
+        (at most 140 characters); a header above it names the period, the member, the amount, the due
+        date and the reference. The payer's address stays empty. lang chooses the language of the bill.
+        Generated on demand, never stored, not audited. An attachment, never cacheable, nosniff.
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          schema: { type: string, enum: [de, en, fr, it], default: en }
+      responses:
+        '200':
+          description: The PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/club/payment-details:
+    get:
+      tags: [Fees]
+      operationId: getPaymentDetails
+      summary: The club's payment details for QR bills (MANAGE_FEES, since 1.26.0)
+      description: MANAGE_FEES (403). 404 while none are set. Not personal data of members.
+      responses:
+        '200':
+          description: The payment details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentDetails' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    put:
+      tags: [Fees]
+      operationId: setPaymentDetails
+      summary: Replace the club's payment details (MANAGE_FEES, since 1.26.0)
+      description: >
+        Exact Origin, session CSRF and MANAGE_FEES (403) before the body is read. The IBAN must be
+        Swiss or Liechtenstein (21 characters, spaces ignored) with a valid mod-97 checksum; a QR-IBAN
+        (institution ID 30000-31999) is detected and gets QR references. Holder name 1-70 characters,
+        street up to 70, building number up to 16 (only with a street), postal code 1-16, town 1-35,
+        country CH or LI; street and building number may be left out or null. Text is trimmed. Each
+        change is audited as PAYMENT_DETAILS_CHANGED (actor and time, identifiers only).
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PaymentDetailsInput' }
+      responses:
+        '204': { description: Replaced }
+        '400': { $ref: '#/components/responses/Invalid' }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '503': { $ref: '#/components/responses/Unavailable' }
@@ -3503,6 +3597,31 @@ components:
         helpersWanted: { type: boolean, description: Since 1.24.0. Always in GET; optional in PUT (left out keeps the stored value). }
         answerReminders: { type: boolean, description: Since 1.25.0. Email when an event of the member's team (or a minor's) still lacks their answer, two days before and when a coach asks. Always in GET; optional in PUT. }
         language: { type: string, enum: [de, en, fr, it] }
+    PaymentDetailsInput:
+      type: object
+      additionalProperties: false
+      required: [iban, holderName, postalCode, town, country]
+      properties:
+        iban: { type: string, examples: ['CH93 0076 2011 6238 5295 7'] }
+        holderName: { type: string, minLength: 1, maxLength: 70 }
+        street: { type: [string, 'null'], maxLength: 70 }
+        buildingNumber: { type: [string, 'null'], maxLength: 16 }
+        postalCode: { type: string, minLength: 1, maxLength: 16 }
+        town: { type: string, minLength: 1, maxLength: 35 }
+        country: { type: string, enum: [CH, LI] }
+    PaymentDetails:
+      type: object
+      additionalProperties: false
+      required: [iban, qrIban, holderName, street, buildingNumber, postalCode, town, country]
+      properties:
+        iban: { type: string, pattern: '^(CH|LI)[0-9]{7}[0-9A-Z]{12}$', description: Compact, upper case. }
+        qrIban: { type: boolean, description: 'Institution ID 30000-31999: bills carry a QR reference.' }
+        holderName: { type: string, minLength: 1, maxLength: 70 }
+        street: { type: [string, 'null'], maxLength: 70 }
+        buildingNumber: { type: [string, 'null'], maxLength: 16 }
+        postalCode: { type: string, minLength: 1, maxLength: 16 }
+        town: { type: string, minLength: 1, maxLength: 35 }
+        country: { type: string, enum: [CH, LI] }
     JoinRequestSettings:
       type: object
       additionalProperties: false

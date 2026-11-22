@@ -138,6 +138,12 @@ Tracking only: OpenClub records who paid, it does not collect money.
   and for excluded members *Include*. Archived members keep their fee and can still be marked paid.
 - *Delete period* removes the period with all its fees; type its name to confirm.
 - Every change is recorded in the audit trail. Fees are part of a member's data export.
+- **Payment details for QR bills** (below the periods): enter the club's *IBAN or QR-IBAN* (Switzerland or
+  Liechtenstein), the *Account holder*, optionally *Street* and *Building number*, *Postal code*, *Town* and *Country*,
+  then *Save payment details*. From then on every member (and guardian) can download a Swiss QR bill for each open fee.
+  With a QR-IBAN the bill carries a 27-digit QR reference, otherwise a creditor reference starting with *RF*. The
+  *Reference* column of an opened period shows each member's reference, so you can match a payment in the bank
+  statement; then *Mark paid* by hand. A member excluded and included again gets a new reference.
 
 ### Club settings (*Administration* → *Settings*, permission `MANAGE_PERMISSIONS`)
 
@@ -246,7 +252,9 @@ Anyone with the link sees your schedule, so keep it to yourself. *Create a new l
 working) and *Revoke link* ends it.
 
 **My fees** (*Family* → *Fees*; the list shows how many are still open) lists your membership fees with amount, due date and whether they are paid (and your children's, if you
-are a guardian). Questions about a fee go to the club's treasurer.
+are a guardian). For an open fee, *QR bill (PDF)* downloads an A4 page with the Swiss QR bill to pay with your banking
+app (shown once the treasurer has entered the club's payment details). Your address is not printed on it. The fee
+shows as paid only after the treasurer has seen the payment. Questions about a fee go to the club's treasurer.
 
 **My profile** (*Family* → *My profile*) shows what the club stores about you: name, date of birth, gender (if recorded), whether you play,
 your role and your teams. Change your *Email* and *Phone* there and choose *Save contacts*; adults need both. Other

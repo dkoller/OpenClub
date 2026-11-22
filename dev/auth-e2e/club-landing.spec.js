@@ -760,6 +760,30 @@ test('verified login gains club access only after restricted operator bootstrap'
   await show(page, '#/family/fees');
   await expect(page.getByRole('region', { name: 'My fees' })).toContainText('Season 2026/27');
 
+  // Swiss QR bills (OpenAPI 1.26.0): the treasurer enters the club's account (a fictional IBAN with a valid checksum);
+  // the fee list then shows each member's reference and every open fee has a QR bill (A4 PDF) to download.
+  await show(page, '#/admin/fees');
+  const payment = page.getByRole('region', { name: 'Payment details for QR bills' });
+  await expect(payment).toContainText('No payment details yet');
+  await payment.getByLabel('IBAN or QR-IBAN').fill('CH93 0076 2011 6238 5295 8');
+  await payment.getByLabel('Account holder').fill('FC Demo');
+  await payment.getByLabel('Postal code').fill('8000');
+  await payment.getByLabel('Town').fill('Zürich');
+  await payment.getByRole('button', { name: 'Save payment details' }).click();
+  await expect(payment.getByRole('alert')).toContainText('Please check');
+  await payment.getByLabel('IBAN or QR-IBAN').fill('CH93 0076 2011 6238 5295 7');
+  await payment.getByRole('button', { name: 'Save payment details' }).click();
+  await expect(payment.getByRole('status')).toHaveText('Saved.');
+  await expect(payment.getByLabel('IBAN or QR-IBAN')).toHaveValue('CH9300762011623852957');
+  await season.getByRole('button', { name: 'Open' }).click();
+  await expect(maraFee).toContainText(/RF\d{2} P\d+M/);
+  await show(page, '#/family/fees');
+  const qrBill = page.getByRole('region', { name: 'My fees' }).getByRole('link', { name: /^QR bill \(PDF\): Season 2026\/27/ }).first();
+  const qrPdf = await context.request.get(await qrBill.getAttribute('href'));
+  expect(qrPdf.status()).toBe(200);
+  expect(qrPdf.headers()['content-type']).toContain('application/pdf');
+  expect((await qrPdf.body()).subarray(0, 4).toString('latin1')).toBe('%PDF');
+
   // Excel import and export (OpenAPI 1.13.0): the list downloads as CSV; an import is checked first, skips the
   // existing Mara Demo and creates only the new rows.
   await show(page, '#/admin/members');

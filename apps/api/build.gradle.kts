@@ -28,6 +28,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     // SMTP for email notifications (OpenAPI 1.19.0, ADR-0008 addendum 23): the Jakarta Mail implementation.
     implementation("org.eclipse.angus:angus-mail:2.0.5")
+    // Swiss QR bills for fees (OpenAPI 1.26.0, ADR-0008 addendum 30): MIT; brings Apache PDFBox 3 (Apache-2.0) and
+    // Nayuki's QR code generator (MIT) for its own PDF output.
+    implementation("net.codecrete.qrbill:qrbill-generator:3.4.0")
 
     jooqGenerator("org.jooq:jooq-codegen:$jooqVersion")
     jooqGenerator("org.postgresql:postgresql:42.7.8")

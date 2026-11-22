@@ -294,6 +294,7 @@ Asked about an automatic reminder a week ahead, the owner chose **"Own switch"**
 | --- | --- | --- |
 | 60 | Helpers wanted | Approved as OpenAPI **1.24.0** (V35). Seven days before a helper shift that still has free places (and more than a day ahead), the event's team and the guardians of its current minors get one email per event listing the shifts with their free places, once per shift. Not sent to people already helping at that event or whose child is, nor when the event is cancelled. Counts only, never names. Members turn it off with their own `helpersWanted` switch (on by default, like the other kinds); the field is optional in `PUT /v1/me/notifications`. Only when the installation sends email. |
 
+
 **Note (2026-11-22):** addenda 21 and 24 name the page *My schedule*, which no longer exists since the task-based layout
 (addendum 27): the calendar link and absences are now on *Family*. The decisions themselves are unchanged.
 
@@ -304,3 +305,16 @@ Shown the answer-reminder design, the owner chose **"Approve as described"**.
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 61 | Answer reminders | Approved as OpenAPI **1.25.0** (V36). (1) Automatically, once per event, when it starts in more than one and at most two days and is not cancelled: every active team member without an answer (an absence counts as one) gets an email, and for a current minor their guardians, naming that child. (2) A holder of `MANAGE_TEAMS` for the event's team can send the same reminder (`POST /v1/events/{eventId}/attendance-reminders`) until the event starts, at most once every 12 hours per event; the answer is the number of members without an answer, never names. (3) Members switch it off with their own `answerReminders` setting, on by default. Only when the installation sends email. |
+
+## Addendum 30 — Swiss QR bills for fees (2026-11-22)
+
+The owner approved Swiss QR bills for fees: "(1) Club settings get the club's payment details: IBAN (normal or
+QR-IBAN), account holder name and postal address, editable with MANAGE_FEES; (2) each member (and parents for their
+children) downloads a QR-Rechnung (PDF, A4 with the payment part) for an open fee from 'Familie → Beiträge'; amount,
+due date and a reference built from period and member, so the treasurer can match payments in the bank statement
+(marking as paid stays manual). The payer's address stays empty (we don't store addresses). Needs one new open-source
+server library (qrbill-generator, MIT, free)."
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 62 | QR bills | Approved as OpenAPI **1.26.0** (V37). `GET`/`PUT /v1/club/payment-details` for `MANAGE_FEES`: a CH or LI IBAN (mod-97 checked; a QR-IBAN, institution ID 30000–31999, is detected), holder name (≤ 70), optional street (≤ 70) and building number (≤ 16, only with a street), postal code (≤ 16), town (≤ 35), country CH or LI; each change audited as `PAYMENT_DETAILS_CHANGED`. `GET /v1/me/fees/{periodId}/{memberId}/qr-bill` returns the A4 PDF for an open fee above zero of the caller or a current minor (the rule of `GET /v1/me/fees`): 403 for anyone else, 404 without a fee in that period, 409 when paid or without payment details. Reference from two stable numbers added by V37: a QR reference (27 digits, recursive mod-10) for a QR-IBAN, otherwise an ISO 11649 creditor reference `RFxx P<period>M<fee>`; shown per member in the treasurer's list. Message "<period> - <first name> <last name>" (≤ 140; a hyphen because the en dash is outside the Swiss payment character set). Generated on demand, never stored; no payer address. `GET /v1/me/fees` gains `qrBill` per fee. Library `net.codecrete.qrbill:qrbill-generator` 3.4.0 (MIT, free), which brings Apache PDFBox 3 (Apache-2.0) and Nayuki's QR code generator (MIT); its bundled Liberation Sans font is under the SIL Open Font License 1.1. |

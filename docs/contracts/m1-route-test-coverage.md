@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 93 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.25.0) to the tests that exercise it. The operation list and
+Maps each of the 98 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.26.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -101,10 +101,13 @@ How to read the columns of test types:
 | `POST /v1/fee-periods` | 201, 400, 401, 403, 409, 503 | `FeeHttpTest` (grant before body, eight input errors, duplicate name ignoring case 409, every active member included and audited, archived member not), `PrivateRoutesRevocationTest` |
 | `PATCH /v1/fee-periods/{periodId}` | 204, 400, 401, 403, 404, 409, 503 | `FeeHttpTest` (rename, unknown 404), `PrivateRoutesRevocationTest` |
 | `DELETE /v1/fee-periods/{periodId}` | 204, 400, 401, 403, 404, 409, 503 | `FeeHttpTest` (wrong confirmation 409, deletion audits FEE_REMOVED per fee), `PrivateRoutesRevocationTest` |
-| `GET /v1/fee-periods/{periodId}/fees` | 200, 400, 401, 403, 404, 503 | `FeeHttpTest` (filters all, open, paid, excluded; bad status 400; unknown 404), `PrivateRoutesRevocationTest` |
+| `GET /v1/fee-periods/{periodId}/fees` | 200, 400, 401, 403, 404, 503 | `FeeHttpTest` (filters all, open, paid, excluded; bad status 400; unknown 404), `QrBillHttpTest` (`reference` as creditor or QR reference, null when excluded or without payment details), `PrivateRoutesRevocationTest` |
 | `PUT /v1/fee-periods/{periodId}/fees/{memberId}` | 204, 400, 401, 403, 404, 409, 503 | `FeeHttpTest` (pay, change, unpay, re-include each audited; archived without fee 409; unknown member or period 404; editor 403; revoked grant 403), `PrivateRoutesRevocationTest` |
 | `DELETE /v1/fee-periods/{periodId}/fees/{memberId}` | 204, 400, 401, 403, 404, 503 | `FeeHttpTest` (exclude twice audits once), `PrivateRoutesRevocationTest` |
-| `GET /v1/me/fees` | 200, 401, 403, 503 | `FeeHttpTest` (own fees, guardian's child's, exact keys, login without member record 403), `PrivateRoutesRevocationTest` |
+| `GET /v1/me/fees` | 200, 401, 403, 503 | `FeeHttpTest` (own fees, guardian's child's, exact keys, login without member record 403), `QrBillHttpTest` (`qrBill` only for an open fee above zero with payment details), `PrivateRoutesRevocationTest` |
+| `GET /v1/me/fees/{periodId}/{memberId}/qr-bill` | 200, 400, 401, 403, 404, 409, 503 | `QrBillHttpTest` (own and child's fee 200 `%PDF` attachment `no-store`; someone else's, another guardian's child, treasurer, unknown member and non-member 403; bad ID, language or query 400; unknown period and excluded 404; paid and zero 409 `not_open`; no details 409 `no_payment_details`), `SwissPaymentsTest` (PDF in four languages, QR-IBAN), `PrivateRoutesRevocationTest`, Keycloak journey |
+| `GET /v1/club/payment-details` | 200, 401, 403, 404, 503 | `QrBillHttpTest` (editor, member and stranger 403; none set 404; compact IBAN and `qrIban`; revoked grant 403), `PrivateRoutesRevocationTest` |
+| `PUT /v1/club/payment-details` | 204, 400, 401, 403, 503 | `QrBillHttpTest` (grant, Origin and CSRF before body; bad checksum, foreign IBAN, field lengths, building number without street, other country, wrong types, missing and extra keys 400; optional street; replace), `SwissPaymentsTest` (IBAN, field limits), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `GET /v1/members/export.csv` | 200, 400, 401, 403, 503 | `MemberListHttpTest` (headers, BOM, German header, neutralized phone, archived members left out, MEMBER_LISTED per member, no grant / cross-site / bad language 403/400 without audit), `MemberCsvTest` (formula neutralization round trip), `PrivateRoutesRevocationTest` |
 | `POST /v1/members/import` | 200, 400, 401, 403, 503 | `MemberListHttpTest` (CSRF and grant before the file, wrong type or mode or missing column 400, preview changes nothing, commit creates only OK rows with MEMBER_CREATED, a second commit creates nothing), `MemberCsvTest` (UTF-8 and Windows-1252, separators, quotes, four languages, strict dates, each problem, 1,000-row limit) |
 | `GET /v1/me/announcements` | 200, 401, 403, 503 | `AnnouncementHttpTest` (club, own team, child's team, managed team; expired hidden; `canManage`; audiences; exact keys; login without member record 403), `PrivateRoutesRevocationTest` |
@@ -116,7 +119,7 @@ How to read the columns of test types:
 Browser coverage of the same operations is in `dev/auth-e2e/club-landing.spec.js` (real Keycloak and
 Chromium, synthetic data): member, team, grant, role and club-setting workflows in four languages, real
 database denial with grants removed, a team-scoped grant that shows one team, invalid-input handling and
-accessibility structure (#25). The anonymous and authentication routes outside the 95 operations are covered
+accessibility structure (#25). The anonymous and authentication routes outside the 98 operations are covered
 by `AuthAndPublicRoutesInputTest`, `SessionRoutesTest` and `BrowserLoginRoutesTest`.
 
 ## Known gaps in this evidence
