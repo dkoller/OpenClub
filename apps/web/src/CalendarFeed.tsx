@@ -43,7 +43,7 @@ export function CalendarFeed({ language, csrfToken }: { language: Language; csrf
   if (status === 'denied' || status === null) return null
   return (
     <section aria-label={t.title}>
-      <h3>{t.title}</h3>
+      <h1>{t.title}</h1>
       <p>{t.intro}</p>
       {status === 'error' ? <p role="alert">{t.error}</p> : <>
         <p>{status.active && status.createdAt ? `${t.active} ${new Date(status.createdAt).toLocaleDateString(language)}` : t.none}</p>

@@ -9,7 +9,7 @@ const words = {
   it: { title: 'Assenze', intro: 'Gli eventi in questi giorni senza risposta contano come «No». Nessun motivo viene salvato.', none: 'Nessuna assenza.', who: 'Per', me: 'Me', from: 'Dal', to: 'Al', add: 'Aggiungi assenza', remove: 'Elimina', invalid: 'A partire da oggi, al massimo un anno e al massimo due anni in anticipo.', error: 'Non disponibile.' },
 } satisfies Record<Language, Record<string, string>>
 
-/** The member's and their children's absences (OpenAPI 1.20.0), shown in My schedule. */
+/** The member's and their children's absences (OpenAPI 1.20.0), on its own page #/family/absences. */
 export function Absences({ language, csrfToken, self, onChange }: {
   language: Language; csrfToken: string; self?: string | null; onChange: () => void
 }) {
@@ -39,7 +39,7 @@ export function Absences({ language, csrfToken, self, onChange }: {
   }
 
   if (list === null || list === 'denied') return null
-  if (list === 'error') return <section aria-label={t.title}><h3>{t.title}</h3><p role="alert">{t.error}</p></section>
+  if (list === 'error') return <section aria-label={t.title}><h1>{t.title}</h1><p role="alert">{t.error}</p></section>
   const person = who || list.people[0]?.id || ''
   const name = (id: string, firstName: string) => id === self ? t.me : firstName
   function add(event: FormEvent) {
@@ -48,7 +48,7 @@ export function Absences({ language, csrfToken, self, onChange }: {
   }
   return (
     <section aria-label={t.title}>
-      <h3>{t.title}</h3>
+      <h1>{t.title}</h1>
       <p>{t.intro}</p>
       {list.items.length === 0 ? <p>{t.none}</p> : <ul>{list.items.map(item => <li key={item.id}>
         {name(item.memberId, item.firstName)}: {item.from}{item.to !== item.from ? ` – ${item.to}` : ''}

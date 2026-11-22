@@ -123,7 +123,7 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
     await expect(guardians.getByText('Guardian added.')).toBeVisible();
     expect(fixtureSql("SELECT COUNT(*) FROM audit_events WHERE event_type = 'GUARDIAN_LINKED'")).toBe('1');
     await second.reload();
-    await show(second, '#/family');
+    await show(second, '#/family/children');
     const children = second.getByRole('region', { name: 'My children' });
     const tim = children.getByRole('listitem').filter({ hasText: 'Tim Minor' });
     await tim.getByRole('button', { name: 'Open' }).click();
