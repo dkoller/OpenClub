@@ -9,7 +9,7 @@ import { useMyEvents } from './useMyEvents'
 const words = {
   de: { back: 'Zurück zu den Terminen', gone: 'Diesen Termin gibt es nicht mehr, oder er betrifft dich nicht.', notes: 'Hinweise', team: 'Team bisher' },
   en: { back: 'Back to the schedule', gone: 'This event no longer exists, or it does not concern you.', notes: 'Notes', team: 'Team so far' },
-  fr: { back: 'Retour à l’agenda', gone: 'Cet événement n’existe plus ou ne te concerne pas.', notes: 'Remarques', team: 'Équipe jusqu’ici' },
+  fr: { back: 'Retour à l’agenda', gone: 'Cet événement n’existe plus ou ne vous concerne pas.', notes: 'Remarques', team: 'Équipe jusqu’ici' },
   it: { back: 'Torna al calendario', gone: 'Questo evento non esiste più o non ti riguarda.', notes: 'Note', team: 'Squadra finora' },
 } satisfies Record<Language, Record<string, string>>
 
