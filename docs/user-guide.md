@@ -20,6 +20,10 @@ The main menu sits at the bottom of a phone screen and on the left of a computer
 | *Team* | Only for coaches and team managers (`VIEW_TEAMS` or `MANAGE_TEAMS`): *Next events* with who has not answered, *Helpers missing* (for managers), then *Teams*, one row per team. A team opens its own page (*← All teams* leads back) with *Schedule*, *Members* and *Statistics*, each on its own page, and *Manage team* |
 | *Administration* | Only with an administration permission: *Waiting for you* (open join requests, helper shifts that still need people, unpaid fees), *Members*, *Join requests*, *Fees*, *Permissions* and *Settings*, each shown only to people who may use it |
 
+**On the home screen:** in the phone's browser choose *Add to Home Screen* (Safari: share button; Chrome: menu). The
+club page then opens like an app, full screen with its own icon. It always loads fresh from the club's server, so
+it needs a connection.
+
 Every page has its own address, so the browser's back button and bookmarks work (for example `#/schedule`, or
 `#/team/<team>/schedule` for one team's schedule). On a
 phone, wide lists such as fees or the import preview show one card per row instead of a table.
