@@ -136,6 +136,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(mailSettings.getByText('This club does not send emails.')).toBeVisible();
   await expect(mailSettings.getByLabel('New events')).toBeChecked();
   await expect(mailSettings.getByLabel('New events')).toBeDisabled();
+  await expect(mailSettings.getByLabel('Helpers wanted: 7 days before a shift with free places')).toBeChecked();
   // The public-list switch (OpenAPI 1.15.0, controller decision C5): hidden, then shown again.
   const listing = page.getByRole('region', { name: 'My profile' }).getByLabel('Show my name on the public member list');
   await expect(listing).toBeChecked();
