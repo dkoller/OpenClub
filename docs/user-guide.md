@@ -17,10 +17,11 @@ The main menu sits at the bottom of a phone screen and on the left of a computer
 | *Start* | *Things for you to do*: every event that still needs your answer, or your child's, with *Yes*, *No* and *Maybe* right there, and a free seat to book for an event you said *Yes* to; then what else is on in the next 7 days, and the announcements |
 | *Schedule* | The next eight weeks by day. With children, choose *Everyone*, *Me* or one child. Each event opens its own page with the answers, helper shifts and rides |
 | *Family* | A short list that opens each part on its own page (*← Family* leads back): *My profile*, *My children* (only for guardians, with their first names), *Absences*, *Fees* (with how many are open), *Calendar subscription* and *Email notifications* |
-| *Team* | Only for coaches and team managers (`VIEW_TEAMS` or `MANAGE_TEAMS`): *Next events* with who has not answered, *Helpers missing* (for managers), then teams, rosters, schedules and statistics |
+| *Team* | Only for coaches and team managers (`VIEW_TEAMS` or `MANAGE_TEAMS`): *Next events* with who has not answered, *Helpers missing* (for managers), then *Teams*, one row per team. A team opens its own page (*← All teams* leads back) with *Schedule*, *Members* and *Statistics*, each on its own page, and *Manage team* |
 | *Administration* | Only with an administration permission: *Waiting for you* (open join requests, helper shifts that still need people, unpaid fees), *Members*, *Join requests*, *Fees*, *Permissions* and *Settings*, each shown only to people who may use it |
 
-Every page has its own address, so the browser's back button and bookmarks work (for example `#/schedule`). On a
+Every page has its own address, so the browser's back button and bookmarks work (for example `#/schedule`, or
+`#/team/<team>/schedule` for one team's schedule). On a
 phone, wide lists such as fees or the import preview show one card per row instead of a table.
 
 What you see depends on your permissions: menu entries and panels you cannot use are not shown at all. Every action is checked by the
@@ -75,12 +76,14 @@ straight to the right section.
   problems* with the reason (left out). Nothing is created until you choose *Import N members*. Existing members are
   never changed. Every export and import is recorded.
 
-### Teams (*Team* page, panels *Teams* and *Team members*)
+### Teams (*Team* page, section *Teams*, then each team's own page)
 
-- *Team name* and *Add team* create a team; *Rename* and *Delete team* (type its name to confirm) change it. Deleting
-  a team also deletes its schedule.
-- *Schedule* under a team shows and plans its trainings and events (see *For team managers*).
-- Open a team to see *Team members*. Find a member and *Assign*; *Remove* takes them out of the team.
+- *Team name* and *Add team* under *Teams* create a team (only shown to people who may; after a refused attempt the
+  form disappears). Each team is one row with its number of members; tap it to open the team's page.
+- On the team's page, *Manage team* has *Rename* and *Delete team* (type its name to confirm). Deleting a team also
+  deletes its schedule; you are taken back to the list. Both disappear if the server refuses them.
+- *Schedule* on the team's page shows and plans its trainings and events (see *For team managers*).
+- *Members* on the team's page lists the team. Find a member and *Assign*; *Remove* takes them out of the team.
 - *Contact details* shows a team member's email and phone (see *For team managers*).
 
 ### Permissions (*Administration* → *Permissions*, permission `MANAGE_PERMISSIONS`)
@@ -148,17 +151,19 @@ minors by first name and initial). Absences count as *No*; no reason is ever sho
 without an answer* emails them (parents for their children) if the club sends email, at most once every 12 hours; an
 automatic reminder also goes out two days before every event. The same page lists the event's helper shifts and rides.
 
-**Schedule.** On the *Team* page, choose *Schedule* under a team to see its next eight weeks. With `MANAGE_TEAMS` for the
-team you add events: *Kind* (Training, Match or Event), *Title*, *Date*, *Start*, *End*, optionally *Place* and
+**Schedule.** On the *Team* page, open a team and choose *Schedule* to see its next eight weeks, one row per event
+with its date, time, place and totals. A row opens the event's coach page (the same as from *Next events*): who is
+coming, helper shifts and rides. With `MANAGE_TEAMS` for the
+team you add events under *Add event* at the bottom: *Kind* (Training, Match or Event), *Title*, *Date*, *Start*, *End*, optionally *Place* and
 *Notes*, then *Add event*. Fill *Repeat weekly until* to create the same event every week up to that date (at most
 52). *Edit* changes one date, *Cancel event* marks it cancelled (members still see it, marked *Cancelled*;
 *Reinstate* undoes this) and *Delete* followed by *Confirm delete* removes it. With `VIEW_TEAMS` you see the
-schedule without these buttons. Each event shows the totals (*Answers: 5 Yes, 1 No, 2 Maybe*); *Show answers* lists
-every team member's answer, or *no answer*, by first and last name (minors by first name and initial). Times are entered and shown in your device's time zone; weekly repeats keep the same
-local time across the change to and from summer time.
+schedule without these buttons. Each event shows the totals (*Answers: 5 Yes, 1 No, 2 Maybe*); its page lists every
+team member's answer by name (minors by first name and initial), the ones without an answer first. Times are entered
+and shown in your device's time zone; weekly repeats keep the same local time across the change to and from summer
+time.
 
-**Attendance statistics.** With `VIEW_TEAMS` or `MANAGE_TEAMS` for a team, *Attendance statistics* in its schedule
-shows, for the last 12 months (change *From* and *To*, at most a year, then *Show*), how many events took place and
+**Attendance statistics.** With `VIEW_TEAMS` or `MANAGE_TEAMS` for a team, *Statistics* on the team's page shows, for the last 12 months (change *From* and *To*, at most a year, then *Show*), how many events took place and
 how each member answered them: *Yes*, *No*, *Maybe* and *No answer*, with totals. Cancelled events do not count.
 Answers are deleted 12 months after an event, and members who joined later show earlier events as *No answer*.
 
@@ -167,13 +172,13 @@ days that still have free places (*Bar: 2 of 4 places free*), with the event, te
 shown, not who signed up. A club-wide manager also sees them on *Waiting for you*. Seven days before such a shift,
 the team and the parents of its children are also asked by email (*Helpers wanted*, if the club sends email).
 
-**Volunteer shifts.** An event's page (from *Next events*), or *Show shifts and rides* under an event in the team schedule, lists its helper jobs (for example *Bar*, 14:00–16:00,
+**Volunteer shifts.** An event's page (from *Next events* or from the team's *Schedule*) lists its helper jobs (for example *Bar*, 14:00–16:00,
 *2 of 3 filled*) with the names of who signed up. With `MANAGE_TEAMS` for the team you add a shift: *Task*, *Date*,
 *Start*, *End* (prefilled with the event's times, at most 24 hours and within a day of the event) and *People needed*,
 then *Add shift*. *Edit* changes a shift (you cannot lower the places below the people already signed up), *Delete*
 followed by the confirmation removes it with its sign-ups.
 
-With `MANAGE_TEAMS` for a team you manage its assignments and can open *Contact details* of its **active** members
+With `MANAGE_TEAMS` for a team you manage its assignments on its *Members* page and can open *Contact details* of its **active** members
 (name, email, phone, player). Members of other teams, archived members and everyone's birth date stay hidden. Each
 contact read is recorded.
 

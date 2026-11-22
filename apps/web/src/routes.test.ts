@@ -7,6 +7,7 @@ describe('routes', () => {
   it('reads every page and writes it back', () => {
     for (const hash of ['#/', '#/schedule', '#/schedule/' + event, '#/family', '#/family/profile',
       '#/family/children', '#/family/absences', '#/family/fees', '#/family/calendar', '#/family/notifications', '#/team',
+      `#/team/${event}`, `#/team/${event}/schedule`, `#/team/${event}/members`, `#/team/${event}/statistics`,
       `#/team/${event}/event/${event}`, '#/admin', '#/admin/members',
       '#/admin/join-requests', '#/admin/fees', '#/admin/permissions', '#/admin/settings']) {
       expect(routeHash(parseRoute(hash))).toBe(hash)
@@ -16,13 +17,24 @@ describe('routes', () => {
   it('opens Start for empty, unknown, invitation and malformed fragments', () => {
     for (const hash of ['', '#', '#invite=abc', '#/nowhere', '#/admin/secret', '#/schedule/not-an-id', '#/family/x', '#/family/overview',
       '#/family/fees/x', '#/admin/fees/x', '#/team/x/event/' + event, `#/team/${event}/event/x`, `#/team/${event}/other/${event}`,
-      `#/team/${event}/event/${event}/x`, `#/team/${event}`]) {
+      `#/team/${event}/event/${event}/x`, '#/team/x', `#/team/${event}/overview`, `#/team/${event}/schedule/x`,
+      `#/team/${event}/members/${event}`]) {
       expect(parseRoute(hash)).toEqual({ page: 'start' })
     }
   })
 
   it('keeps a coach event under the team tab', () => {
     expect(tabOf(parseRoute(`#/team/${event}/event/${event}`))).toBe('team')
+    expect(parseRoute(`#/team/${event}/event/${event}`)).toEqual({ page: 'team-event', teamId: event, eventId: event })
+  })
+
+  it('keeps every team page under the team tab', () => {
+    expect(parseRoute('#/team')).toEqual({ page: 'team' })
+    expect(parseRoute(`#/team/${event.toUpperCase()}`)).toEqual({ page: 'team', teamId: event })
+    expect(parseRoute(`#/team/${event}/statistics`)).toEqual({ page: 'team', teamId: event, section: 'statistics' })
+    for (const hash of ['#/team', `#/team/${event}`, `#/team/${event}/schedule`, `#/team/${event}/members`, `#/team/${event}/statistics`]) {
+      expect(tabOf(parseRoute(hash))).toBe('team')
+    }
   })
 
   it('keeps every part of Family under the family tab', () => {

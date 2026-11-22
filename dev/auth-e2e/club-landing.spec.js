@@ -540,14 +540,24 @@ test('verified login gains club access only after restricted operator bootstrap'
   });
   await teams.getByLabel('Team name').fill('Juniors');
   await teams.getByRole('button', { name: 'Add team' }).click();
-  await expect(teams.getByRole('listitem').filter({ hasText: 'Juniors' })).toBeVisible();
+  // Each team is one link to its own page (#/team/<id>), which links to its schedule, members and statistics.
+  const juniorsRow = teams.getByRole('listitem').filter({ hasText: 'Juniors' });
+  await expect(juniorsRow).toContainText('0 members');
+  const juniorsPage = await juniorsRow.getByRole('link').getAttribute('href');
+  expect(juniorsPage).toMatch(/^#\/team\/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i);
+  await juniorsRow.getByRole('link').click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Juniors', exact: true })).toBeVisible();
+  const teamParts = page.getByRole('navigation', { name: 'Team pages' });
+  await teamParts.getByRole('link', { name: /^Members/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Members', exact: true })).toBeVisible();
+  const roster = page.getByRole('region', { name: 'Team members', exact: true });
   await expect.poll(() => failedRoster).toBe(true);
-  await expect(teams.getByRole('alert').filter({ hasText: 'Team assignment failed.' })).toBeVisible();
-  await expect(teams.getByText('Loading team members…')).toHaveCount(0);
+  await expect(roster.getByRole('alert').filter({ hasText: 'Team assignment failed.' })).toBeVisible();
+  await expect(roster.getByText('Loading team members…')).toHaveCount(0);
   await page.unroute('**/api/v1/teams/**');
-  await teams.getByRole('button', { name: 'Try again' }).click();
-  await expect(teams.getByText('No assignments.')).toBeVisible();
-  await expect(teams.getByRole('alert').filter({ hasText: 'Team assignment failed.' })).toHaveCount(0);
+  await roster.getByRole('button', { name: 'Try again' }).click();
+  await expect(roster.getByText('No assignments.')).toBeVisible();
+  await expect(roster.getByRole('alert').filter({ hasText: 'Team assignment failed.' })).toHaveCount(0);
   // A superseded team-candidate search must not replace newer choices.
   let notifySlowCandidate;
   const slowCandidateStarted = new Promise(resolve => { notifySlowCandidate = resolve; });
@@ -562,28 +572,28 @@ test('verified login gains club access only after restricted operator bootstrap'
   });
   const canceledCandidate = page.waitForEvent('requestfailed',
     request => new URL(request.url()).searchParams.get('q') === 'Slow');
-  await teams.getByLabel('Find member').fill('Slow');
-  await teams.getByRole('button', { name: 'Search' }).click();
+  await roster.getByLabel('Find member').fill('Slow');
+  await roster.getByRole('button', { name: 'Search' }).click();
   await slowCandidateStarted;
-  await teams.getByLabel('Find member').fill('Mara');
-  await teams.getByRole('button', { name: 'Search' }).click();
+  await roster.getByLabel('Find member').fill('Mara');
+  await roster.getByRole('button', { name: 'Search' }).click();
   await canceledCandidate;
-  await expect(teams.getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
+  await expect(roster.getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
   await page.unroute('**/api/v1/members?**');
-  await teams.getByRole('button', { name: 'Assign' }).click();
-  await expect(teams.getByRole('button', { name: 'Remove' })).toBeVisible();
-  await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
+  await roster.getByRole('button', { name: 'Assign' }).click();
+  await expect(roster.getByRole('button', { name: 'Remove' })).toBeVisible();
+  await expect(roster.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(1);
   // Contact details open from the roster; a 403 from the server is shown as a denial, never as data.
-  await teams.getByRole('button', { name: 'Contact details' }).click();
-  await expect(teams.getByRole('region', { name: 'Details: Mara Demo' })).toBeVisible();
-  await teams.getByRole('button', { name: 'Close' }).click();
+  await roster.getByRole('button', { name: 'Contact details' }).click();
+  await expect(roster.getByRole('region', { name: 'Details: Mara Demo' })).toBeVisible();
+  await roster.getByRole('button', { name: 'Close' }).click();
   // Not `times: 1`: StrictMode runs the effect twice in development, and the first request is aborted.
   await page.route('**/api/v1/members/*/details', route => route.fulfill({
     status: 403, contentType: 'application/json', body: '{"code":"forbidden"}' }));
-  await teams.getByRole('button', { name: 'Contact details' }).click();
-  await expect(teams.getByRole('alert').filter({ hasText: 'No permission to see these details.' })).toBeVisible();
-  await expect(teams.getByRole('region', { name: 'Details: Mara Demo' })).toHaveCount(0);
-  await teams.getByRole('button', { name: 'Close' }).click();
+  await roster.getByRole('button', { name: 'Contact details' }).click();
+  await expect(roster.getByRole('alert').filter({ hasText: 'No permission to see these details.' })).toBeVisible();
+  await expect(roster.getByRole('region', { name: 'Details: Mara Demo' })).toHaveCount(0);
+  await roster.getByRole('button', { name: 'Close' }).click();
   await page.unroute('**/api/v1/members/*/details');
   // An obsolete roster response must not replace a fresh roster after a new assignment.
   let startedOldRoster;
@@ -601,13 +611,15 @@ test('verified login gains club access only after restricted operator bootstrap'
   });
   const canceledOldRoster = page.waitForEvent('requestfailed',
     request => request.url().includes('/api/v1/teams/') && request.url().includes('/members?'));
-  await teams.getByRole('button', { name: 'Remove' }).click();
+  await roster.getByRole('button', { name: 'Remove' }).click();
   await oldRosterStarted;
-  await teams.getByRole('button', { name: 'Assign' }).click();
+  await roster.getByRole('button', { name: 'Assign' }).click();
   await canceledOldRoster;
-  await expect(teams.getByRole('button', { name: 'Remove' })).toBeVisible();
-  await expect(teams.getByText('Juniors — 1 Members')).toBeVisible();
+  await expect(roster.getByRole('button', { name: 'Remove' })).toBeVisible();
   await page.unroute('**/api/v1/teams/*/members?**');
+  // The team list counts the assignment.
+  await show(page, '#/team');
+  await expect(juniorsRow).toContainText('1 member');
 
   // Trainings and events (OpenAPI 1.10.0): a weekly training for Juniors in the browser's time zone; one copy is
   // cancelled and one deleted. The administrator is in no team, so their own schedule stays empty.
@@ -615,9 +627,10 @@ test('verified login gains club access only after restricted operator bootstrap'
     const day = new Date(Date.now() + days * 86400000);
     return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
   }));
-  const juniors = teams.getByRole('listitem').filter({ hasText: 'Juniors — 1 Members' });
-  await juniors.getByRole('button', { name: 'Schedule', exact: true }).click();
-  const schedule = teams.getByRole('region', { name: 'Schedule Juniors' });
+  await juniorsRow.getByRole('link').click();
+  await teamParts.getByRole('link', { name: /^Schedule/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Schedule', exact: true })).toBeVisible();
+  const schedule = page.getByRole('region', { name: 'Schedule Juniors' });
   await expect(schedule.getByText('No events in the next eight weeks.')).toBeVisible();
   await schedule.getByLabel('Title').fill('Juniors training');
   await schedule.getByLabel('Date', { exact: true }).fill(firstDay);
@@ -633,15 +646,16 @@ test('verified login gains club access only after restricted operator bootstrap'
   await trainings.last().getByRole('button', { name: 'Delete', exact: true }).click();
   await trainings.last().getByRole('button', { name: 'Confirm delete' }).click();
   await expect(trainings).toHaveCount(2);
-  // Attendance (OpenAPI 1.11.0): the team's viewers and managers see each member's answer by public display name.
+  // Attendance (OpenAPI 1.11.0): the team's viewers and managers see each member's answer by public display name,
+  // on the event's own coach page, which the schedule row links to.
   await expect(trainings.last()).toContainText('Answers: 0 Yes, 0 No, 0 Maybe');
-  await trainings.last().getByRole('button', { name: 'Show answers' }).click();
-  await expect(trainings.last().getByRole('list', { name: 'Answers Juniors training' }).getByRole('listitem'))
-    .toHaveText(['Mara D.: no answer']);
-  await trainings.last().getByRole('button', { name: 'Hide answers' }).click();
+  await trainings.last().getByRole('link').click();
+  await expect(page).toHaveURL(/#\/team\/[0-9a-f-]{36}\/event\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Juniors training' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'No answer yet', exact: true })).toContainText('Mara D.');
+  await expect(page.getByRole('region', { name: 'Yes', exact: true })).toContainText('Nobody.');
   // Volunteer shifts (OpenAPI 1.16.0): the manager adds a shift with the event's times as defaults and changes it.
-  await trainings.last().getByRole('button', { name: 'Show shifts and rides' }).click();
-  const shifts = trainings.last().getByRole('region', { name: 'Volunteer shifts: Juniors training' });
+  const shifts = page.getByRole('region', { name: 'Volunteer shifts: Juniors training' });
   await expect(shifts.getByText('No volunteer shifts.')).toBeVisible();
   await shifts.getByLabel('Task').fill('Bar');
   await shifts.getByLabel('People needed').fill('2');
@@ -654,10 +668,9 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(bar).toContainText('Bar · ');
   await expect(bar).toContainText('0 of 3 filled');
   // Carpooling (OpenAPI 1.21.0): a manager outside the team sees the rides but cannot offer one.
-  const rides = trainings.last().getByRole('region', { name: 'Carpooling: Juniors training' });
+  const rides = page.getByRole('region', { name: 'Carpooling: Juniors training' });
   await expect(rides.getByText('No rides offered yet.')).toBeVisible();
   await expect(rides.getByRole('button', { name: 'Offer a ride' })).toHaveCount(0);
-  await trainings.last().getByRole('button', { name: 'Hide shifts and rides' }).click();
   // Helpers missing (OpenAPI 1.23.0): the shift with its free places on Waiting for you and on the Team page.
   await show(page, '#/admin');
   await expect(page.getByRole('article', { name: 'Bar: 3 of 3 places free' })).toContainText('Juniors training · Juniors');
@@ -673,16 +686,12 @@ test('verified login gains club access only after restricted operator bootstrap'
   await page.getByRole('button', { name: 'Remind all 1 without an answer' }).click();
   await expect(page.getByRole('alert')).toHaveText('This club does not send emails.');
   await expect(page.getByRole('region', { name: 'Volunteer shifts: Juniors training' })).toContainText('Bar');
-  await show(page, '#/team');
-  await juniors.getByRole('button', { name: 'Schedule', exact: true }).click();
+  await show(page, juniorsPage);
+  await teamParts.getByRole('link', { name: /^Statistics/ }).click();
   // Attendance statistics (OpenAPI 1.18.0): the last 12 months by default; the new trainings lie ahead, so none held.
-  await schedule.getByRole('button', { name: 'Attendance statistics' }).click();
-  const statistics = schedule.getByRole('region', { name: 'Attendance statistics Juniors' });
+  const statistics = page.getByRole('region', { name: 'Attendance statistics Juniors' });
   await expect(statistics.getByText('Events held: 0')).toBeVisible();
   await expect(statistics.getByRole('row', { name: /Mara D\./ })).toContainText('0');
-  await schedule.getByRole('button', { name: 'Close statistics' }).click();
-  await juniors.getByRole('button', { name: 'Close schedule' }).click();
-  await expect(schedule).toHaveCount(0);
   await show(page, '#/schedule');
   await expect(page.getByRole('main').getByText('No events in the next eight weeks.')).toBeVisible();
   await show(page, '#/family/calendar');
@@ -856,15 +865,18 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
   await expect(permissionAdmin.getByRole('alert')).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
+  await show(page, juniorsPage + '/members');
+  await roster.getByRole('button', { name: 'Remove' }).click();
+  await expect(roster.getByText('No assignments.')).toBeVisible();
+  // A rename on the team's page preserves the team's ID (same address), membership relationship and permissions.
+  await show(page, juniorsPage);
+  const manageTeam = page.getByRole('region', { name: 'Manage team' });
+  await manageTeam.getByRole('button', { name: 'Rename' }).click();
+  await manageTeam.getByRole('textbox', { name: 'Team name' }).fill('Youth Team');
+  await manageTeam.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Youth Team', exact: true })).toBeVisible();
   await show(page, '#/team');
-  await teams.getByRole('button', { name: 'Remove' }).click();
-  await expect(teams.getByText('No assignments.')).toBeVisible();
-  // A rename preserves the team's ID, membership relationship and permissions.
-  await teams.getByRole('button', { name: 'Rename' }).click();
-  const renameForm = teams.getByRole('button', { name: 'Save' }).locator('..');
-  await renameForm.getByRole('textbox', { name: 'Team name' }).fill('Youth Team');
-  await renameForm.getByRole('button', { name: 'Save' }).click();
-  await expect(teams.getByText('Youth Team — 0 Members')).toBeVisible();
+  await expect(teams.getByRole('listitem').filter({ hasText: 'Youth Team' })).toContainText('0 members');
   // A transient team-list failure must clear after a later successful create/reload.
   let failedTeamList = false;
   await page.route('**/api/v1/teams', async route => {
@@ -881,10 +893,19 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(teams.getByRole('alert').filter({ hasText: 'Teams unavailable.' })).toBeVisible();
   await teams.getByLabel('Team name').fill('Recovered Team');
   await teams.getByRole('button', { name: 'Add team' }).click();
-  await expect(teams.getByText('Recovered Team — 0 Members')).toBeVisible();
-  await expect(teams.getByText('Transient Team — 0 Members')).toBeVisible();
+  await expect(teams.getByRole('listitem').filter({ hasText: 'Recovered Team' })).toContainText('0 members');
+  await expect(teams.getByRole('listitem').filter({ hasText: 'Transient Team' })).toContainText('0 members');
   await expect(teams.getByRole('alert').filter({ hasText: 'Teams unavailable.' })).toHaveCount(0);
   await page.unroute('**/api/v1/teams');
+  // Deleting a team on its page needs its name typed; afterwards the list opens without it.
+  await teams.getByRole('link', { name: /^Transient Team/ }).click();
+  const manageTransient = page.getByRole('region', { name: 'Manage team' });
+  await manageTransient.getByRole('button', { name: 'Delete team' }).click();
+  await expect(manageTransient.getByRole('button', { name: 'Delete permanently' })).toBeDisabled();
+  await manageTransient.getByRole('textbox', { name: 'Team name' }).fill('Transient Team');
+  await manageTransient.getByRole('button', { name: 'Delete permanently' }).click();
+  await expect(teams.getByRole('listitem').filter({ hasText: 'Recovered Team' })).toBeVisible();
+  await expect(teams.getByRole('listitem').filter({ hasText: 'Transient Team' })).toHaveCount(0);
   // The whole authenticated workflow remains reachable with localized
   // member, team and delegation controls, not just a translated landing page.
   for (const locale of [
@@ -959,12 +980,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(settings.getByRole('alert')).toHaveCount(0);
 
   // Revoked member-directory access must hide names and controls in an existing roster.
-  await show(page, '#/team');
-  const youthTeam = teams.getByRole('listitem').filter({ hasText: 'Youth Team' }).first();
+  await show(page, juniorsPage + '/members');
+  await expect(roster.getByText('No assignments.')).toBeVisible();
   await page.route('**/api/v1/members?**', route => route.fulfill({ status: 403, body: 'Forbidden' }), { times: 1 });
-  await youthTeam.getByLabel('Find member').fill('Mara');
-  await youthTeam.getByRole('button', { name: 'Search' }).click();
-  await expect(youthTeam.getByLabel('Find member')).toHaveCount(0);
+  await roster.getByLabel('Find member').fill('Mara');
+  await roster.getByRole('button', { name: 'Search' }).click();
+  await expect(roster).toHaveCount(0);
+  await expect(page.getByLabel('Find member')).toHaveCount(0);
+  await expect(page.getByText('You cannot see the members of this team.')).toBeVisible();
 
   await show(page, '#/admin/members');
   await memberAdmin.getByRole('listitem').filter({ hasText: 'Mara Demo' })
@@ -1262,6 +1285,9 @@ test('verified login gains club access only after restricted operator bootstrap'
     ['#/admin/settings', ['Edit club name']],
     ['#/admin/permissions', ['Manage permissions']],
     ['#/team', ['Teams']],
+    [juniorsPage, ['Manage team']],
+    [juniorsPage + '/schedule', ['Schedule Youth Team']],
+    [juniorsPage + '/statistics', ['Attendance statistics Youth Team']],
     ['#/admin/members', ['Manage club roles', 'Manage members', 'Members']],
   ]) {
     await show(page, hash);

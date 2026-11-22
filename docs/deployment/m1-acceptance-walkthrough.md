@@ -49,19 +49,26 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 
 ## C. Teams and permissions
 
-- [ ] C1 *Teams*: Juniors U12 lists its members; assign and remove a member.
+- [ ] C1 *Team* → *Teams*: each team is one row with its number of members. Open Juniors U12: its page shows the
+      name, the member count, *Schedule*, *Members*, *Statistics* and *Manage team*. *Members* lists its members; assign
+      and remove a member. *Rename* a test team and back; on a phone (390 px) nothing scrolls sideways.
 - [ ] C2 *Invitations*: create an invitation for Peter Zürcher (adult); open the link in a second private window, sign in
       as `coach@…` and accept. The coach sees *Start*, *Schedule* and *Family*, but no *Team* or *Administration* in the menu.
 - [ ] C3 As administrator, give Peter a **team** grant `MANAGE_TEAMS` for Juniors U12 only. As `coach@…` (reload): *Team* appears in the
-      menu and only Juniors U12 is visible there; *Contact details* of a U12 member works; another team's member is not reachable.
-- [ ] C4 Still as `coach@…`: *Schedule* under Juniors U12, add a training with *Repeat weekly until* three weeks later:
+      menu and only Juniors U12 is listed under *Teams*; on its *Members* page *Contact details* of a U12 member works; another
+      team's page (pasted address `#/team/<id>`) says the team does not exist or is not visible, and its members are not reachable.
+      On Juniors U12's page, *Rename* under *Manage team* is refused (it needs a club-wide grant): the buttons give way
+      to *No permission to change this team.*
+- [ ] C4 Still as `coach@…`: Juniors U12 → *Schedule*, add a training (*Add event*) with *Repeat weekly until* three weeks later:
       four dates appear. *Cancel event* on one (marked *Cancelled*), *Delete* and *Confirm delete* another. *Start*
       (reload) lists the remaining U12 dates under *Things for you to do*, because Peter is in that team; answer *Yes*
       for one with one tap: it leaves the list. On *Team*,
       *Next events* shows the training with its open answers; opening it lists Peter Zürcher under *Yes* and the minors
       as first name plus initial under *No answer yet*.
-      *Show shifts and rides* on one date: add "Bar" with 1 person; *Sign up: Me* fills it; the button for anyone else
-      is disabled (full). Before that, the coach's *Team* page listed it under *Helpers missing*. *Attendance statistics* shows the team's members with no events held yet (dates lie ahead).
+      Tap one date in the team's *Schedule*: its page shows the same answers, then the helper shifts and rides; add
+      "Bar" with 1 person; *Sign up: Me* fills it; the button for anyone else is disabled (full). Before that, the
+      coach's *Team* page listed it under *Helpers missing*. The team's *Statistics* page shows the team's members with
+      no events held yet (dates lie ahead).
       The seeded U12 dates are there too: the first training shows Yes, No and open answers from other members; on the
       second one Luca F. counts as *No* because of an absence; the home match five days ahead has a full *Kiosk* shift
       and a *Cake stall* with 2 of 3 places free (also under *Helpers missing*), and two rides (one full, one with
