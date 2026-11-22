@@ -130,10 +130,24 @@ Rauthy admin UI.
 bash dev/deployment/seed-demo-data.sh --synthetic-only
 ```
 
-Adds four teams (Juniors U12, Juniors U17, Women 1, Men 1) and 16 invented members across age groups (minors with
+Adds four teams (Juniors U12, Juniors U17, Women 1, Men 1) and 19 invented members across age groups (minors with
 and without contacts, adult players, adult non-players in two teams, a member in no team), all with `example.invalid` addresses and
-`+41 000` placeholder numbers, ages relative to today. It runs in one transaction and refuses any database that is not
-a freshly bootstrapped club, so it cannot run twice or touch an installation in use. Seed rows are not in the audit
+`+41 000` placeholder numbers, ages relative to today. It also adds, relative to the day it runs (club time zone):
+
+- three weekly trainings and one match per team in the next three weeks (16 dates; the weekdays depend on the seed
+  day), with some Yes / No / Maybe answers and the rest open;
+- one absence (Luca Frei, Juniors U12) on the day of the second U12 training;
+- at the U12 home match five days ahead: a full *Kiosk* shift, a *Cake stall* shift with 2 of 3 places free, and two
+  rides by adult U12 members (Daniel Roth, 2 of 3 seats free; Martina Wyss, full). Lea Brunner has said Yes;
+- one open join request (Patrick Baumann for his child Mila, Juniors U12), so *Waiting for you* is not empty.
+
+A guardianship needs a guardian with a login, so the seed cannot create one: the walkthrough (D1, D2) invites Sandra
+Gerber as `parent@…` and makes her guardian of Lea Brunner (U12) and Nico Brunner (U17); the Start and Schedule
+pages for that parent then show both children, missing answers and the ride offer.
+
+It runs in one transaction and refuses any database that is not
+a freshly bootstrapped club, so a second run stops with an error and changes nothing, and it cannot touch an
+installation in use. Seed rows are not in the audit
 trail. Grants are left to the walkthrough: give permissions in the UI, then invite members (create their Rauthy
 accounts in the Rauthy admin UI first).
 

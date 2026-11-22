@@ -481,7 +481,7 @@ jobs:
             echo "INSERT INTO accounts (id) VALUES ('00000000-0000-0000-0000-00000000c1a1');"
             echo "INSERT INTO members (id, account_id, first_name, last_name, date_of_birth, email, phone, role) VALUES (gen_random_uuid(), '00000000-0000-0000-0000-00000000c1a1', 'Seed', 'Admin', DATE '1990-01-01', 'a@example.invalid', '+41000000000', 'ADMIN');"
             cat dev/deployment/seed-demo-data.sql
-            echo "DO \$\$ BEGIN IF (SELECT COUNT(*) FROM teams) <> 4 OR (SELECT COUNT(*) FROM members) <> 17 OR (SELECT COUNT(*) FROM member_team_assignments) <> 15 THEN RAISE EXCEPTION 'Unexpected seed result'; END IF; END \$\$;"
+            echo "DO \$\$ BEGIN IF (SELECT COUNT(*) FROM teams) <> 4 OR (SELECT COUNT(*) FROM members) <> 20 OR (SELECT COUNT(*) FROM member_team_assignments) <> 18 OR (SELECT COUNT(*) FROM team_events) <> 16 OR (SELECT COUNT(*) FROM event_shifts) <> 2 OR (SELECT COUNT(*) FROM event_rides) <> 2 OR (SELECT COUNT(*) FROM member_absences) <> 1 OR (SELECT COUNT(*) FROM join_requests) <> 1 THEN RAISE EXCEPTION 'Unexpected seed result'; END IF; END \$\$;"
           } > "$RUNNER_TEMP/seed-check.sql"
           docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U openclub -d openclub < <(cat "$RUNNER_TEMP/seed-check.sql"; echo "ROLLBACK;")
           if docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -q -U openclub -d openclub \
