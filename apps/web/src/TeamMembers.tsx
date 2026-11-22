@@ -5,10 +5,10 @@ import { changeAssignment, readRoster } from './teams'
 import { MemberDetailsView } from './MemberDetailsView'
 
 const words = {
-  de: { roster: 'Teammitglieder', search: 'Mitglied suchen', find: 'Suchen', add: 'Zuweisen', remove: 'Entfernen', contacts: 'Kontaktdaten', empty: 'Keine Zuweisungen.', more: 'Weitere Mitglieder', error: 'Teamzuweisung fehlgeschlagen.', retry: 'Erneut versuchen', loading: 'Teammitglieder werden geladen…' },
-  en: { roster: 'Team members', search: 'Find member', find: 'Search', add: 'Assign', remove: 'Remove', contacts: 'Contact details', empty: 'No assignments.', more: 'More members', error: 'Team assignment failed.', retry: 'Try again', loading: 'Loading team members…' },
-  fr: { roster: 'Membres de l’équipe', search: 'Chercher un membre', find: 'Chercher', add: 'Affecter', remove: 'Retirer', contacts: 'Coordonnées', empty: 'Aucune affectation.', more: 'Plus de membres', error: 'Affectation impossible.', retry: 'Réessayer', loading: 'Chargement des membres…' },
-  it: { roster: 'Membri della squadra', search: 'Cerca membro', find: 'Cerca', add: 'Assegna', remove: 'Rimuovi', contacts: 'Contatti', empty: 'Nessuna assegnazione.', more: 'Altri membri', error: 'Assegnazione non riuscita.', retry: 'Riprova', loading: 'Caricamento membri…' },
+  de: { roster: 'Teammitglieder', search: 'Mitglied suchen', find: 'Suchen', add: 'Zuweisen', remove: 'Entfernen', contacts: 'Kontaktdaten', empty: 'Keine Zuweisungen.', more: 'Weitere Mitglieder', error: 'Teamzuweisung fehlgeschlagen.', retry: 'Erneut versuchen', loading: 'Teammitglieder werden geladen…', denied: 'Die Mitglieder dieses Teams sind für dich nicht sichtbar.' },
+  en: { roster: 'Team members', search: 'Find member', find: 'Search', add: 'Assign', remove: 'Remove', contacts: 'Contact details', empty: 'No assignments.', more: 'More members', error: 'Team assignment failed.', retry: 'Try again', loading: 'Loading team members…', denied: 'You cannot see the members of this team.' },
+  fr: { roster: 'Membres de l’équipe', search: 'Chercher un membre', find: 'Chercher', add: 'Affecter', remove: 'Retirer', contacts: 'Coordonnées', empty: 'Aucune affectation.', more: 'Plus de membres', error: 'Affectation impossible.', retry: 'Réessayer', loading: 'Chargement des membres…', denied: 'Vous ne voyez pas les membres de cette équipe.' },
+  it: { roster: 'Membri della squadra', search: 'Cerca membro', find: 'Cerca', add: 'Assegna', remove: 'Rimuovi', contacts: 'Contatti', empty: 'Nessuna assegnazione.', more: 'Altri membri', error: 'Assegnazione non riuscita.', retry: 'Riprova', loading: 'Caricamento membri…', denied: 'Non puoi vedere i membri di questa squadra.' },
 } satisfies Record<Language, Record<string, string>>
 
 export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
@@ -95,10 +95,9 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
   }
 
   // Without a member-directory grant, no member names or IDs are shown.
-  if (denied) return null
+  if (denied) return <p className="muted">{t.denied}</p>
   return (
-    <div>
-      <h3>{t.roster}</h3>
+    <section aria-label={t.roster} className="stack">
       {error && <><p role="alert">{t.error}</p><button type="button" onClick={() => {
         setError(false); setMembers(null); void load()
       }}>{t.retry}</button></>}
@@ -129,6 +128,6 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
         </select>
         <button type="submit" disabled={!selected || busy}>{t.add}</button>
       </form>}
-    </div>
+    </section>
   )
 }

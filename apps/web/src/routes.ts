@@ -5,25 +5,32 @@
 export type AdminSection = 'overview' | 'members' | 'join-requests' | 'fees' | 'permissions' | 'settings'
 /** One part of Family, on its own page; without a section, #/family is the overview linking to them. */
 export type FamilySection = 'profile' | 'children' | 'absences' | 'fees' | 'calendar' | 'notifications'
+/** One part of a team, on its own page; without a section, #/team/<teamId> is the team's page linking to them. */
+export type TeamSection = 'schedule' | 'members' | 'statistics'
 export type Route =
   | { page: 'start' }
   | { page: 'schedule' }
   | { page: 'event'; eventId: string }
   | { page: 'family'; section?: FamilySection }
-  | { page: 'team' }
+  | { page: 'team'; teamId?: string; section?: TeamSection }
   | { page: 'team-event'; teamId: string; eventId: string }
   | { page: 'admin'; section: AdminSection }
 
 const sections: AdminSection[] = ['overview', 'members', 'join-requests', 'fees', 'permissions', 'settings']
 export const familySections: FamilySection[] = ['profile', 'children', 'absences', 'fees', 'calendar', 'notifications']
+export const teamSections: TeamSection[] = ['schedule', 'members', 'statistics']
 const id = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean)
   const [first, second, third, fourth, ...more] = parts
-  if (first === 'team' && third !== undefined) {
-    return id.test(second ?? '') && third === 'event' && fourth !== undefined && id.test(fourth) && more.length === 0
-      ? { page: 'team-event', teamId: second!.toLowerCase(), eventId: fourth.toLowerCase() } : { page: 'start' }
+  if (first === 'team' && second !== undefined) {
+    if (!id.test(second)) return { page: 'start' }
+    const teamId = second.toLowerCase()
+    if (third === undefined) return { page: 'team', teamId }
+    if (teamSections.includes(third as TeamSection) && fourth === undefined) return { page: 'team', teamId, section: third as TeamSection }
+    return third === 'event' && fourth !== undefined && id.test(fourth) && more.length === 0
+      ? { page: 'team-event', teamId, eventId: fourth.toLowerCase() } : { page: 'start' }
   }
   if (third !== undefined) return { page: 'start' }
   if (first === 'schedule' && second === undefined) return { page: 'schedule' }
@@ -43,7 +50,7 @@ export function routeHash(route: Route): string {
     case 'schedule': return '#/schedule'
     case 'event': return '#/schedule/' + route.eventId
     case 'family': return route.section ? '#/family/' + route.section : '#/family'
-    case 'team': return '#/team'
+    case 'team': return route.teamId ? `#/team/${route.teamId}${route.section ? '/' + route.section : ''}` : '#/team'
     case 'team-event': return `#/team/${route.teamId}/event/${route.eventId}`
     case 'admin': return route.section === 'overview' ? '#/admin' : '#/admin/' + route.section
   }

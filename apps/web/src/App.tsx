@@ -7,6 +7,7 @@ import { fetchMyProfile } from './myProfile'
 import { PublicMembers } from './PublicMembers'
 import { JoinForm } from './JoinForm'
 import { TeamDirectory } from './TeamDirectory'
+import { TeamPage } from './TeamPage'
 import { HelpersMissing } from './HelpersMissing'
 import { CoachEventPage, CoachOverview } from './CoachPages'
 import { AcceptInvitation } from './AcceptInvitation'
@@ -148,7 +149,9 @@ export function App() {
         {ready && shown.page === 'family' && <FamilyPage key={shown.section ?? 'overview'} section={shown.section}
           language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && waiting && <p role="status">{words.loading}</p>}
-        {ready && !waiting && shown.page === 'team' && <><h1>{words.team}</h1><CoachOverview language={language} /><HelpersMissing language={language} /><TeamDirectory language={language} csrfToken={access.csrfToken} /></>}
+        {ready && !waiting && shown.page === 'team' && !shown.teamId && <><h1>{words.team}</h1><CoachOverview language={language} /><HelpersMissing language={language} /><TeamDirectory language={language} csrfToken={access.csrfToken} /></>}
+        {ready && !waiting && shown.page === 'team' && shown.teamId && <TeamPage key={shown.teamId + (shown.section ?? '')} teamId={shown.teamId}
+          section={shown.section} language={language} csrfToken={access.csrfToken} />}
         {ready && !waiting && shown.page === 'team-event' && <CoachEventPage key={shown.eventId} teamId={shown.teamId} eventId={shown.eventId}
           language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && !waiting && shown.page === 'admin' && <AdminPage section={shown.section} language={language} csrfToken={access.csrfToken}
