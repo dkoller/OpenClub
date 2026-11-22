@@ -137,7 +137,11 @@ internal class QrBills(private val database: DSLContext) {
              town = EXCLUDED.town, country = EXCLUDED.country, updated_at = now()""",
         details.iban, details.holderName, details.street, details.buildingNumber, details.postalCode, details.town,
         details.country, actor) == 1
-        if (changed) AuditEvents.record(db, AuditEvents.Type.PAYMENT_DETAILS_CHANGED, actor, null)
+        // The trail needs a member: the change is recorded against the treasurer's own member row.
+        if (changed) db.execute(
+            """INSERT INTO audit_events (event_type, actor_account_id, target_member_id)
+               SELECT ?, ?, m.id FROM members m WHERE m.account_id = ? AND m.archived_at IS NULL""",
+            AuditEvents.Type.PAYMENT_DETAILS_CHANGED.name, actor, actor)
         changed
     }
 
