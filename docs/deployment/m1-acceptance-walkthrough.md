@@ -29,10 +29,11 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       date; *Reactivate* brings them back.
 - [ ] B6 The anonymous member list (signed out, or `https://club.example.ch/api/v1/public/members`) shows minors only as
       first name plus initial (for example "Lea B.").
-- [ ] B7 *My profile* shows the administrator's own record and role; change the phone, *Save contacts*, reload: the new
+- [ ] B7 *Family* shows one link per part (*My profile*, *Absences*, *Fees*, *Calendar subscription*, *Email
+      notifications*; no *My children* for the administrator); each opens its own page with *← Family*. *My profile* shows the administrator's own record and role; change the phone, *Save contacts*, reload: the new
       phone is kept and nothing else changed.
 - [ ] B8 *Membership fees*: create "Season 2026/27" (due date, CHF 150): every active member is listed; *Mark paid*
-      for one, *Change amount* for another, *Exclude* a third; the totals change. After a reload *My fees* shows the
+      for one, *Change amount* for another, *Exclude* a third; the totals change. After a reload *Family* shows how many fees are open and *Family* → *Fees* shows the
       administrator's own fee. Only members with the `MANAGE_FEES` permission see the panel.
 - [ ] B9 *Excel import and export*: download the member list and open it in Excel (umlauts and phone numbers shown
       correctly). Add two new rows and one copy of an existing member, *Save As* → *CSV UTF-8*, *Check file*: 2 will be
@@ -40,8 +41,8 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] B10 *Announcements*: post one to the whole club with two lines of text; it shows with *Whole club* and both lines.
       As `coach@…` in C3 post one for Juniors U12 only; `parent@…` in D3 sees both, a member of another team only the
       club-wide one.
-- [ ] B11 *My profile*: untick *Show my name on the public member list*; the anonymous list (B6) no longer shows the
-      administrator; tick it again. *Email notifications* says the club sends no emails (the demo has no SMTP server).
+- [ ] B11 *Family* → *My profile*: untick *Show my name on the public member list*; the anonymous list (B6) no longer shows the
+      administrator; tick it again. *Family* → *Email notifications* says the club sends no emails (the demo has no SMTP server).
 - [ ] B12 *Family* → *Calendar subscription*: *Create link*, add it to a phone or desktop calendar ("subscribe" /
       "from URL"); the U12 dates from C4 appear after the next refresh. *Revoke link*: the calendar stops updating.
 

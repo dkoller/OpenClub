@@ -16,7 +16,7 @@ The main menu sits at the bottom of a phone screen and on the left of a computer
 | --- | --- |
 | *Start* | *Things for you to do*: every event that still needs your answer, or your child's, with *Yes*, *No* and *Maybe* right there, and a free seat to book for an event you said *Yes* to; then what else is on in the next 7 days, and the announcements |
 | *Schedule* | The next eight weeks by day. With children, choose *Everyone*, *Me* or one child. Each event opens its own page with the answers, helper shifts and rides |
-| *Family* | *My profile* (with email notifications), *My children*, *Absences*, *My fees* and the calendar subscription |
+| *Family* | A short list that opens each part on its own page (*← Family* leads back): *My profile*, *My children* (only for guardians, with their first names), *Absences*, *Fees* (with how many are open), *Calendar subscription* and *Email notifications* |
 | *Team* | Only for coaches and team managers (`VIEW_TEAMS` or `MANAGE_TEAMS`): *Next events* with who has not answered, *Helpers missing* (for managers), then teams, rosters, schedules and statistics |
 | *Administration* | Only with an administration permission: *Waiting for you* (open join requests, helper shifts that still need people, unpaid fees), *Members*, *Join requests*, *Fees*, *Permissions* and *Settings*, each shown only to people who may use it |
 
@@ -203,7 +203,7 @@ you and your children, the team's totals, helper shifts and rides. *Sign up* put
 shift while places are free, *Withdraw* takes you off, both until the shift starts. Your team sees your name on the
 shift so everyone can coordinate.
 
-**Email notifications** (on *Family*, in *My profile*): if your club sends email, you get one when an event of your team (or your
+**Email notifications** (*Family* → *Email notifications*): if your club sends email, you get one when an event of your team (or your
 child's team) is changed or cancelled, when new events are added, when an announcement is posted for you, and a
 reminder the day before a volunteer shift you signed up for. *Helpers wanted*: seven days before a helper shift of
 your team (or your child's) that still has free places, you get one email per event listing those shifts with the
@@ -224,20 +224,20 @@ point, date and time; change it later with *Save changes* or *Withdraw ride*. *B
 your child until departure. Once booked, you see the driver's phone number and the driver sees yours; nobody else
 does.
 
-**Absences** (on *Family*): enter the days you (or your child) are away, *From* and optionally *To*, then
+**Absences** (*Family* → *Absences*): enter the days you (or your child) are away, *From* and optionally *To*, then
 *Add absence*. Every event on those days that you have not answered counts as *No*; answering *Yes* still works if
 your plans change. No reason is asked or stored. *Delete* removes an absence again.
 
-**Calendar subscription** (on *Family*): *Create link* shows a private link once; copy it into your phone's
+**Calendar subscription** (*Family* → *Calendar subscription*): *Create link* shows a private link once; copy it into your phone's
 calendar or Google/Apple Calendar ("subscribe to calendar" / "add from URL"). It then shows your and your children's
 events, four weeks back to six months ahead, including place and notes, and updates by itself every few hours.
 Anyone with the link sees your schedule, so keep it to yourself. *Create a new link* replaces it (the old one stops
 working) and *Revoke link* ends it.
 
-**My fees** (on *Family*) lists your membership fees with amount, due date and whether they are paid (and your children's, if you
+**My fees** (*Family* → *Fees*; the list shows how many are still open) lists your membership fees with amount, due date and whether they are paid (and your children's, if you
 are a guardian). Questions about a fee go to the club's treasurer.
 
-**My profile** (on *Family*) shows what the club stores about you: name, date of birth, gender (if recorded), whether you play,
+**My profile** (*Family* → *My profile*) shows what the club stores about you: name, date of birth, gender (if recorded), whether you play,
 your role and your teams. Change your *Email* and *Phone* there and choose *Save contacts*; adults need both. Other
 details are changed by the club administration. If the club changed your record while the page was open, nothing is
 saved and the current values are shown, so you can check and save again. Untick *Show my name on the public member
@@ -245,7 +245,7 @@ list* to take your name off the list anyone can see; tick it to show it again.
 
 ## For guardians
 
-If the club recorded you as a guardian, *My children* appears on *Family*, and your children's events appear on *Start*
+If the club recorded you as a guardian, *My children* appears on *Family* with your children's first names, and your children's events appear on *Start*
 and *Schedule*.
 
 - *Open* shows the child's date of birth, whether they play and their teams.

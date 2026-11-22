@@ -12,7 +12,7 @@ const words = {
 const names: Record<NotificationLanguage, string> = { de: 'Deutsch', en: 'English', fr: 'Français', it: 'Italiano' }
 const switches = ['eventChanges', 'newEvents', 'announcements', 'shiftReminders', 'helpersWanted'] as const
 
-/** The member's own email notification switches and language (OpenAPI 1.19.0), shown in My profile. */
+/** The member's own email notification switches and language (OpenAPI 1.19.0), on its own page #/family/notifications. */
 export function NotificationSettings({ language, csrfToken }: { language: Language; csrfToken: string }) {
   const t = words[language]
   const [settings, setSettings] = useState<NotificationStatus | 'denied' | 'error' | null>(null)
@@ -35,11 +35,11 @@ export function NotificationSettings({ language, csrfToken }: { language: Langua
   }
 
   if (settings === null || settings === 'denied') return null
-  if (settings === 'error') return <section aria-label={t.title}><h3>{t.title}</h3><p role="alert">{t.error}</p></section>
+  if (settings === 'error') return <section aria-label={t.title}><h1>{t.title}</h1><p role="alert">{t.error}</p></section>
   const current = settings
   return (
     <section aria-label={t.title}>
-      <h3>{t.title}</h3>
+      <h1>{t.title}</h1>
       {!current.emailEnabled && <p>{t.off}</p>}
       {current.emailEnabled && !current.hasEmail && <p>{t.noEmail}</p>}
       <fieldset disabled={busy || !current.emailEnabled}>

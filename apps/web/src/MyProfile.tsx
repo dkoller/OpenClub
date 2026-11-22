@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Language } from './language'
-import { NotificationSettings } from './NotificationSettings'
 import { fetchMyProfile, replaceMyContacts, setMyPublicListing, type MyProfile as Profile } from './myProfile'
 
 const words = {
@@ -12,7 +11,7 @@ const words = {
 
 /**
  * The signed-in member's own record (OpenAPI 1.9.0). The contact form starts from the read and sends its version,
- * so neither the member nor an editor silently overwrites the other's change.
+ * so neither the member nor an editor silently overwrites the other's change. Shown on its own page, #/family/profile.
  */
 export function MyProfile({ language, csrfToken }: { language: Language; csrfToken: string }) {
   const t = words[language]
@@ -62,10 +61,10 @@ export function MyProfile({ language, csrfToken }: { language: Language; csrfTok
     } catch { setNotice('error') } finally { setBusy(false) }
   }
 
-  if (!profile) return notice === 'error' ? <section aria-label={t.title}><h2>{t.title}</h2><p role="alert">{t.error}</p></section> : null
+  if (!profile) return notice === 'error' ? <section aria-label={t.title}><h1>{t.title}</h1><p role="alert">{t.error}</p></section> : null
   return (
     <section aria-label={t.title}>
-      <h2>{t.title}</h2>
+      <h1>{t.title}</h1>
       <dl>
         <div><dt>{t.name}</dt><dd>{profile.firstName} {profile.lastName}</dd></div>
         <div><dt>{t.dob}</dt><dd>{profile.dateOfBirth}</dd></div>
@@ -84,7 +83,6 @@ export function MyProfile({ language, csrfToken }: { language: Language; csrfTok
       <p>{t.listedHint}</p>
       <p>{t.hint}</p>
       {notice && <p role={notice === 'error' ? 'alert' : 'status'}>{t[notice]}</p>}
-      <NotificationSettings language={language} csrfToken={csrfToken} />
     </section>
   )
 }

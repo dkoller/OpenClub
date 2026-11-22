@@ -120,7 +120,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(page.getByRole('heading', { name: 'Manage members' })).toBeVisible();
 
   // My profile (OpenAPI 1.9.0): the administrator changes their own phone; the form keeps the email it read.
-  await show(page, '#/family');
+  await show(page, '#/family/profile');
   const myProfile = page.getByRole('region', { name: 'My profile' });
   await expect(myProfile.getByText('Administrator', { exact: true })).toBeVisible();
   const ownEmail = await myProfile.getByLabel('Email', { exact: true }).inputValue();
@@ -132,12 +132,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(page.getByRole('region', { name: 'My profile' }).getByLabel('Phone')).toHaveValue('+41 79 000 00 01');
   await expect(page.getByRole('region', { name: 'My profile' }).getByLabel('Email', { exact: true })).toHaveValue(ownEmail);
   // Email notifications (OpenAPI 1.19.0): this test installation has no SMTP server, so the switches are shown off.
+  await show(page, '#/family/notifications');
   const mailSettings = page.getByRole('region', { name: 'Email notifications' });
   await expect(mailSettings.getByText('This club does not send emails.')).toBeVisible();
   await expect(mailSettings.getByLabel('New events')).toBeChecked();
   await expect(mailSettings.getByLabel('New events')).toBeDisabled();
   await expect(mailSettings.getByLabel('Helpers wanted: 7 days before a shift with free places')).toBeChecked();
   // The public-list switch (OpenAPI 1.15.0, controller decision C5): hidden, then shown again.
+  await show(page, '#/family/profile');
   const listing = page.getByRole('region', { name: 'My profile' }).getByLabel('Show my name on the public member list');
   await expect(listing).toBeChecked();
   // A controlled box: click, then wait for the saved state (uncheck() would expect an immediate change).
@@ -415,7 +417,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await guardiansRegion.getByRole('button', { name: 'Add as guardian' }).click();
   await expect(guardiansRegion.getByText(/Not possible/)).toBeVisible();
   await page.reload();
-  await show(page, '#/family');
+  await show(page, '#/family/children');
   const children = page.getByRole('region', { name: 'My children' });
   const maraChild = children.getByRole('listitem').filter({ hasText: 'Mara Demo' });
   const dependentRead = page.waitForResponse(response => /\/api\/v1\/me\/dependents\/[^/]+$/.test(new URL(response.url()).pathname));
@@ -436,6 +438,9 @@ test('verified login gains club access only after restricted operator bootstrap'
   await show(page, '#/family');
   await expect(page.getByRole('heading', { level: 1, name: 'Family' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'My children' })).toHaveCount(0);
+  // The overview offers no My children entry once the guardianship has ended.
+  await expect(page.getByRole('main').getByRole('link', { name: /My children/ })).toHaveCount(0);
+  await expect(page.getByRole('main').getByRole('link', { name: /My profile/ })).toBeVisible();
   const mineAfter = await context.request.get('/api/v1/me/dependents');
   expect((await mineAfter.json()).items).toEqual([]);
   await show(page, '#/admin/settings');
@@ -676,7 +681,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(schedule).toHaveCount(0);
   await show(page, '#/schedule');
   await expect(page.getByRole('main').getByText('No events in the next eight weeks.')).toBeVisible();
-  await show(page, '#/family');
+  await show(page, '#/family/calendar');
   // Calendar feed (OpenAPI 1.17.0): the link is shown once, serves iCalendar without a session and ends when revoked.
   const feedSection = page.getByRole('region', { name: 'Calendar subscription' });
   await feedSection.getByRole('button', { name: 'Create link' }).click();
@@ -690,6 +695,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(feedSection.getByRole('status')).toHaveText('Link revoked.');
   expect((await (await playwrightRequest.newContext()).get(feedLink)).status()).toBe(404);
   // Absences (OpenAPI 1.20.0): enter one for today, see it listed, delete it again.
+  await show(page, '#/family/absences');
   const absences = page.getByRole('region', { name: 'Absences' });
   await expect(absences.getByText('No absences.')).toBeVisible();
   const todayLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -738,7 +744,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(maraFee).toContainText('Paid on');
   await expect(season).toContainText(/1 of \d+ paid/);
   await page.reload();
-  await show(page, '#/family');
+  await show(page, '#/family/fees');
   await expect(page.getByRole('region', { name: 'My fees' })).toContainText('Season 2026/27');
 
   // Excel import and export (OpenAPI 1.13.0): the list downloads as CSV; an import is checked first, skips the
