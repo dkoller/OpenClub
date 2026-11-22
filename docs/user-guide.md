@@ -17,7 +17,7 @@ The main menu sits at the bottom of a phone screen and on the left of a computer
 | *Start* | *Things for you to do*: every event that still needs your answer, or your child's, with *Yes*, *No* and *Maybe* right there, and a free seat to book for an event you said *Yes* to; then what else is on in the next 7 days, and the announcements |
 | *Schedule* | The next eight weeks by day. With children, choose *Everyone*, *Me* or one child. Each event opens its own page with the answers, helper shifts and rides |
 | *Family* | *My profile* (with email notifications), *My children*, *Absences*, *My fees* and the calendar subscription |
-| *Team* | Only for coaches and team managers (`VIEW_TEAMS` or `MANAGE_TEAMS`): *Helpers missing* (for managers), teams, rosters, schedules and statistics |
+| *Team* | Only for coaches and team managers (`VIEW_TEAMS` or `MANAGE_TEAMS`): *Next events* with who has not answered, *Helpers missing* (for managers), then teams, rosters, schedules and statistics |
 | *Administration* | Only with an administration permission: *Waiting for you* (open join requests, helper shifts that still need people, unpaid fees), *Members*, *Join requests*, *Fees*, *Permissions* and *Settings*, each shown only to people who may use it |
 
 Every page has its own address, so the browser's back button and bookmarks work (for example `#/schedule`). On a
@@ -140,6 +140,12 @@ Tracking only: OpenClub records who paid, it does not collect money.
 - *Player gender rule*: *Require gender for players*. Turning it on is refused while players without a gender exist.
 
 ## For team managers
+
+**Next events.** The *Team* page starts with the next 14 days of your teams' events (at most eight teams are
+included), each with its totals and how many have not answered yet (*11 yes · 2 no · 3 open*). Open one to see *Who is
+coming?*: the totals side by side, then the names under *No answer yet*, *No*, *Maybe* and *Yes* (adults by full name,
+minors by first name and initial). Absences count as *No*; no reason is ever shown. The same page lists the event's
+helper shifts and rides.
 
 **Schedule.** On the *Team* page, choose *Schedule* under a team to see its next eight weeks. With `MANAGE_TEAMS` for the
 team you add events: *Kind* (Training, Match or Event), *Title*, *Date*, *Start*, *End*, optionally *Place* and

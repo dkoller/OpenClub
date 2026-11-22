@@ -8,6 +8,7 @@ import { PublicMembers } from './PublicMembers'
 import { JoinForm } from './JoinForm'
 import { TeamDirectory } from './TeamDirectory'
 import { HelpersMissing } from './HelpersMissing'
+import { CoachEventPage, CoachOverview } from './CoachPages'
 import { AcceptInvitation } from './AcceptInvitation'
 import { StartPage } from './StartPage'
 import { SchedulePage } from './SchedulePage'
@@ -109,7 +110,7 @@ export function App() {
   const can = rights ?? noAccess
   const tabs: Tab[] = ['start', 'schedule', 'family', ...(can.teams ? ['team' as const] : []), ...(hasAdmin(can) ? ['admin' as const] : [])]
   // Team and Administration wait for the rights check; a page the person cannot use (an old link) falls back to Start.
-  const waiting = rights === null && (route.page === 'team' || route.page === 'admin')
+  const waiting = rights === null && (route.page === 'team' || route.page === 'team-event' || route.page === 'admin')
   const shown: Route = tabs.includes(tabOf(route)) || waiting ? route : { page: 'start' }
   const updateClub = (change: Partial<ClubState>) => setAccess(current => current?.state === 'ready' ? { ...current, ...change } : current)
 
@@ -146,7 +147,9 @@ export function App() {
         {ready && shown.page === 'event' && <EventPage key={shown.eventId} eventId={shown.eventId} language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && shown.page === 'family' && <FamilyPage language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && waiting && <p role="status">{words.loading}</p>}
-        {ready && !waiting && shown.page === 'team' && <><h1>{words.team}</h1><HelpersMissing language={language} /><TeamDirectory language={language} csrfToken={access.csrfToken} /></>}
+        {ready && !waiting && shown.page === 'team' && <><h1>{words.team}</h1><CoachOverview language={language} /><HelpersMissing language={language} /><TeamDirectory language={language} csrfToken={access.csrfToken} /></>}
+        {ready && !waiting && shown.page === 'team-event' && <CoachEventPage key={shown.eventId} teamId={shown.teamId} eventId={shown.eventId}
+          language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && !waiting && shown.page === 'admin' && <AdminPage section={shown.section} language={language} csrfToken={access.csrfToken}
           access={can} club={access} onClubChanged={updateClub} revision={directoryRevision}
           onDirectoryChanged={() => setDirectoryRevision(value => value + 1)} />}

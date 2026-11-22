@@ -55,8 +55,9 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] C4 Still as `coach@…`: *Schedule* under Juniors U12, add a training with *Repeat weekly until* three weeks later:
       four dates appear. *Cancel event* on one (marked *Cancelled*), *Delete* and *Confirm delete* another. *Start*
       (reload) lists the remaining U12 dates under *Things for you to do*, because Peter is in that team; answer *Yes*
-      for one with one tap: it leaves the list. In the
-      team's *Schedule*, *Show answers* lists Peter Zürcher with *Yes* and the minors as first name plus initial.
+      for one with one tap: it leaves the list. On *Team*,
+      *Next events* shows the training with its open answers; opening it lists Peter Zürcher under *Yes* and the minors
+      as first name plus initial under *No answer yet*.
       *Show shifts and rides* on one date: add "Bar" with 1 person; *Sign up: Me* fills it; the button for anyone else
       is disabled (full). Before that, the coach's *Team* page listed it under *Helpers missing*. *Attendance statistics* shows the team's members with no events held yet (dates lie ahead).
 - [ ] C5 Revoke the grant: the coach loses the team at the next reload. *Unlink account* for Peter: the coach's session ends.
