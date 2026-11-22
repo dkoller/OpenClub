@@ -30,7 +30,7 @@ import java.time.OffsetDateTime
 import java.util.UUID
 
 /**
- * Volunteer shifts (OpenAPI 1.16.0, ADR-0008 addendum 20). Order of answers: session (401); for changes exact Origin
+ * Volunteer shifts (OpenAPI 1.16.0, ADR-0008 addendum 20; the unfilled overview since 1.23.0, addendum 27). Order of answers: session (401); for changes exact Origin
  * and CSRF (403); an active membership (403); the IDs and body (400); then the event or shift itself: 403 for one the
  * caller may not see or change (404 for an unknown one only to club-wide team holders), 409 `closed` once a shift has
  * started or its event is cancelled, 409 `full` when no place is free and 409 `conflict` when a change would leave
@@ -43,6 +43,33 @@ internal fun Application.installEventShiftHttpRoutes(
     database: DatabaseRuntime,
 ) {
     routing {
+        // Managers' overview (1.23.0): shifts of the next two weeks that still need people, for the teams they manage.
+        get("/api/v1/shifts/unfilled") {
+            call.readSession(sessions, cookies) { actor ->
+                if (!database.onDatabaseThread { TeamEvents(it).isMember(actor.accountId) }) {
+                    return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+                val result = database.onDatabaseThread { EventShifts(it).unfilled(actor.accountId) }
+                    ?: return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                call.respondJson(buildJsonObject {
+                    put("items", buildJsonArray {
+                        result.items.forEach { shift -> add(buildJsonObject {
+                            put("id", shift.id.toString())
+                            put("title", shift.title)
+                            put("startsAt", shift.startsAt.toString())
+                            put("endsAt", shift.endsAt.toString())
+                            put("needed", shift.needed)
+                            put("filled", shift.filled)
+                            put("eventId", shift.eventId.toString())
+                            put("eventTitle", shift.eventTitle)
+                            put("teamId", shift.teamId.toString())
+                            put("teamName", shift.teamName)
+                        }) }
+                    })
+                    put("truncated", result.truncated)
+                })
+            }
+        }
         get("/api/v1/events/{eventId}/shifts") {
             call.readSession(sessions, cookies) { actor ->
                 if (!database.onDatabaseThread { TeamEvents(it).isMember(actor.accountId) }) {

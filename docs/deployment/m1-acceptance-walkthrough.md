@@ -20,7 +20,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 ## B. Languages and members (as the administrator)
 
 - [ ] B0 On a phone (or a narrow window): the menu sits at the bottom with *Start*, *Schedule*, *Family*, *Team* and
-      *Administration*; *Administration* opens on *Waiting for you*. A reload keeps the open page.
+      *Administration*; *Administration* opens on *Waiting for you*. A reload keeps the open page. *Fees* → a period shows one card per member, nothing scrolls sideways.
 - [ ] B1 Switch DE, EN, FR, IT: headings, buttons and messages change; nothing stays in another language.
 - [ ] B2 *Manage members*: search "Keller" finds Noah Keller; *Details* shows his birth date and no contacts.
 - [ ] B3 *Add member*: an adult without email or phone is refused; with both it is created.
@@ -58,7 +58,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       for one with one tap: it leaves the list. In the
       team's *Schedule*, *Show answers* lists Peter Zürcher with *Yes* and the minors as first name plus initial.
       *Show shifts and rides* on one date: add "Bar" with 1 person; *Sign up: Me* fills it; the button for anyone else
-      is disabled (full). *Attendance statistics* shows the team's members with no events held yet (dates lie ahead).
+      is disabled (full). Before that, the coach's *Team* page listed it under *Helpers missing*. *Attendance statistics* shows the team's members with no events held yet (dates lie ahead).
 - [ ] C5 Revoke the grant: the coach loses the team at the next reload. *Unlink account* for Peter: the coach's session ends.
 
 ## D. Guardians

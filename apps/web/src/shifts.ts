@@ -74,3 +74,31 @@ export function volunteer(shiftId: string, memberId: string, withdraw: boolean, 
   return write(shiftPath(shiftId) + '/volunteers/' + encodeURIComponent(memberId), withdraw ? 'DELETE' : 'PUT',
     csrfToken, undefined, request)
 }
+
+/** A shift of the next 14 days that still needs people, for the managers' overview (OpenAPI 1.23.0). Counts only. */
+export type UnfilledShift = {
+  id: string; title: string; startsAt: string; endsAt: string; needed: number; filled: number
+  eventId: string; eventTitle: string; teamId: string; teamName: string
+}
+export type UnfilledList = { items: UnfilledShift[]; truncated: boolean }
+
+const count = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 0
+
+export function parseUnfilled(body: unknown): UnfilledList {
+  const valid = record(body) && exactly(body, ['items', 'truncated']) && typeof body.truncated === 'boolean' &&
+    Array.isArray(body.items) && body.items.every(item => record(item) &&
+      exactly(item, ['id', 'title', 'startsAt', 'endsAt', 'needed', 'filled', 'eventId', 'eventTitle', 'teamId', 'teamName']) &&
+      text(item.id) && text(item.title) && text(item.startsAt) && text(item.endsAt) && text(item.eventId) &&
+      text(item.eventTitle) && text(item.teamId) && text(item.teamName) &&
+      count(item.needed) && item.needed > 0 && count(item.filled) && item.filled < item.needed)
+  if (!valid) throw new Error('Invalid unfilled shifts')
+  return body as UnfilledList
+}
+
+/** 'denied' for anyone who manages no team. */
+export async function readUnfilled(request: typeof fetch = fetch): Promise<UnfilledList | 'denied'> {
+  const response = await request('/api/v1/shifts/unfilled', { credentials: 'same-origin', cache: 'no-store' })
+  if (response.status === 401 || response.status === 403) return 'denied'
+  if (!response.ok) throw new Error('Unfilled shifts unavailable')
+  return parseUnfilled(await response.json())
+}

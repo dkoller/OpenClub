@@ -162,6 +162,8 @@ class PrivateRoutesRevocationTest {
         // Volunteer shifts (1.16.0): unknown events and shifts are 404 for the club-wide holder. Signing up is covered in
         // EventShiftHttpTest (the holder belongs to no team, so it is 403 there by design).
         Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/shifts"),
+        // The managers' overview of open helper places (1.23.0).
+        Route(HttpMethod.Get, "/api/v1/shifts/unfilled"),
         Route(HttpMethod.Post, "/api/v1/events/${UUID(0, 1)}/shifts",
             """{"title":"Revocation shift","startsAt":"2030-01-01T10:00:00Z","endsAt":"2030-01-01T11:00:00Z","needed":1}"""),
         Route(HttpMethod.Put, "/api/v1/shifts/${UUID(0, 4)}",

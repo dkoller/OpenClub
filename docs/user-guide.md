@@ -14,13 +14,14 @@ The main menu sits at the bottom of a phone screen and on the left of a computer
 
 | Page | What it is for |
 | --- | --- |
-| *Start* | *Things for you to do*: every event that still needs your answer, or your child's, with *Yes*, *No* and *Maybe* right there; then what else is on in the next 7 days, and the announcements |
+| *Start* | *Things for you to do*: every event that still needs your answer, or your child's, with *Yes*, *No* and *Maybe* right there, and a free seat to book for an event you said *Yes* to; then what else is on in the next 7 days, and the announcements |
 | *Schedule* | The next eight weeks by day. With children, choose *Everyone*, *Me* or one child. Each event opens its own page with the answers, helper shifts and rides |
 | *Family* | *My profile* (with email notifications), *My children*, *Absences*, *My fees* and the calendar subscription |
-| *Team* | Only for coaches and team managers (`VIEW_TEAMS` or `MANAGE_TEAMS`): teams, rosters, schedules and statistics |
-| *Administration* | Only with an administration permission: *Waiting for you* (open join requests and unpaid fees), *Members*, *Join requests*, *Fees*, *Permissions* and *Settings*, each shown only to people who may use it |
+| *Team* | Only for coaches and team managers (`VIEW_TEAMS` or `MANAGE_TEAMS`): *Helpers missing* (for managers), teams, rosters, schedules and statistics |
+| *Administration* | Only with an administration permission: *Waiting for you* (open join requests, helper shifts that still need people, unpaid fees), *Members*, *Join requests*, *Fees*, *Permissions* and *Settings*, each shown only to people who may use it |
 
-Every page has its own address, so the browser's back button and bookmarks work (for example `#/schedule`).
+Every page has its own address, so the browser's back button and bookmarks work (for example `#/schedule`). On a
+phone, wide lists such as fees or the import preview show one card per row instead of a table.
 
 What you see depends on your permissions: menu entries and panels you cannot use are not shown at all. Every action is checked by the
 server. Every change to member data and every read of someone's private details is also recorded in an audit trail
@@ -42,7 +43,8 @@ Administrators are members who hold permissions. Permissions are separate from t
 alone allows nothing, and each panel needs its permission (see *Permissions* below).
 
 All of this is under *Administration*. It opens on *Waiting for you*, which lists what needs a decision (open join
-requests, fee periods with unpaid fees) with a button straight to the right section.
+requests, helper shifts of the next 14 days that still need people, fee periods with unpaid fees) with a button
+straight to the right section.
 
 ### Members (*Administration* → *Members*, panel *Manage members*, permission `EDIT_MEMBERS`)
 
@@ -153,6 +155,10 @@ shows, for the last 12 months (change *From* and *To*, at most a year, then *Sho
 how each member answered them: *Yes*, *No*, *Maybe* and *No answer*, with totals. Cancelled events do not count.
 Answers are deleted 12 months after an event, and members who joined later show earlier events as *No answer*.
 
+**Helpers missing.** With `MANAGE_TEAMS`, the *Team* page starts with the helper shifts of your teams in the next 14
+days that still have free places (*Bar: 2 of 4 places free*), with the event, team and time. Only the numbers are
+shown, not who signed up. A club-wide manager also sees them on *Waiting for you*.
+
 **Volunteer shifts.** *Show shifts and rides* under an event in the team schedule lists its helper jobs (for example *Bar*, 14:00–16:00,
 *2 of 3 filled*) with the names of who signed up. With `MANAGE_TEAMS` for the team you add a shift: *Task*, *Date*,
 *Start*, *End* (prefilled with the event's times, at most 24 hours and within a day of the event) and *People needed*,
@@ -201,7 +207,9 @@ with contact details; *Accept* creates the member (a child without contacts: lin
 and puts them in the wished team; *Decline* and the confirmation delete the application. Untick the switch to stop
 new applications. Unhandled applications are deleted after 60 days.
 
-**Carpooling.** An event's page also lists the rides offered to it: driver, direction, departure,
+**Carpooling.** If you (or your child) said *Yes* to an event in the next 7 days and have no seat yet, *Start* shows
+a ride there that still has a free seat (*Ride for Lea*), with *Book seat* and *All rides*. An event's page also lists
+the rides offered to it: driver, direction, departure,
 meeting point and seats. If you are in the team (or your child is), *Offer a ride* with direction, seats, meeting
 point, date and time; change it later with *Save changes* or *Withdraw ride*. *Book seat* reserves a seat for you or
 your child until departure. Once booked, you see the driver's phone number and the driver sees yours; nobody else

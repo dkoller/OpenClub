@@ -54,11 +54,11 @@ export function MemberListTransfer({ language, csrfToken, onImported }: {
       <p>{t.hint}</p>
       {preview && <>
         <p role="status">{fill(t.summary, preview.counts)}</p>
-        <table>
+        <table className="cards">
           <thead><tr><th scope="col">{t.line}</th><th scope="col">{t.name}</th><th scope="col">{t.status}</th></tr></thead>
           <tbody>{preview.rows.map(row => <tr key={row.line}>
-            <td>{row.line}</td><td>{row.firstName} {row.lastName}</td>
-            <td>{t[row.status]}{row.problems.length > 0 && <>: {row.problems.map(problem => t[problem]).join(', ')}</>}</td>
+            <td data-label={t.line}>{row.line}</td><th scope="row">{row.firstName} {row.lastName}</th>
+            <td data-label={t.status}>{t[row.status]}{row.problems.length > 0 && <>: {row.problems.map(problem => t[problem]).join(', ')}</>}</td>
           </tr>)}</tbody>
         </table>
         {preview.counts.ok > 0 && <button type="button" disabled={busy} onClick={() => { void send('commit') }}>

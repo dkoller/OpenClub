@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createShift, deleteShift, parseShiftList, readShifts, replaceShift, volunteer } from './shifts'
+import { createShift, deleteShift, parseShiftList, parseUnfilled, readShifts, readUnfilled, replaceShift, volunteer } from './shifts'
 
 const list = {
   items: [{ id: 's1', title: 'Bar', startsAt: '2030-01-01T10:00:00Z', endsAt: '2030-01-01T12:00:00Z', needed: 2,
@@ -50,5 +50,27 @@ describe('volunteer shifts', () => {
       expect(await volunteer('s1', 'm1', false, 'c', vi.fn().mockResolvedValue(res(status, body)))).toBe(outcome)
     }
     await expect(volunteer('s1', 'm1', false, 'c', vi.fn().mockResolvedValue(res(500)))).rejects.toThrow()
+  })
+})
+
+describe('unfilled shifts overview', () => {
+  const item = { id: 's', title: 'Bar', startsAt: '2026-11-29T09:00:00Z', endsAt: '2026-11-29T12:00:00Z', needed: 4, filled: 2,
+    eventId: 'e', eventTitle: 'Hallenturnier', teamId: 't', teamName: 'U12' }
+  const reply = (status: number, body: unknown = {}) => vi.fn(async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch
+
+  it('accepts exactly the documented counts-only shape', () => {
+    expect(parseUnfilled({ items: [item], truncated: false }).items[0]!.filled).toBe(2)
+    expect(() => parseUnfilled({ items: [{ ...item, volunteers: ['Mara Demo'] }], truncated: false })).toThrow()
+    expect(() => parseUnfilled({ items: [{ ...item, filled: 4 }], truncated: false })).toThrow()
+    expect(() => parseUnfilled({ items: [item] })).toThrow()
+  })
+
+  it('reads with the session, maps denial and fails on server errors', async () => {
+    const ok = reply(200, { items: [], truncated: false })
+    expect(await readUnfilled(ok)).toEqual({ items: [], truncated: false })
+    expect(ok).toHaveBeenCalledWith('/api/v1/shifts/unfilled', { credentials: 'same-origin', cache: 'no-store' })
+    expect(await readUnfilled(reply(403))).toBe('denied')
+    expect(await readUnfilled(reply(401))).toBe('denied')
+    await expect(readUnfilled(reply(503))).rejects.toThrow()
   })
 })

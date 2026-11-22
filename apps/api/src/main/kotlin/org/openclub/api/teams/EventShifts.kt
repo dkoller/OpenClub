@@ -51,6 +51,14 @@ internal class EventShifts(private val database: DSLContext) {
 
     enum class SignUp { DONE, CLOSED, FULL, DENIED }
 
+    /** A shift with free places, for the managers' overview (1.23.0). No volunteer names. */
+    data class Unfilled(
+        val id: UUID, val title: String, val startsAt: OffsetDateTime, val endsAt: OffsetDateTime, val needed: Int,
+        val filled: Int, val eventId: UUID, val eventTitle: String, val teamId: UUID, val teamName: String,
+    )
+
+    data class UnfilledList(val items: List<Unfilled>, val truncated: Boolean)
+
     /** The actor's own member row and their current minors. Binds the actor account. */
     private val people = """
         me AS (SELECT m.id, m.first_name FROM members m WHERE m.account_id = ? AND ${ActorSql.activeVerified("m")}),
@@ -106,6 +114,37 @@ internal class EventShifts(private val database: DSLContext) {
         return Listing.Found(shifts, mine, access.get("can_manage", Boolean::class.java) == true)
     }
 
+    /**
+     * Shifts starting within the next [UNFILLED_DAYS] days with free places, of events that are not cancelled, for the
+     * teams the actor manages (`MANAGE_TEAMS` club-wide or for the team), soonest first, at most [UNFILLED_LIMIT].
+     * Null when the actor holds `MANAGE_TEAMS` nowhere. Counts only, never who signed up.
+     */
+    fun unfilled(actor: UUID): UnfilledList? {
+        val manages = database.fetchOne(
+            "SELECT ${ActorSql.holdsTeamCapability(null, Capability.MANAGE_TEAMS)} AS manages", actor)
+            ?.get("manages", Boolean::class.java) == true
+        if (!manages) return null
+        val rows = database.fetch(
+            """SELECT s.id, s.title, s.starts_at, s.ends_at, s.needed, f.filled,
+                      e.id AS event_id, e.title AS event_title, t.id AS team_id, t.name AS team_name
+               FROM event_shifts s
+               JOIN team_events e ON e.id = s.event_id
+               JOIN teams t ON t.id = e.team_id
+               CROSS JOIN LATERAL (SELECT count(*)::int AS filled FROM shift_volunteers v WHERE v.shift_id = s.id) f
+               WHERE NOT e.cancelled AND s.starts_at > now() AND s.starts_at <= now() + INTERVAL '$UNFILLED_DAYS days'
+                 AND f.filled < s.needed
+                 AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}
+               ORDER BY s.starts_at, t.name, s.title, s.id
+               LIMIT ${UNFILLED_LIMIT + 1}""", actor).map { row ->
+            Unfilled(row.get("id", UUID::class.java), row.get("title", String::class.java),
+                row.get("starts_at", OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC),
+                row.get("ends_at", OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC),
+                row.get("needed", Int::class.java), row.get("filled", Int::class.java),
+                row.get("event_id", UUID::class.java), row.get("event_title", String::class.java),
+                row.get("team_id", UUID::class.java), row.get("team_name", String::class.java))
+        }
+        return UnfilledList(rows.take(UNFILLED_LIMIT), rows.size > UNFILLED_LIMIT)
+    }
 
     fun create(actor: UUID, eventId: UUID, input: Input): Created = database.transactionResult { configuration ->
         val db = DSL.using(configuration)
@@ -230,6 +269,8 @@ internal class EventShifts(private val database: DSLContext) {
 
     companion object {
         const val MAX_PER_EVENT = 50
+        const val UNFILLED_DAYS = 14
+        const val UNFILLED_LIMIT = 100
         /** A shift lies between a day before the event's start and a day after its end. Uses `x.s_start`/`x.s_end`; binds nothing. */
         private const val FITS_EVENT = "x.s_start >= e.starts_at - INTERVAL '1 day' AND x.s_end <= e.ends_at + INTERVAL '1 day'"
     }

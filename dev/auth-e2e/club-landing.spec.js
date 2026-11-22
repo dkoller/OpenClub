@@ -651,6 +651,12 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(rides.getByText('No rides offered yet.')).toBeVisible();
   await expect(rides.getByRole('button', { name: 'Offer a ride' })).toHaveCount(0);
   await trainings.last().getByRole('button', { name: 'Hide shifts and rides' }).click();
+  // Helpers missing (OpenAPI 1.23.0): the shift with its free places on Waiting for you and on the Team page.
+  await show(page, '#/admin');
+  await expect(page.getByRole('article', { name: 'Bar: 3 of 3 places free' })).toContainText('Juniors training · Juniors');
+  await show(page, '#/team');
+  await expect(page.getByRole('region', { name: 'Helpers missing' })).toContainText('Bar: 3 of 3 places free');
+  await juniors.getByRole('button', { name: 'Schedule', exact: true }).click();
   // Attendance statistics (OpenAPI 1.18.0): the last 12 months by default; the new trainings lie ahead, so none held.
   await schedule.getByRole('button', { name: 'Attendance statistics' }).click();
   const statistics = schedule.getByRole('region', { name: 'Attendance statistics Juniors' });
