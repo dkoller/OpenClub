@@ -22,7 +22,8 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
 - **Anwesenheit:** Ihre Antwort «Ja», «Nein» oder «Vielleicht» pro Anlass, ohne Begründung.
 - **E-Mail-Benachrichtigungen:** Wenn Sie sich angemeldet haben, senden wir Ihnen E-Mails zu geänderten, abgesagten
   oder neuen Terminen Ihres Teams (oder der Teams Ihrer Kinder), zu Mitteilungen, als Erinnerung vor Helfereinsätzen
-  und eine Woche vor Helfereinsätzen mit freien Plätzen («Helfer gesucht», nur mit Anzahl, ohne Namen). Sie können jede
+  eine Woche vor Helfereinsätzen mit freien Plätzen («Helfer gesucht», nur mit Anzahl, ohne Namen) und wenn Ihre Antwort
+  zu einem Termin fehlt (zwei Tage vorher oder wenn die Trainerin oder der Trainer erinnert). Sie können jede
   Art unter «Familie» → «E-Mail-Benachrichtigungen» abbestellen. Versendete Nachrichten löschen wir nach 7 Tagen.
 - **Kalender-Abo (freiwillig):** Wenn Sie unter «Familie» → «Kalender-Abo» einen Kalender-Link erstellen, lädt Ihre
   Kalender-App (z. B. Google oder Apple) Ihre Termine samt Ort und Notizen über diesen Link und speichert sie in Ihrem

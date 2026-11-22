@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   answerable, answerAttendance, clearAttendance, createEvents, deleteEvent, formatWhen, instants, localParts, readAttendance,
-  readMyEvents, readTeamEvents, replaceEvent,
+  readMyEvents, readTeamEvents, remindMissing, replaceEvent,
 } from './events'
 
 const event = {
@@ -115,5 +115,27 @@ describe('attendance statistics', () => {
       { ...stats, items: [{ displayName: 'A', yes: 1, no: 0, maybe: 0, noAnswer: 0, email: 'x' }] }]) {
       await expect(readAttendanceStatistics('t1', undefined, undefined, vi.fn().mockResolvedValue(res(200, broken)))).rejects.toThrow()
     }
+  })
+})
+
+describe('answer reminders', () => {
+  const reply = (status: number, body: unknown = {}) => vi.fn(async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch
+
+  it('posts with CSRF and reads the count', async () => {
+    const request = reply(200, { reminded: 3 })
+    expect(await remindMissing('e 1', 'c', request)).toEqual({ reminded: 3 })
+    expect(request).toHaveBeenCalledWith('/api/v1/events/e%201/attendance-reminders',
+      { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': 'c' } })
+  })
+
+  it('maps conflicts and denials, rejects odd answers', async () => {
+    expect(await remindMissing('e', 'c', reply(409, { code: 'recent' }))).toBe('recent')
+    expect(await remindMissing('e', 'c', reply(409, { code: 'email_off' }))).toBe('email_off')
+    expect(await remindMissing('e', 'c', reply(409, { code: 'closed' }))).toBe('closed')
+    expect(await remindMissing('e', 'c', reply(403))).toBe('denied')
+    expect(await remindMissing('e', 'c', reply(404))).toBe('denied')
+    await expect(remindMissing('e', 'c', reply(200, { reminded: -1 }))).rejects.toThrow()
+    await expect(remindMissing('e', 'c', reply(200, { reminded: 1, names: [] }))).rejects.toThrow()
+    await expect(remindMissing('e', 'c', reply(503))).rejects.toThrow()
   })
 })

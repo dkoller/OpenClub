@@ -138,6 +138,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(mailSettings.getByLabel('New events')).toBeChecked();
   await expect(mailSettings.getByLabel('New events')).toBeDisabled();
   await expect(mailSettings.getByLabel('Helpers wanted: 7 days before a shift with free places')).toBeChecked();
+  await expect(mailSettings.getByLabel('Answer missing: reminder 2 days before an event and when the coach asks')).toBeChecked();
   // The public-list switch (OpenAPI 1.15.0, controller decision C5): hidden, then shown again.
   await show(page, '#/family/profile');
   const listing = page.getByRole('region', { name: 'My profile' }).getByLabel('Show my name on the public member list');
@@ -668,6 +669,9 @@ test('verified login gains club access only after restricted operator bootstrap'
   await nextEvents.getByRole('link').filter({ hasText: '1 open' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Juniors training' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'No answer yet' })).toContainText('Mara D.');
+  // Answer reminders (OpenAPI 1.25.0): this installation sends no email, so the coach is told so.
+  await page.getByRole('button', { name: 'Remind all 1 without an answer' }).click();
+  await expect(page.getByRole('alert')).toHaveText('This club does not send emails.');
   await expect(page.getByRole('region', { name: 'Volunteer shifts: Juniors training' })).toContainText('Bar');
   await show(page, '#/team');
   await juniors.getByRole('button', { name: 'Schedule', exact: true }).click();

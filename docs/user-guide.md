@@ -144,8 +144,9 @@ Tracking only: OpenClub records who paid, it does not collect money.
 **Next events.** The *Team* page starts with the next 14 days of your teams' events (at most eight teams are
 included), each with its totals and how many have not answered yet (*11 yes · 2 no · 3 open*). Open one to see *Who is
 coming?*: the totals side by side, then the names under *No answer yet*, *No*, *Maybe* and *Yes* (adults by full name,
-minors by first name and initial). Absences count as *No*; no reason is ever shown. The same page lists the event's
-helper shifts and rides.
+minors by first name and initial). Absences count as *No*; no reason is ever shown. With `MANAGE_TEAMS`, *Remind all 3
+without an answer* emails them (parents for their children) if the club sends email, at most once every 12 hours; an
+automatic reminder also goes out two days before every event. The same page lists the event's helper shifts and rides.
 
 **Schedule.** On the *Team* page, choose *Schedule* under a team to see its next eight weeks. With `MANAGE_TEAMS` for the
 team you add events: *Kind* (Training, Match or Event), *Title*, *Date*, *Start*, *End*, optionally *Place* and
@@ -207,7 +208,8 @@ shift so everyone can coordinate.
 child's team) is changed or cancelled, when new events are added, when an announcement is posted for you, and a
 reminder the day before a volunteer shift you signed up for. *Helpers wanted*: seven days before a helper shift of
 your team (or your child's) that still has free places, you get one email per event listing those shifts with the
-free places and a link; not if you (or your child) already help at that event. Untick what you do not want and choose the language of
+free places and a link; not if you (or your child) already help at that event. *Answer missing*: two days before
+an event that still lacks your answer (or your child's), and when the coach sends a reminder. Untick what you do not want and choose the language of
 the emails; changes save at once. You need a sign-in and an email address to receive them.
 
 **Membership applications** (*Administration* → *Join requests*, with `EDIT_MEMBERS`): tick *Public application form is on* to show *Join the club* on

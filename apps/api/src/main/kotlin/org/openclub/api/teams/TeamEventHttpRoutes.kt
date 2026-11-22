@@ -42,7 +42,7 @@ import java.time.format.DateTimeParseException
 import java.util.UUID
 
 /**
- * Trainings and events (OpenAPI 1.10.0, ADR-0008 addendum 13). Order of answers: session (401); for changes exact
+ * Trainings and events (OpenAPI 1.10.0, ADR-0008 addendum 13; answer reminders 1.25.0, addendum 29). Order of answers: session (401); for changes exact
  * Origin and CSRF (403); a team grant on some team, or for `/me/events` an active membership (403); then the input
  * (400); then the team or event itself (403 without the grant for it, 404 when it does not exist). Responses are
  * `no-store`; times are RFC 3339 and answered in UTC.
@@ -185,6 +185,24 @@ internal fun Application.installTeamEventHttpRoutes(
                     })
                     EventAttendance.Statistics.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
                     EventAttendance.Statistics.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+            }
+        }
+        // A coach reminds everyone who has not answered (1.25.0): 200 with the count, 409 `closed` once the event
+        // started or was cancelled, `email_off` without a mail configuration, `recent` within 12 hours of the last one.
+        post("/api/v1/events/{eventId}/attendance-reminders") {
+            call.guarded(sessions, cookies, origin, database, null) { actor ->
+                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
+                    return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+                val event = call.uuid("eventId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                when (val result = database.onDatabaseThread { AnswerReminders(it, notifier).remind(actor.accountId, event) }) {
+                    is AnswerReminders.Outcome.Done -> call.respondJson(buildJsonObject { put("reminded", result.reminded) })
+                    AnswerReminders.Outcome.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    AnswerReminders.Outcome.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                    AnswerReminders.Outcome.Closed -> call.refuse(HttpStatusCode.Conflict, "closed")
+                    AnswerReminders.Outcome.EmailOff -> call.refuse(HttpStatusCode.Conflict, "email_off")
+                    AnswerReminders.Outcome.Recent -> call.refuse(HttpStatusCode.Conflict, "recent")
                 }
             }
         }

@@ -1,13 +1,13 @@
-/** The member's own email notification settings (OpenAPI 1.19.0; helpersWanted since 1.24.0). */
+/** The member's own email notification settings (OpenAPI 1.19.0; helpersWanted since 1.24.0, answerReminders since 1.25.0). */
 export type NotificationLanguage = 'de' | 'en' | 'fr' | 'it'
 export type NotificationSettings = {
-  eventChanges: boolean; newEvents: boolean; announcements: boolean; shiftReminders: boolean; helpersWanted: boolean
+  eventChanges: boolean; newEvents: boolean; announcements: boolean; shiftReminders: boolean; helpersWanted: boolean; answerReminders: boolean
   language: NotificationLanguage
 }
 export type NotificationStatus = NotificationSettings & { emailEnabled: boolean; hasEmail: boolean }
 
 const path = '/api/v1/me/notifications'
-const switches = ['eventChanges', 'newEvents', 'announcements', 'shiftReminders', 'helpersWanted'] as const
+const switches = ['eventChanges', 'newEvents', 'announcements', 'shiftReminders', 'helpersWanted', 'answerReminders'] as const
 const languages = ['de', 'en', 'fr', 'it']
 
 export function parseNotificationStatus(body: unknown): NotificationStatus {
@@ -32,7 +32,8 @@ export async function saveNotifications(settings: NotificationSettings, csrfToke
   request: typeof fetch = fetch): Promise<'ok' | 'invalid' | 'denied'> {
   const body: NotificationSettings = {
     eventChanges: settings.eventChanges, newEvents: settings.newEvents, announcements: settings.announcements,
-    shiftReminders: settings.shiftReminders, helpersWanted: settings.helpersWanted, language: settings.language,
+    shiftReminders: settings.shiftReminders, helpersWanted: settings.helpersWanted,
+    answerReminders: settings.answerReminders, language: settings.language,
   }
   const response = await request(path, {
     method: 'PUT', credentials: 'same-origin',
