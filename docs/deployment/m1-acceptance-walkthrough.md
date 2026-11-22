@@ -20,7 +20,8 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 ## B. Languages and members (as the administrator)
 
 - [ ] B0 On a phone (or a narrow window): the menu sits at the bottom with *Start*, *Schedule*, *Family*, *Team* and
-      *Administration*; *Administration* opens on *Waiting for you*. A reload keeps the open page. *Fees* → a period shows one card per member, nothing scrolls sideways.
+      *Administration*; *Administration* opens on *Waiting for you*, which lists the seeded join request (Mila Baumann,
+      applied for by Patrick Baumann). A reload keeps the open page. *Fees* → a period shows one card per member, nothing scrolls sideways.
 - [ ] B1 Switch DE, EN, FR, IT: headings, buttons and messages change; nothing stays in another language.
 - [ ] B2 *Manage members*: search "Keller" finds Noah Keller; *Details* shows his birth date and no contacts.
 - [ ] B3 *Add member*: an adult without email or phone is refused; with both it is created.
@@ -61,18 +62,25 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       as first name plus initial under *No answer yet*.
       *Show shifts and rides* on one date: add "Bar" with 1 person; *Sign up: Me* fills it; the button for anyone else
       is disabled (full). Before that, the coach's *Team* page listed it under *Helpers missing*. *Attendance statistics* shows the team's members with no events held yet (dates lie ahead).
+      The seeded U12 dates are there too: the first training shows Yes, No and open answers from other members; on the
+      second one Luca F. counts as *No* because of an absence; the home match five days ahead has a full *Kiosk* shift
+      and a *Cake stall* with 2 of 3 places free (also under *Helpers missing*), and two rides (one full, one with
+      2 seats free).
 - [ ] C5 Revoke the grant: the coach loses the team at the next reload. *Unlink account* for Peter: the coach's session ends.
 
 ## D. Guardians
 
 - [ ] D1 Invite Sandra Gerber (adult) and accept as `parent@…`.
-- [ ] D2 As administrator, *Guardians*: find Lea Brunner, add Sandra (the attestation text is shown). A third guardian is
-      refused after a second one.
-- [ ] D3 As `parent@…` (reload): *Family* → *My children* lists Lea; *Open* shows birth date, player flag and team; change her email;
-      it is saved. *Start* asks *Is Lea coming?* for the U12 trainings from C4; answer *No* for Lea, open the
-      event and see the totals change, but no other member's answer. *Schedule* with the *Lea* button shows only her
-      events. Nothing else about other members is visible. The event's page offers *Sign up: Lea* for the shift.
-- [ ] D4 Remove Sandra as guardian: *My children* disappears for `parent@…` after a reload.
+- [ ] D2 As administrator, *Guardians*: find Lea Brunner (Juniors U12), add Sandra (the attestation text is shown); do the
+      same for Nico Brunner (Juniors U17). A third guardian is refused after a second one.
+- [ ] D3 As `parent@…` (reload): *Family* → *My children* lists Lea and Nico; *Open* shows birth date, player flag and team; change Lea's email;
+      it is saved. *Start* asks *Is Lea coming?* for the seeded U12 training and the trainings from C4, and *Is Nico
+      coming?* for the U17 away match; answer *No* for Lea on one, open the
+      event and see the totals change, but no other member's answer. *Start* also shows *Ride for Lea* for the U12
+      home match (Lea said Yes; Daniel Roth's ride, 2 seats free; Martina Wyss's full ride is not offered). *Schedule*
+      has *Lea* and *Nico* buttons; *Lea* shows only her events. Nothing else about other members is visible. The
+      event's page offers *Sign up: Lea* for the shift.
+- [ ] D4 Remove Sandra as guardian of both: *My children* disappears for `parent@…` after a reload.
 
 ## E. Denial and sessions
 
