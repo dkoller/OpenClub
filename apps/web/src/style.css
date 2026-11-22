@@ -146,3 +146,9 @@ th, td { text-align: left; padding: 0.375rem 0.5rem; vertical-align: top; }
   .admin-nav a[aria-current='page'] { background: var(--club-soft); color: var(--club); border-color: transparent; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+/* Coach event page: three totals side by side, the open ones marked in text and colour. */
+.tally { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.tally p { text-align: center; display: flex; flex-direction: column; }
+.tally b { font-size: 1.625rem; }
+.tally .attention { background: var(--attention-soft); color: var(--attention); border-color: #e9c98a; }

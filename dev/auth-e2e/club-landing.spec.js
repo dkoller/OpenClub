@@ -657,6 +657,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(page.getByRole('article', { name: 'Bar: 3 of 3 places free' })).toContainText('Juniors training · Juniors');
   await show(page, '#/team');
   await expect(page.getByRole('region', { name: 'Helpers missing' })).toContainText('Bar: 3 of 3 places free');
+  // The coach view: the next two weeks with who has not answered, and one page per event with names by answer.
+  const nextEvents = page.getByRole('region', { name: 'Next events' });
+  await expect(nextEvents.getByRole('link').filter({ hasText: 'Cancelled' })).toHaveCount(1);
+  await nextEvents.getByRole('link').filter({ hasText: '1 open' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Juniors training' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'No answer yet' })).toContainText('Mara D.');
+  await expect(page.getByRole('region', { name: 'Volunteer shifts: Juniors training' })).toContainText('Bar');
+  await show(page, '#/team');
   await juniors.getByRole('button', { name: 'Schedule', exact: true }).click();
   // Attendance statistics (OpenAPI 1.18.0): the last 12 months by default; the new trainings lie ahead, so none held.
   await schedule.getByRole('button', { name: 'Attendance statistics' }).click();
