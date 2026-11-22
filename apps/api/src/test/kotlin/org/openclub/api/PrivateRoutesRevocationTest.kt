@@ -204,7 +204,7 @@ class PrivateRoutesRevocationTest {
             """{"direction":"THERE","seats":2,"meetingPoint":"Revocation","departsAt":"2030-01-01T10:00:00Z"}"""),
         Route(HttpMethod.Delete, "/api/v1/rides/${UUID(0, 4)}"),
         Route(HttpMethod.Put, "/api/v1/me/notifications",
-            """{"eventChanges":true,"newEvents":true,"announcements":true,"shiftReminders":true,"language":"de"}"""),
+            """{"eventChanges":true,"newEvents":true,"announcements":true,"shiftReminders":true,"helpersWanted":true,"language":"de"}"""),
         Route(HttpMethod.Post, "/api/v1/me/calendar-feed"),
         Route(HttpMethod.Delete, "/api/v1/me/calendar-feed"),
         Route(HttpMethod.Put, "/api/v1/members/$target/public-listing", """{"listedPublicly":false}"""),

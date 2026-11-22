@@ -268,7 +268,7 @@ Since OpenAPI 1.17.0 a member's calendar feed link carries its secret in the pat
 
 ## Email notifications (optional)
 
-Since OpenAPI 1.19.0 the API can send notification emails through any SMTP server the club already uses (for example a mailbox in the club's Infomaniak plan). Without `OPENCLUB_SMTP_HOST` email is off and nothing is queued; the synthetic demo stays that way, because its members have made-up addresses. To turn it on for a real-data installation (after the M2 gates), add the settings to the `api` service through a compose override file kept with the server's other configuration, never on a command line:
+Since OpenAPI 1.19.0 the API can send notification emails (since 1.24.0 also *Helpers wanted* seven days before a shift with free places) through any SMTP server the club already uses (for example a mailbox in the club's Infomaniak plan). Without `OPENCLUB_SMTP_HOST` email is off and nothing is queued; the synthetic demo stays that way, because its members have made-up addresses. To turn it on for a real-data installation (after the M2 gates), add the settings to the `api` service through a compose override file kept with the server's other configuration, never on a command line:
 
 ```yaml
 # compose.email.yaml (on the server, next to the other override files; the password comes from the private env file)

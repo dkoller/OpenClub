@@ -92,8 +92,8 @@ class NotificationsTest {
             db.execute("INSERT INTO member_guardianships (minor_member_id, guardian_member_id) VALUES (?, ?)", kid, memberOf.getValue("guardian"))
             db.execute("INSERT INTO team_capability_grants (team_id, member_id, capability) VALUES (?, ?, 'MANAGE_TEAMS')", team, memberOf.getValue("manager"))
             db.execute("INSERT INTO notification_settings (member_id, language) VALUES (?, 'en')", memberOf.getValue("guardian"))
-            db.execute("""INSERT INTO notification_settings (member_id, event_changes, new_events, announcements, shift_reminders)
-                          VALUES (?, FALSE, FALSE, FALSE, FALSE)""", memberOf.getValue("quiet"))
+            db.execute("""INSERT INTO notification_settings (member_id, event_changes, new_events, announcements, shift_reminders, helpers_wanted)
+                          VALUES (?, FALSE, FALSE, FALSE, FALSE, FALSE)""", memberOf.getValue("quiet"))
         }
     }
 
@@ -215,6 +215,61 @@ class NotificationsTest {
     }
 
     @Test
+    fun helpersWantedGoesOncePerShiftToTheTeamButNotToThoseAlreadyHelping() {
+        val event = UUID.randomUUID()
+        val inSix = OffsetDateTime.now(ZoneOffset.UTC).plusDays(6).withNano(0)
+        val shifts = (0 until 5).map { UUID.randomUUID() }
+        val (bar, grill, full, offShift, later) = shifts
+        val farEvent = UUID.randomUUID()
+        val cancelledEvent = UUID.randomUUID()
+        sql { db ->
+            fun event(id: UUID, at: OffsetDateTime, title: String, cancelled: Boolean = false) = db.execute(
+                """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, location, cancelled)
+                   VALUES (?, ?, 'MATCH', ?, ?::timestamptz, ?::timestamptz, 'Hall 3', ?)""",
+                id, team, title, at.toString(), at.plusHours(4).toString(), cancelled)
+            fun shift(id: UUID, eventId: UUID, title: String, at: OffsetDateTime, needed: Int) = db.execute(
+                """INSERT INTO event_shifts (id, event_id, title, starts_at, ends_at, needed)
+                   VALUES (?, ?, ?, ?::timestamptz, ?::timestamptz, ?)""", id, eventId, title, at.toString(), at.plusHours(2).toString(), needed)
+            event(event, inSix, "Notify tournament")
+            shift(bar, event, "Bar", inSix, 3)
+            shift(grill, event, "Grill", inSix.plusHours(2), 2)
+            shift(full, event, "Kasse", inSix, 1)
+            event(farEvent, inSix.plusDays(5), "Notify later")
+            shift(later, farEvent, "Bar", inSix.plusDays(5), 2)
+            event(cancelledEvent, inSix, "Notify off", cancelled = true)
+            shift(offShift, cancelledEvent, "Bar", inSix, 2)
+            // The kid helps at the full till, so the guardian is not asked again; the player is not helping yet.
+            db.execute("INSERT INTO shift_volunteers (shift_id, member_id) VALUES (?, ?)", full, kid)
+            db.execute("INSERT INTO shift_volunteers (shift_id, member_id) VALUES (?, ?)", bar, memberOf.getValue("unlinked"))
+        }
+        try {
+            // Other classes may leave due shifts of their own teams; only this class's shifts and members are checked.
+            assertTrue(tx { notifier.queueHelperCalls(it) } >= 2)
+            val called = sql { db -> db.fetch("SELECT shift_id FROM helper_calls_sent WHERE shift_id = ANY(?::uuid[])", shifts.toTypedArray())
+                .map { it.get(0, UUID::class.java) }.toSet() }
+            assertEquals(setOf(bar, grill), called, "not the full one, the one in 11 days or the cancelled one")
+            val mails = outbox()
+            assertEquals(listOf("player"), mails.map { it[0] },
+                "one mail per event; not the guardian whose kid helps, not quiet (switched off), not without a sign-in")
+            val (_, kind, subject, body) = mails.single()
+            assertEquals("HELPERS_WANTED", kind)
+            assertTrue(subject.endsWith("] Helfer gesucht: Notify A ${team.toString().take(8)} – Notify tournament"), subject)
+            assertTrue("Bar, " in body && ": 2 von 3 Plätzen frei" in body, body)
+            assertTrue("Grill, " in body && ": 2 von 2 Plätzen frei" in body, body)
+            assertFalse("Kasse" in body, "full shifts are not listed")
+            assertTrue("$origin/#/schedule/$event" in body && "Hall 3" in body)
+            assertFalse("Kiddo" in body || "unlinked" in body, "never who signed up")
+            tx { notifier.queueHelperCalls(it) }
+            assertEquals(1, outbox().size, "each shift is called once")
+            assertEquals(0, tx { Notifier.DISABLED.queueHelperCalls(it) })
+        } finally {
+            sql { it.execute("DELETE FROM team_events WHERE id IN (?, ?, ?)", event, farEvent, cancelledEvent) }
+        }
+        assertEquals(0, (sql { it.fetchValue("SELECT count(*) FROM helper_calls_sent WHERE shift_id = ANY(?::uuid[])", shifts.toTypedArray()) } as Number).toInt(),
+            "the record goes with the shift")
+    }
+
+    @Test
     fun theOutboxSendsRetriesSkipsAndCleansUp() {
         val sent = mutableListOf<Pair<String, String>>()
         val player = memberOf.getValue("player")
@@ -267,7 +322,7 @@ class NotificationsTest {
     fun membersReadAndChangeOnlyTheirOwnSettings() = app {
         val defaults = Json.parseToJsonElement(send(HttpMethod.Get, "player").bodyAsText()).jsonObject
         assertEquals(Json.parseToJsonElement("""{"eventChanges":true,"newEvents":true,"announcements":true,"shiftReminders":true,
-            "language":"de","emailEnabled":true,"hasEmail":true}"""), defaults)
+            "helpersWanted":true,"language":"de","emailEnabled":true,"hasEmail":true}"""), defaults)
         val body = """{"eventChanges":true,"newEvents":false,"announcements":true,"shiftReminders":false,"language":"fr"}"""
         assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, "player", body).status)
         val changed = Json.parseToJsonElement(send(HttpMethod.Get, "player").bodyAsText()).jsonObject
@@ -275,6 +330,10 @@ class NotificationsTest {
         assertEquals("\"fr\"", changed.getValue("language").toString())
         assertEquals("true", Json.parseToJsonElement(send(HttpMethod.Get, "outsider").bodyAsText()).jsonObject.getValue("newEvents").toString(),
             "another member is untouched")
+        // helpersWanted (1.24.0) is optional: a body without it keeps the stored choice.
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, "player", body.replace("}", ",\"helpersWanted\":false}")).status)
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, "player", body).status)
+        assertEquals("false", Json.parseToJsonElement(send(HttpMethod.Get, "player").bodyAsText()).jsonObject.getValue("helpersWanted").toString())
 
         val failures = mutableListOf<String>()
         fun expect(label: String, response: HttpResponse, status: HttpStatusCode) {
@@ -285,7 +344,7 @@ class NotificationsTest {
         expect("change without CSRF", send(HttpMethod.Put, "player", body, withCsrf = null), HttpStatusCode.Forbidden)
         expect("change without member", send(HttpMethod.Put, "stranger", body), HttpStatusCode.Forbidden)
         for (broken in listOf(body.replace("\"fr\"", "\"es\""), body.replace("false,\"announcements\"", "\"false\",\"announcements\""),
-            body.replace(",\"language\":\"fr\"", ""), body.replace("}", ",\"email\":\"x@example.invalid\"}"))) {
+            body.replace(",\"language\":\"fr\"", ""), body.replace("}", ",\"email\":\"x@example.invalid\"}"), body.replace("}", ",\"helpersWanted\":\"no\"}"))) {
             expect(broken, send(HttpMethod.Put, "player", broken), HttpStatusCode.BadRequest)
         }
         assertTrue(failures.isEmpty(), failures.joinToString("\n", "\n"))

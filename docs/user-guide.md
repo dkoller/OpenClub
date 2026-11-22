@@ -157,7 +157,8 @@ Answers are deleted 12 months after an event, and members who joined later show 
 
 **Helpers missing.** With `MANAGE_TEAMS`, the *Team* page starts with the helper shifts of your teams in the next 14
 days that still have free places (*Bar: 2 of 4 places free*), with the event, team and time. Only the numbers are
-shown, not who signed up. A club-wide manager also sees them on *Waiting for you*.
+shown, not who signed up. A club-wide manager also sees them on *Waiting for you*. Seven days before such a shift,
+the team and the parents of its children are also asked by email (*Helpers wanted*, if the club sends email).
 
 **Volunteer shifts.** *Show shifts and rides* under an event in the team schedule lists its helper jobs (for example *Bar*, 14:00–16:00,
 *2 of 3 filled*) with the names of who signed up. With `MANAGE_TEAMS` for the team you add a shift: *Task*, *Date*,
@@ -198,7 +199,9 @@ shift so everyone can coordinate.
 
 **Email notifications** (on *Family*, in *My profile*): if your club sends email, you get one when an event of your team (or your
 child's team) is changed or cancelled, when new events are added, when an announcement is posted for you, and a
-reminder the day before a volunteer shift you signed up for. Untick what you do not want and choose the language of
+reminder the day before a volunteer shift you signed up for. *Helpers wanted*: seven days before a helper shift of
+your team (or your child's) that still has free places, you get one email per event listing those shifts with the
+free places and a link; not if you (or your child) already help at that event. Untick what you do not want and choose the language of
 the emails; changes save at once. You need a sign-in and an email address to receive them.
 
 **Membership applications** (*Administration* → *Join requests*, with `EDIT_MEMBERS`): tick *Public application form is on* to show *Join the club* on

@@ -24,7 +24,7 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
 
     enum class Kind(val column: String) {
         NEW_EVENTS("new_events"), EVENT_CHANGED("event_changes"), EVENT_CANCELLED("event_changes"),
-        ANNOUNCEMENT("announcements"), SHIFT_REMINDER("shift_reminders"),
+        ANNOUNCEMENT("announcements"), SHIFT_REMINDER("shift_reminders"), HELPERS_WANTED("helpers_wanted"),
     }
 
     /** What an email says about one event; kept for deleted events too. */
@@ -137,6 +137,64 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
         return due.size
     }
 
+    /**
+     * Helpers wanted (OpenAPI 1.24.0, ADR-0008 addendum 28): shifts that start in more than a day and at most seven
+     * days and still have free places are called once each (recorded in `helper_calls_sent` in the same transaction).
+     * One message per event goes to the team and the guardians of its minors, except people who already signed up for
+     * a shift of that event and the guardians of children who did. Counts only, never names. Returns how many shifts
+     * were called.
+     */
+    fun queueHelperCalls(db: DSLContext, limit: Int = 200): Int {
+        if (!enabled) return 0
+        val due = db.fetch(
+            """SELECT s.id AS shift_id, s.title AS shift_title, s.starts_at, s.ends_at, s.needed, f.filled,
+                      e.id AS event_id, e.team_id, t.name AS team_name, e.title, e.starts_at AS event_starts,
+                      e.ends_at AS event_ends, e.location
+               FROM event_shifts s
+               JOIN team_events e ON e.id = s.event_id
+               JOIN teams t ON t.id = e.team_id
+               CROSS JOIN LATERAL (SELECT count(*)::int AS filled FROM shift_volunteers v WHERE v.shift_id = s.id) f
+               WHERE NOT e.cancelled AND f.filled < s.needed
+                 AND s.starts_at > now() + INTERVAL '1 day' AND s.starts_at <= now() + INTERVAL '7 days'
+                 AND NOT EXISTS (SELECT 1 FROM helper_calls_sent h WHERE h.shift_id = s.id)
+               ORDER BY e.id, s.starts_at, s.title, s.id LIMIT ? FOR UPDATE OF s SKIP LOCKED""", limit)
+        val called = due.filter { row ->
+            db.execute("INSERT INTO helper_calls_sent (shift_id) VALUES (?) ON CONFLICT DO NOTHING",
+                row.get("shift_id", UUID::class.java)) == 1
+        }
+        for ((eventId, shifts) in called.groupBy { it.get("event_id", UUID::class.java) }) {
+            val first = shifts.first()
+            val event = EventDetails(first.get("team_id", UUID::class.java), first.get("team_name", String::class.java),
+                first.get("title", String::class.java), first.get("event_starts", OffsetDateTime::class.java),
+                first.get("event_ends", OffsetDateTime::class.java), first.get("location", String::class.java), null)
+            val helping = db.fetch(
+                """SELECT v.member_id AS id FROM shift_volunteers v JOIN event_shifts s ON s.id = v.shift_id WHERE s.event_id = ?
+                   UNION
+                   SELECT gs.guardian_member_id FROM member_guardianships gs
+                   JOIN shift_volunteers v ON v.member_id = gs.minor_member_id
+                   JOIN event_shifts s ON s.id = v.shift_id WHERE s.event_id = ?""", eventId, eventId)
+                .map { it.get("id", UUID::class.java) }.toSet()
+            val people = recipients(db, team, arrayOf<Any>(event.teamId), Kind.HELPERS_WANTED).filter { it.memberId !in helping }
+            queue(db, Kind.HELPERS_WANTED, people) { text, club ->
+                Message(text.subject(club, text.helpersWanted, "${event.teamName} – ${event.title}"), buildString {
+                    appendLine("${event.teamName}: ${event.title}")
+                    appendLine(when_(event, text))
+                    event.location?.let { appendLine("${text.place}: $it") }
+                    appendLine()
+                    shifts.forEach { shift ->
+                        val times = EventDetails(event.teamId, event.teamName, "", shift.get("starts_at", OffsetDateTime::class.java),
+                            shift.get("ends_at", OffsetDateTime::class.java), null, null)
+                        val needed = shift.get("needed", Int::class.java)
+                        val free = needed - shift.get("filled", Int::class.java)
+                        appendLine("${shift.get("shift_title", String::class.java)}, ${when_(times, text)}: ${text.freePlaces.format(free, needed)}")
+                    }
+                    append(text.footer("$origin/#/schedule/$eventId"))
+                })
+            }
+        }
+        return called.size
+    }
+
     private data class Message(val subject: String, val body: String)
 
     private fun queue(db: DSLContext, kind: Kind, people: List<Recipient>, render: (Texts, String) -> Message) =
@@ -222,7 +280,7 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
 internal data class Texts(
     val locale: Locale, val newEvents: String, val changed: String, val cancelled: String, val announcement: String,
     val reminder: String, val cancelledLine: String, val place: String, val forPerson: String,
-    private val open: String, private val settings: String,
+    val helpersWanted: String, val freePlaces: String, private val open: String, private val settings: String,
 ) {
     fun subject(club: String, label: String, what: String) = "[$club] $label: $what".replace(Regex("[\\r\\n]+"), " ")
     fun footer(origin: String) = "\n$open: $origin\n$settings"
@@ -230,13 +288,17 @@ internal data class Texts(
     companion object {
         private val all = mapOf(
             "de" to Texts(Locale.GERMAN, "Neu", "Geändert", "Abgesagt", "Mitteilung", "Erinnerung", "Dieser Termin ist abgesagt.",
-                "Ort", "Für", "In OpenClub ansehen", "Benachrichtigungen ändern Sie in OpenClub unter «Mein Profil»."),
+                "Ort", "Für", "Helfer gesucht", "%d von %d Plätzen frei", "In OpenClub ansehen",
+                "Benachrichtigungen ändern Sie in OpenClub unter «Familie» → «Mein Profil»."),
             "en" to Texts(Locale.ENGLISH, "New", "Changed", "Cancelled", "Announcement", "Reminder", "This event is cancelled.",
-                "Place", "For", "View in OpenClub", "Change your notifications in OpenClub under “My profile”."),
+                "Place", "For", "Helpers wanted", "%d of %d places free", "View in OpenClub",
+                "Change your notifications in OpenClub under “Family” → “My profile”."),
             "fr" to Texts(Locale.FRENCH, "Nouveau", "Modifié", "Annulé", "Communication", "Rappel", "Cet événement est annulé.",
-                "Lieu", "Pour", "Voir dans OpenClub", "Modifiez vos notifications dans OpenClub sous « Mon profil »."),
+                "Lieu", "Pour", "Bénévoles recherchés", "%d places libres sur %d", "Voir dans OpenClub",
+                "Modifiez vos notifications dans OpenClub sous « Famille » → « Mon profil »."),
             "it" to Texts(Locale.ITALIAN, "Nuovo", "Modificato", "Annullato", "Comunicazione", "Promemoria", "Questo evento è annullato.",
-                "Luogo", "Per", "Vedi in OpenClub", "Modifica le notifiche in OpenClub sotto «Il mio profilo»."),
+                "Luogo", "Per", "Cercasi aiutanti", "%d posti liberi su %d", "Vedi in OpenClub",
+                "Modifica le notifiche in OpenClub sotto «Famiglia» → «Il mio profilo»."),
         )
 
         fun of(language: String): Texts = all[language] ?: all.getValue("de")

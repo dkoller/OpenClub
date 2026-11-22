@@ -285,3 +285,11 @@ show helper shifts that still need people, the owner chose **"Add the endpoint"*
 | --- | --- | --- |
 | 58 | Navigation | Web only, no contract change (PR #373). Menu entries come from existing read-only requests; only a denial hides one. |
 | 59 | Unfilled shifts | Approved as OpenAPI **1.23.0**: `GET /v1/shifts/unfilled` for holders of `MANAGE_TEAMS` (club-wide or for a team) lists the shifts of the next 14 days with free places, of events that are not cancelled, only for the teams the caller manages, at most 100. Counts only, never who signed up. Shown on *Administration* → *Waiting for you* and on the *Team* page. |
+
+## Addendum 28 — helpers-wanted email (2026-11-22)
+
+Asked about an automatic reminder a week ahead, the owner chose **"Own switch"** for opting out.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 60 | Helpers wanted | Approved as OpenAPI **1.24.0** (V35). Seven days before a helper shift that still has free places (and more than a day ahead), the event's team and the guardians of its current minors get one email per event listing the shifts with their free places, once per shift. Not sent to people already helping at that event or whose child is, nor when the event is cancelled. Counts only, never names. Members turn it off with their own `helpersWanted` switch (on by default, like the other kinds); the field is optional in `PUT /v1/me/notifications`. Only when the installation sends email. |
