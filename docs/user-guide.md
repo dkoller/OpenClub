@@ -166,7 +166,7 @@ days that still have free places (*Bar: 2 of 4 places free*), with the event, te
 shown, not who signed up. A club-wide manager also sees them on *Waiting for you*. Seven days before such a shift,
 the team and the parents of its children are also asked by email (*Helpers wanted*, if the club sends email).
 
-**Volunteer shifts.** *Show shifts and rides* under an event in the team schedule lists its helper jobs (for example *Bar*, 14:00–16:00,
+**Volunteer shifts.** An event's page (from *Next events*), or *Show shifts and rides* under an event in the team schedule, lists its helper jobs (for example *Bar*, 14:00–16:00,
 *2 of 3 filled*) with the names of who signed up. With `MANAGE_TEAMS` for the team you add a shift: *Task*, *Date*,
 *Start*, *End* (prefilled with the event's times, at most 24 hours and within a day of the event) and *People needed*,
 then *Add shift*. *Edit* changes a shift (you cannot lower the places below the people already signed up), *Delete*

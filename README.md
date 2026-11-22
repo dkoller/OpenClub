@@ -2,7 +2,7 @@
 
 An open-source project exploring a free-to-use platform for clubs, starting with sports clubs and a floorball-club use case.
 
-## Current status (2026-11-19)
+## Current status (2026-11-22)
 
 OpenClub is a **pre-production, synthetic-data-only** application. Each installation serves **one club** with its own PostgreSQL database ([ADR-0005](docs/decisions/0005-single-club-installation.md)). **Do not enter real personal data.**
 
@@ -13,6 +13,11 @@ OpenClub is a **pre-production, synthetic-data-only** application. Each installa
 - **Self sign-in:** an administrator sends a one-time invitation link and the member signs in and accepts. Unlinking ends their session at once ([design](docs/security/invitation-linking-design.md)).
 - **My profile:** every member sees their own record (name, birth date, role, teams) and keeps their own email and phone up to date.
 - **Trainings and events:** team managers plan trainings, matches and other events, also weekly; they cancel or delete single dates. Every member sees their teams' and their children's events on *Start* (what still needs an answer, one tap each) and *Schedule* (by day, filtered per child), and answers Yes, No or Maybe for themselves or their child until the start; the team's coaches see who comes, everyone sees the totals.
+- **Coaches:** the *Team* page starts with the next two weeks and how many have not answered; each event lists names by answer (minors by first name and initial, absences without a reason), and team managers see attendance statistics for up to a year.
+- **Helpers and rides:** helper shifts per event with sign-up until the start, an overview of shifts that still need people, and an email a week ahead; carpooling where driver and booked passengers see each other's phone, and a free seat offered on *Start*.
+- **Absences and calendar:** members (or parents for a child) enter days away, which count as *No*; a private calendar link shows one's own and the children's events in any phone calendar.
+- **Join the club:** an optional public form for adults and parents; editors accept (creating the member) or decline.
+- **Email notifications** (only when the club configures its own SMTP server): changed or new events, announcements, shift reminders and *Helpers wanted*, each with the member's own switch.
 - **Announcements:** the board (permission `POST_ANNOUNCEMENTS`) posts to the whole club, coaches to their team; members see what concerns them and their children, until the show-until date.
 - **Membership fees:** a treasurer with the `MANAGE_FEES` permission creates fee periods for all active members, adjusts or excludes single members and marks payments by hand (tracking only, no payment processing). Members see *My fees*, guardians their children's.
 - **Guardians:** an administrator records up to two guardians for a minor. A guardian sees *My children* with the child's details and can update the child's email and phone. Access ends automatically at the club's adult age ([design](docs/security/guardian-design.md)).

@@ -293,3 +293,6 @@ Asked about an automatic reminder a week ahead, the owner chose **"Own switch"**
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 60 | Helpers wanted | Approved as OpenAPI **1.24.0** (V35). Seven days before a helper shift that still has free places (and more than a day ahead), the event's team and the guardians of its current minors get one email per event listing the shifts with their free places, once per shift. Not sent to people already helping at that event or whose child is, nor when the event is cancelled. Counts only, never names. Members turn it off with their own `helpersWanted` switch (on by default, like the other kinds); the field is optional in `PUT /v1/me/notifications`. Only when the installation sends email. |
+
+**Note (2026-11-22):** addenda 21 and 24 name the page *My schedule*, which no longer exists since the task-based layout
+(addendum 27): the calendar link and absences are now on *Family*. The decisions themselves are unchanged.

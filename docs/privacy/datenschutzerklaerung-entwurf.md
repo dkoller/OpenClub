@@ -21,9 +21,10 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
 - **Teams, Trainings und Anlässe:** Wann und wo trainiert oder gespielt wird.
 - **Anwesenheit:** Ihre Antwort «Ja», «Nein» oder «Vielleicht» pro Anlass, ohne Begründung.
 - **E-Mail-Benachrichtigungen:** Wenn Sie sich angemeldet haben, senden wir Ihnen E-Mails zu geänderten, abgesagten
-  oder neuen Terminen Ihres Teams (oder der Teams Ihrer Kinder), zu Mitteilungen und als Erinnerung vor Helfereinsätzen.
-  Sie können jede Art unter «Mein Profil» abbestellen. Versendete Nachrichten löschen wir nach 7 Tagen.
-- **Kalender-Abo (freiwillig):** Wenn Sie unter «Mein Programm» einen Kalender-Link erstellen, lädt Ihre
+  oder neuen Terminen Ihres Teams (oder der Teams Ihrer Kinder), zu Mitteilungen, als Erinnerung vor Helfereinsätzen
+  und eine Woche vor Helfereinsätzen mit freien Plätzen («Helfer gesucht», nur mit Anzahl, ohne Namen). Sie können jede
+  Art unter «Familie» → «E-Mail-Benachrichtigungen» abbestellen. Versendete Nachrichten löschen wir nach 7 Tagen.
+- **Kalender-Abo (freiwillig):** Wenn Sie unter «Familie» → «Kalender-Abo» einen Kalender-Link erstellen, lädt Ihre
   Kalender-App (z. B. Google oder Apple) Ihre Termine samt Ort und Notizen über diesen Link und speichert sie in Ihrem
   Konto bei diesem Anbieter. Sie können den Link jederzeit widerrufen.
 - **Aufnahmegesuche:** Wenn Sie sich über das Formular auf unserer Website bewerben, speichern wir Ihre Angaben
