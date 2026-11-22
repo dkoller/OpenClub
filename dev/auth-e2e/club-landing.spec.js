@@ -1279,6 +1279,11 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // Assistive technology (#25): structure, names and references that screen readers rely on. This
   // checks what is machine-checkable; it is not a substitute for a manual screen-reader audit.
+  // Installable on the home screen: the manifest and its icons are served by the app itself.
+  const manifest = await (await context.request.get('/manifest.webmanifest')).json();
+  expect(manifest).toMatchObject({ name: 'OpenClub', display: 'standalone', start_url: '/#/' });
+  for (const icon of manifest.icons) expect((await context.request.get(icon.src)).status(), icon.src).toBe(200);
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/manifest.webmanifest');
   // Every page has one main region and one level-1 heading, and shows its own sections.
   for (const [hash, names] of [
     ['#/', ['Announcements']],
