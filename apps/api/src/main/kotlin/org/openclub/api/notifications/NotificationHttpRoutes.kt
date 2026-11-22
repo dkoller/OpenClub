@@ -23,34 +23,36 @@ import org.openclub.api.requiredBoolean
 import org.openclub.api.requiredString
 import java.util.UUID
 
-/** A member's own email notification settings (OpenAPI 1.19.0, helpers wanted 1.24.0); a missing row means everything on, in German. */
+/** A member's own email notification settings (OpenAPI 1.19.0, helpers wanted 1.24.0, answer reminders 1.25.0); a missing row means everything on, in German. */
 internal class NotificationSettings(private val database: DSLContext) {
     data class Settings(
         val eventChanges: Boolean, val newEvents: Boolean, val announcements: Boolean, val shiftReminders: Boolean,
-        val helpersWanted: Boolean, val language: String, val hasEmail: Boolean,
+        val helpersWanted: Boolean, val answerReminders: Boolean, val language: String, val hasEmail: Boolean,
     )
 
     /** Null when the actor is not an active, verified member. */
     fun read(actor: UUID): Settings? = database.fetchOne(
         """SELECT COALESCE(s.event_changes, TRUE), COALESCE(s.new_events, TRUE), COALESCE(s.announcements, TRUE),
-                  COALESCE(s.shift_reminders, TRUE), COALESCE(s.helpers_wanted, TRUE), COALESCE(s.language, 'de'),
+                  COALESCE(s.shift_reminders, TRUE), COALESCE(s.helpers_wanted, TRUE), COALESCE(s.answer_reminders, TRUE), COALESCE(s.language, 'de'),
                   me.email IS NOT NULL
            FROM members me LEFT JOIN notification_settings s ON s.member_id = me.id
            WHERE me.account_id = ? AND ${ActorSql.activeVerified("me")}""", actor)?.let {
         Settings(it.get(0, Boolean::class.java), it.get(1, Boolean::class.java), it.get(2, Boolean::class.java),
-            it.get(3, Boolean::class.java), it.get(4, Boolean::class.java), it.get(5, String::class.java), it.get(6, Boolean::class.java))
+            it.get(3, Boolean::class.java), it.get(4, Boolean::class.java), it.get(5, Boolean::class.java), it.get(6, String::class.java),
+            it.get(7, Boolean::class.java))
     }
 
     /** Replaces the actor's settings; false for a non-member. */
     fun replace(actor: UUID, settings: Settings): Boolean = database.execute(
         """INSERT INTO notification_settings (member_id, event_changes, new_events, announcements, shift_reminders,
-                                              helpers_wanted, language)
-           SELECT me.id, ?, ?, ?, ?, ?, ? FROM members me WHERE me.account_id = ? AND ${ActorSql.activeVerified("me")}
+                                              helpers_wanted, answer_reminders, language)
+           SELECT me.id, ?, ?, ?, ?, ?, ?, ? FROM members me WHERE me.account_id = ? AND ${ActorSql.activeVerified("me")}
            ON CONFLICT (member_id) DO UPDATE SET event_changes = EXCLUDED.event_changes, new_events = EXCLUDED.new_events,
                announcements = EXCLUDED.announcements, shift_reminders = EXCLUDED.shift_reminders,
-               helpers_wanted = EXCLUDED.helpers_wanted, language = EXCLUDED.language, updated_at = now()""",
+               helpers_wanted = EXCLUDED.helpers_wanted, answer_reminders = EXCLUDED.answer_reminders,
+               language = EXCLUDED.language, updated_at = now()""",
         settings.eventChanges, settings.newEvents, settings.announcements, settings.shiftReminders, settings.helpersWanted,
-        settings.language, actor) == 1
+        settings.answerReminders, settings.language, actor) == 1
 }
 
 /**
@@ -77,6 +79,7 @@ internal fun Application.installNotificationHttpRoutes(
                     put("announcements", settings.announcements)
                     put("shiftReminders", settings.shiftReminders)
                     put("helpersWanted", settings.helpersWanted)
+                    put("answerReminders", settings.answerReminders)
                     put("language", JsonPrimitive(settings.language))
                     put("emailEnabled", notifier.enabled)
                     put("hasEmail", settings.hasEmail)
@@ -88,14 +91,15 @@ internal fun Application.installNotificationHttpRoutes(
                 val current = database.onDatabaseThread { NotificationSettings(it).read(actor.accountId) }
                     ?: return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 val settings = try {
-                    // helpersWanted (1.24.0) is optional, so a page loaded before the update keeps the stored choice.
+                    // helpersWanted (1.24.0) and answerReminders (1.25.0) are optional, so an older page keeps the stored choice.
                     val body = call.receiveJsonObject(setOf("eventChanges", "newEvents", "announcements", "shiftReminders", "language"),
-                        setOf("helpersWanted"))
+                        setOf("helpersWanted", "answerReminders"))
                     val helpersWanted = if ("helpersWanted" in body) body.requiredBoolean("helpersWanted") else current.helpersWanted
+                    val answerReminders = if ("answerReminders" in body) body.requiredBoolean("answerReminders") else current.answerReminders
                     val language = body.requiredString("language")
                     require(language in setOf("de", "en", "fr", "it")) { "language" }
                     NotificationSettings.Settings(body.requiredBoolean("eventChanges"), body.requiredBoolean("newEvents"),
-                        body.requiredBoolean("announcements"), body.requiredBoolean("shiftReminders"), helpersWanted, language, hasEmail = false)
+                        body.requiredBoolean("announcements"), body.requiredBoolean("shiftReminders"), helpersWanted, answerReminders, language, hasEmail = false)
                 } catch (_: IllegalArgumentException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 }

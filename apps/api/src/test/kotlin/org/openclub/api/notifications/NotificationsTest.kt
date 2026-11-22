@@ -92,8 +92,8 @@ class NotificationsTest {
             db.execute("INSERT INTO member_guardianships (minor_member_id, guardian_member_id) VALUES (?, ?)", kid, memberOf.getValue("guardian"))
             db.execute("INSERT INTO team_capability_grants (team_id, member_id, capability) VALUES (?, ?, 'MANAGE_TEAMS')", team, memberOf.getValue("manager"))
             db.execute("INSERT INTO notification_settings (member_id, language) VALUES (?, 'en')", memberOf.getValue("guardian"))
-            db.execute("""INSERT INTO notification_settings (member_id, event_changes, new_events, announcements, shift_reminders, helpers_wanted)
-                          VALUES (?, FALSE, FALSE, FALSE, FALSE, FALSE)""", memberOf.getValue("quiet"))
+            db.execute("""INSERT INTO notification_settings (member_id, event_changes, new_events, announcements, shift_reminders, helpers_wanted, answer_reminders)
+                          VALUES (?, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)""", memberOf.getValue("quiet"))
         }
     }
 
@@ -269,6 +269,104 @@ class NotificationsTest {
             "the record goes with the shift")
     }
 
+    private fun teamEvent(title: String, at: OffsetDateTime, cancelled: Boolean = false): UUID = UUID.randomUUID().also {
+        sql { db -> db.execute(
+            """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, location, cancelled)
+               VALUES (?, ?, 'TRAINING', ?, ?::timestamptz, ?::timestamptz, 'Hall 3', ?)""",
+            it, team, title, at.toString(), at.plusHours(2).toString(), cancelled) }
+    }
+
+    @Test
+    fun automaticAnswerRemindersGoOnceTwoDaysAheadToThoseWithoutAnswer() {
+        val now = OffsetDateTime.now(ZoneOffset.UTC).withNano(0)
+        val due = teamEvent("Notify due", now.plusHours(36))
+        val early = teamEvent("Notify early", now.plusDays(3))
+        val tooClose = teamEvent("Notify tomorrow", now.plusHours(20))
+        val off = teamEvent("Notify off", now.plusHours(36), cancelled = true)
+        sql { it.execute("INSERT INTO event_attendance (event_id, member_id, response) VALUES (?, ?, 'YES')", due, memberOf.getValue("player")) }
+        try {
+            assertTrue(tx { notifier.queueAnswerReminders(it) } >= 1)
+            val runs = sql { db -> db.fetch("SELECT event_id FROM answer_reminders WHERE automatic AND event_id = ANY(?::uuid[])",
+                arrayOf(due, early, tooClose, off)).map { it.get(0, UUID::class.java) } }
+            assertEquals(listOf(due), runs, "only the event between one and two days ahead, not cancelled")
+            val mails = outbox()
+            assertEquals(listOf("guardian"), mails.map { it[0] },
+                "not the player who answered, not quiet (switched off), not without a sign-in; the kid's guardian")
+            val (_, kind, subject, body) = mails.single()
+            assertEquals("ANSWER_REMINDER", kind)
+            assertTrue(subject.endsWith("] Answer missing: Notify A ${team.toString().take(8)} – Notify due"), subject)
+            assertTrue(body.startsWith("For: Kiddo\n") && "Please answer" in body && "$origin/#/schedule/$due" in body, body)
+            tx { notifier.queueAnswerReminders(it) }
+            assertEquals(1, outbox().size, "once per event")
+            assertEquals(0, tx { Notifier.DISABLED.queueAnswerReminders(it) })
+        } finally {
+            sql { it.execute("DELETE FROM team_events WHERE id IN (?, ?, ?, ?)", due, early, tooClose, off) }
+        }
+    }
+
+    @Test
+    fun coachesRemindThoseWithoutAnswerAtMostEveryTwelveHours() {
+        val now = OffsetDateTime.now(ZoneOffset.UTC).withNano(0)
+        val event = teamEvent("Notify ask", now.plusDays(5))
+        val started = teamEvent("Notify running", now.minusMinutes(30))
+        val other = UUID.randomUUID()
+        sql { db ->
+            db.execute("""INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at)
+                          VALUES (?, ?, 'TRAINING', 'Notify other', ?::timestamptz, ?::timestamptz)""",
+                other, otherTeam, now.plusDays(5).toString(), now.plusDays(5).plusHours(1).toString())
+            db.execute("INSERT INTO event_attendance (event_id, member_id, response) VALUES (?, ?, 'NO')", event, memberOf.getValue("player"))
+        }
+        suspend fun ApplicationTestBuilder.remind(id: Any, handle: String?, withCsrf: String? = csrf): HttpResponse =
+            client.request("/api/v1/events/$id/attendance-reminders") {
+                method = HttpMethod.Post
+                if (handle != null) header(HttpHeaders.Cookie, "${cookies.sessionName}=$handle")
+                header(HttpHeaders.Origin, origin)
+                if (withCsrf != null) header("X-CSRF-Token", withCsrf)
+            }
+        try {
+            app {
+                val failures = mutableListOf<String>()
+                fun expect(label: String, response: HttpResponse, status: HttpStatusCode) {
+                    if (response.status != status) failures += "$label: expected $status but was ${response.status}"
+                }
+                expect("no session", remind(event, null), HttpStatusCode.Unauthorized)
+                expect("no CSRF", remind(event, "manager", withCsrf = null), HttpStatusCode.Forbidden)
+                expect("player", remind(event, "player"), HttpStatusCode.Forbidden)
+                expect("guardian", remind(event, "guardian"), HttpStatusCode.Forbidden)
+                expect("bad id", remind("nope", "manager"), HttpStatusCode.BadRequest)
+                expect("other team", remind(other, "manager"), HttpStatusCode.Forbidden)
+                expect("unknown, team-scoped", remind(UUID.randomUUID(), "manager"), HttpStatusCode.Forbidden)
+                expect("started", remind(started, "manager"), HttpStatusCode.Conflict)
+                assertTrue(failures.isEmpty(), failures.joinToString("\n", "\n"))
+                assertEquals(0, outbox().size, "nothing queued by refused requests")
+
+                val first = remind(event, "manager")
+                assertEquals(HttpStatusCode.OK, first.status, first.bodyAsText())
+                assertEquals("no-store", first.headers[HttpHeaders.CacheControl])
+                assertEquals(Json.parseToJsonElement("""{"reminded":3}"""), Json.parseToJsonElement(first.bodyAsText()),
+                    "quiet, unlinked and the kid have not answered")
+                assertEquals(listOf("guardian"), outbox().map { it[0] })
+                val again = remind(event, "manager")
+                assertEquals(HttpStatusCode.Conflict, again.status)
+                assertTrue("recent" in again.bodyAsText())
+                assertEquals(1, outbox().size, "at most every 12 hours")
+            }
+            testApplication {
+                application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+                val response = client.request("/api/v1/events/$event/attendance-reminders") {
+                    method = HttpMethod.Post
+                    header(HttpHeaders.Cookie, "${cookies.sessionName}=manager")
+                    header(HttpHeaders.Origin, origin)
+                    header("X-CSRF-Token", csrf)
+                }
+                assertEquals(HttpStatusCode.Conflict, response.status)
+                assertTrue("email_off" in response.bodyAsText(), "without a mail configuration nothing is sent")
+            }
+        } finally {
+            sql { it.execute("DELETE FROM team_events WHERE id IN (?, ?, ?)", event, started, other) }
+        }
+    }
+
     @Test
     fun theOutboxSendsRetriesSkipsAndCleansUp() {
         val sent = mutableListOf<Pair<String, String>>()
@@ -322,7 +420,7 @@ class NotificationsTest {
     fun membersReadAndChangeOnlyTheirOwnSettings() = app {
         val defaults = Json.parseToJsonElement(send(HttpMethod.Get, "player").bodyAsText()).jsonObject
         assertEquals(Json.parseToJsonElement("""{"eventChanges":true,"newEvents":true,"announcements":true,"shiftReminders":true,
-            "helpersWanted":true,"language":"de","emailEnabled":true,"hasEmail":true}"""), defaults)
+            "helpersWanted":true,"answerReminders":true,"language":"de","emailEnabled":true,"hasEmail":true}"""), defaults)
         val body = """{"eventChanges":true,"newEvents":false,"announcements":true,"shiftReminders":false,"language":"fr"}"""
         assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, "player", body).status)
         val changed = Json.parseToJsonElement(send(HttpMethod.Get, "player").bodyAsText()).jsonObject
@@ -344,7 +442,7 @@ class NotificationsTest {
         expect("change without CSRF", send(HttpMethod.Put, "player", body, withCsrf = null), HttpStatusCode.Forbidden)
         expect("change without member", send(HttpMethod.Put, "stranger", body), HttpStatusCode.Forbidden)
         for (broken in listOf(body.replace("\"fr\"", "\"es\""), body.replace("false,\"announcements\"", "\"false\",\"announcements\""),
-            body.replace(",\"language\":\"fr\"", ""), body.replace("}", ",\"email\":\"x@example.invalid\"}"), body.replace("}", ",\"helpersWanted\":\"no\"}"))) {
+            body.replace(",\"language\":\"fr\"", ""), body.replace("}", ",\"email\":\"x@example.invalid\"}"), body.replace("}", ",\"helpersWanted\":\"no\"}"), body.replace("}", ",\"answerReminders\":1}"))) {
             expect(broken, send(HttpMethod.Put, "player", broken), HttpStatusCode.BadRequest)
         }
         assertTrue(failures.isEmpty(), failures.joinToString("\n", "\n"))

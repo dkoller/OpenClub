@@ -11,7 +11,7 @@ import org.openclub.api.members.ActorSql
 import java.util.UUID
 
 /**
- * Sends the email outbox (OpenAPI 1.19.0, ADR-0008 addendum 23) once a minute: queues due shift reminders and helper calls, sends up
+ * Sends the email outbox (OpenAPI 1.19.0, ADR-0008 addendum 23) once a minute: queues due shift reminders, helper calls and answer reminders, sends up
  * to [BATCH] messages and deletes old rows. Rows are locked with `SKIP LOCKED`, so two API instances never send the
  * same message. The address is read when sending; a member who is no longer active and verified, or has no
  * address, gets nothing. A failed message is tried again after 15 and 30 minutes, at most three times. Sent rows
@@ -25,6 +25,7 @@ internal object MailWorker {
             try {
                 database.onDatabaseThread { db -> db.transaction { configuration -> notifier.queueShiftReminders(DSL.using(configuration)) } }
                 database.onDatabaseThread { db -> db.transaction { configuration -> notifier.queueHelperCalls(DSL.using(configuration)) } }
+                database.onDatabaseThread { db -> db.transaction { configuration -> notifier.queueAnswerReminders(DSL.using(configuration)) } }
                 database.onDatabaseThread { sendBatch(it, mailer) }
                 database.onDatabaseThread { cleanup(it) }
             } catch (cancel: CancellationException) {

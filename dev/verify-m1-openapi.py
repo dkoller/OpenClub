@@ -123,6 +123,7 @@ POST /v1/teams/{teamId}/events
 PUT /v1/events/{eventId}
 DELETE /v1/events/{eventId}
 GET /v1/events/{eventId}/attendance
+POST /v1/events/{eventId}/attendance-reminders
 PUT /v1/events/{eventId}/attendance/{memberId}
 DELETE /v1/events/{eventId}/attendance/{memberId}
 GET /v1/fee-periods
@@ -176,7 +177,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.24.0"
+FROZEN_VERSION = "1.25.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
@@ -209,7 +210,7 @@ def verify_contract(spec):
             fail(f"Missing implemented operation in OpenAPI: {entry}")
         responses = operation.get("responses", {})
         success = "201" if entry in {"POST /v1/members", "POST /v1/teams", "POST /v1/members/{memberId}/invitation", "POST /v1/teams/{teamId}/events", "POST /v1/fee-periods", "POST /v1/announcements", "POST /v1/events/{eventId}/shifts", "POST /v1/me/calendar-feed", "POST /v1/me/absences", "POST /v1/events/{eventId}/rides", "POST /v1/join-requests/{requestId}/accept"} else (
-            "200" if method == "GET" or entry == "POST /v1/members/import" else "204"
+            "200" if method == "GET" or entry in ("POST /v1/members/import", "POST /v1/events/{eventId}/attendance-reminders") else "204"
         )
         if entry == "POST /v1/public/join-requests":
             success = "202"

@@ -220,3 +220,23 @@ export async function readAttendanceStatistics(teamId: string, from?: string, to
   }
   return body as AttendanceStatistics
 }
+
+/** A coach reminds the team members without an answer (OpenAPI 1.25.0). */
+export type ReminderOutcome = { reminded: number } | 'closed' | 'email_off' | 'recent' | 'denied'
+
+export async function remindMissing(eventId: string, csrfToken: string, request: typeof fetch = fetch): Promise<ReminderOutcome> {
+  const response = await request('/api/v1/events/' + encodeURIComponent(eventId) + '/attendance-reminders', {
+    method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': csrfToken },
+  })
+  if (response.status === 401 || response.status === 403 || response.status === 404) return 'denied'
+  if (response.status === 409) {
+    const code = await response.json().then(value => (record(value) ? value.code : null), () => null)
+    return code === 'email_off' || code === 'recent' ? code : 'closed'
+  }
+  if (!response.ok) throw new Error('Reminder failed')
+  const body: unknown = await response.json()
+  if (!record(body) || Object.keys(body).length !== 1 || typeof body.reminded !== 'number' || !Number.isInteger(body.reminded) || body.reminded < 0) {
+    throw new Error('Invalid reminder answer')
+  }
+  return { reminded: body.reminded }
+}

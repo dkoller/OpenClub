@@ -296,3 +296,11 @@ Asked about an automatic reminder a week ahead, the owner chose **"Own switch"**
 
 **Note (2026-11-22):** addenda 21 and 24 name the page *My schedule*, which no longer exists since the task-based layout
 (addendum 27): the calendar link and absences are now on *Family*. The decisions themselves are unchanged.
+
+## Addendum 29 — answer reminders (2026-11-22)
+
+Shown the answer-reminder design, the owner chose **"Approve as described"**.
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 61 | Answer reminders | Approved as OpenAPI **1.25.0** (V36). (1) Automatically, once per event, when it starts in more than one and at most two days and is not cancelled: every active team member without an answer (an absence counts as one) gets an email, and for a current minor their guardians, naming that child. (2) A holder of `MANAGE_TEAMS` for the event's team can send the same reminder (`POST /v1/events/{eventId}/attendance-reminders`) until the event starts, at most once every 12 hours per event; the answer is the number of members without an answer, never names. (3) Members switch it off with their own `answerReminders` setting, on by default. Only when the installation sends email. |

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Language } from './language'
 import { readTeams, type Team } from './teams'
-import { formatWhen, readAttendance, readTeamEvents, type AttendanceList, type TeamEvent } from './events'
+import { answerable, formatWhen, readAttendance, readTeamEvents, remindMissing, type AttendanceList, type TeamEvent } from './events'
 import { byAnswer, notAnswered, upcoming, type UpcomingEvent } from './coach'
 import { DateBlock, eventWords, fill, shortWhen } from './EventBits'
 import { routeHash } from './routes'
@@ -9,10 +9,10 @@ import { ShiftsPanel } from './ShiftsPanel'
 import { RidesPanel } from './RidesPanel'
 
 const words = {
-  de: { next: 'Nächste Termine', none: 'In den nächsten 14 Tagen stehen keine Termine an.', summary: '{yes} Ja · {no} Nein', openTag: '{open} offen', allAnswered: 'alle haben geantwortet', more: 'Nur die ersten {n} Teams sind berücksichtigt; alle Termine stehen unten beim Team.', back: 'Zurück zum Team', who: 'Wer kommt?', open: 'Noch offen', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', nobody: 'Niemand.', gone: 'Diesen Termin gibt es nicht mehr, oder du siehst dieses Team nicht.', noAnswers: 'Die Antworten sind nicht sichtbar.', absence: 'Abwesenheiten zählen als Nein. Gründe werden nie erfasst.' },
-  en: { next: 'Next events', none: 'No events in the next 14 days.', summary: '{yes} yes · {no} no', openTag: '{open} open', allAnswered: 'everyone answered', more: 'Only the first {n} teams are included; every event is listed below under its team.', back: 'Back to team', who: 'Who is coming?', open: 'No answer yet', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', nobody: 'Nobody.', gone: 'This event no longer exists, or you cannot see this team.', noAnswers: 'The answers are not visible.', absence: 'Absences count as No. Reasons are never recorded.' },
-  fr: { next: 'Prochains événements', none: 'Aucun événement dans les 14 prochains jours.', summary: '{yes} oui · {no} non', openTag: '{open} sans réponse', allAnswered: 'tout le monde a répondu', more: 'Seules les {n} premières équipes sont prises en compte ; tous les événements figurent plus bas sous leur équipe.', back: 'Retour à l’équipe', who: 'Qui vient ?', open: 'Pas encore répondu', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', nobody: 'Personne.', gone: 'Cet événement n’existe plus ou vous ne voyez pas cette équipe.', noAnswers: 'Les réponses ne sont pas visibles.', absence: 'Les absences comptent comme non. Les motifs ne sont jamais enregistrés.' },
-  it: { next: 'Prossimi eventi', none: 'Nessun evento nei prossimi 14 giorni.', summary: '{yes} sì · {no} no', openTag: '{open} senza risposta', allAnswered: 'hanno risposto tutti', more: 'Sono considerate solo le prime {n} squadre; tutti gli eventi sono elencati sotto con la loro squadra.', back: 'Torna alla squadra', who: 'Chi viene?', open: 'Non ancora risposto', YES: 'Sì', NO: 'No', MAYBE: 'Forse', nobody: 'Nessuno.', gone: 'Questo evento non esiste più o non vedi questa squadra.', noAnswers: 'Le risposte non sono visibili.', absence: 'Le assenze contano come no. I motivi non vengono mai registrati.' },
+  de: { next: 'Nächste Termine', none: 'In den nächsten 14 Tagen stehen keine Termine an.', summary: '{yes} Ja · {no} Nein', openTag: '{open} offen', allAnswered: 'alle haben geantwortet', more: 'Nur die ersten {n} Teams sind berücksichtigt; alle Termine stehen unten beim Team.', back: 'Zurück zum Team', who: 'Wer kommt?', open: 'Noch offen', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', nobody: 'Niemand.', gone: 'Diesen Termin gibt es nicht mehr, oder du siehst dieses Team nicht.', noAnswers: 'Die Antworten sind nicht sichtbar.', absence: 'Abwesenheiten zählen als Nein. Gründe werden nie erfasst.', remind: 'Alle {n} ohne Antwort erinnern', reminded: 'Erinnerung an {n} verschickt (per E-Mail, an Eltern für ihre Kinder).', recent: 'Für diesen Termin wurde in den letzten 12 Stunden schon erinnert.', emailOff: 'Dieser Verein versendet keine E-Mails.', remindFailed: 'Erinnerung nicht verschickt. Bitte später nochmals versuchen.' },
+  en: { next: 'Next events', none: 'No events in the next 14 days.', summary: '{yes} yes · {no} no', openTag: '{open} open', allAnswered: 'everyone answered', more: 'Only the first {n} teams are included; every event is listed below under its team.', back: 'Back to team', who: 'Who is coming?', open: 'No answer yet', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', nobody: 'Nobody.', gone: 'This event no longer exists, or you cannot see this team.', noAnswers: 'The answers are not visible.', absence: 'Absences count as No. Reasons are never recorded.', remind: 'Remind all {n} without an answer', reminded: 'Reminder sent to {n} (by email, to parents for their children).', recent: 'A reminder for this event was already sent in the last 12 hours.', emailOff: 'This club does not send emails.', remindFailed: 'Reminder not sent. Please try again later.' },
+  fr: { next: 'Prochains événements', none: 'Aucun événement dans les 14 prochains jours.', summary: '{yes} oui · {no} non', openTag: '{open} sans réponse', allAnswered: 'tout le monde a répondu', more: 'Seules les {n} premières équipes sont prises en compte ; tous les événements figurent plus bas sous leur équipe.', back: 'Retour à l’équipe', who: 'Qui vient ?', open: 'Pas encore répondu', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', nobody: 'Personne.', gone: 'Cet événement n’existe plus ou vous ne voyez pas cette équipe.', noAnswers: 'Les réponses ne sont pas visibles.', absence: 'Les absences comptent comme non. Les motifs ne sont jamais enregistrés.', remind: 'Relancer les {n} sans réponse', reminded: 'Rappel envoyé à {n} (par e-mail, aux parents pour leurs enfants).', recent: 'Un rappel a déjà été envoyé pour cet événement ces 12 dernières heures.', emailOff: 'Ce club n’envoie pas d’e-mails.', remindFailed: 'Rappel non envoyé. Veuillez réessayer plus tard.' },
+  it: { next: 'Prossimi eventi', none: 'Nessun evento nei prossimi 14 giorni.', summary: '{yes} sì · {no} no', openTag: '{open} senza risposta', allAnswered: 'hanno risposto tutti', more: 'Sono considerate solo le prime {n} squadre; tutti gli eventi sono elencati sotto con la loro squadra.', back: 'Torna alla squadra', who: 'Chi viene?', open: 'Non ancora risposto', YES: 'Sì', NO: 'No', MAYBE: 'Forse', nobody: 'Nessuno.', gone: 'Questo evento non esiste più o non vedi questa squadra.', noAnswers: 'Le risposte non sono visibili.', absence: 'Le assenze contano come no. I motivi non vengono mai registrati.', remind: 'Ricorda a tutti i {n} senza risposta', reminded: 'Promemoria inviato a {n} (via email, ai genitori per i figli).', recent: 'Per questo evento è già stato inviato un promemoria nelle ultime 12 ore.', emailOff: 'Questo club non invia email.', remindFailed: 'Promemoria non inviato. Riprovate più tardi.' },
 } satisfies Record<Language, Record<string, string>>
 
 const TEAM_LIMIT = 8
@@ -70,6 +70,18 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
   const [event, setEvent] = useState<TeamEvent | null>(null)
   const [team, setTeam] = useState<Team | null>(null)
   const [answers, setAnswers] = useState<AttendanceList | 'denied' | null>(null)
+  const [canManage, setCanManage] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
+  async function remind() {
+    setBusy(true); setNotice(null)
+    try {
+      const outcome = await remindMissing(eventId, csrfToken)
+      setNotice(typeof outcome === 'object' ? { ok: true, text: fill(t.reminded, { n: outcome.reminded }) }
+        : outcome === 'recent' ? { ok: false, text: t.recent } : outcome === 'email_off' ? { ok: false, text: t.emailOff }
+        : { ok: false, text: t.remindFailed })
+    } catch { setNotice({ ok: false, text: t.remindFailed }) } finally { setBusy(false) }
+  }
   const [state, setState] = useState<'loading' | 'ready' | 'gone' | 'error'>('loading')
   useEffect(() => {
     let active = true
@@ -81,6 +93,7 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
         const list = await readAttendance(eventId)
         if (!active) return
         setEvent(found); setTeam(teams === 'denied' ? null : teams.find(item => item.id === teamId) ?? null)
+        setCanManage(schedule !== 'denied' && schedule.canManage)
         setAnswers(list); setState('ready')
       } catch { if (active) setState('error') }
     })()
@@ -109,6 +122,10 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
               <h3>{key === 'open' ? t.open : t[key]} ({groups[key].length})</h3>
               <p>{groups[key].length > 0 ? groups[key].join(', ') : t.nobody}</p>
             </section>)}
+          {canManage && groups.open.length > 0 && event && answerable(event) &&
+            <button type="button" className="btn primary" disabled={busy} onClick={() => { void remind() }}>
+              {fill(t.remind, { n: groups.open.length })}</button>}
+          {notice && <p role={notice.ok ? 'status' : 'alert'}>{notice.text}</p>}
           <p className="muted small">{t.absence}</p>
         </>}
       </section>

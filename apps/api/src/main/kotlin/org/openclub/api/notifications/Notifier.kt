@@ -25,6 +25,7 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
     enum class Kind(val column: String) {
         NEW_EVENTS("new_events"), EVENT_CHANGED("event_changes"), EVENT_CANCELLED("event_changes"),
         ANNOUNCEMENT("announcements"), SHIFT_REMINDER("shift_reminders"), HELPERS_WANTED("helpers_wanted"),
+        ANSWER_REMINDER("answer_reminders"),
     }
 
     /** What an email says about one event; kept for deleted events too. */
@@ -195,6 +196,56 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
         return called.size
     }
 
+    /**
+     * Answer reminders (OpenAPI 1.25.0, ADR-0008 addendum 29): one message per team member without an answer (an
+     * explicit one or an absence) to that member and, for a current minor, to their guardians, naming the child to the
+     * guardian. The caller records the run in `answer_reminders` in the same transaction. Returns how many members
+     * have not answered (also without a mail configuration, so a coach learns the number).
+     */
+    fun answerReminders(db: DSLContext, eventId: UUID): Int {
+        val missing = db.fetch(
+            """SELECT m.id FROM team_events e
+               JOIN member_team_assignments a ON a.team_id = e.team_id
+               JOIN members m ON m.id = a.member_id AND m.archived_at IS NULL
+               WHERE e.id = ? AND NOT EXISTS (SELECT 1 FROM effective_attendance ea WHERE ea.event_id = e.id AND ea.member_id = m.id)
+               ORDER BY m.id""", eventId).map { it.get(0, UUID::class.java) }
+        if (!enabled || missing.isEmpty()) return missing.size
+        val event = events(db, listOf(eventId)).firstOrNull() ?: return missing.size
+        for (member in missing) {
+            val people = recipients(db, volunteerOnly, arrayOf<Any>(member), Kind.ANSWER_REMINDER)
+            queueFor(db, Kind.ANSWER_REMINDER, people) { text, club ->
+                Message(text.subject(club, text.answerReminder, "${event.teamName} – ${event.title}"), buildString {
+                    appendLine("${event.teamName}: ${event.title}")
+                    appendLine(when_(event, text))
+                    event.location?.let { appendLine("${text.place}: $it") }
+                    appendLine()
+                    appendLine(text.answerPlease)
+                    append(text.footer("$origin/#/schedule/$eventId"))
+                }) to member
+            }
+        }
+        return missing.size
+    }
+
+    /**
+     * The automatic run: events that start in more than one day and at most two days and are not cancelled get one
+     * reminder each (recorded first, so it never repeats). Returns how many events were handled.
+     */
+    fun queueAnswerReminders(db: DSLContext, limit: Int = 50): Int {
+        if (!enabled) return 0
+        val due = db.fetch(
+            """SELECT e.id FROM team_events e
+               WHERE NOT e.cancelled AND e.starts_at > now() + INTERVAL '1 day' AND e.starts_at <= now() + INTERVAL '2 days'
+                 AND NOT EXISTS (SELECT 1 FROM answer_reminders r WHERE r.event_id = e.id AND r.automatic)
+               ORDER BY e.starts_at LIMIT ? FOR NO KEY UPDATE OF e SKIP LOCKED""", limit).map { it.get(0, UUID::class.java) }
+        for (event in due) {
+            val recorded = db.execute(
+                "INSERT INTO answer_reminders (event_id, automatic) VALUES (?, TRUE) ON CONFLICT DO NOTHING", event)
+            if (recorded == 1) answerReminders(db, event)
+        }
+        return due.size
+    }
+
     private data class Message(val subject: String, val body: String)
 
     private fun queue(db: DSLContext, kind: Kind, people: List<Recipient>, render: (Texts, String) -> Message) =
@@ -280,7 +331,8 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
 internal data class Texts(
     val locale: Locale, val newEvents: String, val changed: String, val cancelled: String, val announcement: String,
     val reminder: String, val cancelledLine: String, val place: String, val forPerson: String,
-    val helpersWanted: String, val freePlaces: String, private val open: String, private val settings: String,
+    val helpersWanted: String, val freePlaces: String, val answerReminder: String, val answerPlease: String,
+    private val open: String, private val settings: String,
 ) {
     fun subject(club: String, label: String, what: String) = "[$club] $label: $what".replace(Regex("[\\r\\n]+"), " ")
     fun footer(origin: String) = "\n$open: $origin\n$settings"
@@ -288,16 +340,20 @@ internal data class Texts(
     companion object {
         private val all = mapOf(
             "de" to Texts(Locale.GERMAN, "Neu", "Geändert", "Abgesagt", "Mitteilung", "Erinnerung", "Dieser Termin ist abgesagt.",
-                "Ort", "Für", "Helfer gesucht", "%d von %d Plätzen frei", "In OpenClub ansehen",
+                "Ort", "Für", "Helfer gesucht", "%d von %d Plätzen frei", "Antwort fehlt",
+                "Bitte antworten Sie in OpenClub mit Ja, Nein oder Vielleicht, damit das Team planen kann.", "In OpenClub ansehen",
                 "Benachrichtigungen ändern Sie in OpenClub unter «Familie» → «Mein Profil»."),
             "en" to Texts(Locale.ENGLISH, "New", "Changed", "Cancelled", "Announcement", "Reminder", "This event is cancelled.",
-                "Place", "For", "Helpers wanted", "%d of %d places free", "View in OpenClub",
+                "Place", "For", "Helpers wanted", "%d of %d places free", "Answer missing",
+                "Please answer Yes, No or Maybe in OpenClub so the team can plan.", "View in OpenClub",
                 "Change your notifications in OpenClub under “Family” → “My profile”."),
             "fr" to Texts(Locale.FRENCH, "Nouveau", "Modifié", "Annulé", "Communication", "Rappel", "Cet événement est annulé.",
-                "Lieu", "Pour", "Bénévoles recherchés", "%d places libres sur %d", "Voir dans OpenClub",
+                "Lieu", "Pour", "Bénévoles recherchés", "%d places libres sur %d", "Réponse manquante",
+                "Veuillez répondre Oui, Non ou Peut-être dans OpenClub pour que l’équipe puisse s’organiser.", "Voir dans OpenClub",
                 "Modifiez vos notifications dans OpenClub sous « Famille » → « Mon profil »."),
             "it" to Texts(Locale.ITALIAN, "Nuovo", "Modificato", "Annullato", "Comunicazione", "Promemoria", "Questo evento è annullato.",
-                "Luogo", "Per", "Cercasi aiutanti", "%d posti liberi su %d", "Vedi in OpenClub",
+                "Luogo", "Per", "Cercasi aiutanti", "%d posti liberi su %d", "Risposta mancante",
+                "Rispondete Sì, No o Forse in OpenClub, così la squadra può organizzarsi.", "Vedi in OpenClub",
                 "Modifica le notifiche in OpenClub sotto «Famiglia» → «Il mio profilo»."),
         )
 
