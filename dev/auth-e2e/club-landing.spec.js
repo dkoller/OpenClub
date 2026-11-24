@@ -117,6 +117,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   expect(await publicNames.json()).toEqual([{ displayName: 'Synthetic Administrator' }]);
 
   // Complete the real authorized browser journey with fictional member data.
+  await page.getByRole('link', { name: '← Members' }).click();
   await expect(page.getByRole('heading', { name: 'Manage members' })).toBeVisible();
 
   // My profile (OpenAPI 1.9.0): the administrator changes their own phone; the form keeps the email it read.
