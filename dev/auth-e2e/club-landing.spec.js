@@ -168,7 +168,11 @@ test('verified login gains club access only after restricted operator bootstrap'
   // Scoped to the admin panel: the Archived members panel can list the same name.
   const created = page.getByRole('region', { name: 'Manage members' }).getByRole('listitem').filter({ hasText: 'Nina Private' });
   await expect(created).toBeVisible();
-  await expect(page.getByRole('listitem').filter({ hasText: 'Nina P.' })).toBeVisible();
+  // The public member list has its own page and shows the minor abbreviated.
+  await show(page, '#/admin/members/public');
+  await expect(page.getByRole('region', { name: 'Members', exact: true })
+    .getByRole('listitem').filter({ hasText: 'Nina P.' })).toBeVisible();
+  await show(page, '#/admin/members');
   // Anonymous API consumers must see only the abbreviated minor name.
   const minorPublicNames = await context.request.get('/api/v1/public/members');
   expect(minorPublicNames.status()).toBe(200);
@@ -268,7 +272,6 @@ test('verified login gains club access only after restricted operator bootstrap'
   await memberAdminRegion.getByRole('button', { name: 'Undo archive' }).click();
   await expect(memberAdminRegion.getByText(/Member reactivated/)).toBeVisible();
   await expect(renamed).toBeVisible();
-  await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toBeVisible();
   const renamedPublicNames = await context.request.get('/api/v1/public/members');
   expect(renamedPublicNames.status()).toBe(200);
   const renamedDisplays = await renamedPublicNames.json();
@@ -292,7 +295,6 @@ test('verified login gains club access only after restricted operator bootstrap'
   await renamed.getByRole('button', { name: 'Archive' }).click();
   await renamed.getByRole('button', { name: 'Confirm archive' }).click();
   await expect(renamed).toHaveCount(0);
-  await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toHaveCount(0);
   await show(page, '#/admin/members/public');
   await expect(page.getByRole('region', { name: 'Members', exact: true })
     .getByRole('listitem').filter({ hasText: 'Nina R.' })).toHaveCount(0);
@@ -1248,6 +1250,7 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // Invalid input in the real browser (#25): the browser's own constraints stop what they can,
   // and what only the server can judge is rejected with a visible, announced error and no write.
+  await show(page, '#/admin/members');
   const memberForm = page.getByRole('region', { name: 'Manage members' });
   const membersNamed = (lastName) => context.request
     .get('/api/v1/members?q=' + lastName).then(response => response.json()).then(body => body.items.length);
