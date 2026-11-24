@@ -495,13 +495,16 @@ test('verified login gains club access only after restricted operator bootstrap'
   // A previous role/member lookup cannot replace the latest selected member.
   let notifySlowRole;
   const slowRoleStarted = new Promise(resolve => { notifySlowRole = resolve; });
+  const newerRoleSearch = page.waitForRequest(request =>
+    new URL(request.url()).searchParams.get('q') === 'Mara', { timeout: 30_000 }).catch(() => {});
   await page.route('**/api/v1/members?**', async route => {
     if (new URL(route.request().url()).searchParams.get('q') !== 'Slow') {
       await route.continue();
       return;
     }
     notifySlowRole();
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Hold the slow answer until the newer search has been sent (a fixed delay raced on slow runners).
+    await Promise.race([newerRoleSearch, new Promise(resolve => setTimeout(resolve, 10_000))]);
     await route.continue().catch(() => {});
   });
   const canceledRoleSearch = page.waitForEvent('requestfailed',
