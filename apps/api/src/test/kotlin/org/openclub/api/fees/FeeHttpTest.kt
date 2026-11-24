@@ -224,7 +224,7 @@ class FeeHttpTest {
         assertEquals(setOf(memberOf.getValue("guardian").toString(), kid.toString()),
             guardian.map { it.getValue("for").jsonObject.getValue("id").jsonPrimitive.content }.toSet())
         val child = guardian.single { it.getValue("for").jsonObject.getValue("id").jsonPrimitive.content == kid.toString() }
-        assertEquals(setOf("periodId", "periodName", "dueDate", "amountCents", "paidOn", "for"), child.keys)
+        assertEquals(setOf("periodId", "periodName", "dueDate", "amountCents", "paidOn", "for", "qrBill"), child.keys)
         assertEquals("8000", child.getValue("amountCents").jsonPrimitive.content)
         assertEquals("2026-11-01", child.getValue("paidOn").jsonPrimitive.content)
         assertEquals(listOf(memberOf.getValue("plain").toString()), mine("plain").map { it.getValue("for").jsonObject.getValue("id").jsonPrimitive.content })

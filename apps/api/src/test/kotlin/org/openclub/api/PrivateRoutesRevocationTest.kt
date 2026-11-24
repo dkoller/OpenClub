@@ -219,6 +219,11 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Put, "/api/v1/fee-periods/${UUID(0, 2)}/fees/$target", """{"amountCents":100,"paidOn":null}"""),
         Route(HttpMethod.Delete, "/api/v1/fee-periods/${UUID(0, 2)}/fees/$target"),
         Route(HttpMethod.Get, "/api/v1/me/fees"),
+        // QR bills (1.26.0): the club's payment details; the holder has no fee in the unknown period (404).
+        Route(HttpMethod.Get, "/api/v1/club/payment-details"),
+        Route(HttpMethod.Put, "/api/v1/club/payment-details",
+            """{"iban":"CH9300762011623852957","holderName":"Revocation club","postalCode":"8000","town":"Zürich","country":"CH"}"""),
+        Route(HttpMethod.Get, "/api/v1/me/fees/${UUID(0, 2)}/$holder/qr-bill"),
         // Announcements (1.14.0): a club-wide post by the holder; unknown announcements are 404.
         Route(HttpMethod.Get, "/api/v1/me/announcements"),
         Route(HttpMethod.Post, "/api/v1/announcements", """{"teamId":null,"title":"Revocation news","body":"Synthetic"}"""),

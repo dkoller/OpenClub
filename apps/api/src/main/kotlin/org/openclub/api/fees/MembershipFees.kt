@@ -20,15 +20,18 @@ internal class MembershipFees(private val database: DSLContext) {
         val members: Int, val paid: Int, val totalCents: Long, val paidCents: Long,
     )
 
-    /** One member's fee in a period; [amountCents] is null when the active member is excluded. */
+    /**
+     * One member's fee in a period; [amountCents] is null when the active member is excluded. [reference] is the QR bill
+     * payment reference (1.26.0), null when excluded or while the club has no payment details.
+     */
     data class Fee(
         val memberId: UUID, val firstName: String, val lastName: String, val archived: Boolean,
-        val amountCents: Int?, val paidOn: LocalDate?,
+        val amountCents: Int?, val paidOn: LocalDate?, val reference: String? = null,
     )
 
     data class MyFee(
         val periodId: UUID, val periodName: String, val dueDate: LocalDate, val amountCents: Int, val paidOn: LocalDate?,
-        val forId: UUID, val forFirstName: String,
+        val forId: UUID, val forFirstName: String, val qrBill: Boolean = false,
     )
 
     enum class Filter { ALL, OPEN, PAID, EXCLUDED }
@@ -123,7 +126,9 @@ internal class MembershipFees(private val database: DSLContext) {
     fun fees(actor: UUID, periodId: UUID, filter: Filter): Listing = database.transactionResult { configuration ->
         val db = DSL.using(configuration)
         if (!lockManager(db, actor)) return@transactionResult Listing.Denied
-        if (db.fetchOne("SELECT 1 FROM fee_periods WHERE id = ?", periodId) == null) return@transactionResult Listing.NotFound
+        val periodNo = db.fetchOne("SELECT reference_no FROM fee_periods WHERE id = ?", periodId)
+            ?.get(0, Int::class.java) ?: return@transactionResult Listing.NotFound
+        val iban = QrBills.stored(db)?.iban
         val condition = when (filter) {
             Filter.ALL -> "f.member_id IS NOT NULL"
             Filter.OPEN -> "f.member_id IS NOT NULL AND f.paid_on IS NULL"
@@ -131,14 +136,16 @@ internal class MembershipFees(private val database: DSLContext) {
             Filter.EXCLUDED -> "f.member_id IS NULL AND m.archived_at IS NULL"
         }
         Listing.Found(db.fetch(
-            """SELECT m.id, m.first_name, m.last_name, m.archived_at IS NOT NULL AS archived, f.amount_cents, f.paid_on
+            """SELECT m.id, m.first_name, m.last_name, m.archived_at IS NOT NULL AS archived, f.amount_cents, f.paid_on,
+                      f.reference_no
                FROM members m LEFT JOIN member_fees f ON f.member_id = m.id AND f.period_id = ?
                WHERE $condition
                ORDER BY m.last_name, m.first_name, m.id""", periodId).map {
             Fee(it.get("id", UUID::class.java), it.get("first_name", String::class.java), it.get("last_name", String::class.java),
                 // Nullable for an excluded member: the boxed type, so jOOQ does not turn NULL into 0.
                 it.get("archived", Boolean::class.java), it.get("amount_cents", Int::class.javaObjectType),
-                it.get("paid_on", LocalDate::class.java))
+                it.get("paid_on", LocalDate::class.java),
+                it.get("reference_no", Int::class.javaObjectType)?.let { fee -> iban?.let { account -> SwissPayments.reference(account, periodNo, fee) } })
         })
     }
 
@@ -185,11 +192,13 @@ internal class MembershipFees(private val database: DSLContext) {
         Change.DONE
     }
 
+    /** Whether the actor is an active member with a current verified identity. */
+    fun isActiveMember(actor: UUID): Boolean =
+        database.fetchOne("SELECT 1 FROM members m WHERE m.account_id = ? AND ${ActorSql.activeVerified("m")}", actor) != null
+
     /** The actor's own fees and those of their current minors (the *My children* rule); null for a non-member. */
     fun mine(actor: UUID): List<MyFee>? {
-        if (database.fetchOne("SELECT 1 FROM members m WHERE m.account_id = ? AND ${ActorSql.activeVerified("m")}", actor) == null) {
-            return null
-        }
+        if (!isActiveMember(actor)) return null
         return database.fetch(
             """WITH me AS (SELECT m.id, m.first_name FROM members m WHERE m.account_id = ? AND ${ActorSql.activeVerified("m")}),
                     people AS (
@@ -201,12 +210,14 @@ internal class MembershipFees(private val database: DSLContext) {
                       JOIN members minor ON minor.id = gs.minor_member_id
                       JOIN clubs c ON TRUE
                       WHERE ${AgeSql.adult("guardian")} AND minor.archived_at IS NULL AND ${AgeSql.minor("minor")})
-               SELECT p.id, p.name, p.due_date, f.amount_cents, f.paid_on, people.id AS for_id, people.first_name AS for_name
+               SELECT p.id, p.name, p.due_date, f.amount_cents, f.paid_on, people.id AS for_id, people.first_name AS for_name,
+                      (f.paid_on IS NULL AND f.amount_cents > 0 AND EXISTS (SELECT 1 FROM club_payment_details)) AS qr_bill
                FROM people JOIN member_fees f ON f.member_id = people.id JOIN fee_periods p ON p.id = f.period_id
                ORDER BY p.due_date DESC, p.name, people.first_name, people.id""", actor).map {
             MyFee(it.get("id", UUID::class.java), it.get("name", String::class.java), it.get("due_date", LocalDate::class.java),
                 it.get("amount_cents", Int::class.java), it.get("paid_on", LocalDate::class.java),
-                it.get("for_id", UUID::class.java), it.get("for_name", String::class.java))
+                it.get("for_id", UUID::class.java), it.get("for_name", String::class.java),
+                it.get("qr_bill", Boolean::class.java))
         }
     }
 }

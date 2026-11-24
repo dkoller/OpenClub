@@ -124,6 +124,7 @@ internal fun Application.installFeeHttpRoutes(
                                 put("lastName", fee.lastName); put("archived", fee.archived)
                                 put("amountCents", fee.amountCents?.let(::JsonPrimitive) ?: JsonNull)
                                 put("paidOn", fee.paidOn?.let { JsonPrimitive(it.toString()) } ?: JsonNull)
+                                put("reference", fee.reference?.let { JsonPrimitive(SwissPayments.display(it)) } ?: JsonNull)
                             }) }
                         })
                     })
@@ -168,6 +169,7 @@ internal fun Application.installFeeHttpRoutes(
                             put("dueDate", fee.dueDate.toString()); put("amountCents", fee.amountCents)
                             put("paidOn", fee.paidOn?.let { JsonPrimitive(it.toString()) } ?: JsonNull)
                             put("for", buildJsonObject { put("id", fee.forId.toString()); put("firstName", fee.forFirstName) })
+                            put("qrBill", fee.qrBill)
                         }) }
                     })
                 })
