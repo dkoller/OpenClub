@@ -490,7 +490,11 @@ test('verified login gains club access only after restricted operator bootstrap'
   await memberAdmin.getByLabel('Player', { exact: true }).uncheck();
 
 
+  const diag = (kind, r) => { const u = r.url(); if (u.includes('/api/')) console.log('DIAG', kind, u.replace(/.*\/api/, ''), r.status ? r.status() : ''); };
+  page.on('request', r => diag('req', r)); page.on('response', r => diag('res', r)); page.on('requestfailed', r => diag('fail', r));
+  page.on('console', m => console.log('DIAG console', m.text()));
   await show(page, '#/admin/members/roles');
+  console.log('DIAG url', page.url());
   const roleAdmin = page.getByRole('region', { name: 'Manage club roles' });
   // A previous role/member lookup cannot replace the latest selected member.
   let notifySlowRole;
@@ -512,6 +516,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await roleAdmin.getByLabel('Find member').fill('Slow');
   await roleAdmin.getByRole('button', { name: 'Search' }).click();
   await slowRoleStarted;
+  console.log('DIAG slow started');
   // Record the selected member's role lookup so an intermittent failure reports
   // its HTTP outcome instead of a generic timeout on a disabled control.
   const maraRoleRead = page.waitForResponse(response =>
@@ -520,8 +525,11 @@ test('verified login gains club access only after restricted operator bootstrap'
   { timeout: 30_000 });
   await roleAdmin.getByLabel('Find member').fill('Mara');
   await roleAdmin.getByRole('button', { name: 'Search' }).click();
+  console.log('DIAG mara clicked');
   await canceledRoleSearch;
+  console.log('DIAG canceled');
   await page.unroute('**/api/v1/members?**');
+  console.log('DIAG region', await roleAdmin.innerText().catch(e => String(e)));
   await expect(roleAdmin.getByRole('combobox', { name: 'Member' })
     .getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
   const roleRead = await maraRoleRead;
