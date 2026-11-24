@@ -8,7 +8,8 @@ describe('routes', () => {
     for (const hash of ['#/', '#/schedule', '#/schedule/' + event, '#/family', '#/family/profile',
       '#/family/children', '#/family/absences', '#/family/fees', '#/family/calendar', '#/family/notifications', '#/team',
       `#/team/${event}`, `#/team/${event}/schedule`, `#/team/${event}/members`, `#/team/${event}/statistics`,
-      `#/team/${event}/event/${event}`, '#/admin', '#/admin/members',
+      `#/team/${event}/event/${event}`, '#/admin', '#/admin/members', '#/admin/members/invitations', '#/admin/members/guardians',
+      '#/admin/members/roles', '#/admin/members/transfer', '#/admin/members/archived', '#/admin/members/public',
       '#/admin/join-requests', '#/admin/fees', '#/admin/permissions', '#/admin/settings']) {
       expect(routeHash(parseRoute(hash))).toBe(hash)
     }
@@ -16,7 +17,7 @@ describe('routes', () => {
 
   it('opens Start for empty, unknown, invitation and malformed fragments', () => {
     for (const hash of ['', '#', '#invite=abc', '#/nowhere', '#/admin/secret', '#/schedule/not-an-id', '#/family/x', '#/family/overview',
-      '#/family/fees/x', '#/admin/fees/x', '#/team/x/event/' + event, `#/team/${event}/event/x`, `#/team/${event}/other/${event}`,
+      '#/family/fees/x', '#/admin/fees/x', '#/admin/members/x', '#/admin/members/roles/x', '#/team/x/event/' + event, `#/team/${event}/event/x`, `#/team/${event}/other/${event}`,
       `#/team/${event}/event/${event}/x`, '#/team/x', `#/team/${event}/overview`, `#/team/${event}/schedule/x`,
       `#/team/${event}/members/${event}`]) {
       expect(parseRoute(hash)).toEqual({ page: 'start' })

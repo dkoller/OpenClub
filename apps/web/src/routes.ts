@@ -7,6 +7,8 @@ export type AdminSection = 'overview' | 'members' | 'join-requests' | 'fees' | '
 export type FamilySection = 'profile' | 'children' | 'absences' | 'fees' | 'calendar' | 'notifications'
 /** One part of a team, on its own page; without a section, #/team/<teamId> is the team's page linking to them. */
 export type TeamSection = 'schedule' | 'members' | 'statistics'
+/** One task of Administration → Members, on its own page; without a part, the member list and form. */
+export type MemberPart = 'invitations' | 'guardians' | 'roles' | 'transfer' | 'archived' | 'public'
 export type Route =
   | { page: 'start' }
   | { page: 'schedule' }
@@ -14,11 +16,12 @@ export type Route =
   | { page: 'family'; section?: FamilySection }
   | { page: 'team'; teamId?: string; section?: TeamSection }
   | { page: 'team-event'; teamId: string; eventId: string }
-  | { page: 'admin'; section: AdminSection }
+  | { page: 'admin'; section: AdminSection; part?: MemberPart }
 
 const sections: AdminSection[] = ['overview', 'members', 'join-requests', 'fees', 'permissions', 'settings']
 export const familySections: FamilySection[] = ['profile', 'children', 'absences', 'fees', 'calendar', 'notifications']
 export const teamSections: TeamSection[] = ['schedule', 'members', 'statistics']
+export const memberParts: MemberPart[] = ['invitations', 'guardians', 'roles', 'transfer', 'archived', 'public']
 const id = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function parseRoute(hash: string): Route {
@@ -31,6 +34,10 @@ export function parseRoute(hash: string): Route {
     if (teamSections.includes(third as TeamSection) && fourth === undefined) return { page: 'team', teamId, section: third as TeamSection }
     return third === 'event' && fourth !== undefined && id.test(fourth) && more.length === 0
       ? { page: 'team-event', teamId, eventId: fourth.toLowerCase() } : { page: 'start' }
+  }
+  if (first === 'admin' && second === 'members' && third !== undefined) {
+    return memberParts.includes(third as MemberPart) && fourth === undefined
+      ? { page: 'admin', section: 'members', part: third as MemberPart } : { page: 'start' }
   }
   if (third !== undefined) return { page: 'start' }
   if (first === 'schedule' && second === undefined) return { page: 'schedule' }
@@ -52,7 +59,7 @@ export function routeHash(route: Route): string {
     case 'family': return route.section ? '#/family/' + route.section : '#/family'
     case 'team': return route.teamId ? `#/team/${route.teamId}${route.section ? '/' + route.section : ''}` : '#/team'
     case 'team-event': return `#/team/${route.teamId}/event/${route.eventId}`
-    case 'admin': return route.section === 'overview' ? '#/admin' : '#/admin/' + route.section
+    case 'admin': return route.section === 'overview' ? '#/admin' : '#/admin/' + route.section + (route.part ? '/' + route.part : '')
   }
 }
 

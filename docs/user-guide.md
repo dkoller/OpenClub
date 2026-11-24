@@ -53,6 +53,11 @@ straight to the right section.
 
 ### Members (*Administration* → *Members*, panel *Manage members*, permission `EDIT_MEMBERS`)
 
+*Members* shows the member list and form. The other member tasks each have their own page, linked in the row of
+buttons above the list (*More tasks*) and shown only to people who may use them: *Invitations and accounts*,
+*Guardians*, *Club roles* (with `MANAGE_PERMISSIONS`), *Excel import and export*, *Archive* and *Public member list*.
+Each page has *← Members* to go back.
+
 - **Find:** type into *Search names* and choose *Search*.
 - **Add:** fill *First name*, *Last name*, *Date of birth* and, for adults, *Email* and *Phone*, then *Add member*.
   Tick *Player* for players; if the club requires it, a *Gender (free text)* is then needed. The server refuses
@@ -68,11 +73,11 @@ straight to the right section.
 - **Archive:** *Archive*, then *Confirm archive*. Archived members disappear from lists and lose their permissions,
   team places and guardianships. Only members with the *Member* role and no linked sign-in can be archived: unlink
   their sign-in first (see *Invitations*). Right after archiving, *Undo archive* brings them back.
-- **Archived members:** this panel lists everyone archived earlier with the date. *Reactivate* makes them active
+- **Archived members:** the *Archive* page lists everyone archived earlier with the date. *Reactivate* makes them active
   again, **without** their former permissions, teams or sign-in. If the record no longer meets the club's rules (for
   example an adult without a phone number), reactivation is refused.
 - Deleting a member for good is done by the server operator, not in the app.
-- **Excel:** in *Excel import and export*, *Download member list (CSV for Excel)* saves all active members as a file
+- **Excel:** on the *Excel import and export* page, *Download member list (CSV for Excel)* saves all active members as a file
   Excel opens directly (phone numbers start with an apostrophe so Excel does not treat them as formulas). To import,
   save your sheet in Excel with *Save As* → *CSV UTF-8*; it needs the columns First name, Last name and Date of birth
   (31.12.2010), and may have Email, Phone, Gender and Player (yes/no), with headings in any of the four languages.
@@ -105,9 +110,9 @@ what they hold; *Revoke* removes one. A change applies to the member's next acti
 | `MANAGE_FEES` | Managing membership fees (club-wide only) |
 | `POST_ANNOUNCEMENTS` | Posting announcements to the whole club (club-wide only); team announcements need `MANAGE_TEAMS` for the team |
 
-*Manage club roles* switches a member between *Member* and *Administrator*. The last administrator cannot be demoted.
+*Club roles* (panel *Manage club roles*) switches a member between *Member* and *Administrator*. The last administrator cannot be demoted.
 
-### Invitations (*Administration* → *Members*, panel *Invitations and account links*)
+### Invitations (*Administration* → *Members* → *Invitations and accounts*)
 
 1. Find the member and choose *Create invitation*.
 2. Copy the *Invitation link (shown only once)* and send it to the member through a channel you trust. It is valid for
@@ -117,7 +122,7 @@ what they hold; *Revoke* removes one. A change applies to the member's next acti
 
 Minors and archived members cannot be invited, and an administrator's sign-in cannot be unlinked here.
 
-### Guardians (*Administration* → *Members*, panel *Guardians*)
+### Guardians (*Administration* → *Members* → *Guardians*)
 
 1. *Find a minor*, then *Search*; the minor's current guardians are listed.
 2. *Find a guardian* (an adult member who already signs in), select them and choose *Add as guardian*. By doing so you

@@ -77,7 +77,7 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
       "VALUES (gen_random_uuid(), 'Tim', 'Minor', current_date - interval '10 years')");
     await page.reload();
     await expect(page.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
-    await show(page, '#/admin/members');
+    await show(page, '#/admin/members/invitations');
 
     const region = page.getByRole('region', { name: 'Invitations and account links' });
     await region.getByRole('textbox', { name: 'Find member' }).fill('Invitee');
@@ -112,6 +112,7 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
 
     // Guardians with Rauthy accounts: the administrator records the invitee as Tim's guardian; the guardian
     // sees only "My children", reads Tim and replaces only his contacts, and still has no administration rights.
+    await show(page, '#/admin/members/guardians');
     const guardians = page.getByRole('region', { name: 'Guardians' });
     await guardians.getByLabel('Find a minor').fill('Tim');
     await guardians.getByRole('button', { name: 'Search' }).first().click();
@@ -137,7 +138,12 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
     await expect(second.getByRole('region', { name: 'Invitations and account links' })).toHaveCount(0);
     await expect(second.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Administration' })).toHaveCount(0);
 
+    // The member task addresses open nothing private for the guardian either.
+    await show(second, '#/admin/members/guardians');
+    await expect(second.getByRole('region', { name: 'Guardians' })).toHaveCount(0);
+
     // Unlinking ends the member's session and access at once.
+    await show(page, '#/admin/members/invitations');
     await region.getByRole('textbox', { name: 'Find member' }).fill('Invitee');
     await region.getByRole('button', { name: 'Search' }).click();
     await expect(region.getByRole('combobox', { name: 'Member' })).toContainText('Rita Invitee');

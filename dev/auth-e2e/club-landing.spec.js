@@ -110,7 +110,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   expect((await updatedClub.json()).name).toBe('Synthetic Updated Club');
 
   // The public directory renders the synthetic adult name, even after logout (editors see it under Members).
-  await show(page, '#/admin/members');
+  await show(page, '#/admin/members/public');
   await expect(page.getByRole('region', { name: 'Members', exact: true }).getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
   const publicNames = await context.request.get('/api/v1/public/members');
   expect(publicNames.status()).toBe(200);
@@ -292,6 +292,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await renamed.getByRole('button', { name: 'Confirm archive' }).click();
   await expect(renamed).toHaveCount(0);
   await expect(page.getByRole('listitem').filter({ hasText: 'Nina R.' })).toHaveCount(0);
+  await show(page, '#/admin/members/public');
   await expect(page.getByRole('region', { name: 'Members', exact: true })
     .getByRole('listitem').filter({ hasText: 'Nina R.' })).toHaveCount(0);
   // Archived minors must disappear from the anonymous API, not only the UI.
@@ -299,6 +300,10 @@ test('verified login gains club access only after restricted operator bootstrap'
   expect(archivedPublicNames.status()).toBe(200);
   expect(await archivedPublicNames.json()).not.toContainEqual({ displayName: 'Nina R.' });
   // Archived members (OpenAPI 1.5.0): an editor finds the member later and reactivates them; no erase button.
+  // The member list links each further task to its own page.
+  await show(page, '#/admin/members');
+  await page.getByRole('navigation', { name: 'More tasks' }).getByRole('link', { name: 'Archive', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Archive' })).toBeVisible();
   const archivedRegion = page.getByRole('region', { name: 'Archived members' });
   await archivedRegion.getByLabel('Search names').fill('Nina');
   const archivedSearch = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/members/archived');
@@ -310,6 +315,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await archivedNina.getByRole('button', { name: 'Reactivate' }).click();
   await expect(archivedRegion.getByText(/Member reactivated/)).toBeVisible();
   await expect(archivedNina).toHaveCount(0);
+  await page.getByRole('link', { name: '← Members' }).click();
   const backInList = page.getByRole('region', { name: 'Manage members' }).getByRole('listitem').filter({ hasText: 'Nina Renamed' });
   await page.getByRole('region', { name: 'Manage members' }).getByRole('button', { name: 'Search', exact: true }).click();
   await expect(backInList).toBeVisible();
@@ -317,7 +323,11 @@ test('verified login gains club access only after restricted operator bootstrap'
   await backInList.getByRole('button', { name: 'Archive' }).click();
   await backInList.getByRole('button', { name: 'Confirm archive' }).click();
   await expect(backInList).toHaveCount(0);
+  await show(page, '#/admin/members/archived');
+  await archivedRegion.getByLabel('Search names').fill('Nina');
+  await archivedRegion.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(archivedNina).toBeVisible();
+  await show(page, '#/admin/members');
 
   // Adult contacts are enforced by the server, not merely by browser hints.
   const memberAdminForAdult = page.getByRole('region', { name: 'Manage members' });
@@ -404,6 +414,7 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // Guardians (OpenAPI 1.6.0): the editor attests a guardianship, the guardian sees "My children", reads
   // the minor and replaces only her contacts; removing the guardianship ends access at the next request.
+  await show(page, '#/admin/members/guardians');
   const guardiansRegion = page.getByRole('region', { name: 'Guardians' });
   await guardiansRegion.getByLabel('Find a minor').fill('Mara');
   await guardiansRegion.getByRole('button', { name: 'Search' }).first().click();
@@ -429,7 +440,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await maraChild.getByRole('button', { name: 'Save contacts' }).click();
   await expect(children.getByText('Contacts saved.')).toBeVisible();
   await expect(maraChild.getByLabel('Email')).toHaveValue('mara.parent@example.invalid');
-  await show(page, '#/admin/members');
+  await show(page, '#/admin/members/guardians');
   const guardianRegion = page.getByRole('region', { name: 'Guardians' });
   await guardianRegion.getByLabel('Find a minor').fill('Mara');
   await guardianRegion.getByRole('button', { name: 'Search' }).first().click();
@@ -476,6 +487,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await memberAdmin.getByLabel('Player', { exact: true }).uncheck();
 
 
+  await show(page, '#/admin/members/roles');
   const roleAdmin = page.getByRole('region', { name: 'Manage club roles' });
   // A previous role/member lookup cannot replace the latest selected member.
   let notifySlowRole;
@@ -786,7 +798,7 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // Excel import and export (OpenAPI 1.13.0): the list downloads as CSV; an import is checked first, skips the
   // existing Mara Demo and creates only the new rows.
-  await show(page, '#/admin/members');
+  await show(page, '#/admin/members/transfer');
   const transfer = page.getByRole('region', { name: 'Excel import and export' });
   const listDownload = page.waitForEvent('download');
   await transfer.getByRole('link', { name: 'Download member list (CSV for Excel)' }).click();
@@ -1223,7 +1235,7 @@ test('verified login gains club access only after restricted operator bootstrap'
 
   // A lost session on role-member search hides all privileged role controls.
   await page.reload();
-  await show(page, '#/admin/members');
+  await show(page, '#/admin/members/roles');
   const rolesAfterReload = page.getByRole('region', { name: 'Manage club roles' });
   await page.route('**/api/v1/members?**', route =>
     new URL(route.request().url()).searchParams.get('q') === 'Mara'
@@ -1317,7 +1329,13 @@ test('verified login gains club access only after restricted operator bootstrap'
     [juniorsPage, ['Manage team']],
     [juniorsPage + '/schedule', ['Schedule Youth Team']],
     [juniorsPage + '/statistics', ['Attendance statistics Youth Team']],
-    ['#/admin/members', ['Manage club roles', 'Manage members', 'Members']],
+    ['#/admin/members', ['Manage members']],
+    ['#/admin/members/invitations', ['Invitations and account links']],
+    ['#/admin/members/guardians', ['Guardians']],
+    ['#/admin/members/roles', ['Manage club roles']],
+    ['#/admin/members/transfer', ['Excel import and export']],
+    ['#/admin/members/archived', ['Archived members']],
+    ['#/admin/members/public', ['Members']],
   ]) {
     await show(page, hash);
     await expect(page.getByRole('main'), hash).toHaveCount(1);
@@ -1387,6 +1405,11 @@ test('verified login gains club access only after restricted operator bootstrap'
     for (const name of ['Manage members', 'Manage permissions', 'Invitations and account links', 'Guardians',
       'Archived members', 'Manage club roles', 'Edit club name']) {
       await expect(page.getByRole('region', { name }), name).toHaveCount(0);
+    }
+    for (const part of ['invitations', 'guardians', 'roles', 'transfer', 'archived']) {
+      await show(page, '#/admin/members/' + part);
+      await expect(page.getByRole('heading', { level: 1, name: 'Start' }), part).toBeVisible();
+      await expect(page.getByRole('navigation', { name: 'More tasks' })).toHaveCount(0);
     }
     await expect(page.getByRole('region', { name: 'Teams', exact: true })).toHaveCount(0);
     expect((await context.request.get('/api/v1/members/00000000-0000-0000-0000-000000000000/export')).status()).toBe(403);
@@ -1501,7 +1524,7 @@ test('an administrator invites a member, a second synthetic user accepts, and un
   const invitee = await browser.newContext({ baseURL: 'http://localhost:5173' });
   try {
     await signIn(page, 'openclub-ci-user');
-    await show(page, '#/admin/members');
+    await show(page, '#/admin/members/invitations');
     const region = page.getByRole('region', { name: 'Invitations and account links' });
     await expect(region).toBeVisible();
     await region.getByRole('textbox', { name: 'Find member' }).fill('Invitee');
