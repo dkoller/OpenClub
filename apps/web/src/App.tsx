@@ -154,7 +154,7 @@ export function App() {
           section={shown.section} language={language} csrfToken={access.csrfToken} />}
         {ready && !waiting && shown.page === 'team-event' && <CoachEventPage key={shown.eventId} teamId={shown.teamId} eventId={shown.eventId}
           language={language} csrfToken={access.csrfToken} self={self} />}
-        {ready && !waiting && shown.page === 'admin' && <AdminPage section={shown.section} language={language} csrfToken={access.csrfToken}
+        {ready && !waiting && shown.page === 'admin' && <AdminPage section={shown.section} part={shown.part} language={language} csrfToken={access.csrfToken}
           access={can} club={access} onClubChanged={updateClub} revision={directoryRevision}
           onDirectoryChanged={() => setDirectoryRevision(value => value + 1)} />}
       </main>

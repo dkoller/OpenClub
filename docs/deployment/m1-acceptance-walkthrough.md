@@ -26,7 +26,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] B2 *Manage members*: search "Keller" finds Noah Keller; *Details* shows his birth date and no contacts.
 - [ ] B3 *Add member*: an adult without email or phone is refused; with both it is created.
 - [ ] B4 *Edit* that adult: the form is prefilled; change the phone; *Details* shows the new phone.
-- [ ] B5 *Archive* the adult, then *Undo archive*: back in the list. Archive again; *Archived members* lists them with the
+- [ ] B5 *Archive* the adult, then *Undo archive*: back in the list. Archive again; the *Archive* page (link above the member list) lists them with the
       date; *Reactivate* brings them back.
 - [ ] B6 The anonymous member list (signed out, or `https://club.example.ch/api/v1/public/members`) shows minors only as
       first name plus initial (for example "Lea B.").
@@ -36,7 +36,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] B8 *Membership fees*: create "Season 2026/27" (due date, CHF 150): every active member is listed; *Mark paid*
       for one, *Change amount* for another, *Exclude* a third; the totals change. After a reload *Family* shows how many fees are open and *Family* → *Fees* shows the
       administrator's own fee. Only members with the `MANAGE_FEES` permission see the panel.
-- [ ] B9 *Excel import and export*: download the member list and open it in Excel (umlauts and phone numbers shown
+- [ ] B9 *Excel import and export* (link above the member list): download the member list and open it in Excel (umlauts and phone numbers shown
       correctly). Add two new rows and one copy of an existing member, *Save As* → *CSV UTF-8*, *Check file*: 2 will be
       imported, 1 already exists; *Import 2 members*: both appear in *Manage members*.
 - [ ] B10 *Announcements*: post one to the whole club with two lines of text; it shows with *Whole club* and both lines.
@@ -52,7 +52,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] C1 *Team* → *Teams*: each team is one row with its number of members. Open Juniors U12: its page shows the
       name, the member count, *Schedule*, *Members*, *Statistics* and *Manage team*. *Members* lists its members; assign
       and remove a member. *Rename* a test team and back; on a phone (390 px) nothing scrolls sideways.
-- [ ] C2 *Invitations*: create an invitation for Peter Zürcher (adult); open the link in a second private window, sign in
+- [ ] C2 *Members* → *Invitations and accounts*: create an invitation for Peter Zürcher (adult); open the link in a second private window, sign in
       as `coach@…` and accept. The coach sees *Start*, *Schedule* and *Family*, but no *Team* or *Administration* in the menu.
 - [ ] C3 As administrator, give Peter a **team** grant `MANAGE_TEAMS` for Juniors U12 only. As `coach@…` (reload): *Team* appears in the
       menu and only Juniors U12 is listed under *Teams*; on its *Members* page *Contact details* of a U12 member works; another
@@ -78,7 +78,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 ## D. Guardians
 
 - [ ] D1 Invite Sandra Gerber (adult) and accept as `parent@…`.
-- [ ] D2 As administrator, *Guardians*: find Lea Brunner (Juniors U12), add Sandra (the attestation text is shown); do the
+- [ ] D2 As administrator, *Members* → *Guardians*: find Lea Brunner (Juniors U12), add Sandra (the attestation text is shown); do the
       same for Nico Brunner (Juniors U17). A third guardian is refused after a second one.
 - [ ] D3 As `parent@…` (reload): *Family* → *My children* lists Lea and Nico; *Open* shows birth date, player flag and team; change Lea's email;
       it is saved. *Start* asks *Is Lea coming?* for the seeded U12 training and the trainings from C4, and *Is Nico

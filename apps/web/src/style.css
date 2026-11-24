@@ -170,3 +170,9 @@ th, td { text-align: left; padding: 0.375rem 0.5rem; vertical-align: top; }
 .team-event-actions button { margin: 0; }
 .team-add h2 { margin-bottom: 0.25rem; }
 .team-create { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 0.5rem; }
+
+/* Administration → Members: the other member tasks as a wrapping row of links above the list. */
+.chips.plain { list-style: none; margin: 0; padding: 0; }
+.chips.plain li { margin: 0; }
+.chips a.chip { border-radius: 22px; }
+

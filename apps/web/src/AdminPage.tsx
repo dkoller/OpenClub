@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Language } from './language'
 import type { Access } from './access'
-import { routeHash, type AdminSection } from './routes'
+import { routeHash, type AdminSection, type MemberPart } from './routes'
 import { readJoinRequests } from './joinRequests'
 import { formatFrancs, readPeriods, type FeePeriod } from './fees'
 import { MemberAdmin } from './MemberAdmin'
@@ -25,6 +25,23 @@ const words = {
   fr: { nav: 'Administration', overview: 'En attente', members: 'Membres', 'join-requests': 'Demandes d’adhésion', fees: 'Cotisations', permissions: 'Autorisations', settings: 'Réglages', nothing: 'Rien ne vous attend pour le moment.', requests: '{n} demandes d’adhésion', requestsOne: '1 demande d’adhésion', since: 'La plus ancienne du {date}', openFees: '{period} : {n} cotisations ouvertes', amount: '{amount} sur {total} ouverts, échéance le {date}', view: 'Voir', toTeam: 'Vers l’équipe', loading: 'Chargement…', error: 'Tout n’a pas pu être chargé.' },
   it: { nav: 'Amministrazione', overview: 'In attesa', members: 'Membri', 'join-requests': 'Richieste di adesione', fees: 'Quote', permissions: 'Autorizzazioni', settings: 'Impostazioni', nothing: 'Al momento non c’è niente in attesa.', requests: '{n} richieste di adesione', requestsOne: '1 richiesta di adesione', since: 'La più vecchia del {date}', openFees: '{period}: {n} quote aperte', amount: '{amount} su {total} aperti, scadenza {date}', view: 'Vedi', toTeam: 'Alla squadra', loading: 'Caricamento…', error: 'Non è stato possibile caricare tutto.' },
 } satisfies Record<Language, Record<string, string>>
+
+const partWords = {
+  de: { more: 'Weitere Aufgaben', back: 'Mitglieder', invitations: 'Einladungen und Konten', guardians: 'Erziehungsberechtigte', roles: 'Rollen im Verein', transfer: 'Excel-Import und -Export', archived: 'Archiv', public: 'Öffentliche Mitgliederliste' },
+  en: { more: 'More tasks', back: 'Members', invitations: 'Invitations and accounts', guardians: 'Guardians', roles: 'Club roles', transfer: 'Excel import and export', archived: 'Archive', public: 'Public member list' },
+  fr: { more: 'Autres tâches', back: 'Membres', invitations: 'Invitations et comptes', guardians: 'Représentants légaux', roles: 'Rôles dans le club', transfer: 'Import et export Excel', archived: 'Archives', public: 'Liste publique des membres' },
+  it: { more: 'Altre attività', back: 'Membri', invitations: 'Inviti e account', guardians: 'Tutori', roles: 'Ruoli nel club', transfer: 'Importazione ed esportazione Excel', archived: 'Archivio', public: 'Elenco pubblico dei membri' },
+} satisfies Record<Language, Record<string, string>>
+
+/** The member tasks this person may use, each on its own page. */
+export function memberParts(access: Access): MemberPart[] {
+  return [
+    ...(access.editor ? ['invitations' as const, 'guardians' as const] : []),
+    ...(access.permissions ? ['roles' as const] : []),
+    ...(access.editor ? ['transfer' as const, 'archived' as const] : []),
+    'public',
+  ]
+}
 
 /** The sections this person may use, in sidebar order. */
 export function adminSections(access: Access): AdminSection[] {
@@ -85,13 +102,16 @@ function Overview({ language, access }: { language: Language; access: Access }) 
 export type ClubState = { clubName: string; genderRequiredForPlayers: boolean; adultAgeYears: number }
 
 /** Club administration: a sidebar of the sections this person may use, one section at a time. */
-export function AdminPage({ section, language, csrfToken, access, club, onClubChanged, onDirectoryChanged, revision }: {
-  section: AdminSection; language: Language; csrfToken: string; access: Access; club: ClubState
+export function AdminPage({ section, part, language, csrfToken, access, club, onClubChanged, onDirectoryChanged, revision }: {
+  section: AdminSection; part?: MemberPart; language: Language; csrfToken: string; access: Access; club: ClubState
   onClubChanged: (change: Partial<ClubState>) => void; onDirectoryChanged: () => void; revision: number
 }) {
   const t = words[language]
   const sections = adminSections(access)
   const current = sections.includes(section) ? section : 'overview'
+  const p = partWords[language]
+  const parts = memberParts(access)
+  const task = part && parts.includes(part) ? part : undefined
   return <div className="admin">
     <nav aria-label={t.nav} className="admin-nav"><ul>
       {sections.map(item => <li key={item}><a href={routeHash({ page: 'admin', section: item })}
@@ -99,16 +119,22 @@ export function AdminPage({ section, language, csrfToken, access, club, onClubCh
     </ul></nav>
     <div className="admin-main">
       {current === 'overview' && <Overview language={language} access={access} />}
-      {current === 'members' && <>
+      {current === 'members' && !task && <>
         <h1>{t.members}</h1>
+        <nav aria-label={p.more}><ul className="chips plain">{parts.map(item => <li key={item}>
+          <a className="btn chip" href={routeHash({ page: 'admin', section: 'members', part: item })}>{p[item]}</a></li>)}</ul></nav>
         <MemberAdmin language={language} csrfToken={csrfToken} genderRequiredForPlayers={club.genderRequiredForPlayers}
           adultAgeYears={club.adultAgeYears} onChanged={onDirectoryChanged} />
-        <InvitationAdmin language={language} csrfToken={csrfToken} />
-        <GuardianAdmin language={language} csrfToken={csrfToken} />
-        <RoleAdmin language={language} csrfToken={csrfToken} />
-        <MemberListTransfer language={language} csrfToken={csrfToken} />
-        <ArchivedMembers language={language} csrfToken={csrfToken} revision={revision} onChanged={onDirectoryChanged} />
-        <PublicMembers language={language} revision={revision} />
+      </>}
+      {current === 'members' && task && <>
+        <p><a href={routeHash({ page: 'admin', section: 'members' })}>← {p.back}</a></p>
+        <h1>{p[task]}</h1>
+        {task === 'invitations' && <InvitationAdmin language={language} csrfToken={csrfToken} />}
+        {task === 'guardians' && <GuardianAdmin language={language} csrfToken={csrfToken} />}
+        {task === 'roles' && <RoleAdmin language={language} csrfToken={csrfToken} />}
+        {task === 'transfer' && <MemberListTransfer language={language} csrfToken={csrfToken} />}
+        {task === 'archived' && <ArchivedMembers language={language} csrfToken={csrfToken} revision={revision} onChanged={onDirectoryChanged} />}
+        {task === 'public' && <PublicMembers language={language} revision={revision} />}
       </>}
       {current === 'join-requests' && <><h1>{t['join-requests']}</h1>
         <JoinRequestsAdmin language={language} csrfToken={csrfToken} onChanged={onDirectoryChanged} /></>}
