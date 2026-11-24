@@ -490,15 +490,13 @@ test('verified login gains club access only after restricted operator bootstrap'
   await memberAdmin.getByLabel('Player', { exact: true }).uncheck();
 
 
-  const diag = (kind, r) => { const u = r.url(); if (u.includes('/api/')) console.log('DIAG', kind, u.replace(/.*\/api/, ''), r.status ? r.status() : ''); };
-  page.on('request', r => diag('req', r)); page.on('response', r => diag('res', r)); page.on('requestfailed', r => diag('fail', r));
-  page.on('console', m => console.log('DIAG console', m.text()));
   await show(page, '#/admin/members/roles');
-  console.log('DIAG url', page.url());
   const roleAdmin = page.getByRole('region', { name: 'Manage club roles' });
   // A previous role/member lookup cannot replace the latest selected member.
   let notifySlowRole;
+  let notifySlowRoleDone;
   const slowRoleStarted = new Promise(resolve => { notifySlowRole = resolve; });
+  const slowRoleDone = new Promise(resolve => { notifySlowRoleDone = resolve; });
   const newerRoleSearch = page.waitForRequest(request =>
     new URL(request.url()).searchParams.get('q') === 'Mara', { timeout: 30_000 }).catch(() => {});
   await page.route('**/api/v1/members?**', async route => {
@@ -510,13 +508,11 @@ test('verified login gains club access only after restricted operator bootstrap'
     // Hold the slow answer until the newer search has been sent (a fixed delay raced on slow runners).
     await Promise.race([newerRoleSearch, new Promise(resolve => setTimeout(resolve, 10_000))]);
     await route.continue().catch(() => {});
+    notifySlowRoleDone();
   });
-  const canceledRoleSearch = page.waitForEvent('requestfailed',
-    request => new URL(request.url()).searchParams.get('q') === 'Slow');
   await roleAdmin.getByLabel('Find member').fill('Slow');
   await roleAdmin.getByRole('button', { name: 'Search' }).click();
   await slowRoleStarted;
-  console.log('DIAG slow started');
   // Record the selected member's role lookup so an intermittent failure reports
   // its HTTP outcome instead of a generic timeout on a disabled control.
   const maraRoleRead = page.waitForResponse(response =>
@@ -525,13 +521,12 @@ test('verified login gains club access only after restricted operator bootstrap'
   { timeout: 30_000 });
   await roleAdmin.getByLabel('Find member').fill('Mara');
   await roleAdmin.getByRole('button', { name: 'Search' }).click();
-  console.log('DIAG mara clicked');
-  await canceledRoleSearch;
-  console.log('DIAG canceled');
+  // Once the older answer has been let through, the newer search's member is still the one shown.
+  await slowRoleDone;
   await page.unroute('**/api/v1/members?**');
-  console.log('DIAG region', await roleAdmin.innerText().catch(e => String(e)));
   await expect(roleAdmin.getByRole('combobox', { name: 'Member' })
     .getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
+  await expect(roleAdmin.getByText('No members found.')).toHaveCount(0);
   const roleRead = await maraRoleRead;
   expect(roleRead.status(), `role lookup ${new URL(roleRead.url()).pathname}`).toBe(200);
   await expect(roleAdmin.getByRole('combobox', { name: 'Role' })).toBeEnabled();
