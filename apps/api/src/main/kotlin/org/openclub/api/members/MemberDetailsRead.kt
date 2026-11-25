@@ -43,7 +43,7 @@ internal class MemberDetailsRead(private val database: DSLContext) {
         if (editor) {
             val row = db.fetchOne(
                 """SELECT first_name, last_name, date_of_birth, email, phone, gender, is_player, archived_at, row_version,
-                          listed_publicly, account_id IS NOT NULL AS linked,
+                          listed_publicly, js_person_number, account_id IS NOT NULL AS linked,
                           (SELECT expires_at FROM member_invitations i WHERE i.member_id = members.id
                              AND i.used_at IS NULL AND i.revoked_at IS NULL AND i.expires_at > now()) AS open_until
                    FROM members WHERE id = ?""", memberId) ?: return@transactionResult Result.NotFound
@@ -60,6 +60,7 @@ internal class MemberDetailsRead(private val database: DSLContext) {
                 put("archivedAt", text("archived_at"))
                 put("hasLinkedLogin", row.get("linked", Boolean::class.java))
                 put("listedPublicly", row.get("listed_publicly", Boolean::class.java))
+                put("jsPersonNumber", text("js_person_number"))
                 put("invitation", buildJsonObject {
                     val until = row.get("open_until")
                     put("status", if (until == null) "NONE" else "OPEN")

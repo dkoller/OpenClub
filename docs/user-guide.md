@@ -70,6 +70,8 @@ Each page has *← Members* to go back.
   stay as they are. If someone else changed the member while your form was open (for example a guardian updating a
   phone number), nothing is saved and you are asked to edit again, so their change is not overwritten. Untick *Show on
   public member list* when a member (or a child's guardian) objects to being on the public list.
+  *J+S person number* holds the member's number from the national sport database (digits only); coaches need it
+  for the J+S attendance file and never see it themselves. The member sees it under *My profile*.
 - **Archive:** *Archive*, then *Confirm archive*. Archived members disappear from lists and lose their permissions,
   team places and guardianships. Only members with the *Member* role and no linked sign-in can be archived: unlink
   their sign-in first (see *Invitations*). Right after archiving, *Undo archive* brings them back.
@@ -192,6 +194,14 @@ the team and the parents of its children are also asked by email (*Helpers wante
 *Start*, *End* (prefilled with the event's times, at most 24 hours and within a day of the event) and *People needed*,
 then *Add shift*. *Edit* changes a shift (you cannot lower the places below the people already signed up), *Delete*
 followed by the confirmation removes it with its sign-ups.
+
+**Who came (J+S).** With `MANAGE_TEAMS`, an event's page gets *Who came?* once the event has started: tick the
+leaders and participants who were there (*Tick everyone who said yes* is a shortcut) and press *Save attendance*.
+You can correct it later. On the team's *Statistics* page, *J+S attendance* checks a date range (*Check*): how many
+rows the file has, who has no J+S person number yet (they are left out; an administrator adds the number under
+*Members* → *Edit*) and which trainings have no place. *Download file* gives the CSV for the import of the attendance
+record (*Anwesenheitskontrolle*) in the NDS. Trainings become *Training* with time, duration and place, matches
+*Wettkampf*; other events are left out. Every download is recorded.
 
 With `MANAGE_TEAMS` for a team you manage its assignments on its *Members* page and can open *Contact details* of its **active** members
 (name, email, phone, player). Members of other teams, archived members and everyone's birth date stay hidden. Each

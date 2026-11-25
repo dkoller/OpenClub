@@ -394,6 +394,22 @@ Owner-approved (ADR-0008 addendum 24). Entering, listing and deleting are limite
 
 Owner-approved (ADR-0008 addendum 25), including a narrow contact exception. Offering requires an adult with a verified sign-in who is in the event's team or guards a current minor in it, checked in the inserting statement; booking reuses the shifts pattern (oneself or one's current minor, assignment locked `FOR SHARE`, ride locked first and seats counted in a fresh statement, closed after departure or for a cancelled event). Visibility follows shifts. Phones are read in SQL but released by the route only to the driver (passengers' phones; for a minor the phone of the guardian who booked, never the child's own record) and to a caller who holds a seat on that ride for themselves or a minor (the driver's phone); every other caller gets `null`. Bookings and offers end when a member leaves the team (V33 trigger), cascade on erasure, and are deleted 12 months after the event. Not audited. Tests: `RideHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
 
+## Actual attendance and the J+S export (OpenAPI 1.27.0)
+
+Owner-approved (ADR-0008 addendum 31). V38 adds `event_presence` (event, member, role PARTICIPANT or LEADER) and
+`members.js_person_number`. Every route needs `MANAGE_TEAMS` for the event's team, club-wide or team-scoped, checked in
+the same statement as the read; a caller without `MANAGE_TEAMS` anywhere gets 403 before input is parsed, and an
+unknown event or team is 404 only then. Saving locks the event row (`FOR UPDATE`), refuses an event that has not
+started or is cancelled (409) and accepts only the event's people (active team members, active team-scoped managers,
+people already recorded); anything else is 400, so a coach cannot write records about members outside the team.
+Records are kept with the event, also after the member leaves the team, and go with the event or an erased member.
+
+The J+S person number is written only by `EDIT_MEMBERS` holders, with `If-Match`, audited `JS_NUMBER_CHANGED`, and
+read by editors, the member (My profile) and in the member export. Team managers never see it in the app; it leaves
+the server only in the NDS file, which is refused for a request another site started and audited
+`JS_ATTENDANCE_EXPORTED` per download. The file holds no names. Places are cleaned so a cell can neither split the
+row nor start a spreadsheet formula.
+
 ## Swiss QR bills for fees (OpenAPI 1.26.0)
 
 Owner-approved (ADR-0008 addendum 30). V37 adds `club_payment_details` (one row, deleted with the club): the club's IBAN or QR-IBAN (Switzerland or Liechtenstein, stored compact; the API checks the mod-97 checksum, the table the shape), the account holder and their postal address within the Swiss QR bill limits (name and street 70, building number and postal code 16, town 35, country CH or LI). This is the club's own bank data, not personal data of members. `GET` and `PUT /v1/club/payment-details` answer session (401), for the change exact Origin and CSRF (403), `MANAGE_FEES` (403) before the body is read, then the input (400); the replacement is one `INSERT … SELECT … ON CONFLICT` statement whose `WHERE` repeats the live grant check (`ActorSql.holdsClubCapability`), so a revocation cannot be outrun. Every successful change is audited as `PAYMENT_DETAILS_CHANGED` (actor account and the actor's own member row, identifiers only) in the same transaction, so a changed account can be traced to the person who changed it.

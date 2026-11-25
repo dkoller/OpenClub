@@ -135,7 +135,7 @@ class MyProfileHttpTest {
         assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
         assertEquals(version("me"), response.headers[HttpHeaders.ETag])
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertEquals(setOf("id", "firstName", "lastName", "dateOfBirth", "email", "phone", "gender", "isPlayer", "role", "teams", "listedPublicly"), body.keys)
+        assertEquals(setOf("id", "firstName", "lastName", "dateOfBirth", "email", "phone", "gender", "isPlayer", "role", "teams", "listedPublicly", "jsPersonNumber"), body.keys)
         assertEquals(memberOf.getValue("me").toString(), body.getValue("id").jsonPrimitive.content)
         assertEquals("1985-05-06", body.getValue("dateOfBirth").jsonPrimitive.content)
         assertEquals("diverse", body.getValue("gender").jsonPrimitive.content)

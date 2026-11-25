@@ -112,6 +112,11 @@ GET /v1/calendar/{secret}
 GET /v1/events/{eventId}/shifts
 GET /v1/shifts/unfilled
 GET /v1/teams/{teamId}/attendance-statistics
+GET /v1/events/{eventId}/presence
+PUT /v1/events/{eventId}/presence
+GET /v1/teams/{teamId}/js-attendance
+GET /v1/teams/{teamId}/js-attendance.csv
+PUT /v1/members/{memberId}/js-person-number
 POST /v1/events/{eventId}/shifts
 PUT /v1/shifts/{shiftId}
 DELETE /v1/shifts/{shiftId}
@@ -181,7 +186,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.26.0"
+FROZEN_VERSION = "1.27.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}

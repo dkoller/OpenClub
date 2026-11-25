@@ -5,6 +5,7 @@ const profile = {
   id: 'm1', firstName: 'Ada', lastName: 'Example', dateOfBirth: '1985-05-06', email: 'ada@example.invalid',
   phone: '+41000000010', gender: null, isPlayer: true, role: 'MEMBER', teams: [{ id: 't1', name: 'U18' }],
   listedPublicly: true,
+  jsPersonNumber: null,
 }
 const res = (status: number, body?: unknown, etag?: string) => ({ ok: status >= 200 && status < 300, status,
   json: async () => body, headers: new Headers(etag ? { ETag: etag } : {}) })
@@ -13,7 +14,7 @@ describe('my profile', () => {
   it('accepts exactly the documented record', () => {
     expect(parseMyProfile(profile)).toEqual(profile)
     for (const broken of [{ ...profile, extra: 1 }, { ...profile, role: 'OWNER' }, { ...profile, teams: [{ id: 't1' }] },
-      { ...profile, email: 1 }, { ...profile, isPlayer: 'yes' }, { ...profile, listedPublicly: 'no' },
+      { ...profile, email: 1 }, { ...profile, isPlayer: 'yes' }, { ...profile, listedPublicly: 'no' }, { ...profile, jsPersonNumber: 12 },
       (({ listedPublicly: _, ...rest }) => rest)(profile), [], null]) {
       expect(() => parseMyProfile(broken)).toThrow()
     }

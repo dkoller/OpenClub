@@ -54,6 +54,7 @@ internal fun Application.installMyProfileHttpRoutes(
                     put("isPlayer", profile.isPlayer)
                     put("role", profile.role)
                     put("listedPublicly", profile.listedPublicly)
+                    put("jsPersonNumber", profile.jsPersonNumber?.let(::JsonPrimitive) ?: JsonNull)
                     put("teams", buildJsonArray {
                         profile.teams.forEach { add(buildJsonObject { put("id", it.id.toString()); put("name", it.name) }) }
                     })
@@ -105,6 +106,33 @@ internal fun Application.installMyProfileHttpRoutes(
                     }
                     MyProfile.Replaced.Changed -> call.refuse(HttpStatusCode.PreconditionFailed, "changed")
                     MyProfile.Replaced.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+            }
+        }
+        put("/api/v1/members/{memberId}/js-person-number") {
+            call.guarded(sessions, cookies, origin, database, ClubCapabilityAccess.Capability.EDIT_MEMBERS) { actor ->
+                val id = runCatching { UUID.fromString(call.parameters["memberId"]) }.getOrNull()
+                    ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                val number = try {
+                    val body = call.receiveJsonObject(required = setOf("jsPersonNumber"))
+                    when (val value = body["jsPersonNumber"]) {
+                        is JsonNull -> null
+                        is JsonPrimitive -> value.content.trim().takeIf { value.isString }
+                            ?.also { require(Regex("[0-9]{1,12}").matches(it)) } ?: throw IllegalArgumentException("number")
+                        else -> throw IllegalArgumentException("number")
+                    }
+                } catch (_: IllegalArgumentException) {
+                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                }
+                val expected = call.expectedVersion() ?: return@guarded
+                when (val result = database.onDatabaseThread { MemberDetailsUpdate(it).setJsNumber(actor.accountId, id, number, expected) }) {
+                    is MemberDetailsUpdate.Replaced.Updated -> {
+                        call.response.headers.append(HttpHeaders.ETag, memberETag(result.version))
+                        call.respondText("", status = HttpStatusCode.NoContent)
+                    }
+                    MemberDetailsUpdate.Replaced.Changed -> call.refuse(HttpStatusCode.PreconditionFailed, "changed")
+                    MemberDetailsUpdate.Replaced.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    MemberDetailsUpdate.Replaced.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 }
             }
         }
