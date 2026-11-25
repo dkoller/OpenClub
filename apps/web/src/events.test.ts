@@ -12,12 +12,12 @@ const res = (status: number, body?: unknown) => ({ ok: status >= 200 && status <
 
 describe('events client', () => {
   it('reads my events strictly', async () => {
-    const mine = { ...event, for: [{ id: 'k1', firstName: 'Kim', response: 'YES' }] }
+    const mine = { ...event, for: [{ id: 'k1', firstName: 'Kim', response: 'YES', squad: { called: true, meetAt: '2026-11-28T08:00:00Z', meetingPoint: null } }] }
     expect(await readMyEvents(vi.fn().mockResolvedValue(res(200, { items: [mine], truncated: false }))))
       .toEqual({ items: [mine], truncated: false })
     expect(await readMyEvents(vi.fn().mockResolvedValue(res(403)))).toBe('denied')
     for (const broken of [{ ...mine, extra: 1 }, { ...mine, for: [{ id: 'k1', firstName: 'Kim' }] }, { ...mine, kind: 'PARTY' },
-      { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'yes' }] }, { ...mine, counts: { yes: -1, no: 0, maybe: 0 } },
+      { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'yes', squad: null }] }, { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'YES' }] }, { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'YES', squad: { called: 'yes', meetAt: null, meetingPoint: null } }] }, { ...mine, counts: { yes: -1, no: 0, maybe: 0 } },
       { ...mine, counts: undefined },
       { ...mine, startsAt: 'soon' }, event]) {
       await expect(readMyEvents(vi.fn().mockResolvedValue(res(200, { items: [broken], truncated: false })))).rejects.toThrow()

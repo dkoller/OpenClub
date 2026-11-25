@@ -164,6 +164,9 @@ class PrivateRoutesRevocationTest {
         // Actual attendance and the J+S export (1.27.0): an unknown event is 404 for the club-wide holder.
         Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/presence"),
         Route(HttpMethod.Put, "/api/v1/events/${UUID(0, 1)}/presence", """{"present":[]}"""),
+        // Match squads (1.28.0): an unknown event is 404 for the club-wide holder.
+        Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/squad"),
+        Route(HttpMethod.Put, "/api/v1/events/${UUID(0, 1)}/squad", """{"memberIds":[],"meetAt":null,"meetingPoint":null}"""),
         Route(HttpMethod.Get, "/api/v1/teams/$team/js-attendance"),
         Route(HttpMethod.Get, "/api/v1/teams/$team/js-attendance.csv"),
         // Volunteer shifts (1.16.0): unknown events and shifts are 404 for the club-wide holder. Signing up is covered in

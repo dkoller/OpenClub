@@ -255,6 +255,69 @@ internal fun Application.installTeamEventHttpRoutes(
                 }
             }
         }
+        // Match squads (1.28.0): the team's managers call up members for a match until it starts.
+        get("/api/v1/events/{eventId}/squad") {
+            call.readSession(sessions, cookies) { actor ->
+                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
+                    return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+                val event = call.uuid("eventId") ?: return@readSession call.refuse(HttpStatusCode.BadRequest, "invalid")
+                when (val result = database.onDatabaseThread { EventSquads(it).read(actor.accountId, event) }) {
+                    is EventSquads.Listing.Found -> call.respondJson(buildJsonObject {
+                        put("open", result.open)
+                        put("meetAt", result.meetAt?.let { JsonPrimitive(it.withOffsetSameInstant(ZoneOffset.UTC).toString()) } ?: JsonNull)
+                        put("meetingPoint", result.meetingPoint?.let(::JsonPrimitive) ?: JsonNull)
+                        put("items", buildJsonArray {
+                            result.people.forEach { add(buildJsonObject {
+                                put("memberId", it.memberId.toString())
+                                put("displayName", it.displayName)
+                                put("response", it.response?.let(::JsonPrimitive) ?: JsonNull)
+                                put("called", it.called)
+                            }) }
+                        })
+                    })
+                    EventSquads.Listing.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    EventSquads.Listing.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                    EventSquads.Listing.NotMatch -> call.refuse(HttpStatusCode.Conflict, "not_match")
+                }
+            }
+        }
+        put("/api/v1/events/{eventId}/squad") {
+            call.guarded(sessions, cookies, origin, database, null) { actor ->
+                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
+                    return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+                val event = call.uuid("eventId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                val input = try {
+                    val body = call.receiveJsonObject(setOf("memberIds", "meetAt", "meetingPoint"), maxBytes = PRESENCE_BODY)
+                    val meetAt = when (val value = body["meetAt"]) {
+                        is JsonNull -> null
+                        is JsonPrimitive -> if (value.isString) OffsetDateTime.parse(value.content).also {
+                            require(!it.isBefore(EARLIEST) && it.isBefore(LATEST))
+                        } else throw IllegalArgumentException("meetAt")
+                        else -> throw IllegalArgumentException("meetAt")
+                    }
+                    val point = when (val value = body["meetingPoint"]) {
+                        is JsonNull -> null
+                        is JsonPrimitive -> if (value.isString) text(value.content, 200) else throw IllegalArgumentException("point")
+                        else -> throw IllegalArgumentException("point")
+                    }
+                    EventSquads.Input(body.uuidSet("memberIds", 500), meetAt, point)
+                } catch (_: IllegalArgumentException) {
+                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                } catch (_: DateTimeException) {
+                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                }
+                when (database.onDatabaseThread { EventSquads(it, notifier).replace(actor.accountId, event, input) }) {
+                    EventSquads.Change.DONE -> call.respondText("", status = HttpStatusCode.NoContent)
+                    EventSquads.Change.NOT_FOUND -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    EventSquads.Change.DENIED -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                    EventSquads.Change.NOT_MATCH -> call.refuse(HttpStatusCode.Conflict, "not_match")
+                    EventSquads.Change.CLOSED -> call.refuse(HttpStatusCode.Conflict, "closed")
+                    EventSquads.Change.INVALID -> call.refuse(HttpStatusCode.BadRequest, "invalid")
+                }
+            }
+        }
         get("/api/v1/teams/{teamId}/js-attendance") {
             call.jsAttendance(sessions, cookies, database, file = false)
         }
@@ -359,6 +422,11 @@ private fun TeamEvents.Event.json(withFor: Boolean) = buildJsonObject {
         forMembers.forEach { add(buildJsonObject {
             put("id", it.id.toString()); put("firstName", it.firstName)
             put("response", it.response?.let { response -> JsonPrimitive(response.name) } ?: JsonNull)
+            put("squad", it.squad?.let { squad -> buildJsonObject {
+                put("called", squad.called)
+                put("meetAt", squad.meetAt?.let(::JsonPrimitive) ?: JsonNull)
+                put("meetingPoint", squad.meetingPoint?.let(::JsonPrimitive) ?: JsonNull)
+            } } ?: JsonNull)
         }) }
     })
 }

@@ -5,6 +5,7 @@ import { routeHash } from './routes'
 import { ShiftsPanel } from './ShiftsPanel'
 import { RidesPanel } from './RidesPanel'
 import { useMyEvents } from './useMyEvents'
+import { OwnSquadStatus } from './SquadPanel'
 
 const words = {
   de: { back: 'Zurück zu den Terminen', gone: 'Diesen Termin gibt es nicht mehr, oder er betrifft dich nicht.', notes: 'Hinweise', team: 'Team bisher' },
@@ -36,6 +37,7 @@ export function EventPage({ eventId, language, csrfToken, self }: { eventId: str
         <p className="muted small">{t.team}: {fill(t.answers, event.counts)}</p>
         <NoticeLine notice={notice} language={language} />
       </section>}
+      <OwnSquadStatus event={event} self={self} language={language} />
       <ShiftsPanel event={event} language={language} csrfToken={csrfToken} self={self} />
       <RidesPanel event={event} language={language} csrfToken={csrfToken} self={self} />
     </>}

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseNotificationStatus, readNotifications, saveNotifications } from './notifications'
 
-const status = { eventChanges: true, newEvents: false, announcements: true, shiftReminders: true, helpersWanted: false, answerReminders: true, language: 'fr',
+const status = { eventChanges: true, newEvents: false, announcements: true, shiftReminders: true, helpersWanted: false, answerReminders: true, squadCalls: false, language: 'fr',
   emailEnabled: true, hasEmail: true }
 const res = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
 
@@ -27,7 +27,7 @@ describe('notification settings', () => {
     expect(await saveNotifications({ ...status, language: 'it' } as never, 'c', request)).toBe('ok')
     expect(request.mock.calls[0]).toEqual(['/api/v1/me/notifications', { method: 'PUT', credentials: 'same-origin',
       headers: { 'X-CSRF-Token': 'c', 'Content-Type': 'application/json' },
-      body: '{"eventChanges":true,"newEvents":false,"announcements":true,"shiftReminders":true,"helpersWanted":false,"answerReminders":true,"language":"it"}' }])
+      body: '{"eventChanges":true,"newEvents":false,"announcements":true,"shiftReminders":true,"helpersWanted":false,"answerReminders":true,"squadCalls":false,"language":"it"}' }])
     expect(await saveNotifications(status as never, 'c', vi.fn().mockResolvedValue(res(400)))).toBe('invalid')
     expect(await saveNotifications(status as never, 'c', vi.fn().mockResolvedValue(res(401)))).toBe('denied')
     await expect(saveNotifications(status as never, 'c', vi.fn().mockResolvedValue(res(500)))).rejects.toThrow()

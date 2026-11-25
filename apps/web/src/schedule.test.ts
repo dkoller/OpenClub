@@ -9,9 +9,9 @@ const event = (id: string, startsAt: string, forList: MyEvent['for'], cancelled 
   endsAt: new Date(Date.parse(startsAt) + 3600000).toISOString(), location: null, notes: null, cancelled,
   counts: { yes: 0, no: 0, maybe: 0 }, for: forList,
 })
-const me = { id: 'm', firstName: 'Andrea', response: null }
-const lea = { id: 'l', firstName: 'Lea', response: null }
-const noah = { id: 'n', firstName: 'Noah', response: 'YES' as const }
+const me = { id: 'm', firstName: 'Andrea', response: null, squad: null }
+const lea = { id: 'l', firstName: 'Lea', response: null, squad: null }
+const noah = { id: 'n', firstName: 'Noah', response: 'YES' as const, squad: null }
 
 describe('schedule helpers', () => {
   const events = [
@@ -46,7 +46,7 @@ describe('schedule helpers', () => {
 })
 
 describe('ride suggestion', () => {
-  const match = event('match', '2026-11-28T09:00:00Z', [{ id: 'l', firstName: 'Lea', response: 'YES' }, { id: 'n', firstName: 'Noah', response: 'NO' }])
+  const match = event('match', '2026-11-28T09:00:00Z', [{ id: 'l', firstName: 'Lea', response: 'YES', squad: null }, { id: 'n', firstName: 'Noah', response: 'NO', squad: null }])
   const ride = (id: string, change: Partial<Ride> = {}): Ride => ({ id, driver: 'Sara K.', mine: false, direction: 'THERE', seats: 3,
     meetingPoint: 'Bahnhof', departsAt: '2026-11-28T08:20:00Z', driverPhone: null, passengers: [], booked: [], ...change })
   const list = (items: Ride[], people = [{ id: 'l', firstName: 'Lea' }, { id: 'n', firstName: 'Noah' }]): RideList => ({ items, people, canOffer: true })
@@ -60,7 +60,7 @@ describe('ride suggestion', () => {
   })
 
   it('stays quiet when nobody is coming, the seat is booked, the family drives, or no ride fits', () => {
-    expect(rideSuggestion(event('m', '2026-11-28T09:00:00Z', [{ id: 'l', firstName: 'Lea', response: null }]), list([ride('a')]), now)).toBeNull()
+    expect(rideSuggestion(event('m', '2026-11-28T09:00:00Z', [{ id: 'l', firstName: 'Lea', response: null, squad: null }]), list([ride('a')]), now)).toBeNull()
     expect(rideSuggestion(match, list([ride('a', { booked: ['l'] }), ride('b')]), now)).toBeNull()
     expect(rideSuggestion(match, list([ride('a', { mine: true }), ride('b')]), now)).toBeNull()
     expect(rideSuggestion(match, list([ride('full', { seats: 1, passengers: [taken] }), ride('back', { direction: 'BACK' })]), now)).toBeNull()

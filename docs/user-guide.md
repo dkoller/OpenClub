@@ -195,6 +195,12 @@ the team and the parents of its children are also asked by email (*Helpers wante
 then *Add shift*. *Edit* changes a shift (you cannot lower the places below the people already signed up), *Delete*
 followed by the confirmation removes it with its sign-ups.
 
+**Squad (Aufgebot).** For a match, an event's page shows *Squad* to the team's managers until the match starts: tick
+who is called up (*Select everyone who said yes* is a shortcut), optionally set *Meet at* and *Meeting point*, then
+*Save squad*. Everyone called for the first time gets an email (parents for their children); removing someone sends
+nothing. Only you see the list: each player and parent sees only *Called up* (with the meeting time and place) or
+*Not called up* for themselves or their child, on the event page and as a tag on *Schedule*.
+
 **Who came (J+S).** With `MANAGE_TEAMS`, an event's page gets *Who came?* once the event has started: tick the
 leaders and participants who were there (*Tick everyone who said yes* is a shortcut) and press *Save attendance*.
 You can correct it later. On the team's *Statistics* page, *J+S attendance* checks a date range (*Check*): how many
@@ -227,7 +233,8 @@ days* lists what is already answered, and the announcements follow.
 **Schedule** lists the next eight weeks of trainings, matches and events of your teams, and of your children's
 teams if you are a guardian, grouped by day. With children, the buttons at the top show *Everyone*, *Me* or one child.
 Events still waiting for an answer are marked *Answer missing*. Answer *Yes*, *No* or *Maybe* until the event starts;
-choosing your answer again clears it. You see the totals, but never other members' answers.
+choosing your answer again clears it. You see the totals, but never other members' answers. A match where you or
+your child are called up shows *Called up*; its page has the meeting time and place.
 
 **One event.** Tap an event (or *Rides, helpers and details*) to open its page: when and where, notes, the answers for
 you and your children, the team's totals, helper shifts and rides. *Sign up* puts you (or your child) on a
@@ -239,7 +246,8 @@ child's team) is changed or cancelled, when new events are added, when an announ
 reminder the day before a volunteer shift you signed up for. *Helpers wanted*: seven days before a helper shift of
 your team (or your child's) that still has free places, you get one email per event listing those shifts with the
 free places and a link; not if you (or your child) already help at that event. *Answer missing*: two days before
-an event that still lacks your answer (or your child's), and when the coach sends a reminder. Untick what you do not want and choose the language of
+an event that still lacks your answer (or your child's), and when the coach sends a reminder. *Called up for a match*: when you
+or your child are added to a match squad. Untick what you do not want and choose the language of
 the emails; changes save at once. You need a sign-in and an email address to receive them.
 
 **Membership applications** (*Administration* → *Join requests*, with `EDIT_MEMBERS`): tick *Public application form is on* to show *Join the club* on
