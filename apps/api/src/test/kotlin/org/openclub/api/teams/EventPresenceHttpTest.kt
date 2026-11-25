@@ -83,8 +83,9 @@ class EventPresenceHttpTest {
                 db.execute("""INSERT INTO account_identities (id, account_id, issuer, subject)
                               VALUES (?, ?, 'https://issuer.example.invalid', ?)""", UUID.randomUUID(), account, "presence-$account")
                 memberOf[handle] = UUID.randomUUID().also {
-                    db.execute("""INSERT INTO members (id, account_id, first_name, last_name, date_of_birth)
-                                  VALUES (?, ?, ?, 'Presence', DATE '1980-01-01')""", it, account, handle.replaceFirstChar(Char::uppercase))
+                    db.execute("""INSERT INTO members (id, account_id, first_name, last_name, date_of_birth, email, phone)
+                                  VALUES (?, ?, ?, 'Presence', DATE '1980-01-01', 'p@example.invalid', '+41000000070')""",
+                        it, account, handle.replaceFirstChar(Char::uppercase))
                 }
             }
             db.execute("UPDATE members SET js_person_number = '123456789' WHERE id = ?", memberOf.getValue("player"))
