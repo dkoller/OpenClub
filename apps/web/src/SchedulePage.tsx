@@ -7,10 +7,10 @@ import { routeHash } from './routes'
 import { useMyEvents } from './useMyEvents'
 
 const words = {
-  de: { title: 'Termine', who: 'Für wen', everyone: 'Alle', empty: 'Keine Termine in den nächsten acht Wochen.', emptyFor: 'Für {name} keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', details: 'Fahrten, Helfer und Details' },
-  en: { title: 'Schedule', who: 'For whom', everyone: 'Everyone', empty: 'No events in the next eight weeks.', emptyFor: 'No events for {name} in the next eight weeks.', more: 'More events follow later.', details: 'Rides, helpers and details' },
-  fr: { title: 'Agenda', who: 'Pour qui', everyone: 'Tous', empty: 'Aucun événement dans les huit prochaines semaines.', emptyFor: 'Aucun événement pour {name} dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', details: 'Covoiturage, bénévoles et détails' },
-  it: { title: 'Calendario', who: 'Per chi', everyone: 'Tutti', empty: 'Nessun evento nelle prossime otto settimane.', emptyFor: 'Nessun evento per {name} nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', details: 'Passaggi, aiutanti e dettagli' },
+  de: { called: 'Aufgeboten', title: 'Termine', who: 'Für wen', everyone: 'Alle', empty: 'Keine Termine in den nächsten acht Wochen.', emptyFor: 'Für {name} keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', details: 'Fahrten, Helfer und Details' },
+  en: { called: 'Called up', title: 'Schedule', who: 'For whom', everyone: 'Everyone', empty: 'No events in the next eight weeks.', emptyFor: 'No events for {name} in the next eight weeks.', more: 'More events follow later.', details: 'Rides, helpers and details' },
+  fr: { called: 'Convoqué', title: 'Agenda', who: 'Pour qui', everyone: 'Tous', empty: 'Aucun événement dans les huit prochaines semaines.', emptyFor: 'Aucun événement pour {name} dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', details: 'Covoiturage, bénévoles et détails' },
+  it: { called: 'Convocato', title: 'Calendario', who: 'Per chi', everyone: 'Tutti', empty: 'Nessun evento nelle prossime otto settimane.', emptyFor: 'Nessun evento per {name} nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', details: 'Passaggi, aiutanti e dettagli' },
 } satisfies Record<Language, Record<string, string>>
 
 const dayTitle = (day: string, language: Language) => new Intl.DateTimeFormat(
@@ -46,7 +46,8 @@ export function SchedulePage({ language, csrfToken, self }: { language: Language
             <span className="event-text">
               <span className="tags"><span className="muted small">{t[event.kind]} · {event.teamName}</span>
                 {event.cancelled && <span className="open">{t.cancelled}</span>}
-                {missing && <span className="open">{t.missing}</span>}</span>
+                {missing && <span className="open">{t.missing}</span>}
+                {!event.cancelled && event.for.some(person => person.squad?.called) && <span className="chip-tag">{t.called}</span>}</span>
               <b>{event.title}</b>
               <span className="muted">{formatWhen(event, language)}{event.location ? ' · ' + event.location : ''}</span>
             </span>

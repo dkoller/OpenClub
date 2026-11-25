@@ -394,6 +394,16 @@ Owner-approved (ADR-0008 addendum 24). Entering, listing and deleting are limite
 
 Owner-approved (ADR-0008 addendum 25), including a narrow contact exception. Offering requires an adult with a verified sign-in who is in the event's team or guards a current minor in it, checked in the inserting statement; booking reuses the shifts pattern (oneself or one's current minor, assignment locked `FOR SHARE`, ride locked first and seats counted in a fresh statement, closed after departure or for a cancelled event). Visibility follows shifts. Phones are read in SQL but released by the route only to the driver (passengers' phones; for a minor the phone of the guardian who booked, never the child's own record) and to a caller who holds a seat on that ride for themselves or a minor (the driver's phone); every other caller gets `null`. Bookings and offers end when a member leaves the team (V33 trigger), cascade on erasure, and are deleted 12 months after the event. Not audited. Tests: `RideHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
 
+## Match squads (OpenAPI 1.28.0)
+
+Owner-approved (ADR-0008 addendum 32). V39 adds `event_squads` and `squad_members`; a trigger removes a member from
+the squads of a team they leave. Reading and saving need `MANAGE_TEAMS` for the match's team, checked in the same
+statement as the read and under a lock on the event row (`FOR UPDATE`) for the save, which also refuses non-matches,
+started or cancelled matches, and anyone who is not an active team member. The full list never leaves the managers'
+route: `GET /v1/me/events` gives each person only their own (or their current minor's) status, and the meeting time
+and place only when called. The email goes only to members called for the first time (guardians for a minor), through
+the existing recipient rule (active, verified, address, switch on), in the same transaction as the save.
+
 ## Actual attendance and the J+S export (OpenAPI 1.27.0)
 
 Owner-approved (ADR-0008 addendum 31). V38 adds `event_presence` (event, member, role PARTICIPANT or LEADER) and

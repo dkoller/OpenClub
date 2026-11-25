@@ -7,7 +7,9 @@ export type TeamEvent = {
   id: string; teamId: string; teamName: string; kind: EventKind; title: string
   startsAt: string; endsAt: string; location: string | null; notes: string | null; cancelled: boolean; counts: Counts
 }
-export type MyEvent = TeamEvent & { for: { id: string; firstName: string; response: AttendanceResponse | null }[] }
+/** A person's own squad status for a match with a saved squad (OpenAPI 1.28.0); meeting details only when called. */
+export type OwnSquad = { called: boolean; meetAt: string | null; meetingPoint: string | null }
+export type MyEvent = TeamEvent & { for: { id: string; firstName: string; response: AttendanceResponse | null; squad: OwnSquad | null }[] }
 
 export type EventInput = {
   kind: EventKind; title: string; startsAt: string; endsAt: string; location: string; notes: string
@@ -37,8 +39,9 @@ function isEvent(value: unknown, extra: string[]): value is TeamEvent {
 
 function isMyEvent(value: unknown): value is MyEvent {
   return isEvent(value, ['for']) && Array.isArray((value as MyEvent).for) && (value as MyEvent).for.every(person =>
-    record(person) && Object.keys(person).length === 3 && text(person.id) && text(person.firstName) &&
-    isResponse(person.response))
+    record(person) && Object.keys(person).length === 4 && text(person.id) && text(person.firstName) &&
+    isResponse(person.response) && (person.squad === null || (record(person.squad) && Object.keys(person.squad).length === 3 &&
+      typeof person.squad.called === 'boolean' && textOrNull(person.squad.meetAt) && textOrNull(person.squad.meetingPoint))))
 }
 
 async function readJson(path: string, request: typeof fetch): Promise<Record<string, unknown> | 'denied'> {

@@ -38,7 +38,10 @@ internal class TeamEvents(
     )
 
     /** Someone an event in [mine] is for: the member themselves or one of their minors, with their answer. */
-    data class For(val id: UUID, val firstName: String, val response: EventAttendance.Response?)
+    data class For(val id: UUID, val firstName: String, val response: EventAttendance.Response?, val squad: Squad? = null)
+
+    /** A person's own squad status for a match with a saved squad (1.28.0); meeting details only when called. */
+    data class Squad(val called: Boolean, val meetAt: String?, val meetingPoint: String?)
 
     data class Event(
         val id: UUID, val teamId: UUID, val teamName: String, val kind: Kind, val title: String,
@@ -105,7 +108,13 @@ internal class TeamEvents(
                SELECT e.id, e.team_id, team.name AS team_name, e.kind, e.title, e.starts_at, e.ends_at, e.location,
                       e.notes, e.cancelled, ${EventAttendance.COUNTS},
                       json_agg(json_build_object('id', p.id, 'firstName', p.first_name,
-                          'response', (SELECT ea.response FROM effective_attendance ea WHERE ea.event_id = e.id AND ea.member_id = p.id))
+                          'response', (SELECT ea.response FROM effective_attendance ea WHERE ea.event_id = e.id AND ea.member_id = p.id),
+                          'squad', (SELECT json_build_object('called', sm.member_id IS NOT NULL,
+                                      'meetAt', CASE WHEN sm.member_id IS NOT NULL THEN es.meet_at END,
+                                      'meetingPoint', CASE WHEN sm.member_id IS NOT NULL THEN es.meeting_point END)
+                                    FROM event_squads es
+                                    LEFT JOIN squad_members sm ON sm.event_id = es.event_id AND sm.member_id = p.id
+                                    WHERE es.event_id = e.id AND e.kind = 'MATCH'))
                           ORDER BY p.first_name, p.id)::text AS for_members
                FROM team_events e
                JOIN teams team ON team.id = e.team_id
@@ -117,8 +126,13 @@ internal class TeamEvents(
         return page(rows.map { row ->
             val forMembers = Json.parseToJsonElement(row.get("for_members", String::class.java)).jsonArray.map {
                 val person = it.jsonObject
+                val squad = (person["squad"] as? kotlinx.serialization.json.JsonObject)?.let { value ->
+                    Squad(value.getValue("called").jsonPrimitive.content == "true",
+                        value["meetAt"]?.jsonPrimitive?.contentOrNull?.let { at -> OffsetDateTime.parse(at).withOffsetSameInstant(java.time.ZoneOffset.UTC).toString() },
+                        value["meetingPoint"]?.jsonPrimitive?.contentOrNull)
+                }
                 For(UUID.fromString(person.getValue("id").jsonPrimitive.content), person.getValue("firstName").jsonPrimitive.content,
-                    person.getValue("response").jsonPrimitive.contentOrNull?.let(EventAttendance.Response::valueOf))
+                    person.getValue("response").jsonPrimitive.contentOrNull?.let(EventAttendance.Response::valueOf), squad)
             }
             event(row).copy(forMembers = forMembers)
         })

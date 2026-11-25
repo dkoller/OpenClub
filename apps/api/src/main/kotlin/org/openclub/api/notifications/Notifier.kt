@@ -25,7 +25,7 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
     enum class Kind(val column: String) {
         NEW_EVENTS("new_events"), EVENT_CHANGED("event_changes"), EVENT_CANCELLED("event_changes"),
         ANNOUNCEMENT("announcements"), SHIFT_REMINDER("shift_reminders"), HELPERS_WANTED("helpers_wanted"),
-        ANSWER_REMINDER("answer_reminders"),
+        ANSWER_REMINDER("answer_reminders"), SQUAD_CALLED("squad_calls"),
     }
 
     /** What an email says about one event; kept for deleted events too. */
@@ -246,6 +246,31 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
         return due.size
     }
 
+    /**
+     * Squad calls (OpenAPI 1.28.0, ADR-0008 addendum 32): one message per newly called member to that member and, for a
+     * current minor, their guardians (naming the child), with the match, the meeting time and the meeting point.
+     */
+    fun squadCalled(db: DSLContext, eventId: UUID, members: Collection<UUID>) {
+        if (!enabled || members.isEmpty()) return
+        val event = events(db, listOf(eventId)).firstOrNull()?.takeIf { it.startsAt.isAfter(OffsetDateTime.now()) } ?: return
+        val squad = db.fetchOne("SELECT meet_at, meeting_point FROM event_squads WHERE event_id = ?", eventId)
+        val meetAt = squad?.get("meet_at", OffsetDateTime::class.java)
+        val point = squad?.get("meeting_point", String::class.java)
+        for (member in members.sorted()) {
+            val people = recipients(db, volunteerOnly, arrayOf<Any>(member), Kind.SQUAD_CALLED)
+            queueFor(db, Kind.SQUAD_CALLED, people) { text, club ->
+                Message(text.subject(club, text.squadCalled, "${event.teamName} – ${event.title}"), buildString {
+                    appendLine("${event.teamName}: ${event.title}")
+                    appendLine(when_(event, text))
+                    event.location?.let { appendLine("${text.place}: $it") }
+                    meetAt?.let { appendLine("${text.meetAt}: ${DateTimeFormatter.ofPattern("EEE d. MMM uuuu, HH:mm", text.locale).format(it.atZoneSameInstant(zone))}") }
+                    point?.let { appendLine("${text.meetingPoint}: $it") }
+                    append(text.footer("$origin/#/schedule/$eventId"))
+                }) to member
+            }
+        }
+    }
+
     private data class Message(val subject: String, val body: String)
 
     private fun queue(db: DSLContext, kind: Kind, people: List<Recipient>, render: (Texts, String) -> Message) =
@@ -333,6 +358,7 @@ internal data class Texts(
     val reminder: String, val cancelledLine: String, val place: String, val forPerson: String,
     val helpersWanted: String, val freePlaces: String, val answerReminder: String, val answerPlease: String,
     private val open: String, private val settings: String,
+    val squadCalled: String = "Aufgebot", val meetAt: String = "Treffpunkt", val meetingPoint: String = "Treffpunkt Ort",
 ) {
     fun subject(club: String, label: String, what: String) = "[$club] $label: $what".replace(Regex("[\\r\\n]+"), " ")
     fun footer(origin: String) = "\n$open: $origin\n$settings"
@@ -342,19 +368,19 @@ internal data class Texts(
             "de" to Texts(Locale.GERMAN, "Neu", "Geändert", "Abgesagt", "Mitteilung", "Erinnerung", "Dieser Termin ist abgesagt.",
                 "Ort", "Für", "Helfer gesucht", "%d von %d Plätzen frei", "Antwort fehlt",
                 "Bitte antworten Sie in OpenClub mit Ja, Nein oder Vielleicht, damit das Team planen kann.", "In OpenClub ansehen",
-                "Benachrichtigungen ändern Sie in OpenClub unter «Familie» → «Mein Profil»."),
+                "Benachrichtigungen ändern Sie in OpenClub unter «Familie» → «Mein Profil».", "Aufgebot", "Besammlung", "Besammlungsort"),
             "en" to Texts(Locale.ENGLISH, "New", "Changed", "Cancelled", "Announcement", "Reminder", "This event is cancelled.",
                 "Place", "For", "Helpers wanted", "%d of %d places free", "Answer missing",
                 "Please answer Yes, No or Maybe in OpenClub so the team can plan.", "View in OpenClub",
-                "Change your notifications in OpenClub under “Family” → “My profile”."),
+                "Change your notifications in OpenClub under “Family” → “My profile”.", "Called up", "Meet at", "Meeting point"),
             "fr" to Texts(Locale.FRENCH, "Nouveau", "Modifié", "Annulé", "Communication", "Rappel", "Cet événement est annulé.",
                 "Lieu", "Pour", "Bénévoles recherchés", "%d places libres sur %d", "Réponse manquante",
                 "Veuillez répondre Oui, Non ou Peut-être dans OpenClub pour que l’équipe puisse s’organiser.", "Voir dans OpenClub",
-                "Modifiez vos notifications dans OpenClub sous « Famille » → « Mon profil »."),
+                "Modifiez vos notifications dans OpenClub sous « Famille » → « Mon profil ».", "Convocation", "Rendez-vous", "Lieu de rendez-vous"),
             "it" to Texts(Locale.ITALIAN, "Nuovo", "Modificato", "Annullato", "Comunicazione", "Promemoria", "Questo evento è annullato.",
                 "Luogo", "Per", "Cercasi aiutanti", "%d posti liberi su %d", "Risposta mancante",
                 "Rispondete Sì, No o Forse in OpenClub, così la squadra può organizzarsi.", "Vedi in OpenClub",
-                "Modifica le notifiche in OpenClub sotto «Famiglia» → «Il mio profilo»."),
+                "Modifica le notifiche in OpenClub sotto «Famiglia» → «Il mio profilo».", "Convocazione", "Ritrovo", "Luogo di ritrovo"),
         )
 
         fun of(language: String): Texts = all[language] ?: all.getValue("de")

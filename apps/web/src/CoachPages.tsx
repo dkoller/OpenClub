@@ -8,6 +8,7 @@ import { routeHash } from './routes'
 import { ShiftsPanel } from './ShiftsPanel'
 import { RidesPanel } from './RidesPanel'
 import { PresencePanel } from './PresencePanel'
+import { SquadPanel } from './SquadPanel'
 
 const words = {
   de: { next: 'Nächste Termine', none: 'In den nächsten 14 Tagen stehen keine Termine an.', summary: '{yes} Ja · {no} Nein', openTag: '{open} offen', allAnswered: 'alle haben geantwortet', more: 'Nur die ersten {n} Teams sind berücksichtigt; alle Termine stehen im Programm des jeweiligen Teams.', back: 'Zurück zum Team', who: 'Wer kommt?', open: 'Noch offen', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', nobody: 'Niemand.', gone: 'Diesen Termin gibt es nicht mehr, oder du siehst dieses Team nicht.', noAnswers: 'Die Antworten sind nicht sichtbar.', absence: 'Abwesenheiten zählen als Nein. Gründe werden nie erfasst.', remind: 'Alle {n} ohne Antwort erinnern', reminded: 'Erinnerung an {n} verschickt (per E-Mail, an Eltern für ihre Kinder).', recent: 'Für diesen Termin wurde in den letzten 12 Stunden schon erinnert.', emailOff: 'Dieser Verein versendet keine E-Mails.', remindFailed: 'Erinnerung nicht verschickt. Bitte später nochmals versuchen.' },
@@ -130,6 +131,7 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
           <p className="muted small">{t.absence}</p>
         </>}
       </section>
+      {canManage && <SquadPanel event={event} language={language} csrfToken={csrfToken} />}
       {canManage && <PresencePanel eventId={event.id} cancelled={event.cancelled} language={language} csrfToken={csrfToken} />}
       <ShiftsPanel event={event} language={language} csrfToken={csrfToken} self={self} />
       <RidesPanel event={event} language={language} csrfToken={csrfToken} self={self} />

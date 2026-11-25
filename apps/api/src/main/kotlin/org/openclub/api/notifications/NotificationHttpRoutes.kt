@@ -28,31 +28,32 @@ internal class NotificationSettings(private val database: DSLContext) {
     data class Settings(
         val eventChanges: Boolean, val newEvents: Boolean, val announcements: Boolean, val shiftReminders: Boolean,
         val helpersWanted: Boolean, val answerReminders: Boolean, val language: String, val hasEmail: Boolean,
+        val squadCalls: Boolean = true,
     )
 
     /** Null when the actor is not an active, verified member. */
     fun read(actor: UUID): Settings? = database.fetchOne(
         """SELECT COALESCE(s.event_changes, TRUE), COALESCE(s.new_events, TRUE), COALESCE(s.announcements, TRUE),
                   COALESCE(s.shift_reminders, TRUE), COALESCE(s.helpers_wanted, TRUE), COALESCE(s.answer_reminders, TRUE), COALESCE(s.language, 'de'),
-                  me.email IS NOT NULL
+                  me.email IS NOT NULL, COALESCE(s.squad_calls, TRUE)
            FROM members me LEFT JOIN notification_settings s ON s.member_id = me.id
            WHERE me.account_id = ? AND ${ActorSql.activeVerified("me")}""", actor)?.let {
         Settings(it.get(0, Boolean::class.java), it.get(1, Boolean::class.java), it.get(2, Boolean::class.java),
             it.get(3, Boolean::class.java), it.get(4, Boolean::class.java), it.get(5, Boolean::class.java), it.get(6, String::class.java),
-            it.get(7, Boolean::class.java))
+            it.get(7, Boolean::class.java), it.get(8, Boolean::class.java))
     }
 
     /** Replaces the actor's settings; false for a non-member. */
     fun replace(actor: UUID, settings: Settings): Boolean = database.execute(
         """INSERT INTO notification_settings (member_id, event_changes, new_events, announcements, shift_reminders,
-                                              helpers_wanted, answer_reminders, language)
-           SELECT me.id, ?, ?, ?, ?, ?, ?, ? FROM members me WHERE me.account_id = ? AND ${ActorSql.activeVerified("me")}
+                                              helpers_wanted, answer_reminders, language, squad_calls)
+           SELECT me.id, ?, ?, ?, ?, ?, ?, ?, ? FROM members me WHERE me.account_id = ? AND ${ActorSql.activeVerified("me")}
            ON CONFLICT (member_id) DO UPDATE SET event_changes = EXCLUDED.event_changes, new_events = EXCLUDED.new_events,
                announcements = EXCLUDED.announcements, shift_reminders = EXCLUDED.shift_reminders,
                helpers_wanted = EXCLUDED.helpers_wanted, answer_reminders = EXCLUDED.answer_reminders,
-               language = EXCLUDED.language, updated_at = now()""",
+               language = EXCLUDED.language, squad_calls = EXCLUDED.squad_calls, updated_at = now()""",
         settings.eventChanges, settings.newEvents, settings.announcements, settings.shiftReminders, settings.helpersWanted,
-        settings.answerReminders, settings.language, actor) == 1
+        settings.answerReminders, settings.language, settings.squadCalls, actor) == 1
 }
 
 /**
@@ -80,6 +81,7 @@ internal fun Application.installNotificationHttpRoutes(
                     put("shiftReminders", settings.shiftReminders)
                     put("helpersWanted", settings.helpersWanted)
                     put("answerReminders", settings.answerReminders)
+                    put("squadCalls", settings.squadCalls)
                     put("language", JsonPrimitive(settings.language))
                     put("emailEnabled", notifier.enabled)
                     put("hasEmail", settings.hasEmail)
@@ -93,13 +95,14 @@ internal fun Application.installNotificationHttpRoutes(
                 val settings = try {
                     // helpersWanted (1.24.0) and answerReminders (1.25.0) are optional, so an older page keeps the stored choice.
                     val body = call.receiveJsonObject(setOf("eventChanges", "newEvents", "announcements", "shiftReminders", "language"),
-                        setOf("helpersWanted", "answerReminders"))
+                        setOf("helpersWanted", "answerReminders", "squadCalls"))
                     val helpersWanted = if ("helpersWanted" in body) body.requiredBoolean("helpersWanted") else current.helpersWanted
                     val answerReminders = if ("answerReminders" in body) body.requiredBoolean("answerReminders") else current.answerReminders
+                    val squadCalls = if ("squadCalls" in body) body.requiredBoolean("squadCalls") else current.squadCalls
                     val language = body.requiredString("language")
                     require(language in setOf("de", "en", "fr", "it")) { "language" }
                     NotificationSettings.Settings(body.requiredBoolean("eventChanges"), body.requiredBoolean("newEvents"),
-                        body.requiredBoolean("announcements"), body.requiredBoolean("shiftReminders"), helpersWanted, answerReminders, language, hasEmail = false)
+                        body.requiredBoolean("announcements"), body.requiredBoolean("shiftReminders"), helpersWanted, answerReminders, language, hasEmail = false, squadCalls = squadCalls)
                 } catch (_: IllegalArgumentException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 }
