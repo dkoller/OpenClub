@@ -394,6 +394,17 @@ Owner-approved (ADR-0008 addendum 24). Entering, listing and deleting are limite
 
 Owner-approved (ADR-0008 addendum 25), including a narrow contact exception. Offering requires an adult with a verified sign-in who is in the event's team or guards a current minor in it, checked in the inserting statement; booking reuses the shifts pattern (oneself or one's current minor, assignment locked `FOR SHARE`, ride locked first and seats counted in a fresh statement, closed after departure or for a cancelled event). Visibility follows shifts. Phones are read in SQL but released by the route only to the driver (passengers' phones; for a minor the phone of the guardian who booked, never the child's own record) and to a caller who holds a seat on that ride for themselves or a minor (the driver's phone); every other caller gets `null`. Bookings and offers end when a member leaves the team (V33 trigger), cascade on erasure, and are deleted 12 months after the event. Not audited. Tests: `RideHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
 
+## Push notifications (OpenAPI 1.33.0)
+
+Owner-approved (ADR-0008 addendum 37). The server only calls endpoints that are `https`, port 443, without user
+info and on an operator-listed push host (exact name or a `.suffix` with a subdomain), checked when registering and
+again before each call; redirects are not followed and calls time out, so a browser cannot make the server reach an
+internal address. Pushes are empty (no encryption keys are stored or needed); the text is read by the member's
+own session from `GET /v1/me/push-inbox`, which answers only the caller's messages of the last two days, by kind
+and subject. The VAPID private key comes from the environment, is checked against the public key at startup and is
+never logged. Registration needs an active membership and CSRF; an endpoint moves to the latest member who
+registered it, so a shared browser stops receiving the previous member's messages.
+
 ## Helper duty (OpenAPI 1.32.0)
 
 Owner-approved (ADR-0008 addendum 36). V42 adds two club settings only; counts are derived from sign-ups at read

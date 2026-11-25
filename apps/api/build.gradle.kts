@@ -93,6 +93,13 @@ tasks.register<JavaExec>("exportMember") {
     mainClass.set("org.openclub.api.members.MemberExportCliKt")
 }
 
+tasks.register<JavaExec>("generatePushKeys") {
+    group = "application"
+    description = "Operator command: print a new VAPID key pair for push notifications (OpenAPI 1.33.0)."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("org.openclub.api.notifications.PushKeysCliKt")
+}
+
 tasks.register<JavaExec>("eraseMember") {
     group = "application"
     description = "Restricted operator-only permanent erasure of one archived member after a verified request."

@@ -371,3 +371,11 @@ Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
 | --- | --- | --- |
 | 68 | Helper duty | Approved as OpenAPI **1.32.0** (V42). Club settings `helper_quota` (0–50, 0 = off, default 0) and `season_start_month` (1–12, default August), set by `MANAGE_FEES` holders (`PUT /v1/club/helper-duty`). Liable: active adults in a team and guardians of an active minor in a team. A shift counts once it has started and its event was not cancelled, for the volunteer and for the guardians of a current minor volunteer (two guardians of one child both get it). Each member sees their own count (`GET /v1/me/helper-duty`); the treasurer sees every liable adult's full name with done and owed (`GET /v1/helper-duty`). Any substitute fee stays a normal manual fee. Counts derive from sign-ups, which end when a member leaves the team and are deleted 12 months after the shift. Not audited. |
 
+## Addendum 37 — push notifications (2026-11-26)
+
+Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 69 | Push notifications | Approved as OpenAPI **1.33.0** (V43), Web Push with VAPID and **no payload**: the server sends an empty push to the member's registered browsers for every queued message, and the service worker reads the subjects from `GET /v1/me/push-inbox` with the member's own session, so no personal data passes through the vendors' push services. Implemented with the JDK only (ES256 signing, `java.net.http`), no new dependency. Operator settings from the environment that the deployment YAML writes: key pair, a `mailto:` contact and the **allowed push hosts** (`push.hosts` in the demo YAML), outside of which no endpoint is accepted or called. Members keep at most 5 devices; an endpoint moves to whoever registered it last; endpoints the service reports gone (404/410) are deleted. The same per-kind switches as for email apply; messages are now queued for members with an email address **or** a device, so push works without SMTP. Not audited. |
+

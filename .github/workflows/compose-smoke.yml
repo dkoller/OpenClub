@@ -121,6 +121,10 @@ jobs:
             echo "clubName: CI Demo Club"
             echo "email:"
             echo "  sender: demo@example.invalid"
+            echo "push:"
+            echo "  hosts:"
+            echo "    - fcm.googleapis.com"
+            echo "    - .push.apple.com"
           } > "$OPENCLUB_DEMO_CONFIG"
           python3 dev/deployment/demo-config.py check
           # An unknown key must fail instead of falling back to a default.
@@ -199,7 +203,16 @@ jobs:
             .services.rauthy.environment.SMTP_USERNAME == "demo@example.invalid" and
             (.services.rauthy.environment.SMTP_FROM | contains("<demo@example.invalid>")) and
             .services.rauthy.environment.SMTP_PASSWORD == "ci-only-mailbox-password"' > /dev/null
-          echo 'Demo kit validated: generated secrets, merged Compose, Caddy routes, production Rauthy issuer, client secret and email overlay.'
+          # Push: the keys come from the API container in a real run; here placeholder lines stand in for them, so the
+          # script keeps them (as on a rerun) and writes the contact and the hosts from the YAML config.
+          printf '%s\n' 'OPENCLUB_PUSH_PUBLIC_KEY=ci-public-placeholder' 'OPENCLUB_PUSH_PRIVATE_KEY=ci-private-placeholder' >> "$env_dir/.env"
+          bash dev/deployment/configure-demo-push.sh --synthetic-only
+          [[ "$(stat -c %a "$env_dir/.env")" == 600 ]] || { echo 'Env file lost owner-only permissions' >&2; exit 1; }
+          "${demo[@]}" config --format json | jq -e '
+            .services.api.environment.OPENCLUB_PUSH_HOSTS == "fcm.googleapis.com,.push.apple.com" and
+            .services.api.environment.OPENCLUB_PUSH_SUBJECT == "mailto:admin@example.invalid" and
+            .services.api.environment.OPENCLUB_PUSH_PUBLIC_KEY == "ci-public-placeholder"' > /dev/null
+          echo 'Demo kit validated: generated secrets, merged Compose, Caddy routes, production Rauthy issuer, client secret, email overlay and push settings.'
       - name: Verify optional Rauthy OIDC discovery with isolated localhost TLS
         shell: bash
         run: |

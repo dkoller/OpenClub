@@ -12,6 +12,7 @@ import { MyHelperDutyCard } from './HelperDuty'
 import { Absences } from './Absences'
 import { CalendarFeed } from './CalendarFeed'
 import { NotificationSettings } from './NotificationSettings'
+import { PushSettings } from './PushSettings'
 
 const words = {
   de: { title: 'Familie', back: 'Familie', profile: 'Mein Profil', profileHint: 'Kontaktdaten und öffentliche Mitgliederliste', children: 'Meine Kinder', absences: 'Abwesenheiten', absencesHint: 'Ferien und freie Tage eintragen', fees: 'Beiträge', feesHint: 'Mitgliederbeiträge und ob sie bezahlt sind', open: '{n} offen', openOne: '1 offen', paid: 'Alles bezahlt', calendar: 'Kalender-Abo', calendarHint: 'Termine im Kalender des Telefons', notifications: 'E-Mail-Benachrichtigungen', notificationsHint: 'Welche E-Mails du erhältst' },
@@ -71,6 +72,6 @@ export function FamilyPage({ language, csrfToken, self, section }: Props & { sec
     {section === 'absences' && <Absences language={language} csrfToken={csrfToken} self={self} onChange={() => undefined} />}
     {section === 'fees' && <><MyFees language={language} /><MyHelperDutyCard language={language} /></>}
     {section === 'calendar' && <CalendarFeed language={language} csrfToken={csrfToken} />}
-    {section === 'notifications' && <NotificationSettings language={language} csrfToken={csrfToken} />}
+    {section === 'notifications' && <><NotificationSettings language={language} csrfToken={csrfToken} /><PushSettings language={language} csrfToken={csrfToken} /></>}
   </>
 }

@@ -19,3 +19,12 @@ clubName: Demo Club
 # configure-demo-email.sh reads it from standard input.
 # email:
 #   sender: noreply@example.ch
+
+# Optional push notifications for the app (OpenAPI 1.33.0). The hosts are the push services of the browser
+# vendors that the app server may call; configure-demo-push.sh creates the key pair in the private env file.
+# push:
+#   hosts:
+#     - fcm.googleapis.com
+#     - updates.push.services.mozilla.com
+#     - .push.apple.com
+#     - .notify.windows.com
