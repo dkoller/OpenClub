@@ -420,7 +420,7 @@ class NotificationsTest {
     fun membersReadAndChangeOnlyTheirOwnSettings() = app {
         val defaults = Json.parseToJsonElement(send(HttpMethod.Get, "player").bodyAsText()).jsonObject
         assertEquals(Json.parseToJsonElement("""{"eventChanges":true,"newEvents":true,"announcements":true,"shiftReminders":true,
-            "helpersWanted":true,"answerReminders":true,"squadCalls":true,"language":"de","emailEnabled":true,"hasEmail":true}"""), defaults)
+            "helpersWanted":true,"answerReminders":true,"squadCalls":true,"teamMessages":true,"language":"de","emailEnabled":true,"hasEmail":true}"""), defaults)
         val body = """{"eventChanges":true,"newEvents":false,"announcements":true,"shiftReminders":false,"language":"fr"}"""
         assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, "player", body).status)
         val changed = Json.parseToJsonElement(send(HttpMethod.Get, "player").bodyAsText()).jsonObject

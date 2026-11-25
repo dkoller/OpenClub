@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 111 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.30.0) to the tests that exercise it. The operation list and
+Maps each of the 112 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.31.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -89,6 +89,7 @@ How to read the columns of test types:
 | `PUT /v1/venues/{venueId}` | 204, 400, 401, 403, 404, 409, 503 | `VenueHttpTest` (rename), `PrivateRoutesRevocationTest` (unknown 404) |
 | `DELETE /v1/venues/{venueId}` | 204, 400, 401, 403, 404, 503 | `VenueHttpTest` (coach 403; events stay without the venue; again 404), `PrivateRoutesRevocationTest` |
 | `GET /v1/venues/{venueId}/bookings` | 200, 400, 401, 403, 404, 503 | `VenueHttpTest` (team, kind, title and times only; cancelled left out; unknown 404; bad time 400), `PrivateRoutesRevocationTest` |
+| `POST /v1/events/{eventId}/messages` | 200, 400, 401, 403, 404, 409, 503 | `CoachMessageHttpTest` (each audience reaches its members and guardians for children, naming the child and the sender; switch off; 10 per day then 409 `limit`; no text in the log; viewer and member 403; unknown event 403 for a team-scoped coach; squad of a training and long-past event 409; line break in the subject, long text and unknown audience 400; no mail configuration 409 `email_off`), `PrivateRoutesRevocationTest` |
 | `GET /v1/events/{eventId}/squad` | 200, 400, 401, 403, 404, 409, 503 | `EventSquadHttpTest` (every team member with answer and call-up, minors abbreviated; a training 409; viewer 403; unknown event 404), `PrivateRoutesRevocationTest` |
 | `PUT /v1/events/{eventId}/squad` | 204, 400, 401, 403, 404, 409, 503 | `EventSquadHttpTest` (newly called emailed once, a minor's guardian naming the child; saving again emails nobody; switch off stops it; training and past match 409; outsider, bad time, missing field, long point 400; player 403; leaving the team leaves the squad; own status in My schedule), `PrivateRoutesRevocationTest` |
 | `GET /v1/teams/{teamId}/js-attendance` | 200, 400, 401, 403, 404, 503 | `EventPresenceHttpTest` (rows, people without a number, trainings without a place; not audited; viewer and another team's manager 403; from after to 400), `PrivateRoutesRevocationTest` |

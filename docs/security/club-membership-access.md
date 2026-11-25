@@ -394,6 +394,15 @@ Owner-approved (ADR-0008 addendum 24). Entering, listing and deleting are limite
 
 Owner-approved (ADR-0008 addendum 25), including a narrow contact exception. Offering requires an adult with a verified sign-in who is in the event's team or guards a current minor in it, checked in the inserting statement; booking reuses the shifts pattern (oneself or one's current minor, assignment locked `FOR SHARE`, ride locked first and seats counted in a fresh statement, closed after departure or for a cancelled event). Visibility follows shifts. Phones are read in SQL but released by the route only to the driver (passengers' phones; for a minor the phone of the guardian who booked, never the child's own record) and to a caller who holds a seat on that ride for themselves or a minor (the driver's phone); every other caller gets `null`. Bookings and offers end when a member leaves the team (V33 trigger), cascade on erasure, and are deleted 12 months after the event. Not audited. Tests: `RideHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
 
+## Coach messages (OpenAPI 1.31.0)
+
+Owner-approved (ADR-0008 addendum 35). The send needs `MANAGE_TEAMS` for the event's team, checked in the
+transaction that locks the team row, counts the day's messages (at most 10) and queues the emails, so a revocation or
+a burst cannot outrun the check or the limit. Recipients are computed on the server from the audience and go through
+the usual rule (active, verified, address, switch on, guardians for current minors); the coach never sees who has an
+address. The subject is one line (control characters refused, newlines stripped again in the subject builder), so it
+cannot add mail headers. The log keeps no text.
+
 ## Fields and halls (OpenAPI 1.30.0)
 
 Owner-approved (ADR-0008 addendum 34). V40 adds the club-wide capability `MANAGE_VENUES` (the first administrator

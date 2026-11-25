@@ -385,6 +385,33 @@ internal fun Application.installTeamEventHttpRoutes(
                 }
             }
         }
+        // Coach messages (1.31.0): an email to part of the event's people, sent by the server, 10 per team per day.
+        post("/api/v1/events/{eventId}/messages") {
+            call.guarded(sessions, cookies, origin, database, null) { actor ->
+                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
+                    return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+                val event = call.uuid("eventId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                val (audience, subject, body) = try {
+                    val json = call.receiveJsonObject(setOf("audience", "subject", "body"), maxBytes = 32 * 1024)
+                    val audience = CoachMessages.Audience.entries.firstOrNull { it.name == json.requiredString("audience") }
+                        ?: throw IllegalArgumentException("audience")
+                    Triple(audience, requireNotNull(text(json.requiredString("subject"), 150)) { "subject" },
+                        requireNotNull(text(json.requiredString("body"), 5000, multiline = true)) { "body" })
+                } catch (_: IllegalArgumentException) {
+                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                }
+                when (val result = database.onDatabaseThread { CoachMessages(it, notifier).send(actor.accountId, event, audience, subject, body) }) {
+                    is CoachMessages.Outcome.Sent -> call.respondJson(buildJsonObject { put("members", result.members) })
+                    CoachMessages.Outcome.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    CoachMessages.Outcome.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                    CoachMessages.Outcome.EmailOff -> call.refuse(HttpStatusCode.Conflict, "email_off")
+                    CoachMessages.Outcome.Limit -> call.refuse(HttpStatusCode.Conflict, "limit")
+                    CoachMessages.Outcome.NotMatch -> call.refuse(HttpStatusCode.Conflict, "not_match")
+                    CoachMessages.Outcome.Closed -> call.refuse(HttpStatusCode.Conflict, "closed")
+                }
+            }
+        }
         get("/api/v1/teams/{teamId}/js-attendance") {
             call.jsAttendance(sessions, cookies, database, file = false)
         }

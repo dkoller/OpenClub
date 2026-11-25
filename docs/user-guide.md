@@ -200,6 +200,11 @@ the team and the parents of its children are also asked by email (*Helpers wante
 then *Add shift*. *Edit* changes a shift (you cannot lower the places below the people already signed up), *Delete*
 followed by the confirmation removes it with its sign-ups.
 
+**Message to the team.** On an event's page, managers open *Message to the team*, choose *Everyone in the team*,
+*Everyone who said yes*, *Everyone without an answer* or (for a match) *The squad*, write a *Subject* and the
+*Message*, and *Send*. The server emails them (parents for their children) with your name; nobody sees any address.
+At most 10 messages per team and day.
+
 **Fields and halls.** If the club keeps a list of fields and halls, the event form has *Field or hall*. A slot that is
 already booked is refused with the other event's team, title and time, so you can pick another time or place. *Change
 several events* can also move events to *Another field or hall*. Everyone can see when each one is booked under
@@ -262,7 +267,7 @@ reminder the day before a volunteer shift you signed up for. *Helpers wanted*: s
 your team (or your child's) that still has free places, you get one email per event listing those shifts with the
 free places and a link; not if you (or your child) already help at that event. *Answer missing*: two days before
 an event that still lacks your answer (or your child's), and when the coach sends a reminder. *Called up for a match*: when you
-or your child are added to a match squad. Untick what you do not want and choose the language of
+or your child are added to a match squad. *Messages from the coach*: messages a coach sends to your team. Untick what you do not want and choose the language of
 the emails; changes save at once. You need a sign-in and an email address to receive them.
 
 **Membership applications** (*Administration* → *Join requests*, with `EDIT_MEMBERS`): tick *Public application form is on* to show *Join the club* on
