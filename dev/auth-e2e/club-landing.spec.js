@@ -655,7 +655,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(schedule.getByText('No events in the next eight weeks.')).toBeVisible();
   await schedule.getByLabel('Title').fill('Juniors training');
   await schedule.getByLabel('Date', { exact: true }).fill(firstDay);
-  await schedule.getByLabel('Place').fill('Hall 1');
+  await schedule.getByLabel('Place', { exact: true }).fill('Hall 1');
   await schedule.getByLabel('Repeat weekly until').fill(lastDay);
   await schedule.getByRole('button', { name: 'Add event' }).click();
   await expect(schedule.getByRole('status')).toHaveText('Event saved.');
