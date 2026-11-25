@@ -355,3 +355,11 @@ Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
 | --- | --- | --- |
 | 66 | Venues | Approved as OpenAPI **1.30.0** (V40). A new club-wide capability `MANAGE_VENUES`, given to the first administrator at bootstrap (others only by an explicit grant), adds, renames (unique, ignoring case, ≤ 100) and deletes the club's fields and halls (`POST /v1/venues`, `PUT`/`DELETE /v1/venues/{venueId}`); deleting keeps the events without the venue. Every active member reads the list (`GET /v1/venues`, with `canManage`) and each venue's bookings for up to 62 days (`GET /v1/venues/{venueId}/bookings`: team, kind, title, times; never people). Events take an optional `venueId`; two events that are not cancelled never hold one venue at overlapping times (exclusion constraint with `btree_gist`; the API answers 409 `venue_taken` naming the other event's team, title and start, and checks every weekly copy). Bulk changes gain `SET_VENUE`. Not audited (club content). |
 
+## Addendum 35 — coach messages (2026-11-26)
+
+Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 67 | Coach messages | Approved as OpenAPI **1.31.0** (V41). `POST /v1/events/{eventId}/messages` for `MANAGE_TEAMS` for the event's team: audience everyone in the team, those who said yes, those without an answer, or the squad of a match; subject ≤ 150 (one line), text ≤ 5000. The server emails each of them and the guardians of their minors (`TEAM_MESSAGE`, with the sender's name, never addresses), honouring the new `teamMessages` switch (on by default). At most 10 per team within 24 hours (the team row is locked while counting); allowed until a day after the event. Only time, audience and number of members are logged (`coach_messages`, with the event), never the text beyond the outbox. |
+
