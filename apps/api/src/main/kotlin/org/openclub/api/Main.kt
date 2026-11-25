@@ -18,6 +18,7 @@ import org.openclub.api.notifications.Notifier
 import org.openclub.api.notifications.SmtpMailer
 import org.openclub.api.notifications.installNotificationHttpRoutes
 import org.openclub.api.venues.installVenueHttpRoutes
+import org.openclub.api.fees.installHelperDutyHttpRoutes
 import org.openclub.api.join.installJoinRequestHttpRoutes
 import org.openclub.api.teams.installAbsenceHttpRoutes
 import org.openclub.api.teams.installRideHttpRoutes
@@ -185,5 +186,6 @@ internal fun Application.module(
         installAnnouncementHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, notifier)
         installNotificationHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, notifier)
         installVenueHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
+        installHelperDutyHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
     }
 }

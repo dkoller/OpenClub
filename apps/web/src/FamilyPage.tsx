@@ -8,6 +8,7 @@ import { fill } from './EventBits'
 import { MyProfile } from './MyProfile'
 import { MyDependents } from './MyDependents'
 import { MyFees } from './MyFees'
+import { MyHelperDutyCard } from './HelperDuty'
 import { Absences } from './Absences'
 import { CalendarFeed } from './CalendarFeed'
 import { NotificationSettings } from './NotificationSettings'
@@ -68,7 +69,7 @@ export function FamilyPage({ language, csrfToken, self, section }: Props & { sec
     {section === 'profile' && <MyProfile language={language} csrfToken={csrfToken} />}
     {section === 'children' && <MyDependents language={language} csrfToken={csrfToken} />}
     {section === 'absences' && <Absences language={language} csrfToken={csrfToken} self={self} onChange={() => undefined} />}
-    {section === 'fees' && <MyFees language={language} />}
+    {section === 'fees' && <><MyFees language={language} /><MyHelperDutyCard language={language} /></>}
     {section === 'calendar' && <CalendarFeed language={language} csrfToken={csrfToken} />}
     {section === 'notifications' && <NotificationSettings language={language} csrfToken={csrfToken} />}
   </>

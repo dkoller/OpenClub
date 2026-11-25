@@ -363,3 +363,11 @@ Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
 | --- | --- | --- |
 | 67 | Coach messages | Approved as OpenAPI **1.31.0** (V41). `POST /v1/events/{eventId}/messages` for `MANAGE_TEAMS` for the event's team: audience everyone in the team, those who said yes, those without an answer, or the squad of a match; subject ≤ 150 (one line), text ≤ 5000. The server emails each of them and the guardians of their minors (`TEAM_MESSAGE`, with the sender's name, never addresses), honouring the new `teamMessages` switch (on by default). At most 10 per team within 24 hours (the team row is locked while counting); allowed until a day after the event. Only time, audience and number of members are logged (`coach_messages`, with the event), never the text beyond the outbox. |
 
+## Addendum 36 — helper duty (2026-11-26)
+
+Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 68 | Helper duty | Approved as OpenAPI **1.32.0** (V42). Club settings `helper_quota` (0–50, 0 = off, default 0) and `season_start_month` (1–12, default August), set by `MANAGE_FEES` holders (`PUT /v1/club/helper-duty`). Liable: active adults in a team and guardians of an active minor in a team. A shift counts once it has started and its event was not cancelled, for the volunteer and for the guardians of a current minor volunteer (two guardians of one child both get it). Each member sees their own count (`GET /v1/me/helper-duty`); the treasurer sees every liable adult's full name with done and owed (`GET /v1/helper-duty`). Any substitute fee stays a normal manual fee. Counts derive from sign-ups, which end when a member leaves the team and are deleted 12 months after the shift. Not audited. |
+
