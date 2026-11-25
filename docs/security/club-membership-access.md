@@ -394,6 +394,13 @@ Owner-approved (ADR-0008 addendum 24). Entering, listing and deleting are limite
 
 Owner-approved (ADR-0008 addendum 25), including a narrow contact exception. Offering requires an adult with a verified sign-in who is in the event's team or guards a current minor in it, checked in the inserting statement; booking reuses the shifts pattern (oneself or one's current minor, assignment locked `FOR SHARE`, ride locked first and seats counted in a fresh statement, closed after departure or for a cancelled event). Visibility follows shifts. Phones are read in SQL but released by the route only to the driver (passengers' phones; for a minor the phone of the guardian who booked, never the child's own record) and to a caller who holds a seat on that ride for themselves or a minor (the driver's phone); every other caller gets `null`. Bookings and offers end when a member leaves the team (V33 trigger), cascade on erasure, and are deleted 12 months after the event. Not audited. Tests: `RideHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
 
+## Bulk changes to events (OpenAPI 1.29.0)
+
+Owner-approved (ADR-0008 addendum 33). One transaction share-locks the named teams and requires `MANAGE_TEAMS` for
+every one before selecting anything (403 otherwise, nothing changed); the selected events are locked and the update
+repeats the grant check per row, so a revocation in between fails the whole change. Only events that have not started
+change, at most 500. No personal data is read or written; the summary email uses the usual recipient rule.
+
 ## Match squads (OpenAPI 1.28.0)
 
 Owner-approved (ADR-0008 addendum 32). V39 adds `event_squads` and `squad_members`; a trigger removes a member from

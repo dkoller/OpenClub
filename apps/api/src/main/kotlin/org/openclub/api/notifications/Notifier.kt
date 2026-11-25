@@ -247,6 +247,31 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
     }
 
     /**
+     * A bulk change (OpenAPI 1.29.0, ADR-0008 addendum 33): one message per recipient listing every changed or
+     * cancelled event of their teams (and their minors' teams), instead of one message per event.
+     */
+    fun eventsBulkChanged(db: DSLContext, ids: List<UUID>, cancelled: Boolean) {
+        if (!enabled || ids.isEmpty()) return
+        val kind = if (cancelled) Kind.EVENT_CANCELLED else Kind.EVENT_CHANGED
+        val events = events(db, ids).filter { it.endsAt.isAfter(OffsetDateTime.now()) }
+        val byPerson = linkedMapOf<Recipient, MutableList<EventDetails>>()
+        for ((teamId, teamEvents) in events.groupBy { it.teamId }) {
+            recipients(db, team, arrayOf<Any>(teamId), kind).forEach { byPerson.getOrPut(it) { mutableListOf() } += teamEvents }
+        }
+        for ((person, list) in byPerson) {
+            queue(db, kind, listOf(person)) { text, club ->
+                Message(text.subject(club, if (cancelled) text.cancelled else text.changed, "${list.size} × ${list.first().teamName}"),
+                    buildString {
+                        list.sortedBy { it.startsAt }.forEach { event ->
+                            appendLine("${event.teamName}: ${event.title}, ${when_(event, text)}${event.location?.let { " – ${text.place}: $it" }.orEmpty()}")
+                        }
+                        append(text.footer(origin))
+                    })
+            }
+        }
+    }
+
+    /**
      * Squad calls (OpenAPI 1.28.0, ADR-0008 addendum 32): one message per newly called member to that member and, for a
      * current minor, their guardians (naming the child), with the match, the meeting time and the meeting point.
      */
