@@ -194,7 +194,7 @@ class MemberDetailsAndErasureHttpTest {
         assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
         val body = response.json()
         assertEquals(setOf("id", "firstName", "lastName", "dateOfBirth", "email", "phone", "gender", "isPlayer",
-            "archivedAt", "hasLinkedLogin", "listedPublicly", "invitation"), body.keys)
+            "archivedAt", "hasLinkedLogin", "listedPublicly", "jsPersonNumber", "invitation"), body.keys)
         assertEquals(active.toString(), body["id"]!!.jsonPrimitive.content)
         assertEquals("Edit", body["firstName"]!!.jsonPrimitive.content)
         assertEquals("1990-02-03", body["dateOfBirth"]!!.jsonPrimitive.content)

@@ -23,6 +23,7 @@ internal class MyProfile(private val database: DSLContext) {
         val id: UUID, val firstName: String, val lastName: String, val dateOfBirth: LocalDate,
         val email: String?, val phone: String?, val gender: String?, val isPlayer: Boolean,
         val role: String, val teams: List<Team>, val version: Long, val listedPublicly: Boolean = true,
+        val jsPersonNumber: String? = null,
     )
 
     sealed interface Replaced {
@@ -34,7 +35,7 @@ internal class MyProfile(private val database: DSLContext) {
     fun read(actor: UUID): Profile? {
         val row = database.fetchOne(
             """SELECT me.id, me.first_name, me.last_name, me.date_of_birth, me.email, me.phone, me.gender,
-                      me.is_player, me.role, me.row_version, me.listed_publicly,
+                      me.is_player, me.role, me.row_version, me.listed_publicly, me.js_person_number,
                       (SELECT COALESCE(json_agg(json_build_object('id', t.id, 'name', t.name) ORDER BY t.name, t.id),
                                        '[]'::json)::text
                        FROM member_team_assignments a JOIN teams t ON t.id = a.team_id
@@ -51,7 +52,7 @@ internal class MyProfile(private val database: DSLContext) {
             row.get("email", String::class.java), row.get("phone", String::class.java),
             row.get("gender", String::class.java), row.get("is_player", Boolean::class.java),
             row.get("role", String::class.java), teams, row.get("row_version", Long::class.java),
-            row.get("listed_publicly", Boolean::class.java),
+            row.get("listed_publicly", Boolean::class.java), row.get("js_person_number", String::class.java),
         )
     }
 

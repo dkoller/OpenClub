@@ -12,9 +12,11 @@ export type MyProfile = {
   teams: { id: string; name: string }[]
   /** Whether the name is on the public member list (OpenAPI 1.15.0). */
   listedPublicly: boolean
+  /** The J+S person number set by the club (OpenAPI 1.27.0). */
+  jsPersonNumber: string | null
 }
 
-const keys = ['id', 'firstName', 'lastName', 'dateOfBirth', 'email', 'phone', 'gender', 'isPlayer', 'role', 'teams', 'listedPublicly']
+const keys = ['id', 'firstName', 'lastName', 'dateOfBirth', 'email', 'phone', 'gender', 'isPlayer', 'role', 'teams', 'listedPublicly', 'jsPersonNumber']
 const text = (value: unknown) => typeof value === 'string'
 const textOrNull = (value: unknown) => value === null || typeof value === 'string'
 
@@ -24,7 +26,7 @@ export function parseMyProfile(body: unknown): MyProfile {
   const value = body as Record<string, unknown>
   const valid = Object.keys(value).length === keys.length && keys.every(key => key in value) &&
     text(value.id) && text(value.firstName) && text(value.lastName) && text(value.dateOfBirth) &&
-    textOrNull(value.email) && textOrNull(value.phone) && textOrNull(value.gender) &&
+    textOrNull(value.email) && textOrNull(value.phone) && textOrNull(value.gender) && textOrNull(value.jsPersonNumber) &&
     typeof value.isPlayer === 'boolean' && typeof value.listedPublicly === 'boolean' && (value.role === 'ADMIN' || value.role === 'MEMBER') &&
     Array.isArray(value.teams) && value.teams.every(team => typeof team === 'object' && team !== null &&
       Object.keys(team).length === 2 && text((team as Record<string, unknown>).id) && text((team as Record<string, unknown>).name))

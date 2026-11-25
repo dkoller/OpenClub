@@ -6,6 +6,7 @@ import { memberCount } from './TeamDirectory'
 import { TeamSchedule } from './TeamSchedule'
 import { TeamMembers } from './TeamMembers'
 import { AttendanceStatistics } from './AttendanceStatistics'
+import { JsExport } from './PresencePanel'
 
 const words = {
   de: { loading: 'Wird geladen…', error: 'Das Team ist gerade nicht verfügbar.', retry: 'Erneut versuchen', gone: 'Dieses Team gibt es nicht mehr, oder du siehst es nicht.', back: 'Alle Teams', parts: 'Teambereiche', schedule: 'Programm', scheduleHint: 'Trainings und Spiele, wer kommt, Helfer und Fahrten', members: 'Mitglieder', statistics: 'Statistik', statisticsHint: 'Wer wie oft dabei war', manage: 'Team verwalten', name: 'Teamname', rename: 'Umbenennen', save: 'Speichern', cancel: 'Abbrechen', renameError: 'Team konnte nicht umbenannt werden.', delete: 'Team löschen', deleteWarning: 'Team und alle Zuordnungen werden gelöscht. Teamnamen zur Bestätigung eingeben.', confirmDelete: 'Endgültig löschen', deleteError: 'Team konnte nicht gelöscht werden.', denied: 'Keine Berechtigung, dieses Team zu ändern.' },
@@ -159,6 +160,9 @@ export function TeamPage({ teamId, section, language, csrfToken }: {
     </ul></nav>
     {section === 'schedule' && <TeamSchedule teamId={teamId} teamName={team.name} language={language} csrfToken={csrfToken} />}
     {section === 'members' && <TeamMembers teamId={teamId} language={language} csrfToken={csrfToken} onChanged={() => undefined} />}
-    {section === 'statistics' && <AttendanceStatistics teamId={teamId} teamName={team.name} language={language} />}
+    {section === 'statistics' && <>
+      <AttendanceStatistics teamId={teamId} teamName={team.name} language={language} />
+      <JsExport teamId={teamId} language={language} />
+    </>}
   </>
 }

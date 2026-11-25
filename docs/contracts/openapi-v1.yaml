@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
   title: OpenClub single-club management API — synthetic M1
-  version: 1.26.0
+  version: 1.27.0
   description: >
     Frozen contract for the implemented synthetic M1 HTTP surface, accepted by
     the owner on 2026-11-17 (ADR-0007, #13). 1.1.0 adds the per-club adult-age
     setting (PATCH /v1/club/adult-age-policy and adultAgeYears in GET /v1/club, #17). 1.2.0 adds invitations
     and account unlinking (owner-approved 2026-11-18, ADR-0008 addendum 4): create and revoke an invitation,
-    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). 1.11.0 adds attendance: members and guardians answer YES, NO or MAYBE until an event starts, team viewers and managers see the answers by public display name, and every event carries the totals, owner-approved 2026-11-19 (ADR-0008 addendum 14). 1.12.0 adds membership fees: the club-wide MANAGE_FEES capability, fee periods and each member's fee and payment (tracking only), each member's own and children's fees (GET /v1/me/fees), and fees in the member export, owner-approved 2026-11-19 (ADR-0008 addendum 15). 1.13.0 adds the member list as CSV for editors: an audited export (GET /v1/members/export.csv) and an import that is previewed, creates only new valid members and skips duplicates (POST /v1/members/import), owner-approved 2026-11-19 (ADR-0008 addendum 17). 1.14.0 adds announcements: club-wide with the new POST_ANNOUNCEMENTS capability, per team with MANAGE_TEAMS, and each member's current announcements (GET /v1/me/announcements), owner-approved 2026-11-19 (ADR-0008 addendum 18). 1.14.1 (security review of 1.9.0–1.14.0) adds the member's attendance answers to the member export and answers 404 for an unknown event, announcement or team only to club-wide holders (403 otherwise), so team-scoped holders learn nothing about IDs they cannot reach. 1.15.0 adds the public member list opt-out decided by the club as controller (ADR-0008 addendum 19, decision C5): a member hides or shows their own name (PUT /v1/me/profile/public-listing) and an editor does it for any active member (PUT /v1/members/{memberId}/public-listing); My profile, the editor's detail read and the member export carry listedPublicly. 1.16.0 adds volunteer shifts (ADR-0008 addendum 20): team managers add shifts with a number of places to a team event, the team sees them with the volunteers' public display names, members and guardians sign up or withdraw until a shift starts and while places are free, and the member export lists a member's sign-ups. 1.17.0 adds private calendar feeds (ADR-0008 addendum 21): a member creates, replaces or revokes one secret feed link (shown once, only its hash stored) that calendar apps load without a session (GET /v1/calendar/{secret}, iCalendar with the events of My schedule, four weeks back to six months ahead, including notes, never names). 1.18.0 adds attendance statistics per team for VIEW_TEAMS and MANAGE_TEAMS holders (GET /v1/teams/{teamId}/attendance-statistics, ADR-0008 addendum 22). 1.19.0 adds email notifications (ADR-0008 addendum 23): a member's own switches for event changes, new events, announcements and shift reminders, all on by default, and the email language (GET and PUT /v1/me/notifications); messages go only to members with a verified sign-in, through the operator's SMTP server. 1.20.0 adds absences (ADR-0008 addendum 24): a member, or a guardian for their minor, enters days away, and every unanswered event of their teams on those days counts as No everywhere answers are shown or counted. 1.21.0 adds carpooling (ADR-0008 addendum 25): adults of an event's team or guardians of its minors offer rides, team members and guardians book seats, and a driver and the people they carry see each other's phone. 1.22.0 adds join requests (ADR-0008 addendum 26): a public form, off until an EDIT_MEMBERS holder switches it on, where adults apply for themselves and parents for a child; editors accept (creating the member) or decline. 1.23.0 adds the managers' overview of helper shifts that still need people (GET /v1/shifts/unfilled, ADR-0008 addendum 27): counts only, for the teams the caller manages, the next 14 days. 1.24.0 adds the helpers-wanted email (ADR-0008 addendum 28): seven days before a helper shift that still has free places, the team and the guardians of its minors are asked once, counts only, with the member's own `helpersWanted` switch in the notification settings (on by default; optional in PUT, where leaving it out keeps the stored value). 1.25.0 adds answer reminders (ADR-0008 addendum 29): an automatic email two days before an event to team members without an answer (guardians for their minors), a coach's reminder (POST /v1/events/{eventId}/attendance-reminders, MANAGE_TEAMS, at most every 12 hours) and the member's own `answerReminders` switch. 1.26.0 adds Swiss QR bills for fees (ADR-0008 addendum 30): MANAGE_FEES holders read and replace the club's payment details (GET and PUT /v1/club/payment-details: a Swiss or Liechtenstein IBAN or QR-IBAN, the account holder and their postal address), a member or guardian downloads the A4 PDF QR bill of their own or their current minor's open fee (GET /v1/me/fees/{periodId}/{memberId}/qr-bill, generated on demand, never stored, the payer's address left empty), GET /v1/me/fees says per fee whether a bill is available (qrBill), and the treasurer's fee list shows each member's payment reference (reference). It contains exactly the operations
+    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). 1.11.0 adds attendance: members and guardians answer YES, NO or MAYBE until an event starts, team viewers and managers see the answers by public display name, and every event carries the totals, owner-approved 2026-11-19 (ADR-0008 addendum 14). 1.12.0 adds membership fees: the club-wide MANAGE_FEES capability, fee periods and each member's fee and payment (tracking only), each member's own and children's fees (GET /v1/me/fees), and fees in the member export, owner-approved 2026-11-19 (ADR-0008 addendum 15). 1.13.0 adds the member list as CSV for editors: an audited export (GET /v1/members/export.csv) and an import that is previewed, creates only new valid members and skips duplicates (POST /v1/members/import), owner-approved 2026-11-19 (ADR-0008 addendum 17). 1.14.0 adds announcements: club-wide with the new POST_ANNOUNCEMENTS capability, per team with MANAGE_TEAMS, and each member's current announcements (GET /v1/me/announcements), owner-approved 2026-11-19 (ADR-0008 addendum 18). 1.14.1 (security review of 1.9.0–1.14.0) adds the member's attendance answers to the member export and answers 404 for an unknown event, announcement or team only to club-wide holders (403 otherwise), so team-scoped holders learn nothing about IDs they cannot reach. 1.15.0 adds the public member list opt-out decided by the club as controller (ADR-0008 addendum 19, decision C5): a member hides or shows their own name (PUT /v1/me/profile/public-listing) and an editor does it for any active member (PUT /v1/members/{memberId}/public-listing); My profile, the editor's detail read and the member export carry listedPublicly. 1.16.0 adds volunteer shifts (ADR-0008 addendum 20): team managers add shifts with a number of places to a team event, the team sees them with the volunteers' public display names, members and guardians sign up or withdraw until a shift starts and while places are free, and the member export lists a member's sign-ups. 1.17.0 adds private calendar feeds (ADR-0008 addendum 21): a member creates, replaces or revokes one secret feed link (shown once, only its hash stored) that calendar apps load without a session (GET /v1/calendar/{secret}, iCalendar with the events of My schedule, four weeks back to six months ahead, including notes, never names). 1.18.0 adds attendance statistics per team for VIEW_TEAMS and MANAGE_TEAMS holders (GET /v1/teams/{teamId}/attendance-statistics, ADR-0008 addendum 22). 1.19.0 adds email notifications (ADR-0008 addendum 23): a member's own switches for event changes, new events, announcements and shift reminders, all on by default, and the email language (GET and PUT /v1/me/notifications); messages go only to members with a verified sign-in, through the operator's SMTP server. 1.20.0 adds absences (ADR-0008 addendum 24): a member, or a guardian for their minor, enters days away, and every unanswered event of their teams on those days counts as No everywhere answers are shown or counted. 1.21.0 adds carpooling (ADR-0008 addendum 25): adults of an event's team or guardians of its minors offer rides, team members and guardians book seats, and a driver and the people they carry see each other's phone. 1.22.0 adds join requests (ADR-0008 addendum 26): a public form, off until an EDIT_MEMBERS holder switches it on, where adults apply for themselves and parents for a child; editors accept (creating the member) or decline. 1.23.0 adds the managers' overview of helper shifts that still need people (GET /v1/shifts/unfilled, ADR-0008 addendum 27): counts only, for the teams the caller manages, the next 14 days. 1.24.0 adds the helpers-wanted email (ADR-0008 addendum 28): seven days before a helper shift that still has free places, the team and the guardians of its minors are asked once, counts only, with the member's own `helpersWanted` switch in the notification settings (on by default; optional in PUT, where leaving it out keeps the stored value). 1.25.0 adds answer reminders (ADR-0008 addendum 29): an automatic email two days before an event to team members without an answer (guardians for their minors), a coach's reminder (POST /v1/events/{eventId}/attendance-reminders, MANAGE_TEAMS, at most every 12 hours) and the member's own `answerReminders` switch. 1.26.0 adds Swiss QR bills for fees (ADR-0008 addendum 30): MANAGE_FEES holders read and replace the club's payment details (GET and PUT /v1/club/payment-details: a Swiss or Liechtenstein IBAN or QR-IBAN, the account holder and their postal address), a member or guardian downloads the A4 PDF QR bill of their own or their current minor's open fee (GET /v1/me/fees/{periodId}/{memberId}/qr-bill, generated on demand, never stored, the payer's address left empty), GET /v1/me/fees says per fee whether a bill is available (qrBill), and the treasurer's fee list shows each member's payment reference (reference). 1.27.0 adds actual attendance and the J+S export (ADR-0008 addendum 31): a team manager records who came once an event has started (GET and PUT /v1/events/{eventId}/presence), editors set a member's J+S person number (PUT /v1/members/{memberId}/js-person-number, also in the detail read, My profile and the member export), and team managers check and download the file for the NDS attendance import (GET /v1/teams/{teamId}/js-attendance and its .csv). It contains exactly the operations
     registered in Ktor and checked by `dev/verify-m1-openapi.py`. Authentication
     routes (/v1/auth) are documented separately in auth-api-proposal.yaml.
     Version 1.0.0 covers synthetic data only. It does not approve real member
@@ -1434,6 +1434,230 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/members/{memberId}/js-person-number:
+    parameters:
+      - name: memberId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [Members]
+      operationId: setMemberJsPersonNumber
+      summary: Set or clear an active member's J+S person number (EDIT_MEMBERS, since 1.27.0)
+      description: >
+        Digits only, 1 to 12; null clears it. Order of answers: session (401), exact Origin and
+        session CSRF (403), EDIT_MEMBERS (403), the ID and body (400), If-Match with the ETag of the
+        editor's detail read (428 when missing; 412 "changed" when the member changed since), 404 for
+        an unknown or archived member. Audited as JS_NUMBER_CHANGED. Returns the new ETag. The number
+        is shown to editors, to the member in My profile and in the member export, and is used only
+        in the J+S file.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: If-Match
+          in: header
+          required: true
+          description: The ETag of GET /v1/members/{memberId}/details
+          schema: { type: string, pattern: '^"[1-9][0-9]{0,18}"$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [jsPersonNumber]
+              properties:
+                jsPersonNumber: { type: [string, 'null'], pattern: '^[0-9]{1,12}$' }
+      responses:
+        '204':
+          description: Changed
+          headers:
+            ETag:
+              description: The member's new version
+              schema: { type: string }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412':
+          description: The member changed since it was read (code "changed")
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '428':
+          description: If-Match is missing
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/events/{eventId}/presence:
+    parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Events]
+      operationId: getEventPresence
+      summary: Who came to an event, for the team's managers (since 1.27.0)
+      description: >
+        Needs MANAGE_TEAMS club-wide or for the event's team; without MANAGE_TEAMS anywhere 403,
+        another team 403; an unknown event is 404 for a holder. People: active team members as
+        PARTICIPANT, active members with a team-scoped MANAGE_TEAMS grant for the team as LEADER
+        (also when they are in the team), and anyone already recorded, with the recorded role. Names
+        by public display name (minors' first name and surname initial), with the member's answer.
+        `open` is true once the event has started, unless it is cancelled. Not audited; never cacheable.
+      responses:
+        '200':
+          description: The people and who came
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [open, items]
+                properties:
+                  open: { type: boolean }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [memberId, displayName, role, response, present]
+                      properties:
+                        memberId: { type: string, format: uuid }
+                        displayName: { type: string }
+                        role: { type: string, enum: [PARTICIPANT, LEADER] }
+                        response: { type: [string, 'null'], enum: ['YES', 'NO', MAYBE, null] }
+                        present: { type: boolean }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    put:
+      tags: [Events]
+      operationId: replaceEventPresence
+      summary: Record who came to an event (MANAGE_TEAMS, since 1.27.0)
+      description: >
+        Replaces the list of people who came with `present` (distinct member IDs, at most 500, each
+        one of the event's people as in the read; anything else is 400). Order of answers: session
+        (401), exact Origin and session CSRF (403), MANAGE_TEAMS somewhere (403), the ID and body
+        (400), the event (403 for another team, 404 unknown), 409 "not_started" before the event
+        starts or when it is cancelled, then 400 for a person who is not one of the event's people.
+        The event row is locked while saving. A record stays with the event (also when the member
+        leaves the team) and is deleted with it. Not audited.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [present]
+              properties:
+                present:
+                  type: array
+                  maxItems: 500
+                  uniqueItems: true
+                  items: { type: string, format: uuid }
+      responses:
+        '204': { description: Saved }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The event has not started or is cancelled (code "not_started")
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/teams/{teamId}/js-attendance:
+    parameters:
+      - name: teamId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: from
+        in: query
+        required: false
+        description: First day (Swiss date), default 12 months before `to`
+        schema: { type: string, format: date }
+      - name: to
+        in: query
+        required: false
+        description: Last day (Swiss date), default today; at most 366 days after `from`
+        schema: { type: string, format: date }
+    get:
+      tags: [Events]
+      operationId: checkTeamJsAttendance
+      summary: Check the J+S attendance file before downloading it (MANAGE_TEAMS, since 1.27.0)
+      description: >
+        For the team's trainings and matches that started in the range and were not cancelled:
+        the number of rows the file will have, the display names of recorded people without a J+S
+        person number (left out of the file) and the trainings without a place (title and date; the
+        NDS needs a place for a training). Same access and parameter rules as the statistics, with
+        MANAGE_TEAMS. Not audited.
+      responses:
+        '200':
+          description: The check
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [from, to, rows, withoutNumber, trainingsWithoutPlace]
+                properties:
+                  from: { type: string, format: date }
+                  to: { type: string, format: date }
+                  rows: { type: integer, minimum: 0 }
+                  withoutNumber: { type: array, items: { type: string } }
+                  trainingsWithoutPlace: { type: array, items: { type: string } }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/teams/{teamId}/js-attendance.csv:
+    parameters:
+      - name: teamId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: from
+        in: query
+        required: false
+        schema: { type: string, format: date }
+      - name: to
+        in: query
+        required: false
+        schema: { type: string, format: date }
+    get:
+      tags: [Events]
+      operationId: downloadTeamJsAttendance
+      summary: The file for the NDS attendance import (MANAGE_TEAMS, since 1.27.0)
+      description: >
+        Semicolon-separated, UTF-8, CRLF lines, header PERSONENNUMMER;FUNKTION;DATUM;AKTIVITAETSTYP;
+        ZEIT;DAUER;ORT. One row per recorded person with a J+S person number and event: FUNKTION
+        Leiter/in or Teilnehmer/in, DATUM dd.MM.yyyy in Swiss time; a training is "Training" with
+        ZEIT (HH:mm), DAUER (minutes) and ORT (the place, separators and line breaks replaced by
+        spaces, a leading formula character dropped); a match is "Wettkampf" with the last three
+        empty; other events are left out. A request another site started (Sec-Fetch-Site) is 403.
+        Audited as JS_ATTENDANCE_EXPORTED against the caller's own member record. Otherwise as the check.
+      responses:
+        '200':
+          description: The CSV file
+          content:
+            text/csv:
+              schema: { type: string }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /v1/me/events:
     get:
@@ -3444,6 +3668,10 @@ components:
         listedPublicly:
           type: boolean
           description: Whether the name is on the public member list (editors only, since 1.15.0).
+        jsPersonNumber:
+          type: [string, 'null']
+          pattern: '^[0-9]{1,12}$'
+          description: The J+S person number (editors only, since 1.27.0).
         invitation:
           type: object
           additionalProperties: false
@@ -3503,7 +3731,7 @@ components:
     MyProfile:
       type: object
       additionalProperties: false
-      required: [id, firstName, lastName, dateOfBirth, email, phone, gender, isPlayer, role, teams, listedPublicly]
+      required: [id, firstName, lastName, dateOfBirth, email, phone, gender, isPlayer, role, teams, listedPublicly, jsPersonNumber]
       properties:
         id: { type: string, format: uuid }
         firstName: { type: string }
@@ -3515,6 +3743,7 @@ components:
         isPlayer: { type: boolean }
         role: { type: string, enum: [ADMIN, MEMBER] }
         listedPublicly: { type: boolean, description: Whether the name is on the public member list (since 1.15.0) }
+        jsPersonNumber: { type: [string, 'null'], description: The J+S person number set by the club (since 1.27.0) }
         teams:
           type: array
           items:
@@ -3763,7 +3992,7 @@ components:
         member:
           type: object
           additionalProperties: false
-          required: [id, firstName, lastName, dateOfBirth, email, phone, gender, isPlayer, role, createdAt, archivedAt, hasLinkedLogin, listedPublicly]
+          required: [id, firstName, lastName, dateOfBirth, email, phone, gender, isPlayer, role, createdAt, archivedAt, hasLinkedLogin, listedPublicly, jsPersonNumber]
           properties:
             id: { type: string, format: uuid }
             firstName: { type: string }
@@ -3778,6 +4007,7 @@ components:
             archivedAt: { type: [string, 'null'] }
             hasLinkedLogin: { type: boolean }
             listedPublicly: { type: boolean }
+            jsPersonNumber: { type: [string, 'null'] }
         teams:
           type: array
           items:

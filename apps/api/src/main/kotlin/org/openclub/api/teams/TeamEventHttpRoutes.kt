@@ -1,9 +1,12 @@
 package org.openclub.api.teams
 
+import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.response.header
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
@@ -23,6 +26,7 @@ import org.jooq.impl.DSL
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.notifications.Notifier
 import org.openclub.api.members.guarded
+import org.openclub.api.members.isCrossSiteRequest
 import org.openclub.api.members.optionalText
 import org.openclub.api.members.readSession
 import org.openclub.api.members.refuse
@@ -206,6 +210,57 @@ internal fun Application.installTeamEventHttpRoutes(
                 }
             }
         }
+        // Actual attendance (1.27.0): who came, recorded by a coach once the event has started.
+        get("/api/v1/events/{eventId}/presence") {
+            call.readSession(sessions, cookies) { actor ->
+                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
+                    return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+                val event = call.uuid("eventId") ?: return@readSession call.refuse(HttpStatusCode.BadRequest, "invalid")
+                when (val result = database.onDatabaseThread { EventPresence(it).read(actor.accountId, event) }) {
+                    is EventPresence.Listing.Found -> call.respondJson(buildJsonObject {
+                        put("open", result.open)
+                        put("items", buildJsonArray {
+                            result.people.forEach { add(buildJsonObject {
+                                put("memberId", it.memberId.toString())
+                                put("displayName", it.displayName)
+                                put("role", it.role.name)
+                                put("response", it.response?.let(::JsonPrimitive) ?: JsonNull)
+                                put("present", it.present)
+                            }) }
+                        })
+                    })
+                    EventPresence.Listing.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    EventPresence.Listing.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+            }
+        }
+        put("/api/v1/events/{eventId}/presence") {
+            call.guarded(sessions, cookies, origin, database, null) { actor ->
+                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
+                    return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+                val event = call.uuid("eventId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                val present = try {
+                    call.receiveJsonObject(setOf("present"), maxBytes = PRESENCE_BODY).uuidSet("present", 500)
+                } catch (_: IllegalArgumentException) {
+                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                }
+                when (database.onDatabaseThread { EventPresence(it).replace(actor.accountId, event, present) }) {
+                    EventPresence.Change.DONE -> call.respondText("", status = HttpStatusCode.NoContent)
+                    EventPresence.Change.NOT_FOUND -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    EventPresence.Change.DENIED -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                    EventPresence.Change.CLOSED -> call.refuse(HttpStatusCode.Conflict, "not_started")
+                    EventPresence.Change.INVALID -> call.refuse(HttpStatusCode.BadRequest, "invalid")
+                }
+            }
+        }
+        get("/api/v1/teams/{teamId}/js-attendance") {
+            call.jsAttendance(sessions, cookies, database, file = false)
+        }
+        get("/api/v1/teams/{teamId}/js-attendance.csv") {
+            call.jsAttendance(sessions, cookies, database, file = true)
+        }
         put("/api/v1/events/{eventId}/attendance/{memberId}") {
             call.attendance(sessions, cookies, origin, database, clear = false)
         }
@@ -223,6 +278,9 @@ internal fun Application.installTeamEventHttpRoutes(
         }
     }
 }
+
+/** 500 member IDs as JSON. */
+private const val PRESENCE_BODY = 24 * 1024
 
 private val EVENT_FIELDS = setOf("kind", "title", "startsAt", "endsAt")
 /** Notes of 2,000 characters and a 200-character title and place can exceed 4 KiB as JSON. */
@@ -342,5 +400,52 @@ private suspend fun ApplicationCall.attendance(
         EventAttendance.Change.DONE -> respondText("", status = HttpStatusCode.NoContent)
         EventAttendance.Change.CLOSED -> refuse(HttpStatusCode.Conflict, "conflict")
         EventAttendance.Change.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
+    }
+}
+
+/** A JSON array of distinct member IDs, at most [max]. */
+private fun JsonObject.uuidSet(name: String, max: Int): Set<UUID> {
+    val array = this[name] as? kotlinx.serialization.json.JsonArray ?: throw IllegalArgumentException(name)
+    require(array.size <= max)
+    val ids = array.map {
+        val value = it as? JsonPrimitive
+        require(value != null && value.isString)
+        UUID.fromString(value.content)
+    }
+    require(ids.toSet().size == ids.size)
+    return ids.toSet()
+}
+
+/**
+ * The J+S check (JSON) or the NDS import file (CSV, audited) for a team's dates `from`..`to` (ISO dates, Swiss time,
+ * defaults as for the statistics). Session (401), cross-site request for the file (403), `MANAGE_TEAMS` somewhere
+ * (403), input (400), then the team (403/404).
+ */
+private suspend fun ApplicationCall.jsAttendance(
+    sessions: BrowserSessionOperations, cookies: AuthCookiePolicy, database: DatabaseRuntime, file: Boolean,
+) = readSession(sessions, cookies) { actor ->
+    if (file && isCrossSiteRequest()) return@readSession refuse(HttpStatusCode.Forbidden, "forbidden")
+    if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
+        return@readSession refuse(HttpStatusCode.Forbidden, "forbidden")
+    }
+    val team = uuid("teamId")
+    val dates = dateRange()
+    if (team == null || dates == null) return@readSession refuse(HttpStatusCode.BadRequest, "invalid")
+    val (from, to) = dates
+    when (val result = database.onDatabaseThread { EventPresence(it).export(actor.accountId, team, from, to, audit = file) }) {
+        is EventPresence.Export.Found -> if (file) {
+            response.header(HttpHeaders.ContentDisposition, ContentDisposition.Attachment
+                .withParameter(ContentDisposition.Parameters.FileName, "js-attendance-$from-$to.csv").toString())
+            response.header("X-Content-Type-Options", "nosniff")
+            respondText(EventPresence.csv(result.check.rows), ContentType.Text.CSV.withParameter("charset", "utf-8"))
+        } else respondJson(buildJsonObject {
+            put("from", from.toString())
+            put("to", to.toString())
+            put("rows", result.check.rows.size)
+            put("withoutNumber", buildJsonArray { result.check.withoutNumber.forEach { add(JsonPrimitive(it)) } })
+            put("trainingsWithoutPlace", buildJsonArray { result.check.trainingsWithoutPlace.forEach { add(JsonPrimitive(it)) } })
+        })
+        EventPresence.Export.NotFound -> refuse(HttpStatusCode.NotFound, "not_found")
+        EventPresence.Export.Denied -> refuse(HttpStatusCode.Forbidden, "forbidden")
     }
 }

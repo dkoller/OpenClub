@@ -18,6 +18,8 @@ export type MemberDetails = {
   hasLinkedLogin?: boolean
   /** Editors only (OpenAPI 1.15.0): whether the name is on the public member list. */
   listedPublicly?: boolean
+  /** Editors only (OpenAPI 1.27.0): the J+S person number. */
+  jsPersonNumber?: string | null
   invitation?: { status: 'NONE' | 'OPEN'; expiresAt?: string }
 }
 
@@ -30,7 +32,7 @@ export function memberExportPath(memberId: string): string {
   return '/api/v1/members/' + encodeURIComponent(memberId) + '/export'
 }
 
-const optionalText = ['dateOfBirth', 'email', 'phone', 'gender', 'archivedAt'] as const
+const optionalText = ['dateOfBirth', 'email', 'phone', 'gender', 'archivedAt', 'jsPersonNumber'] as const
 const optionalFlag = ['isPlayer', 'hasLinkedLogin', 'listedPublicly'] as const
 const known = new Set<string>(['id', 'firstName', 'lastName', 'invitation', ...optionalText, ...optionalFlag])
 
@@ -123,6 +125,29 @@ export async function setMemberPublicListing(memberId: string, listed: boolean, 
     method: 'PUT', credentials: 'same-origin',
     headers: { 'X-CSRF-Token': csrfToken, 'Content-Type': 'application/json', 'If-Match': version },
     body: JSON.stringify({ listedPublicly: listed }),
+  })
+  if (response.ok) {
+    const next = response.headers.get('ETag')
+    if (!next) throw new Error('No version')
+    return { outcome: 'ok', version: next }
+  }
+  if (response.status === 401 || response.status === 403) return { outcome: 'denied' }
+  if (response.status === 400) return { outcome: 'invalid' }
+  if (response.status === 404) return { outcome: 'not-found' }
+  if (response.status === 412) return { outcome: 'changed' }
+  throw new Error('Request failed')
+}
+
+/**
+ * PUT /api/v1/members/{id}/js-person-number (OpenAPI 1.27.0, EDIT_MEMBERS): set or clear the J+S person number, at the
+ * version of the edit read; returns the new version.
+ */
+export async function setMemberJsNumber(memberId: string, number: string | null, version: string, csrfToken: string,
+  request: typeof fetch = fetch): Promise<{ outcome: 'ok'; version: string } | { outcome: Exclude<EditOutcome, 'ok'> }> {
+  const response = await request('/api/v1/members/' + encodeURIComponent(memberId) + '/js-person-number', {
+    method: 'PUT', credentials: 'same-origin',
+    headers: { 'X-CSRF-Token': csrfToken, 'Content-Type': 'application/json', 'If-Match': version },
+    body: JSON.stringify({ jsPersonNumber: number }),
   })
   if (response.ok) {
     const next = response.headers.get('ETag')

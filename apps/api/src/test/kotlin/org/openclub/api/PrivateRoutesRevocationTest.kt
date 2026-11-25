@@ -161,6 +161,11 @@ class PrivateRoutesRevocationTest {
         // Answer reminders (1.25.0): an unknown event is 404 for the club-wide holder.
         Route(HttpMethod.Post, "/api/v1/events/${UUID(0, 1)}/attendance-reminders"),
         Route(HttpMethod.Get, "/api/v1/teams/$team/attendance-statistics"),
+        // Actual attendance and the J+S export (1.27.0): an unknown event is 404 for the club-wide holder.
+        Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/presence"),
+        Route(HttpMethod.Put, "/api/v1/events/${UUID(0, 1)}/presence", """{"present":[]}"""),
+        Route(HttpMethod.Get, "/api/v1/teams/$team/js-attendance"),
+        Route(HttpMethod.Get, "/api/v1/teams/$team/js-attendance.csv"),
         // Volunteer shifts (1.16.0): unknown events and shifts are 404 for the club-wide holder. Signing up is covered in
         // EventShiftHttpTest (the holder belongs to no team, so it is 403 there by design).
         Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/shifts"),
@@ -210,6 +215,8 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Post, "/api/v1/me/calendar-feed"),
         Route(HttpMethod.Delete, "/api/v1/me/calendar-feed"),
         Route(HttpMethod.Put, "/api/v1/members/$target/public-listing", """{"listedPublicly":false}"""),
+        // The J+S person number (1.27.0), also stopping at 428 without If-Match.
+        Route(HttpMethod.Put, "/api/v1/members/$target/js-person-number", """{"jsPersonNumber":null}"""),
         // Membership fees (1.12.0): unknown periods are 404 for the holder, so nothing else changes.
         Route(HttpMethod.Get, "/api/v1/fee-periods"),
         Route(HttpMethod.Post, "/api/v1/fee-periods", """{"name":"Revocation fees","dueDate":"2030-01-31","amountCents":100}"""),

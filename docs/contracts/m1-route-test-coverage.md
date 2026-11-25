@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 98 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.26.0) to the tests that exercise it. The operation list and
+Maps each of the 103 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.27.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -81,6 +81,10 @@ How to read the columns of test types:
 | `GET /v1/events/{eventId}/shifts` | 200, 400, 401, 403, 404, 503 | `EventShiftHttpTest` (team members, guardians, viewers and managers see shifts; display names only, minors by initial; `signedUp` only for the caller's people; other teams and members without a team 403; unknown 404 only club-wide), `PrivateRoutesRevocationTest` |
 | `GET /v1/shifts/unfilled` | 200, 401, 403, 503 | `EventShiftHttpTest` (only `MANAGE_TEAMS` holders; viewers, players, guardians and members without grants 403; only managed teams, free places, next 14 days, not cancelled; counts only, no names), `PrivateRoutesRevocationTest` |
 | `POST /v1/events/{eventId}/attendance-reminders` | 200, 400, 401, 403, 404, 409, 503 | `NotificationsTest` (only `MANAGE_TEAMS` for the team; other team and unknown event 403 for a team-scoped holder; started 409; count only; recipients without answer, guardians for minors, switch respected; again within 12 hours 409 `recent`; without email 409 `email_off`), `PrivateRoutesRevocationTest`, Keycloak journey |
+| `GET /v1/events/{eventId}/presence` | 200, 400, 401, 403, 404, 503 | `EventPresenceHttpTest` (leaders first, minors abbreviated, exact keys; viewer, player and another team's manager 403; unknown event 404), `PrivateRoutesRevocationTest` |
+| `PUT /v1/events/{eventId}/presence` | 204, 400, 401, 403, 404, 409, 503 | `EventPresenceHttpTest` (saved and read back; before the start 409; someone outside the event, duplicates, wrong types and extra keys 400; another team 403; a record outlives the team assignment), `PrivateRoutesRevocationTest` |
+| `GET /v1/teams/{teamId}/js-attendance` | 200, 400, 401, 403, 404, 503 | `EventPresenceHttpTest` (rows, people without a number, trainings without a place; not audited; viewer and another team's manager 403; from after to 400), `PrivateRoutesRevocationTest` |
+| `GET /v1/teams/{teamId}/js-attendance.csv` | 200, 400, 401, 403, 404, 503 | `EventPresenceHttpTest` (exact NDS file with leader and participant rows, Swiss date and time, minutes, the place cleaned, a match as Wettkampf; audited once; cross-site 403), `PrivateRoutesRevocationTest` |
 | `POST /v1/events/{eventId}/shifts` | 201, 400, 401, 403, 404, 503 | `EventShiftHttpTest` (CSRF, `MANAGE_TEAMS` for the team only, input bounds, window around the event, trimmed title), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `PUT /v1/shifts/{shiftId}` | 204, 400, 401, 403, 404, 409, 503 | `EventShiftHttpTest` (viewer 403, places below volunteers 409 and unchanged), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `DELETE /v1/shifts/{shiftId}` | 204, 401, 403, 404, 503 | `EventShiftHttpTest` (sign-ups go with the shift, shifts with the event), `PrivateRoutesRevocationTest` |
@@ -88,6 +92,7 @@ How to read the columns of test types:
 | `DELETE /v1/shifts/{shiftId}/volunteers/{memberId}` | 204, 400, 401, 403, 409, 503 | `EventShiftHttpTest` (withdraw twice is 204, 409 after the start; leaving the team ends sign-ups) |
 | `PUT /v1/me/profile/public-listing` | 204, 400, 401, 403, 412, 428, 503 | `MyProfileHttpTest` (CSRF, membership, boolean-only body, `If-Match` 428/412, hidden from and back on the public list, `PUBLIC_LISTING_CHANGED`), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `PUT /v1/members/{memberId}/public-listing` | 204, 400, 401, 403, 404, 412, 428, 503 | `MyProfileHttpTest` (`EDIT_MEMBERS` 403, stale 412, unknown 404, a minor hidden and listed again, audited per change), `PrivateRoutesRevocationTest` |
+| `PUT /v1/members/{memberId}/js-person-number` | 204, 400, 401, 403, 404, 412, 428, 503 | `EventPresenceHttpTest` (only `EDIT_MEMBERS`; letters and numbers as JSON numbers 400; 428 without and 412 with an old version; shown in My profile; audited), `PrivateRoutesRevocationTest` |
 | `PUT /v1/me/profile/contacts` | 204, 400, 401, 403, 412, 428, 503 | `MyProfileHttpTest` (Origin/CSRF and membership before body, only email/phone, adult rule 400, `If-Match` 428/412, stale after an editor's change, `SELF_CONTACTS_UPDATED`, other members untouched), `PrivateRoutesRevocationTest` |
 | `GET /v1/me/events` | 200, 400, 401, 403, 503 | `TeamEventHttpTest` (own teams, children's teams with "for", team grants add nothing, ends when the child comes of age, range errors), `PrivateRoutesRevocationTest` |
 | `GET /v1/teams/{teamId}/events` | 200, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (viewer and manager of the team, `canManage`, exact keys in UTC, explicit range, other team 403, unknown team 404 club-wide), `PrivateRoutesRevocationTest` |
