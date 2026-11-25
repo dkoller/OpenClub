@@ -1,3 +1,4 @@
+import { BulkEventsPanel } from './BulkEventsPanel'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 import { routeHash } from './routes'
@@ -137,6 +138,8 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
         <label>{t.repeat}<input type="date" value={repeatUntil} min={draft.date || undefined} onChange={event => setRepeatUntil(event.target.value)} /></label>
         <button type="submit" disabled={busy}>{t.add}</button>
       </form>}
+      {state === 'ready' && canManage && <BulkEventsPanel teamId={teamId} language={language} csrfToken={csrfToken}
+        onChanged={() => setRevision(value => value + 1)} />}
     </section>
   )
 }

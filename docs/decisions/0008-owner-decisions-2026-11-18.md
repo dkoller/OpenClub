@@ -339,3 +339,11 @@ Shown the squad design, the owner answered **"Approve all"** (see addendum 31).
 | --- | --- | --- |
 | 64 | Match squads | Approved as OpenAPI **1.28.0** (V39). `GET`/`PUT /v1/events/{eventId}/squad` for `MANAGE_TEAMS` for the team, for matches only (409 `not_match` otherwise) and until the match starts (409 `closed`): the called members (active team members only, at most 500), an optional meeting time and meeting point (≤ 200). Each member called for the first time gets a `SQUAD_CALLED` email naming the match, the meeting time and place, and so do the guardians of a called minor; a new `squadCalls` switch (on by default, optional in PUT) turns it off. Removed members are not emailed. Members and guardians see only their own status in `GET /v1/me/events` (`squad`: called or not, meeting details only when called) on the event and schedule pages; the list only the team's managers. The squad goes with its event; a member leaves it with the team (trigger). Not audited. |
 
+## Addendum 33 — changing several events at once (2026-11-26)
+
+Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 65 | Bulk changes | Approved as OpenAPI **1.29.0** (no migration). `POST /v1/events/bulk`: for 1 to 50 teams, each needing `MANAGE_TEAMS`, a range of Swiss dates (≤ 366 days) and the chosen kinds, cancel, reinstate or set a new place (≤ 200) on every event that has not started and would change; at most 500 events; all or nothing, the grant checked again per row in the update. `preview` counts without changing. One summary email per member and guardian of the affected teams (their `eventChanges` switch). The app offers it per team on the team's schedule; the field or hall of feature 6 is added there when venues exist. |
+

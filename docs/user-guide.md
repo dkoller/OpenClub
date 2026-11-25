@@ -195,6 +195,11 @@ the team and the parents of its children are also asked by email (*Helpers wante
 then *Add shift*. *Edit* changes a shift (you cannot lower the places below the people already signed up), *Delete*
 followed by the confirmation removes it with its sign-ups.
 
+**Change several events.** At the bottom of a team's *Schedule*, managers open *Change several events*: choose *From*,
+*To*, which kinds (*Trainings*, *Matches*, *Other events*) and what to do (*Cancel*, *Reinstate* or *New place*), then
+*Check*. It says how many events are affected; *Change 6 events* applies it. Only events that have not started are
+changed, and everyone affected gets a single email listing them.
+
 **Squad (Aufgebot).** For a match, an event's page shows *Squad* to the team's managers until the match starts: tick
 who is called up (*Select everyone who said yes* is a shortcut), optionally set *Meet at* and *Meeting point*, then
 *Save squad*. Everyone called for the first time gets an email (parents for their children); removing someone sends

@@ -655,7 +655,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(schedule.getByText('No events in the next eight weeks.')).toBeVisible();
   await schedule.getByLabel('Title').fill('Juniors training');
   await schedule.getByLabel('Date', { exact: true }).fill(firstDay);
-  await schedule.getByLabel('Place').fill('Hall 1');
+  await schedule.getByLabel('Place', { exact: true }).fill('Hall 1');
   await schedule.getByLabel('Repeat weekly until').fill(lastDay);
   await schedule.getByRole('button', { name: 'Add event' }).click();
   await expect(schedule.getByRole('status')).toHaveText('Event saved.');
@@ -732,7 +732,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   await show(page, '#/family/absences');
   const absences = page.getByRole('region', { name: 'Absences' });
   await expect(absences.getByText('No absences.')).toBeVisible();
-  const todayLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  // The server checks dates in the club's time zone, so use today's Swiss date (the runner's clock is UTC).
+  const todayLocal = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' }).format(new Date());
   await absences.getByLabel('From').fill(todayLocal);
   await absences.getByRole('button', { name: 'Add absence' }).click();
   await expect(absences.getByRole('listitem')).toHaveText(`Me: ${todayLocal} Delete`);

@@ -32,6 +32,7 @@ import org.openclub.api.members.readSession
 import org.openclub.api.members.refuse
 import org.openclub.api.members.respondJson
 import org.openclub.api.receiveJsonObject
+import org.openclub.api.requiredBoolean
 import org.openclub.api.requiredString
 import java.time.DateTimeException
 import java.time.Duration
@@ -117,6 +118,50 @@ internal fun Application.installTeamEventHttpRoutes(
                     }.toString(), ContentType.Application.Json, HttpStatusCode.Created)
                     TeamEvents.Created.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
                     TeamEvents.Created.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+            }
+        }
+        // Several events at once (1.29.0): cancel, reinstate or move to another place, with a preview.
+        post("/api/v1/events/bulk") {
+            call.guarded(sessions, cookies, origin, database, null) { actor ->
+                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
+                    return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                }
+                val input = try {
+                    val body = call.receiveJsonObject(setOf("teamIds", "from", "to", "kinds", "action", "location", "preview"))
+                    val teams = body.uuidSet("teamIds", 50)
+                    require(teams.isNotEmpty())
+                    val from = strictDate(body.requiredString("from"))
+                    val to = strictDate(body.requiredString("to"))
+                    require(!from.isAfter(to) && ChronoUnit.DAYS.between(from, to) <= 366 && from.year in 2000..2099 && to.year in 2000..2099)
+                    val kindsJson = body["kinds"] as? kotlinx.serialization.json.JsonArray ?: throw IllegalArgumentException("kinds")
+                    val kinds = kindsJson.map { value ->
+                        val name = (value as? JsonPrimitive)?.takeIf { it.isString }?.content
+                        TeamEvents.Kind.entries.firstOrNull { it.name == name } ?: throw IllegalArgumentException("kind")
+                    }
+                    require(kinds.isNotEmpty() && kinds.toSet().size == kinds.size)
+                    val action = BulkEvents.Action.entries.firstOrNull { it.name == body.requiredString("action") }
+                        ?: throw IllegalArgumentException("action")
+                    val location = when (val value = body["location"]) {
+                        is JsonNull -> null
+                        is JsonPrimitive -> if (value.isString) text(value.content, 200) else throw IllegalArgumentException("location")
+                        else -> throw IllegalArgumentException("location")
+                    }
+                    require(action == BulkEvents.Action.SET_LOCATION || location == null)
+                    val preview = body.requiredBoolean("preview")
+                    BulkEvents.Input(teams, from, to, kinds.toSet(), action, location, preview)
+                } catch (_: IllegalArgumentException) {
+                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                } catch (_: DateTimeException) {
+                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
+                }
+                when (val result = database.onDatabaseThread { BulkEvents(it, notifier).apply(actor.accountId, input) }) {
+                    is BulkEvents.Result.Done -> call.respondJson(buildJsonObject {
+                        put("matched", result.matched); put("changed", result.changed)
+                    })
+                    BulkEvents.Result.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    BulkEvents.Result.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                    BulkEvents.Result.TooMany -> call.refuse(HttpStatusCode.Conflict, "too_many")
                 }
             }
         }

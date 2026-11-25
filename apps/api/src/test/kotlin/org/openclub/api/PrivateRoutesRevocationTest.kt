@@ -164,6 +164,9 @@ class PrivateRoutesRevocationTest {
         // Actual attendance and the J+S export (1.27.0): an unknown event is 404 for the club-wide holder.
         Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/presence"),
         Route(HttpMethod.Put, "/api/v1/events/${UUID(0, 1)}/presence", """{"present":[]}"""),
+        // Bulk changes (1.29.0): a preview changes nothing.
+        Route(HttpMethod.Post, "/api/v1/events/bulk",
+            """{"teamIds":["$team"],"from":"2030-01-01","to":"2030-01-31","kinds":["TRAINING"],"action":"CANCEL","location":null,"preview":true}"""),
         // Match squads (1.28.0): an unknown event is 404 for the club-wide holder.
         Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/squad"),
         Route(HttpMethod.Put, "/api/v1/events/${UUID(0, 1)}/squad", """{"memberIds":[],"meetAt":null,"meetingPoint":null}"""),

@@ -57,7 +57,7 @@ Each independent installation owns its club's member data: no shared database, c
 - [Single-club deployment and safe fresh-database setup](docs/deployment/single-club.md)
 - [Hosted demo on Infomaniak (runbook)](docs/deployment/infomaniak-demo.md) and the [M1 acceptance walkthrough](docs/deployment/m1-acceptance-walkthrough.md)
 - [User guide for administrators, team managers, members and guardians](docs/user-guide.md)
-- [HTTP API contract (OpenAPI 1.28.0)](docs/contracts/openapi-v1.yaml) and its [test coverage](docs/contracts/m1-route-test-coverage.md)
+- [HTTP API contract (OpenAPI 1.29.0)](docs/contracts/openapi-v1.yaml) and its [test coverage](docs/contracts/m1-route-test-coverage.md)
 - [Original milestone concept](docs/concepts/ai/first-milestone.md)
 - [AI-assisted development concept](docs/concepts/ai/ai-agent-development.md)
 - [Agent contribution rules](AGENTS.md)
