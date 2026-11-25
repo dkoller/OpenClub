@@ -169,6 +169,10 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Get, "/api/v1/venues/${UUID(0, 1)}/bookings"),
         Route(HttpMethod.Put, "/api/v1/venues/${UUID(0, 1)}", """{"name":"Revocation venue"}"""),
         Route(HttpMethod.Delete, "/api/v1/venues/${UUID(0, 1)}"),
+        // Helper duty (1.32.0): the defaults are written back, so nothing changes.
+        Route(HttpMethod.Get, "/api/v1/me/helper-duty"),
+        Route(HttpMethod.Get, "/api/v1/helper-duty"),
+        Route(HttpMethod.Put, "/api/v1/club/helper-duty", """{"quota":0,"seasonStartMonth":8}"""),
         // Coach messages (1.31.0): an unknown event is 404 for the club-wide holder.
         Route(HttpMethod.Post, "/api/v1/events/${UUID(0, 1)}/messages", """{"audience":"ALL","subject":"Revocation","body":"Synthetic"}"""),
         // Bulk changes (1.29.0): a preview changes nothing.

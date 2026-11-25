@@ -152,6 +152,13 @@ Tracking only: OpenClub records who paid, it does not collect money.
   *Reference* column of an opened period shows each member's reference, so you can match a payment in the bank
   statement; then *Mark paid* by hand. A member excluded and included again gets a new reference.
 
+### Helper duty (*Administration* → *Fees*, permission `MANAGE_FEES`)
+
+Under *Helper duty* set *Shifts per season* (0 turns it off) and the month the season starts, then *Save*. The table
+lists every adult in a team and every parent of a child in a team with the shifts *Done* and *Still owed* this
+season, fewest first. A shift counts once it has taken place (not for cancelled events), for the helper and for the
+parents of a helping child. A substitute fee, if the club charges one, is entered as a normal fee.
+
 ### Fields and halls (*Administration* → *Fields and halls*, permission `MANAGE_VENUES`)
 
 Add the club's fields and halls by name (*Add*), *Rename* or *Delete* them. Deleting one keeps its events, without the
@@ -260,6 +267,9 @@ your child are called up shows *Called up*; its page has the meeting time and pl
 you and your children, the team's totals, helper shifts and rides. *Sign up* puts you (or your child) on a
 shift while places are free, *Withdraw* takes you off, both until the shift starts. Your team sees your name on the
 shift so everyone can coordinate.
+
+**Helper shifts** (*Family* → *Fees*): if the club asks for helper shifts, you see how many you (with your
+children) have done this season, for example *1 of 3 helper shifts*.
 
 **Email notifications** (*Family* → *Email notifications*): if your club sends email, you get one when an event of your team (or your
 child's team) is changed or cancelled, when new events are added, when an announcement is posted for you, and a

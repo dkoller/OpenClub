@@ -11,6 +11,7 @@ import { InvitationAdmin } from './InvitationAdmin'
 import { MemberListTransfer } from './MemberListTransfer'
 import { JoinRequestsAdmin } from './JoinRequestsAdmin'
 import { FeeAdmin } from './FeeAdmin'
+import { HelperDutyAdmin } from './HelperDuty'
 import { GrantAdmin } from './GrantAdmin'
 import { RoleAdmin } from './RoleAdmin'
 import { ClubSettings } from './ClubSettings'
@@ -140,7 +141,8 @@ export function AdminPage({ section, part, language, csrfToken, access, club, on
       </>}
       {current === 'join-requests' && <><h1>{t['join-requests']}</h1>
         <JoinRequestsAdmin language={language} csrfToken={csrfToken} onChanged={onDirectoryChanged} /></>}
-      {current === 'fees' && <><h1>{t.fees}</h1><FeeAdmin language={language} csrfToken={csrfToken} /></>}
+      {current === 'fees' && <><h1>{t.fees}</h1><FeeAdmin language={language} csrfToken={csrfToken} />
+        <HelperDutyAdmin language={language} csrfToken={csrfToken} /></>}
       {current === 'venues' && <><h1>{t.venues}</h1><VenueAdmin language={language} csrfToken={csrfToken} /></>}
       {current === 'permissions' && <><h1>{t.permissions}</h1><GrantAdmin language={language} csrfToken={csrfToken} /></>}
       {current === 'settings' && <><h1>{t.settings}</h1>
