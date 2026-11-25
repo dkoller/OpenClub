@@ -18,8 +18,9 @@ import java.util.UUID
  * details and a link, never other members' names; a reminder for a child names that child to their guardian.
  * Without a mail configuration nothing is queued.
  */
-internal class Notifier(private val config: MailConfig?, private val origin: String) {
-    val enabled: Boolean get() = config != null
+internal class Notifier(private val config: MailConfig?, private val origin: String, val push: PushConfig? = null) {
+    /** Messages are queued when the club sends email or push notifications (1.33.0). */
+    val enabled: Boolean get() = config != null || push != null
     private val zone: ZoneId get() = config?.zone ?: ZoneId.of("Europe/Zurich")
 
     enum class Kind(val column: String) {
@@ -370,7 +371,8 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
            SELECT m.id, COALESCE(s.language, 'de') AS language
            FROM targets t JOIN members m ON m.id = t.id
            LEFT JOIN notification_settings s ON s.member_id = m.id
-           WHERE m.email IS NOT NULL AND ${ActorSql.activeVerified("m")} AND COALESCE(s.${kind.column}, TRUE)
+           WHERE (m.email IS NOT NULL OR EXISTS (SELECT 1 FROM push_subscriptions ps WHERE ps.member_id = m.id))
+             AND ${ActorSql.activeVerified("m")} AND COALESCE(s.${kind.column}, TRUE)
            ORDER BY m.id""", *binds).map { Recipient(it.get("id", UUID::class.java), it.get("language", String::class.java)) }
 
     private fun events(db: DSLContext, ids: List<UUID>): List<EventDetails> = db.fetch(

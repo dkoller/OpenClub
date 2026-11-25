@@ -16,7 +16,7 @@ DEFAULT_PATH = "/etc/openclub/demo.yaml"
 HOST = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$")
 EMAIL = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 PATH = re.compile(r"^/[A-Za-z0-9._/-]+$")
-KEYS = {"clubHost", "idHost", "adminEmail", "envDirectory", "clubName", "email"}
+KEYS = {"clubHost", "idHost", "adminEmail", "envDirectory", "clubName", "email", "push"}
 
 
 def fail(message):
@@ -68,6 +68,7 @@ def load(path):
         "envDirectory": text("envDirectory", "/opt/openclub-demo-env"),
         "clubName": text("clubName", "Demo Club"),
         "emailSender": "",
+        "pushHosts": "",
     }
     for key in ("clubHost", "idHost"):
         if not HOST.match(config[key]):
@@ -89,6 +90,17 @@ def load(path):
         if not isinstance(sender, str) or not EMAIL.match(sender.strip()):
             fail("email.sender must be an email address")
         config["emailSender"] = sender.strip()
+    push = data.get("push")
+    if push is not None:
+        if not isinstance(push, dict) or set(map(str, push)) != {"hosts"} or not isinstance(push["hosts"], list) or not push["hosts"]:
+            fail("push must contain exactly: hosts (a list of push service host names)")
+        hosts = []
+        for host in push["hosts"]:
+            name = str(host).strip().lower()
+            if not HOST.match(name.lstrip(".")):
+                fail("push.hosts must be host names such as fcm.googleapis.com or .push.apple.com")
+            hosts.append(name)
+        config["pushHosts"] = ",".join(hosts)
     return config
 
 
@@ -98,7 +110,8 @@ def main(argv):
         config = load(path)
         print(f"{path}: app https://{config['clubHost']}, identity https://{config['idHost']}, "
               f"secrets in {config['envDirectory']}, club \"{config['clubName']}\", "
-              f"email {'via ' + config['emailSender'] if config['emailSender'] else 'off'}")
+              f"email {'via ' + config['emailSender'] if config['emailSender'] else 'off'}, "
+              f"push {'to ' + config['pushHosts'] if config['pushHosts'] else 'off'}")
     elif len(argv) == 2 and argv[0] == "get":
         config = load(path)
         if argv[1] not in config:

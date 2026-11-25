@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 115 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.32.0) to the tests that exercise it. The operation list and
+Maps each of the 119 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.33.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -84,6 +84,10 @@ How to read the columns of test types:
 | `GET /v1/events/{eventId}/presence` | 200, 400, 401, 403, 404, 503 | `EventPresenceHttpTest` (leaders first, minors abbreviated, exact keys; viewer, player and another team's manager 403; unknown event 404), `PrivateRoutesRevocationTest` |
 | `PUT /v1/events/{eventId}/presence` | 204, 400, 401, 403, 404, 409, 503 | `EventPresenceHttpTest` (saved and read back; before the start 409; someone outside the event, duplicates, wrong types and extra keys 400; another team 403; a record outlives the team assignment), `PrivateRoutesRevocationTest` |
 | `POST /v1/events/bulk` | 200, 400, 401, 403, 404, 409, 503 | `BulkEventsHttpTest` (preview changes nothing; cancel only future events of the chosen kinds of the chosen team, one summary email; already cancelled not counted; reinstate; new place for trainings and matches; one team without the right or an unknown team 403; viewer and player 403; every invalid input 400 and nothing changed), `PrivateRoutesRevocationTest` |
+| `GET /v1/me/push` | 200, 401, 403, 503 | `PushHttpTest` (enabled with the public key; device count; off without configuration), `PrivateRoutesRevocationTest` |
+| `PUT /v1/me/push-subscriptions` | 204, 400, 401, 403, 409, 503 | `PushHttpTest` (only https on an allowed host, no metadata or other hosts; at most 5 devices; 409 without configuration), `PushConfigTest` (endpoint rule), `PrivateRoutesRevocationTest` |
+| `DELETE /v1/me/push-subscriptions` | 204, 400, 401, 403, 409, 503 | `PushHttpTest`, `PrivateRoutesRevocationTest` |
+| `GET /v1/me/push-inbox` | 200, 400, 401, 403, 503 | `PushHttpTest` (own messages only, subject and time; a message queued for a member without email but with a device; each message wakes devices once; bad `since` 400), `PrivateRoutesRevocationTest` |
 | `GET /v1/me/helper-duty` | 200, 401, 403, 503 | `HelperDutyHttpTest` (own and children's started shifts of this season; quota 0 for someone in no team; exact keys), `PrivateRoutesRevocationTest` |
 | `GET /v1/helper-duty` | 200, 401, 403, 503 | `HelperDutyHttpTest` (liable adults only; future, cancelled and earlier shifts not counted; player 403), `PrivateRoutesRevocationTest` |
 | `PUT /v1/club/helper-duty` | 204, 400, 401, 403, 503 | `HelperDutyHttpTest` (only `MANAGE_FEES`; out of range, text and missing fields 400), `PrivateRoutesRevocationTest` |

@@ -108,6 +108,32 @@ whole demo: check `demo-compose.sh … logs rauthy`, rerun `configure-demo-email
 again. Without this step everything works except outgoing email; the administrator then resets passwords in the
 Rauthy admin UI.
 
+### Push notifications for the app (optional)
+
+Add the push services the app may call to `/etc/openclub/demo.yaml` (the hostnames live in the config, not in
+commands):
+
+```yaml
+push:
+  hosts:
+    - fcm.googleapis.com                  # Chrome, Edge and Android
+    - updates.push.services.mozilla.com   # Firefox
+    - .push.apple.com                     # Safari and iPhone home-screen apps
+    - .notify.windows.com                 # older Edge on Windows
+```
+
+Then, with the stack running:
+
+```bash
+bash dev/deployment/configure-demo-push.sh --synthetic-only
+bash dev/deployment/demo-compose.sh up -d api
+```
+
+The script creates the VAPID key pair with the app's own command inside the API container, writes it with the
+contact (`adminEmail`) and the hosts to the private `.env` and prints no key. A rerun keeps the keys (new keys would
+make every phone subscribe again) and only updates the hosts. The server sends only empty pushes; phones fetch the
+text from the app. Outbound HTTPS to those hosts must be allowed by the server's firewall.
+
 ## 6. First club and administrator
 
 1. Sign in to Rauthy at `https://id.example.ch/auth/v1/admin` with `RAUTHY_ADMIN_EMAIL` and `RAUTHY_ADMIN_PASSWORD` from

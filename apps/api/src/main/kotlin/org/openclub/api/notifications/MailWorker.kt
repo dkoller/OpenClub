@@ -20,13 +20,14 @@ import java.util.UUID
 internal object MailWorker {
     const val BATCH = 20
 
-    suspend fun run(database: DatabaseRuntime, notifier: Notifier, mailer: Mailer) {
+    suspend fun run(database: DatabaseRuntime, notifier: Notifier, mailer: Mailer?, pusher: PushSender? = null) {
         while (currentCoroutineContext().isActive) {
             try {
                 database.onDatabaseThread { db -> db.transaction { configuration -> notifier.queueShiftReminders(DSL.using(configuration)) } }
                 database.onDatabaseThread { db -> db.transaction { configuration -> notifier.queueHelperCalls(DSL.using(configuration)) } }
                 database.onDatabaseThread { db -> db.transaction { configuration -> notifier.queueAnswerReminders(DSL.using(configuration)) } }
-                database.onDatabaseThread { sendBatch(it, mailer) }
+                if (mailer != null) database.onDatabaseThread { sendBatch(it, mailer) }
+                if (pusher != null) wakeDevices(database, pusher)
                 database.onDatabaseThread { cleanup(it) }
             } catch (cancel: CancellationException) {
                 throw cancel
@@ -75,6 +76,45 @@ internal object MailWorker {
         }
         if (failed > 0) System.err.println("Email outbox: $failed message(s) failed and will be retried")
         Outcome(sent, failed, skipped)
+    }
+
+    /**
+     * Push (OpenAPI 1.33.0): for messages queued in the last day and not yet pushed, wakes each recipient's devices
+     * once with an empty push; the app then fetches the text from this server. Rows are marked first (`SKIP LOCKED`),
+     * and the HTTP calls run outside the transaction. A subscription the push service reports gone (404, 410) is
+     * deleted. Failures are counted, never logged with endpoints.
+     */
+    suspend fun wakeDevices(database: DatabaseRuntime, pusher: PushSender, limit: Int = 200): Int {
+        val endpoints = database.onDatabaseThread { db -> dueEndpoints(db, limit) }
+        var failed = 0
+        for (endpoint in endpoints) {
+            val status = pusher.send(endpoint)
+            when {
+                status in 200..299 -> database.onDatabaseThread {
+                    it.execute("UPDATE push_subscriptions SET last_pushed_at = now() WHERE endpoint = ?", endpoint)
+                }
+                status == 404 || status == 410 -> database.onDatabaseThread {
+                    it.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", endpoint)
+                }
+                else -> failed++
+            }
+        }
+        if (failed > 0) System.err.println("Push: $failed device(s) could not be woken")
+        return endpoints.size
+    }
+
+    /** Marks up to [limit] queued messages as pushed and answers the endpoints of their recipients' devices. */
+    fun dueEndpoints(database: DSLContext, limit: Int = 200): List<String> = database.transactionResult { configuration ->
+        val tx = DSL.using(configuration)
+        val members = tx.fetch(
+            """WITH due AS (SELECT id FROM email_outbox
+                            WHERE NOT push_done AND created_at > now() - INTERVAL '1 day'
+                            ORDER BY created_at LIMIT ? FOR UPDATE SKIP LOCKED),
+                    marked AS (UPDATE email_outbox o SET push_done = TRUE FROM due WHERE o.id = due.id RETURNING o.member_id)
+               SELECT DISTINCT member_id FROM marked""", limit).map { it.get(0, UUID::class.java) }
+        if (members.isEmpty()) emptyList() else tx.fetch(
+            "SELECT endpoint FROM push_subscriptions WHERE member_id = ANY(?::uuid[]) ORDER BY endpoint",
+            members.map(UUID::toString).toTypedArray()).map { it.get(0, String::class.java) }
     }
 
     fun cleanup(database: DSLContext): Int = database.execute(

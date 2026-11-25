@@ -268,6 +268,10 @@ you and your children, the team's totals, helper shifts and rides. *Sign up* put
 shift while places are free, *Withdraw* takes you off, both until the shift starts. Your team sees your name on the
 shift so everyone can coordinate.
 
+**Push notifications** (*Family* → *Email notifications*, below the switches): if the club offers them, *Turn on for
+this device* asks your browser for permission; from then on the same messages as by email appear on that phone or
+computer. On an iPhone, first add the app to the home screen. *Turn off for this device* stops them.
+
 **Helper shifts** (*Family* → *Fees*): if the club asks for helper shifts, you see how many you (with your
 children) have done this season, for example *1 of 3 helper shifts*.
 

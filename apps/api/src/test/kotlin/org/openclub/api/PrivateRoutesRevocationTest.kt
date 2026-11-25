@@ -169,6 +169,11 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Get, "/api/v1/venues/${UUID(0, 1)}/bookings"),
         Route(HttpMethod.Put, "/api/v1/venues/${UUID(0, 1)}", """{"name":"Revocation venue"}"""),
         Route(HttpMethod.Delete, "/api/v1/venues/${UUID(0, 1)}"),
+        // Push (1.33.0): without a push configuration the change is 409 for the holder and nothing is stored.
+        Route(HttpMethod.Get, "/api/v1/me/push"),
+        Route(HttpMethod.Get, "/api/v1/me/push-inbox"),
+        Route(HttpMethod.Put, "/api/v1/me/push-subscriptions", """{"endpoint":"https://fcm.googleapis.com/x"}"""),
+        Route(HttpMethod.Delete, "/api/v1/me/push-subscriptions", """{"endpoint":"https://fcm.googleapis.com/x"}"""),
         // Helper duty (1.32.0): the defaults are written back, so nothing changes.
         Route(HttpMethod.Get, "/api/v1/me/helper-duty"),
         Route(HttpMethod.Get, "/api/v1/helper-duty"),

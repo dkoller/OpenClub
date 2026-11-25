@@ -16,7 +16,10 @@ import org.openclub.api.notifications.MailConfig
 import org.openclub.api.notifications.MailWorker
 import org.openclub.api.notifications.Notifier
 import org.openclub.api.notifications.SmtpMailer
+import org.openclub.api.notifications.PushConfig
+import org.openclub.api.notifications.HttpPushSender
 import org.openclub.api.notifications.installNotificationHttpRoutes
+import org.openclub.api.notifications.installPushHttpRoutes
 import org.openclub.api.venues.installVenueHttpRoutes
 import org.openclub.api.fees.installHelperDutyHttpRoutes
 import org.openclub.api.join.installJoinRequestHttpRoutes
@@ -63,7 +66,10 @@ fun main() {
     // Email (OpenAPI 1.19.0): only with an SMTP server, a database and a browser origin for the links in messages.
     val mail = MailConfig.fromEnvironment(environment)
     require(mail == null || (database != null && authConfig != null)) { "Email notifications need the database and OIDC settings" }
-    val notifier = if (mail != null && authConfig != null) Notifier(mail, authConfig.browserOrigin) else Notifier.DISABLED
+    // Push (OpenAPI 1.33.0): optional, alone or with email.
+    val push = PushConfig.fromEnvironment(environment)
+    require(push == null || (database != null && authConfig != null)) { "Push notifications need the database and OIDC settings" }
+    val notifier = if ((mail != null || push != null) && authConfig != null) Notifier(mail, authConfig.browserOrigin, push) else Notifier.DISABLED
     var cleanup: Job? = null
     var retention: Job? = null
     var mailer: Job? = null
@@ -87,9 +93,9 @@ fun main() {
                 RetentionCleanup.run(database)
             }
         }
-        if (mail != null && database != null) {
+        if ((mail != null || push != null) && database != null) {
             mailer = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                MailWorker.run(database, notifier, SmtpMailer(mail))
+                MailWorker.run(database, notifier, mail?.let(::SmtpMailer), push?.let(::HttpPushSender))
             }
         }
         val port = environment["PORT"]?.toIntOrNull() ?: 8080
@@ -187,5 +193,6 @@ internal fun Application.module(
         installNotificationHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, notifier)
         installVenueHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installHelperDutyHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
+        installPushHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, notifier.push)
     }
 }
