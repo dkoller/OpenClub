@@ -8,7 +8,7 @@ describe('routes', () => {
     for (const hash of ['#/', '#/schedule', '#/schedule/' + event, '#/family', '#/family/profile',
       '#/family/children', '#/family/absences', '#/family/fees', '#/family/calendar', '#/family/notifications', '#/team',
       `#/team/${event}`, `#/team/${event}/schedule`, `#/team/${event}/members`, `#/team/${event}/statistics`,
-      `#/team/${event}/event/${event}`, '#/admin', '#/admin/members', '#/admin/members/invitations', '#/admin/members/guardians',
+      `#/team/${event}/event/${event}`, '#/schedule/venues', '#/admin/venues', '#/admin', '#/admin/members', '#/admin/members/invitations', '#/admin/members/guardians',
       '#/admin/members/roles', '#/admin/members/transfer', '#/admin/members/archived', '#/admin/members/public',
       '#/admin/join-requests', '#/admin/fees', '#/admin/permissions', '#/admin/settings']) {
       expect(routeHash(parseRoute(hash))).toBe(hash)

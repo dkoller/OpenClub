@@ -394,6 +394,16 @@ Owner-approved (ADR-0008 addendum 24). Entering, listing and deleting are limite
 
 Owner-approved (ADR-0008 addendum 25), including a narrow contact exception. Offering requires an adult with a verified sign-in who is in the event's team or guards a current minor in it, checked in the inserting statement; booking reuses the shifts pattern (oneself or one's current minor, assignment locked `FOR SHARE`, ride locked first and seats counted in a fresh statement, closed after departure or for a cancelled event). Visibility follows shifts. Phones are read in SQL but released by the route only to the driver (passengers' phones; for a minor the phone of the guardian who booked, never the child's own record) and to a caller who holds a seat on that ride for themselves or a minor (the driver's phone); every other caller gets `null`. Bookings and offers end when a member leaves the team (V33 trigger), cascade on erasure, and are deleted 12 months after the event. Not audited. Tests: `RideHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
 
+## Fields and halls (OpenAPI 1.30.0)
+
+Owner-approved (ADR-0008 addendum 34). V40 adds the club-wide capability `MANAGE_VENUES` (the first administrator
+gets it at bootstrap; anyone else only by an explicit grant), `venues` and `team_events.venue_id`. Venue writes check
+the grant inside the same statement; reads need an active, verified membership and return club content only (team,
+kind, title, times). Double bookings are refused by an exclusion constraint over the venue and the time range of
+events that are not cancelled; the API checks first so it can name the clashing event (409), and a booking that
+slips in concurrently is still refused by the constraint. Choosing a venue for an event needs the same
+`MANAGE_TEAMS` grant as the rest of the event.
+
 ## Bulk changes to events (OpenAPI 1.29.0)
 
 Owner-approved (ADR-0008 addendum 33). One transaction share-locks the named teams and requires `MANAGE_TEAMS` for

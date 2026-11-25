@@ -13,6 +13,7 @@ import { CoachEventPage, CoachOverview } from './CoachPages'
 import { AcceptInvitation } from './AcceptInvitation'
 import { StartPage } from './StartPage'
 import { SchedulePage } from './SchedulePage'
+import { VenuesPage } from './VenuesPage'
 import { EventPage } from './EventPage'
 import { FamilyPage } from './FamilyPage'
 import { AdminPage, type ClubState } from './AdminPage'
@@ -145,6 +146,7 @@ export function App() {
           onAccepted={() => { try { window.sessionStorage.removeItem('openclub.invite') } catch { /* storage may be disabled */ } void retryAccess() }} />}
         {ready && shown.page === 'start' && <StartPage language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && shown.page === 'schedule' && <SchedulePage language={language} csrfToken={access.csrfToken} self={self} />}
+        {ready && shown.page === 'venues' && <VenuesPage language={language} />}
         {ready && shown.page === 'event' && <EventPage key={shown.eventId} eventId={shown.eventId} language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && shown.page === 'family' && <FamilyPage key={shown.section ?? 'overview'} section={shown.section}
           language={language} csrfToken={access.csrfToken} self={self} />}

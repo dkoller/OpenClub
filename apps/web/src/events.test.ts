@@ -6,7 +6,7 @@ import {
 
 const event = {
   id: 'e1', teamId: 't1', teamName: 'U10', kind: 'TRAINING', title: 'Training', startsAt: '2026-11-26T17:00:00Z',
-  endsAt: '2026-11-26T18:30:00Z', location: 'Hall', notes: null, cancelled: false, counts: { yes: 2, no: 0, maybe: 1 },
+  endsAt: '2026-11-26T18:30:00Z', location: 'Hall', notes: null, cancelled: false, counts: { yes: 2, no: 0, maybe: 1 }, venueId: null, venueName: null,
 }
 const res = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
 

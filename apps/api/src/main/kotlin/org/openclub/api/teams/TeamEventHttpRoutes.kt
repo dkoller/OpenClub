@@ -118,6 +118,8 @@ internal fun Application.installTeamEventHttpRoutes(
                     }.toString(), ContentType.Application.Json, HttpStatusCode.Created)
                     TeamEvents.Created.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
                     TeamEvents.Created.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                    TeamEvents.Created.UnknownVenue -> call.refuse(HttpStatusCode.BadRequest, "invalid")
+                    is TeamEvents.Created.VenueTaken -> call.venueTaken(result.clash)
                 }
             }
         }
@@ -128,7 +130,7 @@ internal fun Application.installTeamEventHttpRoutes(
                     return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 }
                 val input = try {
-                    val body = call.receiveJsonObject(setOf("teamIds", "from", "to", "kinds", "action", "location", "preview"))
+                    val body = call.receiveJsonObject(setOf("teamIds", "from", "to", "kinds", "action", "location", "preview"), setOf("venueId"))
                     val teams = body.uuidSet("teamIds", 50)
                     require(teams.isNotEmpty())
                     val from = strictDate(body.requiredString("from"))
@@ -148,20 +150,35 @@ internal fun Application.installTeamEventHttpRoutes(
                         else -> throw IllegalArgumentException("location")
                     }
                     require(action == BulkEvents.Action.SET_LOCATION || location == null)
+                    // SET_VENUE (1.30.0) names a venue, or null to clear it; other actions take no venue.
+                    val venue = when (val value = body["venueId"]) {
+                        null, is JsonNull -> null
+                        is JsonPrimitive -> if (value.isString) UUID.fromString(value.content) else throw IllegalArgumentException("venueId")
+                        else -> throw IllegalArgumentException("venueId")
+                    }
+                    require(action == BulkEvents.Action.SET_VENUE || venue == null)
                     val preview = body.requiredBoolean("preview")
-                    BulkEvents.Input(teams, from, to, kinds.toSet(), action, location, preview)
+                    BulkEvents.Input(teams, from, to, kinds.toSet(), action, location, preview, venue)
                 } catch (_: IllegalArgumentException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 } catch (_: DateTimeException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 }
-                when (val result = database.onDatabaseThread { BulkEvents(it, notifier).apply(actor.accountId, input) }) {
+                val result = try {
+                    database.onDatabaseThread { BulkEvents(it, notifier).apply(actor.accountId, input) }
+                } catch (error: org.jooq.exception.DataAccessException) {
+                    // Two of the moved events, or a moved one and another, would hold the venue at the same time.
+                    if (error.sqlState() == "23P01") return@guarded call.refuse(HttpStatusCode.Conflict, "venue_taken")
+                    throw error
+                }
+                when (result) {
                     is BulkEvents.Result.Done -> call.respondJson(buildJsonObject {
                         put("matched", result.matched); put("changed", result.changed)
                     })
                     BulkEvents.Result.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
                     BulkEvents.Result.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     BulkEvents.Result.TooMany -> call.refuse(HttpStatusCode.Conflict, "too_many")
+                    BulkEvents.Result.UnknownVenue -> call.refuse(HttpStatusCode.BadRequest, "invalid")
                 }
             }
         }
@@ -181,7 +198,12 @@ internal fun Application.installTeamEventHttpRoutes(
                 } catch (_: DateTimeException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 }
-                call.answer(database.onDatabaseThread { db -> db.transactionResult { c -> TeamEvents(DSL.using(c), notifier).replace(actor.accountId, event, input, cancelled) } })
+                val (change, clash) = database.onDatabaseThread { db -> db.transactionResult { c ->
+                    val events = TeamEvents(DSL.using(c), notifier)
+                    events.replace(actor.accountId, event, input, cancelled) to events.clash
+                } }
+                if (change == TeamEvents.Change.VENUE_TAKEN && clash != null) return@guarded call.venueTaken(clash)
+                call.answer(change)
             }
         }
         get("/api/v1/events/{eventId}/attendance") {
@@ -393,7 +415,7 @@ private const val PRESENCE_BODY = 24 * 1024
 private val EVENT_FIELDS = setOf("kind", "title", "startsAt", "endsAt")
 /** Notes of 2,000 characters and a 200-character title and place can exceed 4 KiB as JSON. */
 private const val EVENT_BODY = 16 * 1024
-private val OPTIONAL_FIELDS = setOf("location", "notes")
+private val OPTIONAL_FIELDS = setOf("location", "notes", "venueId")
 private val EARLIEST = OffsetDateTime.parse("2000-01-01T00:00:00Z")
 private val LATEST = OffsetDateTime.parse("2100-01-01T00:00:00Z")
 private val DEFAULT_SPAN: Duration = Duration.ofDays(56)
@@ -448,7 +470,12 @@ private fun JsonObject.eventInput(): TeamEvents.Input {
     val endsAt = OffsetDateTime.parse(requiredString("endsAt"))
     require(!startsAt.isBefore(EARLIEST) && startsAt.isBefore(LATEST)) { "start" }
     require(endsAt.isAfter(startsAt) && Duration.between(startsAt, endsAt) <= Duration.ofDays(7)) { "end" }
-    return TeamEvents.Input(kind, title, startsAt, endsAt, text(optionalText("location"), 200), text(optionalText("notes"), 2000, multiline = true))
+    val venue = when (val value = this["venueId"]) {
+        null, is JsonNull -> null
+        is JsonPrimitive -> if (value.isString) UUID.fromString(value.content) else throw IllegalArgumentException("venueId")
+        else -> throw IllegalArgumentException("venueId")
+    }
+    return TeamEvents.Input(kind, title, startsAt, endsAt, text(optionalText("location"), 200), text(optionalText("notes"), 2000, multiline = true), venue)
 }
 
 private fun TeamEvents.Event.json(withFor: Boolean) = buildJsonObject {
@@ -463,6 +490,8 @@ private fun TeamEvents.Event.json(withFor: Boolean) = buildJsonObject {
     put("notes", notes?.let(::JsonPrimitive) ?: JsonNull)
     put("cancelled", cancelled)
     put("counts", counts.json())
+    put("venueId", venueId?.let { JsonPrimitive(it.toString()) } ?: JsonNull)
+    put("venueName", venueName?.let(::JsonPrimitive) ?: JsonNull)
     if (withFor) put("for", buildJsonArray {
         forMembers.forEach { add(buildJsonObject {
             put("id", it.id.toString()); put("firstName", it.firstName)
@@ -480,7 +509,17 @@ private suspend fun ApplicationCall.answer(change: TeamEvents.Change) = when (ch
     TeamEvents.Change.DONE -> respondText("", status = HttpStatusCode.NoContent)
     TeamEvents.Change.NOT_FOUND -> refuse(HttpStatusCode.NotFound, "not_found")
     TeamEvents.Change.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
+    TeamEvents.Change.UNKNOWN_VENUE -> refuse(HttpStatusCode.BadRequest, "invalid")
+    TeamEvents.Change.VENUE_TAKEN -> refuse(HttpStatusCode.Conflict, "venue_taken")
 }
+
+/** 409 `venue_taken` with the event already holding the venue (team, title, start), so the coach can choose. */
+private suspend fun ApplicationCall.venueTaken(clash: TeamEvents.Clash) = respondText(buildJsonObject {
+    put("code", "venue_taken")
+    put("clash", buildJsonObject {
+        put("teamName", clash.teamName); put("title", clash.title); put("startsAt", clash.startsAt.toString())
+    })
+}.toString(), ContentType.Application.Json, HttpStatusCode.Conflict)
 
 private fun EventAttendance.Counts.json() = buildJsonObject { put("yes", yes); put("no", no); put("maybe", maybe) }
 

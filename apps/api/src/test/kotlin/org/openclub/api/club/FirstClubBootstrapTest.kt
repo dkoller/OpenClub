@@ -69,7 +69,7 @@ class FirstClubBootstrapTest {
                     )
                 }
                 assertEquals(1, db.fetchCount(DSL.table("members")))
-                assertEquals(7, db.fetchCount(DSL.table("club_capability_grants")))
+                assertEquals(8, db.fetchCount(DSL.table("club_capability_grants")))
                 for (capability in listOf("VIEW_TEAMS", "MANAGE_TEAMS")) {
                     assertEquals(1L, db.fetchValue(
                         "SELECT COUNT(*) FROM club_capability_grants WHERE capability = ?", capability))

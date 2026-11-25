@@ -830,6 +830,18 @@ test('verified login gains club access only after restricted operator bootstrap'
   await transfer.getByRole('button', { name: 'Import 2 members' }).click();
   await expect(transfer.getByRole('status')).toHaveText('2 members imported.');
 
+  // Fields and halls (OpenAPI 1.30.0): the first administrator holds MANAGE_VENUES, adds one, and every member sees
+  // it under Schedule.
+  await show(page, '#/admin/venues');
+  await expect(page.getByRole('heading', { level: 1, name: 'Fields and halls' })).toBeVisible();
+  const venueAdmin = page.getByRole('region', { name: 'Fields and halls' });
+  await venueAdmin.getByLabel('Name').last().fill('Synthetic Hall North');
+  await venueAdmin.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(venueAdmin.getByText('Synthetic Hall North', { exact: true })).toBeVisible();
+  await show(page, '#/schedule/venues');
+  await expect(page.getByRole('heading', { level: 1, name: 'Fields and halls' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Field or hall' })).toHaveValue(/.+/);
+  await expect(page.getByText('Not booked in the next 14 days.')).toBeVisible();
   // Announcements (OpenAPI 1.14.0): the first administrator holds POST_ANNOUNCEMENTS from the bootstrap and posts to
   // the whole club; the text keeps its line breaks and is never interpreted as HTML.
   await show(page, '#/');
