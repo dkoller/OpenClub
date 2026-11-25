@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
   title: OpenClub single-club management API — synthetic M1
-  version: 1.29.0
+  version: 1.30.0
   description: >
     Frozen contract for the implemented synthetic M1 HTTP surface, accepted by
     the owner on 2026-11-17 (ADR-0007, #13). 1.1.0 adds the per-club adult-age
     setting (PATCH /v1/club/adult-age-policy and adultAgeYears in GET /v1/club, #17). 1.2.0 adds invitations
     and account unlinking (owner-approved 2026-11-18, ADR-0008 addendum 4): create and revoke an invitation,
-    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). 1.11.0 adds attendance: members and guardians answer YES, NO or MAYBE until an event starts, team viewers and managers see the answers by public display name, and every event carries the totals, owner-approved 2026-11-19 (ADR-0008 addendum 14). 1.12.0 adds membership fees: the club-wide MANAGE_FEES capability, fee periods and each member's fee and payment (tracking only), each member's own and children's fees (GET /v1/me/fees), and fees in the member export, owner-approved 2026-11-19 (ADR-0008 addendum 15). 1.13.0 adds the member list as CSV for editors: an audited export (GET /v1/members/export.csv) and an import that is previewed, creates only new valid members and skips duplicates (POST /v1/members/import), owner-approved 2026-11-19 (ADR-0008 addendum 17). 1.14.0 adds announcements: club-wide with the new POST_ANNOUNCEMENTS capability, per team with MANAGE_TEAMS, and each member's current announcements (GET /v1/me/announcements), owner-approved 2026-11-19 (ADR-0008 addendum 18). 1.14.1 (security review of 1.9.0–1.14.0) adds the member's attendance answers to the member export and answers 404 for an unknown event, announcement or team only to club-wide holders (403 otherwise), so team-scoped holders learn nothing about IDs they cannot reach. 1.15.0 adds the public member list opt-out decided by the club as controller (ADR-0008 addendum 19, decision C5): a member hides or shows their own name (PUT /v1/me/profile/public-listing) and an editor does it for any active member (PUT /v1/members/{memberId}/public-listing); My profile, the editor's detail read and the member export carry listedPublicly. 1.16.0 adds volunteer shifts (ADR-0008 addendum 20): team managers add shifts with a number of places to a team event, the team sees them with the volunteers' public display names, members and guardians sign up or withdraw until a shift starts and while places are free, and the member export lists a member's sign-ups. 1.17.0 adds private calendar feeds (ADR-0008 addendum 21): a member creates, replaces or revokes one secret feed link (shown once, only its hash stored) that calendar apps load without a session (GET /v1/calendar/{secret}, iCalendar with the events of My schedule, four weeks back to six months ahead, including notes, never names). 1.18.0 adds attendance statistics per team for VIEW_TEAMS and MANAGE_TEAMS holders (GET /v1/teams/{teamId}/attendance-statistics, ADR-0008 addendum 22). 1.19.0 adds email notifications (ADR-0008 addendum 23): a member's own switches for event changes, new events, announcements and shift reminders, all on by default, and the email language (GET and PUT /v1/me/notifications); messages go only to members with a verified sign-in, through the operator's SMTP server. 1.20.0 adds absences (ADR-0008 addendum 24): a member, or a guardian for their minor, enters days away, and every unanswered event of their teams on those days counts as No everywhere answers are shown or counted. 1.21.0 adds carpooling (ADR-0008 addendum 25): adults of an event's team or guardians of its minors offer rides, team members and guardians book seats, and a driver and the people they carry see each other's phone. 1.22.0 adds join requests (ADR-0008 addendum 26): a public form, off until an EDIT_MEMBERS holder switches it on, where adults apply for themselves and parents for a child; editors accept (creating the member) or decline. 1.23.0 adds the managers' overview of helper shifts that still need people (GET /v1/shifts/unfilled, ADR-0008 addendum 27): counts only, for the teams the caller manages, the next 14 days. 1.24.0 adds the helpers-wanted email (ADR-0008 addendum 28): seven days before a helper shift that still has free places, the team and the guardians of its minors are asked once, counts only, with the member's own `helpersWanted` switch in the notification settings (on by default; optional in PUT, where leaving it out keeps the stored value). 1.25.0 adds answer reminders (ADR-0008 addendum 29): an automatic email two days before an event to team members without an answer (guardians for their minors), a coach's reminder (POST /v1/events/{eventId}/attendance-reminders, MANAGE_TEAMS, at most every 12 hours) and the member's own `answerReminders` switch. 1.26.0 adds Swiss QR bills for fees (ADR-0008 addendum 30): MANAGE_FEES holders read and replace the club's payment details (GET and PUT /v1/club/payment-details: a Swiss or Liechtenstein IBAN or QR-IBAN, the account holder and their postal address), a member or guardian downloads the A4 PDF QR bill of their own or their current minor's open fee (GET /v1/me/fees/{periodId}/{memberId}/qr-bill, generated on demand, never stored, the payer's address left empty), GET /v1/me/fees says per fee whether a bill is available (qrBill), and the treasurer's fee list shows each member's payment reference (reference). 1.27.0 adds actual attendance and the J+S export (ADR-0008 addendum 31): a team manager records who came once an event has started (GET and PUT /v1/events/{eventId}/presence), editors set a member's J+S person number (PUT /v1/members/{memberId}/js-person-number, also in the detail read, My profile and the member export), and team managers check and download the file for the NDS attendance import (GET /v1/teams/{teamId}/js-attendance and its .csv). 1.28.0 adds match squads (ADR-0008 addendum 32): team managers call up team members for a match with an optional meeting time and point until it starts (GET and PUT /v1/events/{eventId}/squad), newly called members (guardians for a minor) are emailed unless their new `squadCalls` switch is off, and GET /v1/me/events shows each person only their own status (`squad`). 1.29.0 adds bulk changes (ADR-0008 addendum 33): for one or more teams the caller manages and a date range, cancel, reinstate or move to a new place every matching event that has not started, with a preview and one summary email per person (POST /v1/events/bulk). It contains exactly the operations
+    accept an invitation, and unlink a member's account. 1.3.0 adds the restricted member detail read (GET /v1/members/{memberId}/details) and permanent erasure of an archived member (POST /v1/members/{memberId}/erase), owner-approved 2026-11-18. 1.4.0 adds full member replacement (PUT /v1/members/{memberId}) and reactivation (POST /v1/members/{memberId}/reactivate), owner-approved 2026-11-19 (ADR-0008 addendum 5). 1.5.0 adds the archived-member search for editors (GET /v1/members/archived), owner-approved 2026-11-19 (ADR-0008 addendum 7). 1.6.0 adds guardians signing in for a minor: editors manage a minor's guardians and a guardian reads their own minors and replaces their contacts, owner-approved 2026-11-19 (ADR-0008 addendum 8). 1.7.0 adds the member export for editors (GET /v1/members/{memberId}/export), owner-approved 2026-11-19 (ADR-0008 addendum 10). 1.8.0 makes the full member replacement conditional: the editor's detail read returns the member's version as an ETag, and PUT /v1/members/{memberId} requires it in If-Match (428 when missing, 412 when the member changed since), owner-approved 2026-11-19 (ADR-0008 addendum 11). 1.9.0 adds My profile: a member reads their own record (GET /v1/me/profile) and replaces their own email and phone (PUT /v1/me/profile/contacts), owner-approved 2026-11-19 (ADR-0008 addendum 12). 1.10.0 adds trainings and events: team schedules managed with MANAGE_TEAMS, read with VIEW_TEAMS or MANAGE_TEAMS, and each member's own schedule including their minors' (GET /v1/me/events), owner-approved 2026-11-19 (ADR-0008 addendum 13). 1.11.0 adds attendance: members and guardians answer YES, NO or MAYBE until an event starts, team viewers and managers see the answers by public display name, and every event carries the totals, owner-approved 2026-11-19 (ADR-0008 addendum 14). 1.12.0 adds membership fees: the club-wide MANAGE_FEES capability, fee periods and each member's fee and payment (tracking only), each member's own and children's fees (GET /v1/me/fees), and fees in the member export, owner-approved 2026-11-19 (ADR-0008 addendum 15). 1.13.0 adds the member list as CSV for editors: an audited export (GET /v1/members/export.csv) and an import that is previewed, creates only new valid members and skips duplicates (POST /v1/members/import), owner-approved 2026-11-19 (ADR-0008 addendum 17). 1.14.0 adds announcements: club-wide with the new POST_ANNOUNCEMENTS capability, per team with MANAGE_TEAMS, and each member's current announcements (GET /v1/me/announcements), owner-approved 2026-11-19 (ADR-0008 addendum 18). 1.14.1 (security review of 1.9.0–1.14.0) adds the member's attendance answers to the member export and answers 404 for an unknown event, announcement or team only to club-wide holders (403 otherwise), so team-scoped holders learn nothing about IDs they cannot reach. 1.15.0 adds the public member list opt-out decided by the club as controller (ADR-0008 addendum 19, decision C5): a member hides or shows their own name (PUT /v1/me/profile/public-listing) and an editor does it for any active member (PUT /v1/members/{memberId}/public-listing); My profile, the editor's detail read and the member export carry listedPublicly. 1.16.0 adds volunteer shifts (ADR-0008 addendum 20): team managers add shifts with a number of places to a team event, the team sees them with the volunteers' public display names, members and guardians sign up or withdraw until a shift starts and while places are free, and the member export lists a member's sign-ups. 1.17.0 adds private calendar feeds (ADR-0008 addendum 21): a member creates, replaces or revokes one secret feed link (shown once, only its hash stored) that calendar apps load without a session (GET /v1/calendar/{secret}, iCalendar with the events of My schedule, four weeks back to six months ahead, including notes, never names). 1.18.0 adds attendance statistics per team for VIEW_TEAMS and MANAGE_TEAMS holders (GET /v1/teams/{teamId}/attendance-statistics, ADR-0008 addendum 22). 1.19.0 adds email notifications (ADR-0008 addendum 23): a member's own switches for event changes, new events, announcements and shift reminders, all on by default, and the email language (GET and PUT /v1/me/notifications); messages go only to members with a verified sign-in, through the operator's SMTP server. 1.20.0 adds absences (ADR-0008 addendum 24): a member, or a guardian for their minor, enters days away, and every unanswered event of their teams on those days counts as No everywhere answers are shown or counted. 1.21.0 adds carpooling (ADR-0008 addendum 25): adults of an event's team or guardians of its minors offer rides, team members and guardians book seats, and a driver and the people they carry see each other's phone. 1.22.0 adds join requests (ADR-0008 addendum 26): a public form, off until an EDIT_MEMBERS holder switches it on, where adults apply for themselves and parents for a child; editors accept (creating the member) or decline. 1.23.0 adds the managers' overview of helper shifts that still need people (GET /v1/shifts/unfilled, ADR-0008 addendum 27): counts only, for the teams the caller manages, the next 14 days. 1.24.0 adds the helpers-wanted email (ADR-0008 addendum 28): seven days before a helper shift that still has free places, the team and the guardians of its minors are asked once, counts only, with the member's own `helpersWanted` switch in the notification settings (on by default; optional in PUT, where leaving it out keeps the stored value). 1.25.0 adds answer reminders (ADR-0008 addendum 29): an automatic email two days before an event to team members without an answer (guardians for their minors), a coach's reminder (POST /v1/events/{eventId}/attendance-reminders, MANAGE_TEAMS, at most every 12 hours) and the member's own `answerReminders` switch. 1.26.0 adds Swiss QR bills for fees (ADR-0008 addendum 30): MANAGE_FEES holders read and replace the club's payment details (GET and PUT /v1/club/payment-details: a Swiss or Liechtenstein IBAN or QR-IBAN, the account holder and their postal address), a member or guardian downloads the A4 PDF QR bill of their own or their current minor's open fee (GET /v1/me/fees/{periodId}/{memberId}/qr-bill, generated on demand, never stored, the payer's address left empty), GET /v1/me/fees says per fee whether a bill is available (qrBill), and the treasurer's fee list shows each member's payment reference (reference). 1.27.0 adds actual attendance and the J+S export (ADR-0008 addendum 31): a team manager records who came once an event has started (GET and PUT /v1/events/{eventId}/presence), editors set a member's J+S person number (PUT /v1/members/{memberId}/js-person-number, also in the detail read, My profile and the member export), and team managers check and download the file for the NDS attendance import (GET /v1/teams/{teamId}/js-attendance and its .csv). 1.28.0 adds match squads (ADR-0008 addendum 32): team managers call up team members for a match with an optional meeting time and point until it starts (GET and PUT /v1/events/{eventId}/squad), newly called members (guardians for a minor) are emailed unless their new `squadCalls` switch is off, and GET /v1/me/events shows each person only their own status (`squad`). 1.29.0 adds bulk changes (ADR-0008 addendum 33): for one or more teams the caller manages and a date range, cancel, reinstate or move to a new place every matching event that has not started, with a preview and one summary email per person (POST /v1/events/bulk). 1.30.0 adds fields and halls (ADR-0008 addendum 34): the club-wide MANAGE_VENUES capability (given to the first administrator), the venue list and each venue's bookings for every member (GET /v1/venues, GET /v1/venues/{venueId}/bookings), adding, renaming and deleting venues (POST /v1/venues, PUT and DELETE /v1/venues/{venueId}), an optional `venueId` on events with 409 `venue_taken` for a double booking, and SET_VENUE in bulk changes. It contains exactly the operations
     registered in Ktor and checked by `dev/verify-m1-openapi.py`. Authentication
     routes (/v1/auth) are documented separately in auth-api-proposal.yaml.
     Version 1.0.0 covers synthetic data only. It does not approve real member
@@ -30,6 +30,7 @@ tags:
   - name: Guardians
   - name: Profile
   - name: Events
+  - name: Venues
   - name: Shifts
   - name: Calendar
   - name: Notifications
@@ -1576,6 +1577,162 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/venues:
+    get:
+      tags: [Venues]
+      operationId: listVenues
+      summary: The club's fields and halls (since 1.30.0)
+      description: >
+        For every active member with a current sign-in (403 otherwise). `canManage` says whether the
+        caller holds MANAGE_VENUES. Club content, no personal data; never cacheable.
+      responses:
+        '200':
+          description: The venues by name
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [canManage, items]
+                properties:
+                  canManage: { type: boolean }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Venue' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      tags: [Venues]
+      operationId: createVenue
+      summary: Add a field or hall (MANAGE_VENUES, since 1.30.0)
+      description: >
+        Exact Origin and session CSRF, then MANAGE_VENUES (403), then the name (1–100 characters
+        after trimming, no control characters; 400). 409 "duplicate" when the name exists, ignoring
+        case. Not audited.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VenueInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [id]
+                properties:
+                  id: { type: string, format: uuid }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: The name exists (code "duplicate")
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/venues/{venueId}:
+    parameters:
+      - name: venueId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [Venues]
+      operationId: renameVenue
+      summary: Rename a field or hall (MANAGE_VENUES, since 1.30.0)
+      description: As for creating; 404 for an unknown venue.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VenueInput' }
+      responses:
+        '204': { description: Renamed }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The name exists (code "duplicate")
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      tags: [Venues]
+      operationId: deleteVenue
+      summary: Delete a field or hall (MANAGE_VENUES, since 1.30.0)
+      description: Events that named it stay, without a venue. 404 for an unknown venue.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '204': { description: Deleted }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/venues/{venueId}/bookings:
+    parameters:
+      - name: venueId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: from
+        in: query
+        required: false
+        description: RFC 3339, default now
+        schema: { type: string, format: date-time }
+      - name: to
+        in: query
+        required: false
+        description: RFC 3339, default 14 days after `from`, at most 62 days after it
+        schema: { type: string, format: date-time }
+    get:
+      tags: [Venues]
+      operationId: listVenueBookings
+      summary: When a field or hall is booked (since 1.30.0)
+      description: >
+        For every active member (403 otherwise). The events that are not cancelled and overlap the
+        range, at most 500: team name, kind, title and times, never people. 404 for an unknown venue;
+        unknown or repeated parameters, malformed times or a range over 62 days are 400.
+      responses:
+        '200':
+          description: The bookings in time order
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [eventId, teamName, kind, title, startsAt, endsAt]
+                      properties:
+                        eventId: { type: string, format: uuid }
+                        teamName: { type: string }
+                        kind: { type: string, enum: [TRAINING, MATCH, OTHER] }
+                        title: { type: string }
+                        startsAt: { type: string, format: date-time }
+                        endsAt: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /v1/events/bulk:
     post:
       tags: [Events]
@@ -1616,7 +1773,11 @@ paths:
                   minItems: 1
                   uniqueItems: true
                   items: { type: string, enum: [TRAINING, MATCH, OTHER] }
-                action: { type: string, enum: [CANCEL, REINSTATE, SET_LOCATION] }
+                action: { type: string, enum: [CANCEL, REINSTATE, SET_LOCATION, SET_VENUE] }
+                venueId:
+                  type: [string, 'null']
+                  format: uuid
+                  description: Since 1.30.0, for SET_VENUE only (null clears the venue); otherwise left out or null.
                 location: { type: [string, 'null'], minLength: 1, maxLength: 200 }
                 preview: { type: boolean }
       responses:
@@ -1636,7 +1797,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: More than 500 events (code "too_many")
+          description: More than 500 events (code "too_many"), or SET_VENUE would book the venue twice (code "venue_taken")
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1940,6 +2101,11 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The field or hall is booked by another event at that time (code "venue_taken", with the clash)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VenueTaken' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /v1/events/{eventId}:
     parameters:
@@ -1978,6 +2144,11 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The field or hall is booked by another event at that time (code "venue_taken", with the clash)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VenueTaken' }
         '503': { $ref: '#/components/responses/Unavailable' }
     delete:
       tags: [Events]
@@ -3758,7 +3929,7 @@ components:
       properties:
         capability:
           type: string
-          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS, MANAGE_FEES, POST_ANNOUNCEMENTS]
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS, MANAGE_FEES, POST_ANNOUNCEMENTS, MANAGE_VENUES]
         scope: { type: string, enum: [CLUB, TEAM] }
         teamId: { type: string, format: uuid }
     GrantPage:
@@ -3777,7 +3948,7 @@ components:
         memberId: { type: string, format: uuid }
         capability:
           type: string
-          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS, MANAGE_FEES, POST_ANNOUNCEMENTS]
+          enum: [VIEW_MEMBER_DIRECTORY, EDIT_MEMBERS, MANAGE_PERMISSIONS, VIEW_TEAMS, MANAGE_TEAMS, MANAGE_FEES, POST_ANNOUNCEMENTS, MANAGE_VENUES]
         scope: { type: string, enum: [CLUB, TEAM] }
         teamId: { type: string, format: uuid }
     Invitation:
@@ -3920,10 +4091,17 @@ components:
         endsAt: { type: string, format: date-time }
         location: { type: [string, 'null'], maxLength: 200 }
         notes: { type: [string, 'null'], maxLength: 2000 }
+        venueId:
+          type: [string, 'null']
+          format: uuid
+          description: >
+            Since 1.30.0. A field or hall of the club (unknown is 400). Two events that are not
+            cancelled never hold the same venue at overlapping times (409 venue_taken); every weekly
+            copy is checked, and all or none are created.
     TeamEvent:
       type: object
       additionalProperties: false
-      required: [id, teamId, teamName, kind, title, startsAt, endsAt, location, notes, cancelled, counts]
+      required: [id, teamId, teamName, kind, title, startsAt, endsAt, location, notes, cancelled, counts, venueId, venueName]
       properties:
         id: { type: string, format: uuid }
         teamId: { type: string, format: uuid }
@@ -3936,6 +4114,35 @@ components:
         notes: { type: [string, 'null'] }
         cancelled: { type: boolean }
         counts: { $ref: '#/components/schemas/AttendanceCounts' }
+        venueId: { type: [string, 'null'], format: uuid, description: Since 1.30.0 }
+        venueName: { type: [string, 'null'], description: Since 1.30.0 }
+    Venue:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+    VenueInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+    VenueTaken:
+      type: object
+      additionalProperties: false
+      required: [code, clash]
+      properties:
+        code: { type: string, enum: [venue_taken] }
+        clash:
+          type: object
+          additionalProperties: false
+          required: [teamName, title, startsAt]
+          properties:
+            teamName: { type: string }
+            title: { type: string }
+            startsAt: { type: string, format: date-time }
     AttendanceCounts:
       type: object
       additionalProperties: false

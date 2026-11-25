@@ -152,6 +152,11 @@ Tracking only: OpenClub records who paid, it does not collect money.
   *Reference* column of an opened period shows each member's reference, so you can match a payment in the bank
   statement; then *Mark paid* by hand. A member excluded and included again gets a new reference.
 
+### Fields and halls (*Administration* → *Fields and halls*, permission `MANAGE_VENUES`)
+
+Add the club's fields and halls by name (*Add*), *Rename* or *Delete* them. Deleting one keeps its events, without the
+place. The first administrator holds `MANAGE_VENUES`; give it to others under *Permissions*.
+
 ### Club settings (*Administration* → *Settings*, permission `MANAGE_PERMISSIONS`)
 
 - *Edit club name*.
@@ -194,6 +199,11 @@ the team and the parents of its children are also asked by email (*Helpers wante
 *Start*, *End* (prefilled with the event's times, at most 24 hours and within a day of the event) and *People needed*,
 then *Add shift*. *Edit* changes a shift (you cannot lower the places below the people already signed up), *Delete*
 followed by the confirmation removes it with its sign-ups.
+
+**Fields and halls.** If the club keeps a list of fields and halls, the event form has *Field or hall*. A slot that is
+already booked is refused with the other event's team, title and time, so you can pick another time or place. *Change
+several events* can also move events to *Another field or hall*. Everyone can see when each one is booked under
+*Schedule* → *When fields and halls are booked*.
 
 **Change several events.** At the bottom of a team's *Schedule*, managers open *Change several events*: choose *From*,
 *To*, which kinds (*Trainings*, *Matches*, *Other events*) and what to do (*Cancel*, *Reinstate* or *New place*), then

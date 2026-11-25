@@ -2,7 +2,7 @@
  * The app's pages, addressed by the URL fragment (#/schedule, #/admin/fees …) so the static web server needs no
  * rewrites and a reload keeps the page. Unknown fragments, and invitation fragments (#invite=…), open Start.
  */
-export type AdminSection = 'overview' | 'members' | 'join-requests' | 'fees' | 'permissions' | 'settings'
+export type AdminSection = 'overview' | 'members' | 'join-requests' | 'fees' | 'venues' | 'permissions' | 'settings'
 /** One part of Family, on its own page; without a section, #/family is the overview linking to them. */
 export type FamilySection = 'profile' | 'children' | 'absences' | 'fees' | 'calendar' | 'notifications'
 /** One part of a team, on its own page; without a section, #/team/<teamId> is the team's page linking to them. */
@@ -12,13 +12,15 @@ export type MemberPart = 'invitations' | 'guardians' | 'roles' | 'transfer' | 'a
 export type Route =
   | { page: 'start' }
   | { page: 'schedule' }
+  /** When each field and hall is booked (OpenAPI 1.30.0), under Schedule. */
+  | { page: 'venues' }
   | { page: 'event'; eventId: string }
   | { page: 'family'; section?: FamilySection }
   | { page: 'team'; teamId?: string; section?: TeamSection }
   | { page: 'team-event'; teamId: string; eventId: string }
   | { page: 'admin'; section: AdminSection; part?: MemberPart }
 
-const sections: AdminSection[] = ['overview', 'members', 'join-requests', 'fees', 'permissions', 'settings']
+const sections: AdminSection[] = ['overview', 'members', 'join-requests', 'fees', 'venues', 'permissions', 'settings']
 export const familySections: FamilySection[] = ['profile', 'children', 'absences', 'fees', 'calendar', 'notifications']
 export const teamSections: TeamSection[] = ['schedule', 'members', 'statistics']
 export const memberParts: MemberPart[] = ['invitations', 'guardians', 'roles', 'transfer', 'archived', 'public']
@@ -41,6 +43,7 @@ export function parseRoute(hash: string): Route {
   }
   if (third !== undefined) return { page: 'start' }
   if (first === 'schedule' && second === undefined) return { page: 'schedule' }
+  if (first === 'schedule' && second === 'venues') return { page: 'venues' }
   if (first === 'schedule' && second !== undefined && id.test(second)) return { page: 'event', eventId: second.toLowerCase() }
   if ((first === 'family' || first === 'team') && second === undefined) return { page: first }
   if (first === 'family' && familySections.includes(second as FamilySection)) return { page: 'family', section: second as FamilySection }
@@ -55,6 +58,7 @@ export function routeHash(route: Route): string {
   switch (route.page) {
     case 'start': return '#/'
     case 'schedule': return '#/schedule'
+    case 'venues': return '#/schedule/venues'
     case 'event': return '#/schedule/' + route.eventId
     case 'family': return route.section ? '#/family/' + route.section : '#/family'
     case 'team': return route.teamId ? `#/team/${route.teamId}${route.section ? '/' + route.section : ''}` : '#/team'
@@ -65,5 +69,5 @@ export function routeHash(route: Route): string {
 
 /** The tab a page belongs to, for aria-current in the navigation. */
 export function tabOf(route: Route): 'start' | 'schedule' | 'family' | 'team' | 'admin' {
-  return route.page === 'event' ? 'schedule' : route.page === 'team-event' ? 'team' : route.page
+  return route.page === 'event' || route.page === 'venues' ? 'schedule' : route.page === 'team-event' ? 'team' : route.page
 }

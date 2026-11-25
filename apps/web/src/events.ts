@@ -6,16 +6,18 @@ export type Counts = { yes: number; no: number; maybe: number }
 export type TeamEvent = {
   id: string; teamId: string; teamName: string; kind: EventKind; title: string
   startsAt: string; endsAt: string; location: string | null; notes: string | null; cancelled: boolean; counts: Counts
+  /** The booked field or hall (OpenAPI 1.30.0). */
+  venueId: string | null; venueName: string | null
 }
 /** A person's own squad status for a match with a saved squad (OpenAPI 1.28.0); meeting details only when called. */
 export type OwnSquad = { called: boolean; meetAt: string | null; meetingPoint: string | null }
 export type MyEvent = TeamEvent & { for: { id: string; firstName: string; response: AttendanceResponse | null; squad: OwnSquad | null }[] }
 
 export type EventInput = {
-  kind: EventKind; title: string; startsAt: string; endsAt: string; location: string; notes: string
+  kind: EventKind; title: string; startsAt: string; endsAt: string; location: string; notes: string; venueId?: string
 }
 
-const eventKeys = ['id', 'teamId', 'teamName', 'kind', 'title', 'startsAt', 'endsAt', 'location', 'notes', 'cancelled', 'counts']
+const eventKeys = ['id', 'teamId', 'teamName', 'kind', 'title', 'startsAt', 'endsAt', 'location', 'notes', 'cancelled', 'counts', 'venueId', 'venueName']
 const text = (value: unknown) => typeof value === 'string'
 const textOrNull = (value: unknown) => value === null || typeof value === 'string'
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -34,7 +36,8 @@ function isEvent(value: unknown, extra: string[]): value is TeamEvent {
     (value.kind === 'TRAINING' || value.kind === 'MATCH' || value.kind === 'OTHER') && text(value.title) &&
     text(value.startsAt) && !Number.isNaN(Date.parse(value.startsAt as string)) &&
     text(value.endsAt) && !Number.isNaN(Date.parse(value.endsAt as string)) &&
-    textOrNull(value.location) && textOrNull(value.notes) && typeof value.cancelled === 'boolean' && isCounts(value.counts)
+    textOrNull(value.location) && textOrNull(value.notes) && typeof value.cancelled === 'boolean' && isCounts(value.counts) &&
+    textOrNull(value.venueId) && textOrNull(value.venueName)
 }
 
 function isMyEvent(value: unknown): value is MyEvent {
@@ -72,7 +75,9 @@ export async function readTeamEvents(teamId: string, request: typeof fetch = fet
   return { items: body.items as TeamEvent[], truncated: body.truncated as boolean, canManage: body.canManage }
 }
 
-export type EventOutcome = 'ok' | 'invalid' | 'denied' | 'not-found'
+/** `taken`: the field or hall is booked by another event at that time (OpenAPI 1.30.0). */
+export type VenueClash = { teamName: string; title: string; startsAt: string }
+export type EventOutcome = 'ok' | 'invalid' | 'denied' | 'not-found' | { taken: VenueClash }
 
 async function write(path: string, method: 'POST' | 'PUT' | 'DELETE', csrfToken: string, body: object | undefined,
   request: typeof fetch): Promise<EventOutcome> {
@@ -85,6 +90,11 @@ async function write(path: string, method: 'POST' | 'PUT' | 'DELETE', csrfToken:
   if (response.status === 400) return 'invalid'
   if (response.status === 401 || response.status === 403) return 'denied'
   if (response.status === 404) return 'not-found'
+  if (response.status === 409) {
+    const body: unknown = await response.json().catch(() => null)
+    const clash = record(body) && record(body.clash) ? body.clash : null
+    if (clash && text(clash.teamName) && text(clash.title) && text(clash.startsAt)) return { taken: clash as VenueClash }
+  }
   throw new Error('Request failed')
 }
 
@@ -93,6 +103,7 @@ function eventBody(input: EventInput) {
     kind: input.kind, title: input.title.trim(), startsAt: input.startsAt, endsAt: input.endsAt,
     ...(input.location.trim() ? { location: input.location.trim() } : {}),
     ...(input.notes.trim() ? { notes: input.notes.trim() } : {}),
+    ...(input.venueId ? { venueId: input.venueId } : {}),
   }
 }
 

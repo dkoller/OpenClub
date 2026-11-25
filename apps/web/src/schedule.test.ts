@@ -7,7 +7,7 @@ const now = Date.parse('2026-11-23T08:00:00Z')
 const event = (id: string, startsAt: string, forList: MyEvent['for'], cancelled = false): MyEvent => ({
   id, teamId: 't', teamName: 'U12', kind: 'TRAINING', title: id, startsAt,
   endsAt: new Date(Date.parse(startsAt) + 3600000).toISOString(), location: null, notes: null, cancelled,
-  counts: { yes: 0, no: 0, maybe: 0 }, for: forList,
+  counts: { yes: 0, no: 0, maybe: 0 }, for: forList, venueId: null, venueName: null,
 })
 const me = { id: 'm', firstName: 'Andrea', response: null, squad: null }
 const lea = { id: 'l', firstName: 'Lea', response: null, squad: null }

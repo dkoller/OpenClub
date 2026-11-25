@@ -347,3 +347,11 @@ Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
 | --- | --- | --- |
 | 65 | Bulk changes | Approved as OpenAPI **1.29.0** (no migration). `POST /v1/events/bulk`: for 1 to 50 teams, each needing `MANAGE_TEAMS`, a range of Swiss dates (≤ 366 days) and the chosen kinds, cancel, reinstate or set a new place (≤ 200) on every event that has not started and would change; at most 500 events; all or nothing, the grant checked again per row in the update. `preview` counts without changing. One summary email per member and guardian of the affected teams (their `eventChanges` switch). The app offers it per team on the team's schedule; the field or hall of feature 6 is added there when venues exist. |
 
+## Addendum 34 — fields and halls (2026-11-26)
+
+Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 66 | Venues | Approved as OpenAPI **1.30.0** (V40). A new club-wide capability `MANAGE_VENUES`, given to the first administrator at bootstrap (others only by an explicit grant), adds, renames (unique, ignoring case, ≤ 100) and deletes the club's fields and halls (`POST /v1/venues`, `PUT`/`DELETE /v1/venues/{venueId}`); deleting keeps the events without the venue. Every active member reads the list (`GET /v1/venues`, with `canManage`) and each venue's bookings for up to 62 days (`GET /v1/venues/{venueId}/bookings`: team, kind, title, times; never people). Events take an optional `venueId`; two events that are not cancelled never hold one venue at overlapping times (exclusion constraint with `btree_gist`; the API answers 409 `venue_taken` naming the other event's team, title and start, and checks every weekly copy). Bulk changes gain `SET_VENUE`. Not audited (club content). |
+

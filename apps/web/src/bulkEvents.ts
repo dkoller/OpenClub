@@ -1,18 +1,22 @@
 /** Changing several events at once (OpenAPI 1.29.0), for the teams' managers. */
 import type { EventKind } from './events'
 
-export type BulkAction = 'CANCEL' | 'REINSTATE' | 'SET_LOCATION'
-export type BulkInput = { teamIds: string[]; from: string; to: string; kinds: EventKind[]; action: BulkAction; location: string | null }
-export type BulkOutcome = { matched: number; changed: number } | 'too_many' | 'invalid' | 'denied'
+export type BulkAction = 'CANCEL' | 'REINSTATE' | 'SET_LOCATION' | 'SET_VENUE'
+export type BulkInput = { teamIds: string[]; from: string; to: string; kinds: EventKind[]; action: BulkAction; location: string | null; venueId?: string | null }
+export type BulkOutcome = { matched: number; changed: number } | 'too_many' | 'venue_taken' | 'invalid' | 'denied'
 
 export async function bulkEvents(input: BulkInput, preview: boolean, csrfToken: string,
   request: typeof fetch = fetch): Promise<BulkOutcome> {
   const response = await request('/api/v1/events/bulk', {
     method: 'POST', credentials: 'same-origin',
     headers: { 'X-CSRF-Token': csrfToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...input, location: input.action === 'SET_LOCATION' ? input.location : null, preview }),
+    body: JSON.stringify({ ...input, location: input.action === 'SET_LOCATION' ? input.location : null,
+      venueId: input.action === 'SET_VENUE' ? input.venueId ?? null : undefined, preview }),
   })
-  if (response.status === 409) return 'too_many'
+  if (response.status === 409) {
+    const code = await response.json().then((value: { code?: string }) => value?.code, () => null)
+    return code === 'venue_taken' ? 'venue_taken' : 'too_many'
+  }
   if (response.status === 400) return 'invalid'
   if (response.status === 401 || response.status === 403 || response.status === 404) return 'denied'
   if (!response.ok) throw new Error('Bulk change failed')

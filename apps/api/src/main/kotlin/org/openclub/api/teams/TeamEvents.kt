@@ -34,8 +34,15 @@ internal class TeamEvents(
 
     data class Input(
         val kind: Kind, val title: String, val startsAt: OffsetDateTime, val endsAt: OffsetDateTime,
-        val location: String?, val notes: String?,
+        val location: String?, val notes: String?, val venueId: UUID? = null,
     )
+
+    /** Another event already holding the venue at that time (1.30.0): its team, title and start. */
+    data class Clash(val teamName: String, val title: String, val startsAt: OffsetDateTime)
+
+    /** Set when [create] or [replace] refuses a double booking. */
+    var clash: Clash? = null
+        private set
 
     /** Someone an event in [mine] is for: the member themselves or one of their minors, with their answer. */
     data class For(val id: UUID, val firstName: String, val response: EventAttendance.Response?, val squad: Squad? = null)
@@ -47,6 +54,7 @@ internal class TeamEvents(
         val id: UUID, val teamId: UUID, val teamName: String, val kind: Kind, val title: String,
         val startsAt: OffsetDateTime, val endsAt: OffsetDateTime, val location: String?, val notes: String?,
         val cancelled: Boolean, val counts: EventAttendance.Counts, val forMembers: List<For> = emptyList(),
+        val venueId: UUID? = null, val venueName: String? = null,
     )
 
     data class Page(val events: List<Event>, val truncated: Boolean)
@@ -57,12 +65,14 @@ internal class TeamEvents(
         data object Denied : Listing
     }
 
-    enum class Change { DONE, NOT_FOUND, DENIED }
+    enum class Change { DONE, NOT_FOUND, DENIED, UNKNOWN_VENUE, VENUE_TAKEN }
 
     sealed interface Created {
         data class Done(val ids: List<UUID>) : Created
         data object NotFound : Created
         data object Denied : Created
+        data object UnknownVenue : Created
+        data class VenueTaken(val clash: Clash) : Created
     }
 
     fun holdsSomeTeamCapability(actor: UUID, vararg capabilities: Capability): Boolean = database.fetchOne(
@@ -83,7 +93,8 @@ internal class TeamEvents(
         if (access.get("can_view", Boolean::class.java) != true) return Listing.Denied
         val rows = database.fetch(
             """SELECT e.id, e.team_id, team.name AS team_name, e.kind, e.title, e.starts_at, e.ends_at, e.location,
-                      e.notes, e.cancelled, ${EventAttendance.COUNTS}
+                      e.notes, e.cancelled, ${EventAttendance.COUNTS}, e.venue_id,
+                      (SELECT v.name FROM venues v WHERE v.id = e.venue_id) AS venue_name
                FROM team_events e JOIN teams team ON team.id = e.team_id
                WHERE e.team_id = ? AND e.ends_at > ?::timestamptz AND e.starts_at < ?::timestamptz
                  AND ${ActorSql.holdsTeamCapability("team.id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)}
@@ -106,7 +117,8 @@ internal class TeamEvents(
                       JOIN clubs c ON TRUE
                       WHERE ${AgeSql.adult("guardian")} AND minor.archived_at IS NULL AND ${AgeSql.minor("minor")})
                SELECT e.id, e.team_id, team.name AS team_name, e.kind, e.title, e.starts_at, e.ends_at, e.location,
-                      e.notes, e.cancelled, ${EventAttendance.COUNTS},
+                      e.notes, e.cancelled, ${EventAttendance.COUNTS}, e.venue_id,
+                      (SELECT v.name FROM venues v WHERE v.id = e.venue_id) AS venue_name,
                       json_agg(json_build_object('id', p.id, 'firstName', p.first_name,
                           'response', (SELECT ea.response FROM effective_attendance ea WHERE ea.event_id = e.id AND ea.member_id = p.id),
                           'squad', (SELECT json_build_object('called', sm.member_id IS NOT NULL,
@@ -141,15 +153,19 @@ internal class TeamEvents(
     /** Creates [starts] copies of [input] (the first and its weekly repeats) in one statement, or none. */
     fun create(actor: UUID, teamId: UUID, input: Input, starts: List<OffsetDateTime>): Created {
         val duration = Duration.between(input.startsAt, input.endsAt)
+        if (input.venueId != null) {
+            if (!venueExists(input.venueId)) return Created.UnknownVenue
+            findClash(input.venueId, starts, duration, null)?.let { clash = it; return Created.VenueTaken(it) }
+        }
         val ids = starts.map { UUID.randomUUID() }
         // One statement: every copy is inserted exactly when the actor holds MANAGE_TEAMS for the team at that moment.
         val inserted = database.execute(
-            """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, location, notes)
-               SELECT u.id::uuid, team.id, ?, ?, u.starts::timestamptz, u.ends::timestamptz, ?, ?
+            """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, location, notes, venue_id)
+               SELECT u.id::uuid, team.id, ?, ?, u.starts::timestamptz, u.ends::timestamptz, ?, ?, ?::uuid
                FROM unnest(?::text[], ?::text[], ?::text[]) AS u(id, starts, ends)
                JOIN teams team ON team.id = ?
                WHERE ${ActorSql.holdsTeamCapability("team.id", Capability.MANAGE_TEAMS)}""",
-            input.kind.name, input.title, input.location, input.notes,
+            input.kind.name, input.title, input.location, input.notes, input.venueId?.toString(),
             ids.map { it.toString() }.toTypedArray(), starts.map { it.toString() }.toTypedArray(),
             starts.map { it.plus(duration).toString() }.toTypedArray(), teamId, actor)
         if (inserted == starts.size) return Created.Done(ids).also { notifier.eventsCreated(database, ids) }
@@ -158,17 +174,23 @@ internal class TeamEvents(
     }
 
     fun replace(actor: UUID, eventId: UUID, input: Input, cancelled: Boolean): Change {
+        if (input.venueId != null) {
+            if (!venueExists(input.venueId)) return Change.UNKNOWN_VENUE
+            if (!cancelled) findClash(input.venueId, listOf(input.startsAt), Duration.between(input.startsAt, input.endsAt), eventId)
+                ?.let { clash = it; return Change.VENUE_TAKEN }
+        }
         // The old row comes along so a notification says "changed" or "cancelled" only when something did change.
         val row = database.fetchOne(
             """WITH old AS (SELECT * FROM team_events WHERE id = ? FOR NO KEY UPDATE)
-               UPDATE team_events e SET kind = ?, title = ?, starts_at = ?::timestamptz, ends_at = ?::timestamptz, location = ?, notes = ?, cancelled = ?
+               UPDATE team_events e SET kind = ?, title = ?, starts_at = ?::timestamptz, ends_at = ?::timestamptz, location = ?, notes = ?, cancelled = ?,
+                   venue_id = ?::uuid
                FROM old
                WHERE e.id = old.id AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}
-               RETURNING (old.kind, old.title, old.starts_at, old.ends_at, old.location, old.notes, old.cancelled)
-                         IS DISTINCT FROM (e.kind, e.title, e.starts_at, e.ends_at, e.location, e.notes, e.cancelled) AS changed,
+               RETURNING (old.kind, old.title, old.starts_at, old.ends_at, old.location, old.notes, old.cancelled, old.venue_id)
+                         IS DISTINCT FROM (e.kind, e.title, e.starts_at, e.ends_at, e.location, e.notes, e.cancelled, e.venue_id) AS changed,
                          old.cancelled AS was_cancelled""",
             eventId, input.kind.name, input.title, input.startsAt.toString(), input.endsAt.toString(), input.location, input.notes,
-            cancelled, actor) ?: return missing(eventId, actor)
+            cancelled, input.venueId?.toString(), actor) ?: return missing(eventId, actor)
         val wasCancelled = row.get("was_cancelled", Boolean::class.java)
         // Editing an event that stays cancelled tells nobody anything new.
         if (row.get("changed", Boolean::class.java) && !(cancelled && wasCancelled)) notifier.eventChanged(database, eventId, cancelled)
@@ -192,6 +214,23 @@ internal class TeamEvents(
         else -> notFoundOrDenied(actor, Change.NOT_FOUND, Change.DENIED)
     }
 
+    private fun venueExists(id: UUID) = database.fetchOne("SELECT 1 FROM venues WHERE id = ?", id) != null
+
+    /**
+     * The first event that is not cancelled and holds [venue] during one of the [starts] (each lasting [duration]),
+     * other than [except]. The exclusion constraint of V40 still refuses a booking that slips in concurrently.
+     */
+    private fun findClash(venue: UUID, starts: List<OffsetDateTime>, duration: Duration, except: UUID?): Clash? = database.fetchOne(
+        """SELECT t.name AS team_name, e.title, e.starts_at FROM team_events e JOIN teams t ON t.id = e.team_id
+           JOIN unnest(?::text[]) AS u(starts) ON tstzrange(e.starts_at, e.ends_at) &&
+                tstzrange(u.starts::timestamptz, u.starts::timestamptz + ?::interval)
+           WHERE e.venue_id = ? AND NOT e.cancelled AND e.id IS DISTINCT FROM ?::uuid
+           ORDER BY e.starts_at LIMIT 1""",
+        starts.map { it.toString() }.toTypedArray(), "${duration.seconds} seconds", venue, except?.toString())?.let {
+        Clash(it.get("team_name", String::class.java), it.get("title", String::class.java),
+            it.get("starts_at", OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC))
+    }
+
     private fun teamExists(teamId: UUID) = database.fetchOne("SELECT 1 FROM teams WHERE id = ?", teamId) != null
 
     private fun holdsClubTeamCapability(actor: UUID): Boolean = database.fetchOne(
@@ -213,6 +252,7 @@ internal class TeamEvents(
         row.get("cancelled", Boolean::class.java),
         EventAttendance.Counts(row.get("yes_count", Int::class.java), row.get("no_count", Int::class.java),
             row.get("maybe_count", Int::class.java)),
+        venueId = row.get("venue_id", UUID::class.java), venueName = row.get("venue_name", String::class.java),
     )
 
     companion object {

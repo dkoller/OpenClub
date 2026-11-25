@@ -11,6 +11,7 @@ function server(allowed: (path: string) => boolean) {
     if (!allowed(path)) return json(403)
     if (path.startsWith('/api/v1/teams')) return json(200, { items: [{ id: 't', name: 'U12', memberCount: 3 }] })
     if (path.startsWith('/api/v1/grants')) return json(200, { items: [] })
+    if (path === '/api/v1/venues') return json(200, { canManage: true, items: [] })
     return json(200, { items: [] })
   }) as typeof fetch
   return { request, calls }
@@ -22,14 +23,14 @@ describe('loadAccess', () => {
     const access = await loadAccess(request)
     expect(access).toEqual(noAccess)
     expect(hasAdmin(access)).toBe(false)
-    expect(calls).toHaveLength(5)
+    expect(calls).toHaveLength(6)
   })
 
   it('maps each read-only probe to its entry', async () => {
     const { request } = server(path => path.startsWith('/api/v1/teams') || path.startsWith('/api/v1/fee-periods'))
     expect(await loadAccess(request)).toEqual({ ...noAccess, teams: true, fees: true })
     const all = await loadAccess(server(() => true).request)
-    expect(all).toEqual({ teams: true, editor: true, directory: true, fees: true, permissions: true })
+    expect(all).toEqual({ teams: true, editor: true, directory: true, fees: true, permissions: true, venues: true })
     expect(hasAdmin(all)).toBe(true)
   })
 
@@ -41,7 +42,7 @@ describe('loadAccess', () => {
 
   it('hides only on denial: other failures keep the entry so its page can offer a retry', async () => {
     const unavailable = (async () => json(503)) as typeof fetch
-    expect(await loadAccess(unavailable)).toEqual({ teams: true, editor: true, directory: true, fees: true, permissions: true })
+    expect(await loadAccess(unavailable)).toEqual({ teams: true, editor: true, directory: true, fees: true, permissions: true, venues: true })
     const signedOut = (async () => json(401)) as typeof fetch
     expect(await loadAccess(signedOut)).toEqual(noAccess)
   })

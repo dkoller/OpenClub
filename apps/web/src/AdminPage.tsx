@@ -18,12 +18,13 @@ import { fill } from './EventBits'
 import { PublicMembers } from './PublicMembers'
 import { readUnfilled, type UnfilledShift } from './shifts'
 import { describeShift, helperWords } from './HelpersMissing'
+import { VenueAdmin } from './VenuesPage'
 
 const words = {
-  de: { nav: 'Verwaltung', overview: 'Wartet auf dich', members: 'Mitglieder', 'join-requests': 'Beitrittsanfragen', fees: 'Beiträge', permissions: 'Berechtigungen', settings: 'Einstellungen', nothing: 'Im Moment wartet nichts auf dich.', requests: '{n} Beitrittsanfragen', requestsOne: '1 Beitrittsanfrage', since: 'Älteste vom {date}', openFees: '{period}: {n} Beiträge offen', amount: '{amount} von {total} offen, fällig am {date}', view: 'Ansehen', toTeam: 'Zum Team', loading: 'Wird geladen…', error: 'Nicht alles konnte geladen werden.' },
-  en: { nav: 'Administration', overview: 'Waiting for you', members: 'Members', 'join-requests': 'Join requests', fees: 'Fees', permissions: 'Permissions', settings: 'Settings', nothing: 'Nothing is waiting for you right now.', requests: '{n} join requests', requestsOne: '1 join request', since: 'Oldest from {date}', openFees: '{period}: {n} fees open', amount: '{amount} of {total} open, due {date}', view: 'View', toTeam: 'Open team', loading: 'Loading…', error: 'Not everything could be loaded.' },
-  fr: { nav: 'Administration', overview: 'En attente', members: 'Membres', 'join-requests': 'Demandes d’adhésion', fees: 'Cotisations', permissions: 'Autorisations', settings: 'Réglages', nothing: 'Rien ne vous attend pour le moment.', requests: '{n} demandes d’adhésion', requestsOne: '1 demande d’adhésion', since: 'La plus ancienne du {date}', openFees: '{period} : {n} cotisations ouvertes', amount: '{amount} sur {total} ouverts, échéance le {date}', view: 'Voir', toTeam: 'Vers l’équipe', loading: 'Chargement…', error: 'Tout n’a pas pu être chargé.' },
-  it: { nav: 'Amministrazione', overview: 'In attesa', members: 'Membri', 'join-requests': 'Richieste di adesione', fees: 'Quote', permissions: 'Autorizzazioni', settings: 'Impostazioni', nothing: 'Al momento non c’è niente in attesa.', requests: '{n} richieste di adesione', requestsOne: '1 richiesta di adesione', since: 'La più vecchia del {date}', openFees: '{period}: {n} quote aperte', amount: '{amount} su {total} aperti, scadenza {date}', view: 'Vedi', toTeam: 'Alla squadra', loading: 'Caricamento…', error: 'Non è stato possibile caricare tutto.' },
+  de: { venues: 'Plätze und Hallen', nav: 'Verwaltung', overview: 'Wartet auf dich', members: 'Mitglieder', 'join-requests': 'Beitrittsanfragen', fees: 'Beiträge', permissions: 'Berechtigungen', settings: 'Einstellungen', nothing: 'Im Moment wartet nichts auf dich.', requests: '{n} Beitrittsanfragen', requestsOne: '1 Beitrittsanfrage', since: 'Älteste vom {date}', openFees: '{period}: {n} Beiträge offen', amount: '{amount} von {total} offen, fällig am {date}', view: 'Ansehen', toTeam: 'Zum Team', loading: 'Wird geladen…', error: 'Nicht alles konnte geladen werden.' },
+  en: { venues: 'Fields and halls', nav: 'Administration', overview: 'Waiting for you', members: 'Members', 'join-requests': 'Join requests', fees: 'Fees', permissions: 'Permissions', settings: 'Settings', nothing: 'Nothing is waiting for you right now.', requests: '{n} join requests', requestsOne: '1 join request', since: 'Oldest from {date}', openFees: '{period}: {n} fees open', amount: '{amount} of {total} open, due {date}', view: 'View', toTeam: 'Open team', loading: 'Loading…', error: 'Not everything could be loaded.' },
+  fr: { venues: 'Terrains et salles', nav: 'Administration', overview: 'En attente', members: 'Membres', 'join-requests': 'Demandes d’adhésion', fees: 'Cotisations', permissions: 'Autorisations', settings: 'Réglages', nothing: 'Rien ne vous attend pour le moment.', requests: '{n} demandes d’adhésion', requestsOne: '1 demande d’adhésion', since: 'La plus ancienne du {date}', openFees: '{period} : {n} cotisations ouvertes', amount: '{amount} sur {total} ouverts, échéance le {date}', view: 'Voir', toTeam: 'Vers l’équipe', loading: 'Chargement…', error: 'Tout n’a pas pu être chargé.' },
+  it: { venues: 'Campi e palestre', nav: 'Amministrazione', overview: 'In attesa', members: 'Membri', 'join-requests': 'Richieste di adesione', fees: 'Quote', permissions: 'Autorizzazioni', settings: 'Impostazioni', nothing: 'Al momento non c’è niente in attesa.', requests: '{n} richieste di adesione', requestsOne: '1 richiesta di adesione', since: 'La più vecchia del {date}', openFees: '{period}: {n} quote aperte', amount: '{amount} su {total} aperti, scadenza {date}', view: 'Vedi', toTeam: 'Alla squadra', loading: 'Caricamento…', error: 'Non è stato possibile caricare tutto.' },
 } satisfies Record<Language, Record<string, string>>
 
 const partWords = {
@@ -50,6 +51,7 @@ export function adminSections(access: Access): AdminSection[] {
     ...(access.editor || access.directory || access.permissions ? ['members' as const] : []),
     ...(access.editor ? ['join-requests' as const] : []),
     ...(access.fees ? ['fees' as const] : []),
+    ...(access.venues ? ['venues' as const] : []),
     ...(access.permissions ? ['permissions' as const, 'settings' as const] : []),
   ]
 }
@@ -139,6 +141,7 @@ export function AdminPage({ section, part, language, csrfToken, access, club, on
       {current === 'join-requests' && <><h1>{t['join-requests']}</h1>
         <JoinRequestsAdmin language={language} csrfToken={csrfToken} onChanged={onDirectoryChanged} /></>}
       {current === 'fees' && <><h1>{t.fees}</h1><FeeAdmin language={language} csrfToken={csrfToken} /></>}
+      {current === 'venues' && <><h1>{t.venues}</h1><VenueAdmin language={language} csrfToken={csrfToken} /></>}
       {current === 'permissions' && <><h1>{t.permissions}</h1><GrantAdmin language={language} csrfToken={csrfToken} /></>}
       {current === 'settings' && <><h1>{t.settings}</h1>
         <ClubSettings key={csrfToken} language={language} name={club.clubName} csrfToken={csrfToken}

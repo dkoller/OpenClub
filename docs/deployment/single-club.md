@@ -247,6 +247,11 @@ Do not check off hosted proof because local CI succeeds. Do not import or proces
 
 ## Upgrading and rolling back
 
+**PostgreSQL extension (since V40, OpenAPI 1.30.0):** the venue double-booking rule needs the contrib extension
+`btree_gist`. V40 runs `CREATE EXTENSION IF NOT EXISTS btree_gist`; it is a *trusted* extension, so the database owner
+can create it (the bundled `postgres:16` image and the demo compose file already allow it). On a managed PostgreSQL
+where the app role does not own the database, have an administrator run that statement once before upgrading.
+
 See the [upgrade and rollback runbook](upgrade-and-rollback.md): backup, preflight queries for data that
 blocks a migration, the upgrade itself, failure handling, and rollback by restoring the pre-upgrade backup.
 It is covered by synthetic migration tests, not by a witnessed production drill.

@@ -16,11 +16,11 @@ import java.util.UUID
  * summary email per kind of change, not one per event.
  */
 internal class BulkEvents(private val database: DSLContext, private val notifier: Notifier = Notifier.DISABLED) {
-    enum class Action { CANCEL, REINSTATE, SET_LOCATION }
+    enum class Action { CANCEL, REINSTATE, SET_LOCATION, SET_VENUE }
 
     data class Input(
         val teams: Set<UUID>, val from: LocalDate, val to: LocalDate, val kinds: Set<TeamEvents.Kind>,
-        val action: Action, val location: String?, val preview: Boolean,
+        val action: Action, val location: String?, val preview: Boolean, val venueId: UUID? = null,
     )
 
     sealed interface Result {
@@ -28,6 +28,7 @@ internal class BulkEvents(private val database: DSLContext, private val notifier
         data object NotFound : Result
         data object Denied : Result
         data object TooMany : Result
+        data object UnknownVenue : Result
     }
 
     fun apply(actor: UUID, input: Input): Result = database.transactionResult { config ->
@@ -43,6 +44,9 @@ internal class BulkEvents(private val database: DSLContext, private val notifier
                    WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability = 'MANAGE_TEAMS'""", actor)
             return@transactionResult if (clubWide != null) Result.NotFound else Result.Denied
         }
+        if (input.venueId != null && db.fetchOne("SELECT 1 FROM venues WHERE id = ?", input.venueId) == null) {
+            return@transactionResult Result.UnknownVenue
+        }
         val selection = """e.team_id = ANY (?::uuid[]) AND e.kind = ANY (?::text[]) AND e.starts_at > now()
                  AND e.starts_at >= (?::date)::timestamp AT TIME ZONE 'Europe/Zurich'
                  AND e.starts_at < ((?::date) + 1)::timestamp AT TIME ZONE 'Europe/Zurich'"""
@@ -52,8 +56,13 @@ internal class BulkEvents(private val database: DSLContext, private val notifier
             Action.CANCEL -> "NOT e.cancelled"
             Action.REINSTATE -> "e.cancelled"
             Action.SET_LOCATION -> "e.location IS DISTINCT FROM ?::text"
+            Action.SET_VENUE -> "e.venue_id IS DISTINCT FROM ?::uuid"
         }
-        val changeBinds = if (input.action == Action.SET_LOCATION) arrayOf<Any?>(input.location) else emptyArray()
+        val changeBinds = when (input.action) {
+            Action.SET_LOCATION -> arrayOf<Any?>(input.location)
+            Action.SET_VENUE -> arrayOf<Any?>(input.venueId?.toString())
+            else -> emptyArray()
+        }
         val matched = db.fetch("SELECT e.id FROM team_events e WHERE $selection AND $change FOR NO KEY UPDATE OF e",
             *binds, *changeBinds).map { it.get(0, UUID::class.java) }
         if (matched.size > MAX_EVENTS) return@transactionResult Result.TooMany
@@ -62,6 +71,7 @@ internal class BulkEvents(private val database: DSLContext, private val notifier
             Action.CANCEL -> "cancelled = TRUE"
             Action.REINSTATE -> "cancelled = FALSE"
             Action.SET_LOCATION -> "location = ?::text"
+            Action.SET_VENUE -> "venue_id = ?::uuid"
         }
         val updated = db.execute(
             """UPDATE team_events e SET $set

@@ -65,8 +65,8 @@ internal class FirstClubBootstrap(private val database: DSLContext) {
                 """INSERT INTO club_capability_grants (member_id, capability)
                    VALUES (?, 'MANAGE_PERMISSIONS'), (?, 'VIEW_MEMBER_DIRECTORY'), (?, 'EDIT_MEMBERS'),
                           (?, 'VIEW_TEAMS'), (?, 'MANAGE_TEAMS'), (?, 'MANAGE_FEES'),
-                          (?, 'POST_ANNOUNCEMENTS')""",
-                adminMemberId, adminMemberId, adminMemberId, adminMemberId, adminMemberId, adminMemberId, adminMemberId,
+                          (?, 'POST_ANNOUNCEMENTS'), (?, 'MANAGE_VENUES')""",
+                adminMemberId, adminMemberId, adminMemberId, adminMemberId, adminMemberId, adminMemberId, adminMemberId, adminMemberId,
             )
             // Operator command: no browser-session actor. The target is the first administrator.
             AuditEvents.record(db, AuditEvents.Type.CLUB_BOOTSTRAPPED, null, adminMemberId)

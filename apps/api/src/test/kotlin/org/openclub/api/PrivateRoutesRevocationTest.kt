@@ -82,7 +82,7 @@ class PrivateRoutesRevocationTest {
                     tx.execute("INSERT INTO teams (id, name) VALUES (?, ?)", team,
                         "Revocation team ${UUID.randomUUID().toString().take(8)}")
                     for (capability in listOf("VIEW_MEMBER_DIRECTORY", "EDIT_MEMBERS", "MANAGE_PERMISSIONS",
-                        "VIEW_TEAMS", "MANAGE_TEAMS", "MANAGE_FEES", "POST_ANNOUNCEMENTS")) {
+                        "VIEW_TEAMS", "MANAGE_TEAMS", "MANAGE_FEES", "POST_ANNOUNCEMENTS", "MANAGE_VENUES")) {
                         tx.execute("INSERT INTO club_capability_grants VALUES (?, ?)", holder, capability)
                     }
                 }
@@ -164,6 +164,11 @@ class PrivateRoutesRevocationTest {
         // Actual attendance and the J+S export (1.27.0): an unknown event is 404 for the club-wide holder.
         Route(HttpMethod.Get, "/api/v1/events/${UUID(0, 1)}/presence"),
         Route(HttpMethod.Put, "/api/v1/events/${UUID(0, 1)}/presence", """{"present":[]}"""),
+        // Venues (1.30.0): the list and an unknown venue (404); a new venue is created and deleted again below.
+        Route(HttpMethod.Get, "/api/v1/venues"),
+        Route(HttpMethod.Get, "/api/v1/venues/${UUID(0, 1)}/bookings"),
+        Route(HttpMethod.Put, "/api/v1/venues/${UUID(0, 1)}", """{"name":"Revocation venue"}"""),
+        Route(HttpMethod.Delete, "/api/v1/venues/${UUID(0, 1)}"),
         // Bulk changes (1.29.0): a preview changes nothing.
         Route(HttpMethod.Post, "/api/v1/events/bulk",
             """{"teamIds":["$team"],"from":"2030-01-01","to":"2030-01-31","kinds":["TRAINING"],"action":"CANCEL","location":null,"preview":true}"""),

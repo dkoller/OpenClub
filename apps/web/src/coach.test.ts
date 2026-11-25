@@ -5,7 +5,7 @@ import { byAnswer, notAnswered, upcoming } from './coach'
 const now = Date.parse('2026-11-23T08:00:00Z')
 const event = (id: string, startsAt: string): TeamEvent => ({ id, teamId: 't', teamName: 'U12', kind: 'TRAINING', title: id,
   startsAt, endsAt: new Date(Date.parse(startsAt) + 3600000).toISOString(), location: null, notes: null, cancelled: false,
-  counts: { yes: 0, no: 0, maybe: 0 } })
+  counts: { yes: 0, no: 0, maybe: 0 }, venueId: null, venueName: null })
 
 describe('coach helpers', () => {
   it('counts who has not answered, never below zero', () => {
