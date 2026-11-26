@@ -52,7 +52,8 @@ photographs each page in English. Sign-in pages are never photographed, and only
   requests* on, the workflow opens the PR itself; with it off, it pushes the branch `docs-screenshots` and leaves a
   warning, and a person opens the PR from that branch. Pull requests created by the workflow token start no other
   workflows; the picture-only PR needs none.
-- **Sizes:** phone pictures (390 × 844) show one screen, as on a phone; laptop pictures (1280 wide) show the whole page.
+- **Sizes:** phone pictures are 390 wide and show the whole page as one tall screen (at most 4000 pixels), with the tab
+  bar at the bottom; laptop pictures are 1280 wide and show the whole page.
 - **Every view:** the spec photographs every page of the app (34 pictures, listed in `docs/guides/screens.md`). A new
   page needs a `shoot(...)` line there and an entry in `screens.md`.
 - **New picture:** add a `shoot(page, '#/…', 'name')` line to the spec and reference `images/name.png` from the guide;

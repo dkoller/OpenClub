@@ -65,9 +65,11 @@ export async function readMyEvents(request: typeof fetch = fetch): Promise<{ ite
 }
 
 /** The next eight weeks of one team's events, and whether the caller may change them. */
-export async function readTeamEvents(teamId: string, request: typeof fetch = fetch):
+/** A team's events; without [range] the server's default (from now, eight weeks ahead). */
+export async function readTeamEvents(teamId: string, request: typeof fetch = fetch, range?: { from: Date; to: Date }):
   Promise<{ items: TeamEvent[]; truncated: boolean; canManage: boolean } | 'denied'> {
-  const body = await readJson('/api/v1/teams/' + encodeURIComponent(teamId) + '/events', request)
+  const query = range ? `?from=${encodeURIComponent(range.from.toISOString())}&to=${encodeURIComponent(range.to.toISOString())}` : ''
+  const body = await readJson('/api/v1/teams/' + encodeURIComponent(teamId) + '/events' + query, request)
   if (body === 'denied') return body
   if (!(body.items as unknown[]).every(item => isEvent(item, [])) || typeof body.canManage !== 'boolean') {
     throw new Error('Invalid events')

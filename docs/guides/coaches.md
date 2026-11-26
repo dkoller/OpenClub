@@ -47,7 +47,10 @@ player and parent sees only their own status.
 
 ## After the event: who came, and J+S
 
-- **Who came?** appears on the event page once it has started: tick the leaders (members with a manager grant for the
+<img src="images/coach-event-past.png" alt="A past training: who came" width="320">
+
+- **Who came?** appears on the event page once it has started. After the event, open it from the team's *Schedule*
+  with *Show past events* (the last eight weeks); then tick the leaders (members with a manager grant for the
   team) and participants who were there and *Save attendance*. You can correct it later. The ticks stay with the event,
   also after a member leaves the team.
 - **J+S attendance** on the team's *Statistics* page: choose the dates and *Check*. It shows how many rows the file

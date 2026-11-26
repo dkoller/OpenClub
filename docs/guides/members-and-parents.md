@@ -21,7 +21,7 @@ child. See the [overview](README.md) for finding your way and signing in.
 
 ## Helping, rides and absences
 
-<img src="images/member-event.png" alt="An event page on a phone with answers, helper shifts and rides" width="320"> <img src="images/member-absences.png" alt="The absences page on a phone" width="320">
+<img src="images/member-event.png" alt="An event page on a phone with answers, helper shifts and rides" width="320"> <img src="images/member-family-absences.png" alt="The absences page on a phone" width="320">
 
 - **Helper shifts:** on an event's page, *Sign up* puts you (or your child) on a shift while places are free;
   *Withdraw* takes you off, both until the shift starts. The team sees your name on the shift.

@@ -90,7 +90,10 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
     let active = true
     void (async () => {
       try {
-        const [teams, schedule] = await Promise.all([readTeams(), readTeamEvents(teamId)])
+        // Half a year back and ahead, so a coach can open a past training to tick who came.
+        const now = Date.now(), day = 86_400_000
+        const range = { from: new Date(now - 180 * day), to: new Date(now + 180 * day) }
+        const [teams, schedule] = await Promise.all([readTeams(), readTeamEvents(teamId, fetch, range)])
         const found = schedule === 'denied' ? undefined : schedule.items.find(item => item.id === eventId)
         if (!found) { if (active) setState('gone'); return }
         const list = await readAttendance(eventId)

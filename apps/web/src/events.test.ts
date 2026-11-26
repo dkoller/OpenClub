@@ -29,6 +29,9 @@ describe('events client', () => {
     const request = vi.fn().mockResolvedValue(res(200, { items: [event], truncated: true, canManage: true }))
     expect(await readTeamEvents('a/b', request)).toEqual({ items: [event], truncated: true, canManage: true })
     expect(request.mock.calls[0][0]).toBe('/api/v1/teams/a%2Fb/events')
+    // A range (past events for coaches) goes into the query as UTC instants.
+    await readTeamEvents('t', request, { from: new Date('2026-10-01T00:00:00Z'), to: new Date('2027-01-01T00:00:00Z') })
+    expect(request.mock.calls[1][0]).toBe('/api/v1/teams/t/events?from=2026-10-01T00%3A00%3A00.000Z&to=2027-01-01T00%3A00%3A00.000Z')
     await expect(readTeamEvents('t', vi.fn().mockResolvedValue(res(200, { items: [], truncated: false })))).rejects.toThrow()
     await expect(readTeamEvents('t', vi.fn().mockResolvedValue(res(503)))).rejects.toThrow()
   })
