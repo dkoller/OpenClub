@@ -5,18 +5,31 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 
 ## Who is coming
 
-<img src="images/coach-team.png" alt="A team page on a phone" width="320"> <img src="images/coach-event.png" alt="A match page for the coach: who is coming, the squad and who came" width="320">
-
 - **Next events** opens the *Team* page: the next 14 days of your teams (at most eight teams) with totals and how
   many have not answered (*11 yes · 2 no · 3 open*).
+
+  <img src="images/coach-teams.png" alt="The Team page on a phone: the next 14 days of each team" width="300">
+
+- **A team's page** (tap the team) leads to its *Schedule*, *Members* and *Statistics*; with `MANAGE_TEAMS` also
+  *Manage team*.
+
+  <img src="images/coach-team.png" alt="A team's page on a phone" width="300">
+
 - **An event's page** shows *Who is coming?*: totals, then names under *No answer yet*, *No*, *Maybe* and *Yes*
   (adults by full name, children by first name and initial). Absences count as *No*; no reason is ever shown.
+
+  <img src="images/coach-event.png" alt="A coming match for the coach: who is coming, the squad, helpers, rides and the message form" width="300">
+
 - **Remind** (`MANAGE_TEAMS`): *Remind all 3 without an answer* emails them (parents for their children), at most every
   12 hours. An automatic reminder also goes out two days before every event.
 - **Attendance statistics:** the team's *Statistics* page shows, for up to a year, how each member answered. Answers
   are deleted 12 months after an event.
 
+  <img src="images/coach-team-statistics.png" alt="A team's statistics on a phone, with the J+S export" width="300">
+
 ## Planning the schedule (`MANAGE_TEAMS`)
+
+<img src="images/coach-team-schedule.png" alt="A team's schedule on a phone, with the form to add events" width="300">
 
 - A team's *Schedule* shows eight weeks. *Add event*: *Kind* (Training, Match, Event), *Title*, *Date*, *Start*, *End*,
   optionally *Place*, *Field or hall* (if the club keeps a list) and *Notes*. *Repeat weekly until* creates up to 52
@@ -47,12 +60,13 @@ player and parent sees only their own status.
 
 ## After the event: who came, and J+S
 
-<img src="images/coach-event-past.png" alt="A past training: who came" width="320">
-
 - **Who came?** appears on the event page once it has started. After the event, open it from the team's *Schedule*
   with *Show past events* (the last eight weeks); then tick the leaders (members with a manager grant for the
   team) and participants who were there and *Save attendance*. You can correct it later. The ticks stay with the event,
   also after a member leaves the team.
+
+  <img src="images/coach-event-past.png" alt="A past training on a phone: who came" width="300">
+
 - **J+S attendance** on the team's *Statistics* page: choose the dates and *Check*. It shows how many rows the file
   will have, who has no J+S person number (an administrator adds it) and which trainings have no place. *Download file*
   gives the CSV for the import of the attendance record (*Anwesenheitskontrolle*) in the NDS. Trainings become
@@ -63,6 +77,8 @@ player and parent sees only their own status.
 
 With `MANAGE_TEAMS` the team's *Members* page assigns and removes members, and *Contact details* shows an **active**
 team member's email and phone. Birth dates stay hidden; each contact read is recorded.
+
+<img src="images/coach-team-members.png" alt="A team's members on a phone" width="300">
 
 ## Team announcements
 

@@ -5,23 +5,33 @@ child. See the [overview](README.md) for finding your way and signing in.
 
 ## Answering events
 
-<img src="images/member-start.png" alt="Start page on a phone: things to answer and the next seven days" width="320"> <img src="images/member-schedule.png" alt="Schedule on a phone: the coming events for the parent and both children" width="320">
-
 - **Start** shows *Things for you to do*: each event that still needs an answer from you or your child, soonest first,
   with *Yes*, *No* and *Maybe* in the card. One tap answers; the card then leaves the list. Below it, *Also in the next
   7 days* and the announcements.
+
+  <img src="images/member-start.png" alt="Start on a phone: things to answer, the next seven days and announcements" width="300">
+
 - **Schedule** lists the next eight weeks of your teams (and your children's teams), grouped by day. With children,
   the buttons at the top show *Everyone*, *Me* or one child. *Answer missing* marks events still waiting for you. You
   can answer until the event starts; choosing your answer again clears it. You see the team's totals, never other
   members' answers.
+
+  <img src="images/member-schedule.png" alt="Schedule on a phone: the events of the parent and both children, with answer buttons" width="300">
+
 - **One event:** tap it to see when and where, notes, your answers, the totals, helper shifts and rides.
+
+  <img src="images/member-event.png" alt="An event page on a phone: answers, helper shifts and rides" width="300">
+
+- **Fields and halls:** *When fields and halls are booked*, at the bottom of *Schedule*, shows the bookings of each of
+  the club's fields and halls.
+
+  <img src="images/member-venues.png" alt="The bookings of one field on a phone" width="300">
+
 - **Called up:** for a match the coach may call up a squad. If you or your child are in it, the schedule shows
   *Called up* and the event page shows the meeting time and place; otherwise *Not called up*. You never see who else
   is called up.
 
 ## Helping, rides and absences
-
-<img src="images/member-event.png" alt="An event page on a phone with answers, helper shifts and rides" width="320"> <img src="images/member-family-absences.png" alt="The absences page on a phone" width="320">
 
 - **Helper shifts:** on an event's page, *Sign up* puts you (or your child) on a shift while places are free;
   *Withdraw* takes you off, both until the shift starts. The team sees your name on the shift.
@@ -33,6 +43,8 @@ child. See the [overview](README.md) for finding your way and signing in.
 - **Absences** (*Family* → *Absences*): enter the days you or your child are away. Every unanswered event on those days
   counts as *No*; you can still answer *Yes*. No reason is asked or stored.
 
+  <img src="images/member-family-absences.png" alt="Family → Absences on a phone" width="300">
+
 ## Staying informed
 
 - **Announcements** on *Start*: club-wide news and news for your teams, newest first.
@@ -43,9 +55,14 @@ child. See the [overview](README.md) for finding your way and signing in.
   same messages on that phone or computer. On an iPhone add the app to the home screen first. *Turn off for this
   device* stops them. The push itself carries no text; your device fetches it from the club's server.
   Signing out also turns them off on that device, so on a shared computer the next person gets none of yours.
+
+  <img src="images/member-family-notifications.png" alt="Family → Email notifications on a phone, with the push switch below" width="300">
+
 - **Calendar subscription** (*Family* → *Calendar subscription*): *Create link* gives a private link for your phone's
   calendar with your and your children's events. Anyone with the link sees your schedule; *Create a new link* or
   *Revoke link* ends the old one.
+
+  <img src="images/member-family-calendar.png" alt="Family → Calendar subscription on a phone" width="300">
 
 ## Fees
 
@@ -53,17 +70,21 @@ child. See the [overview](README.md) for finding your way and signing in.
 For an open fee, *QR bill (PDF)* downloads a Swiss QR bill to pay in your banking app (once the treasurer has entered
 the club's account). A fee shows as paid only after the treasurer has seen the payment.
 
+<img src="images/member-family-fees.png" alt="Family → Fees on a phone, with helper duty" width="300">
+
 ## Your own record
 
 *My profile* shows what the club stores about you: name, date of birth, gender (if recorded), whether you play, your
 role, teams and your J+S person number (if the club entered one). Change your *Email* and *Phone* there; other details
 are changed by the club. Untick *Show my name on the public member list* to take your name off the list anyone can see.
 
+<img src="images/member-family-profile.png" alt="My profile on a phone" width="300">
+
 ## For parents (guardians)
 
-<img src="images/member-family.png" alt="The Family page on a phone with the parent's children" width="320">
-
 If the club recorded you as a guardian, *Family* → *My children* lists your children by first name.
+
+<img src="images/member-family.png" alt="The Family page on a phone" width="300"> <img src="images/member-family-children.png" alt="Family → My children on a phone" width="300">
 
 - *Open* shows a child's date of birth, whether they play and their teams; you can change the child's *Email* and
   *Phone*. Nothing else about the child, and nothing about other members, can be seen or changed.
@@ -77,6 +98,8 @@ If the club recorded you as a guardian, *Family* → *My children* lists your ch
 
 If the club switched it on, the signed-out start page shows *Join the club*: adults apply for themselves, parents for
 a child. The club's administration then accepts or declines; an application nobody handles is deleted after 60 days.
+
+<img src="images/public-signed-out.png" alt="The signed-out start page on a phone with Sign in and Join the club" width="300">
 
 ## Getting help
 
