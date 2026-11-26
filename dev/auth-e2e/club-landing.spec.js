@@ -5,8 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 /** A member row opens by its name (details, then Edit and Archive); opens it if it is still closed. */
 async function openMember(row) {
-  const toggle = row.locator('button.row-toggle[aria-expanded="false"]');
-  if (await toggle.count() > 0) await toggle.click();
+  const toggle = row.locator('button.row-toggle');
+  await toggle.waitFor();
+  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
 }
 
 /** Occasional forms sit behind a button (Reveal); opens one if it is still closed. */
