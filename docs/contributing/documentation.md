@@ -44,10 +44,12 @@ empty club, fills it with the fictional demo data (`dev/deployment/seed-demo-dat
 photographs each page in English. Sign-in pages are never photographed, and only the PNG files leave the CI job.
 
 - **When:** the workflow `.github/workflows/docs-screenshots.yml` runs after the Keycloak browser journey has passed
-  on `main`. A picture is replaced only when it differs by more than 3% of its pixels, so a date that moved by a day
-  does not count, while a changed screen does. If any picture changed, the workflow opens or updates one pull request
-  *Update documentation screenshots* (branch `docs-screenshots`) that contains only PNG files; it is merged like any
-  other docs PR. A pull request that changes the screenshot test itself uploads the pictures for review instead.
+  on `main` and takes every picture again. If the app (`apps/web`, `apps/api/src/main`), the demo data or the
+  screenshot test changed since the commit named in `docs/guides/images/SOURCE`, it opens or updates one pull request
+  *Update documentation screenshots* (branch `docs-screenshots`) with all pictures and the new `SOURCE`; it is merged
+  like any other docs PR. Comparing pixels does not work for this: the dates in the pictures move with the real date,
+  and a changed label is a smaller difference than a moved date. A pull request that changes the screenshot test
+  itself uploads the pictures for review instead.
 - **Repository setting:** with *Settings → Actions → General → Allow GitHub Actions to create and approve pull
   requests* on, the workflow opens the PR itself; with it off, it pushes the branch `docs-screenshots` and leaves a
   warning, and a person opens the PR from that branch. Pull requests created by the workflow token start no other

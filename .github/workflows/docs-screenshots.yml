@@ -1,7 +1,9 @@
 name: Documentation screenshots
 # Pictures for the user guides (docs/guides/images), taken by dev/auth-e2e/docs-screenshots.spec.js on a disposable
 # stack with the fictional demo club. After the Keycloak browser journey passed on main, the pictures are taken
-# again; if any page changed visibly, one pull request "Update documentation screenshots" is opened or updated.
+# again; if the app, the demo data or the screenshot test changed since the pictures in docs/guides/images were
+# taken (docs/guides/images/SOURCE names that commit), one pull request "Update documentation screenshots" brings
+# all of them. Dates in the pictures move with the real date, so pixels alone cannot tell a real change.
 # On a pull request that changes the screenshot test, the pictures are only uploaded for review.
 on:
   workflow_run:
@@ -110,9 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           bash install-chromium.sh
-          # First run: write every picture; later runs rewrite only pictures that changed beyond the threshold.
-          if compgen -G '../../docs/guides/images/*.png' > /dev/null; then mode=changed; else mode=all; fi
-          pnpm exec playwright test -c docs-screenshots.config.js --update-snapshots="$mode"
+          pnpm exec playwright test -c docs-screenshots.config.js --update-snapshots=all
       # Only the PNG pictures leave the job: no traces, storage states or logs (they can carry sign-in material).
       - uses: actions/upload-artifact@v4
         with:
@@ -136,11 +136,30 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0
+      - name: Did anything the pictures show change?
+        id: source
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          paths=(apps/web/src apps/web/public apps/web/index.html apps/api/src/main dev/deployment/seed-demo-data.sql
+                 dev/auth-e2e/docs-screenshots.spec.js dev/auth-e2e/docs-screenshots.config.js)
+          previous="$(cat docs/guides/images/SOURCE 2>/dev/null || true)"
+          if [[ "$previous" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$previous^{commit}" 2>/dev/null \
+             && git diff --quiet "$previous" "$SHA" -- "${paths[@]}"; then
+            echo "Nothing the pictures show changed since $previous."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/download-artifact@v4
+        if: steps.source.outputs.changed == 'true'
         with:
           name: docs-screenshots
           path: ${{ runner.temp }}/screenshots
       - name: Check the pictures and copy them into the guides
+        if: steps.source.outputs.changed == 'true'
         env:
           SOURCE: ${{ runner.temp }}/screenshots
         run: |
@@ -163,11 +182,13 @@ jobs:
               shutil.copyfile(path, target / path.name)
           PY
       - name: Open or update the pull request
+        if: steps.source.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
           set -euo pipefail
+          echo "$SHA" > docs/guides/images/SOURCE
           if [[ -z "$(git status --porcelain -- docs/guides/images)" ]]; then
             echo "No screenshot changed."
             exit 0
@@ -181,7 +202,7 @@ jobs:
           git push -f origin "$branch"
           open="$(gh api "repos/$GITHUB_REPOSITORY/pulls?head=${GITHUB_REPOSITORY_OWNER}:$branch&state=open" --jq 'length')"
           if [[ "$open" == 0 ]] && ! gh api "repos/$GITHUB_REPOSITORY/pulls" -f title='Update documentation screenshots' -f head="$branch" -f base=main \
-              -f body="The pictures in docs/guides/images, taken again from $SHA after the Keycloak browser journey passed on main. Only PNG files change; review them on the Files tab. Documentation: pictures only." >/dev/null; then
+              -f body="The pictures in docs/guides/images, taken again from $SHA after the Keycloak browser journey passed on main. Only the PNG files and SOURCE (the commit they were taken from) change; review the pictures on the Files tab. Documentation: pictures only." >/dev/null; then
             # The repository does not let workflows open pull requests: the branch is pushed, a person opens the PR.
             echo "::warning::Screenshots changed; branch $branch is pushed. Open a pull request from it, or allow GitHub Actions to create pull requests."
           fi
