@@ -93,6 +93,8 @@ export function ShiftsPanel({ event, language, csrfToken, self }: {
           </form> : <>
             <p><strong>{shift.title}</strong> · {formatWhen(shift, language, false)} · {shift.volunteers.length} {t.of} {shift.needed} {t.filled}
             {' '}({shift.volunteers.length ? shift.volunteers.join(', ') : t.nobody})</p>
+            {shift.volunteers.length >= shift.needed && !list.people.some(person => shift.signedUp.includes(person.id)) &&
+              <p className="muted">{t.full}</p>}
             <div className="actions">
             {list.people.map(person => {
               const signed = shift.signedUp.includes(person.id)
@@ -104,8 +106,6 @@ export function ShiftsPanel({ event, language, csrfToken, self }: {
                 onClick={() => { void run(() => volunteer(shift.id, person.id, signed, csrfToken)) }}>
                 {signed ? t.withdraw : t.signUp}: {who}</button>
             })}
-            {shift.volunteers.length >= shift.needed && !list.people.some(person => shift.signedUp.includes(person.id)) &&
-              <span className="muted">{t.full}</span>}
             {list.canManage && <>
               <button type="button" disabled={busy} onClick={() => {
                 const parts = localParts(shift)

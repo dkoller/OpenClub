@@ -141,7 +141,8 @@ export function App() {
           aria-current={tabOf(shown) === tab ? 'page' : undefined}>{words[tab]}</a></li>)}
       </ul></nav>}
       <main className="page">
-        <p role="status" className={ready ? 'vh' : 'status'}>{message}</p>
+        {/* Signed out, the heading and the Sign in button already say it; the line stays for screen readers. */}
+        <p role="status" className={ready || access?.state === 'signed-out' ? 'vh' : 'status'}>{message}</p>
         {error && <p role="alert">{words.error}</p>}
         {access?.state === 'unavailable' && <button type="button" className="btn" onClick={() => { void retryAccess() }}>{words.retry}</button>}
         {access?.state === 'signed-out' && <>
@@ -149,7 +150,7 @@ export function App() {
           <p className="muted">{words.intro}</p>
           <a className="btn primary big" href="/api/v1/auth/login">{words.login}</a>
           <JoinForm language={language} />
-          <PublicMembers language={language} revision={directoryRevision} />
+          <PublicMembers language={language} revision={directoryRevision} collapsed />
           <LanguageChoice language={language} label={words.language} onChange={setLanguage} />
         </>}
         {access?.state === 'not-member' && <AcceptInvitation language={language} csrfToken={access.csrfToken} initial={invite}

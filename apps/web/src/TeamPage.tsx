@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { BackLink } from './BackLink'
 import type { Language } from './language'
 import { routeHash, teamSections, type TeamSection } from './routes'
 import { deleteTeam as requestDeleteTeam, readTeams, renameTeam as requestRenameTeam, type Team } from './teams'
@@ -101,7 +102,7 @@ function TeamHome({ team, language, csrfToken, onChanged, onDenied }: {
     schedule: t.scheduleHint, members: memberCount(team.memberCount, language), statistics: t.statisticsHint,
   }
   return <>
-    <p className="back"><a href={routeHash({ page: 'team' })}><span aria-hidden="true">← </span>{t.back}</a></p>
+    <BackLink href={routeHash({ page: 'team' })} label={t.back} />
     <h1>{team.name}</h1>
     <p className="muted">{memberCount(team.memberCount, language)}</p>
     <nav aria-label={t.parts} className="card team-list">
@@ -141,18 +142,18 @@ export function TeamPage({ teamId, section, language, csrfToken }: {
   const gone = () => { setTeam(null); setState('gone') }
   if (state === 'loading' && !team) return <p role="status">{t.loading}</p>
   if (state === 'error') return <>
-    <p className="back"><a href={routeHash({ page: 'team' })}><span aria-hidden="true">← </span>{t.back}</a></p>
+    <BackLink href={routeHash({ page: 'team' })} label={t.back} />
     <p role="alert">{t.error}</p>
     <button type="button" onClick={() => { setState('loading'); setRevision(value => value + 1) }}>{t.retry}</button>
   </>
   if (state === 'gone' || !team) return <>
-    <p className="back"><a href={routeHash({ page: 'team' })}><span aria-hidden="true">← </span>{t.back}</a></p>
+    <BackLink href={routeHash({ page: 'team' })} label={t.back} />
     <p>{t.gone}</p>
   </>
   if (!section) return <TeamHome team={team} language={language} csrfToken={csrfToken}
     onChanged={() => setRevision(value => value + 1)} onDenied={gone} />
   return <>
-    <p className="back"><a href={routeHash({ page: 'team', teamId })}><span aria-hidden="true">← </span>{team.name}</a></p>
+    <BackLink href={routeHash({ page: 'team', teamId })} label={team.name} />
     <h1>{t[section]}</h1>
     <nav aria-label={t.parts} className="admin-nav"><ul>
       {teamSections.map(item => <li key={item}><a href={routeHash({ page: 'team', teamId, section: item })}

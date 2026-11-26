@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { BackLink } from './BackLink'
 import type { Language } from './language'
 import type { Access } from './access'
 import { routeHash, type AdminSection, type MemberPart } from './routes'
@@ -130,7 +131,7 @@ export function AdminPage({ section, part, language, csrfToken, access, club, on
           adultAgeYears={club.adultAgeYears} onChanged={onDirectoryChanged} />
       </>}
       {current === 'members' && task && <>
-        <p><a href={routeHash({ page: 'admin', section: 'members' })}>← {p.back}</a></p>
+        <BackLink href={routeHash({ page: 'admin', section: 'members' })} label={p.back} />
         <h1>{p[task]}</h1>
         {task === 'invitations' && <InvitationAdmin language={language} csrfToken={csrfToken} />}
         {task === 'guardians' && <GuardianAdmin language={language} csrfToken={csrfToken} />}
