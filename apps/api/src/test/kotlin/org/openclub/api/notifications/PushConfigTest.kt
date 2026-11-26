@@ -87,4 +87,40 @@ class PushConfigTest {
             ECPoint(BigInteger(1, point.copyOfRange(1, 33)), BigInteger(1, point.copyOfRange(33, 65))), params))
         assertTrue(Signature.getInstance("SHA256withECDSA").apply { initVerify(key); update("$head.$claims".toByteArray()) }.verify(derSignature))
     }
+
+    @Test
+    fun broadSuffixesAndUpperCaseHostsAreRefused() {
+        val (public, private) = keys()
+        for (hosts in listOf(".googleapis.com", ".co.uk", "fcm.googleapis.com,.com")) {
+            assertThrows(IllegalArgumentException::class.java, { PushConfig.fromEnvironment(env(public, private) + ("OPENCLUB_PUSH_HOSTS" to hosts)) }, hosts)
+        }
+        val config = requireNotNull(PushConfig.fromEnvironment(env(public, private)))
+        assertFalse(config.allows("https://FCM.googleapis.com/fcm/send/abc"), "the audience must be the host as called")
+        assertFalse(config.allows("https://Web.Push.Apple.com/QOabc"))
+    }
+
+    @Test
+    fun privateAndReservedAddressesAreNotPublic() {
+        fun ip(value: String) = java.net.InetAddress.getByName(value)
+        for (address in listOf("127.0.0.1", "10.0.0.1", "172.16.5.4", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0",
+            "224.0.0.1", "198.18.0.1", "::1", "::", "fe80::1", "fc00::1", "fd12:3456::1", "::ffff:10.0.0.1", "64:ff9b::a00:1")) {
+            assertFalse(isPublic(ip(address)), address)
+        }
+        for (address in listOf("142.250.203.106", "17.253.144.10", "2a00:1450:400a:80b::200a")) assertTrue(isPublic(ip(address)), address)
+    }
+
+    @Test
+    fun aHostResolvingToAPrivateAddressIsNeverCalled() {
+        val (public, private) = keys()
+        val config = requireNotNull(PushConfig.fromEnvironment(env(public, private)))
+        val endpoint = "https://web.push.apple.com/QOabc"
+        for (address in listOf("10.0.0.1", "::1", "169.254.169.254")) {
+            // A refused address answers 0 (a failure) before any connection is attempted.
+            assertEquals(0, HttpPushSender(config) { listOf(java.net.InetAddress.getByName(address)) }.send(endpoint), address)
+        }
+        assertEquals(0, HttpPushSender(config) { listOf(java.net.InetAddress.getByName("17.253.144.10"), java.net.InetAddress.getByName("127.0.0.1")) }.send(endpoint),
+            "one private address among public ones is enough to refuse")
+        assertEquals(0, HttpPushSender(config) { emptyList() }.send(endpoint))
+        assertEquals(410, HttpPushSender(config) { error("not resolved") }.send("https://evil.example/x"), "a disallowed host is not even resolved")
+    }
 }

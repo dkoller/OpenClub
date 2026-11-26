@@ -241,4 +241,31 @@ class RideHttpTest {
         sql { it.execute("INSERT INTO member_team_assignments VALUES (?, ?)", team, memberOf.getValue("driver")) }
         sql { it.execute("DELETE FROM team_events WHERE id = ?", event) }
     }
+
+    @Test
+    fun aFormerGuardiansOfferAndPhoneDisappear() = app {
+        // Security review 2026-11-26: the guardian drives for the kid's team without being in it.
+        val rider = memberOf.getValue("rider")
+        val event = event()
+        val guardianRide = offer(event, "guardian")
+        val driverRide = offer(event, "driver")
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, seat(guardianRide, rider), "rider").status)
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, seat(driverRide, kid), "guardian").status)
+        val path = "/api/v1/events/$event/rides"
+        suspend fun rides(handle: String) = send(HttpMethod.Get, path, handle).json().getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(2, rides("rider").size)
+
+        sql { it.execute("DELETE FROM member_guardianships WHERE minor_member_id = ? AND guardian_member_id = ?", kid, memberOf.getValue("guardian")) }
+        val seen = rides("rider")
+        assertEquals(listOf(driverRide), seen.map { it.getValue("id").jsonPrimitive.content }, "the former guardian's offer is hidden")
+        assertTrue(seen.none { it.getValue("driverPhone").jsonPrimitive.contentOrNull == "+41000000072" })
+        val carried = rides("driver").single().getValue("passengers").jsonArray.single().jsonObject
+        assertNull(carried.getValue("phone").jsonPrimitive.contentOrNull, "the driver no longer sees the former guardian's phone")
+        assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Put, "/api/v1/rides/$guardianRide", "guardian", ride()).status,
+            "the former guardian cannot change the offer")
+        assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Put, seat(guardianRide, rider), "rider").status, "nor can anyone book it")
+
+        sql { it.execute("INSERT INTO member_guardianships (minor_member_id, guardian_member_id) VALUES (?, ?)", kid, memberOf.getValue("guardian")) }
+        sql { it.execute("DELETE FROM team_events WHERE id = ?", event) }
+    }
 }

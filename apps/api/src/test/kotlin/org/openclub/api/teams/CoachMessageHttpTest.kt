@@ -196,6 +196,17 @@ class CoachMessageHttpTest {
         assertEquals(10, sql { (it.fetchValue("SELECT count(*) FROM coach_messages WHERE team_id = ?", team) as Number).toInt() })
         assertTrue(sql { it.fetch("SELECT * FROM coach_messages WHERE team_id = ?", team).fields().none { field -> field.name in setOf("subject", "body") } },
             "the log keeps no text")
+        // Deleting an event keeps its log rows, so a new event in the same team does not reset the limit.
+        val fresh = UUID.randomUUID()
+        sql { db ->
+            db.execute("DELETE FROM team_events WHERE id = ?", match)
+            db.execute("""INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at)
+                          VALUES (?, ?, 'TRAINING', 'Fresh event', now() - INTERVAL '2 hours', now() - INTERVAL '1 hour')""", fresh, team)
+        }
+        assertEquals(10, sql { (it.fetchValue("SELECT count(*) FROM coach_messages WHERE team_id = ?", team) as Number).toInt() })
+        val again = message("coach", fresh, "ALL")
+        assertEquals(HttpStatusCode.Conflict, again.status)
+        assertTrue("limit" in again.bodyAsText())
     }
 
     @Test

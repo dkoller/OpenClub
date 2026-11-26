@@ -21,6 +21,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.jooq.DSLContext
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
@@ -158,6 +159,18 @@ class PushHttpTest {
         assertTrue(inbox.single().getValue("subject").jsonPrimitive.content.contains("Push news"))
         assertEquals(setOf("kind", "subject", "createdAt"), inbox.single().keys)
         assertEquals(HttpStatusCode.BadRequest, send(HttpMethod.Get, "/api/v1/me/push-inbox?since=yesterday", "phone").status)
+        // Push-only recipients get no stored text (security review 2026-11-26).
+        assertEquals(0, sql { (it.fetchValue(
+            "SELECT count(*) FROM email_outbox o JOIN members m ON m.id = o.member_id WHERE m.email IS NULL AND o.body <> ''") as Number).toInt() })
+        // A device that keeps failing is dropped after MAX_FAILURES failures in a row; a success resets the count.
+        val flaky = "https://fcm.googleapis.com/fcm/send/other-5"
+        val exists = { sql { it.fetchOne("SELECT 1 FROM push_subscriptions WHERE endpoint = ?", flaky) != null } }
+        repeat(MailWorker.MAX_FAILURES - 1) { sql { MailWorker.record(it, flaky, 0) } }
+        sql { MailWorker.record(it, flaky, 201) }
+        repeat(MailWorker.MAX_FAILURES - 1) { sql { MailWorker.record(it, flaky, 429) } }
+        assertTrue(exists(), "the success reset the count")
+        sql { MailWorker.record(it, flaky, 500) }
+        assertFalse(exists(), "the tenth failure in a row deletes it")
     }
 
     @Test

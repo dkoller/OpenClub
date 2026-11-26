@@ -176,7 +176,11 @@ class EventPresenceHttpTest {
         expect("player reads", send(HttpMethod.Get, path, "player"), HttpStatusCode.Forbidden)
         expect("other coach reads", send(HttpMethod.Get, path, "other"), HttpStatusCode.Forbidden)
         expect("other coach writes", send(HttpMethod.Put, path, "other", ids(player)), HttpStatusCode.Forbidden)
-        expect("unknown event", send(HttpMethod.Get, "/api/v1/events/${UUID.randomUUID()}/presence", "coach"), HttpStatusCode.NotFound)
+        // A team-scoped coach cannot tell an unknown event from another team's; only a club-wide manager gets 404.
+        expect("unknown event, team coach", send(HttpMethod.Get, "/api/v1/events/${UUID.randomUUID()}/presence", "coach"), HttpStatusCode.Forbidden)
+        sql { it.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_TEAMS')", memberOf.getValue("editor")) }
+        expect("unknown event, club-wide", send(HttpMethod.Get, "/api/v1/events/${UUID.randomUUID()}/presence", "editor"), HttpStatusCode.NotFound)
+        sql { it.execute("DELETE FROM club_capability_grants WHERE member_id = ? AND capability = 'MANAGE_TEAMS'", memberOf.getValue("editor")) }
         expect("not started", send(HttpMethod.Put, "/api/v1/events/$future/presence", "coach", ids(player)), HttpStatusCode.Conflict)
         expect("someone else", send(HttpMethod.Put, path, "coach", ids(memberOf.getValue("editor"))), HttpStatusCode.BadRequest)
         expect("other team's player", send(HttpMethod.Put, "/api/v1/events/$foreign/presence", "coach", ids(player)), HttpStatusCode.Forbidden)
@@ -210,7 +214,11 @@ class EventPresenceHttpTest {
                 "123456789;Teilnehmer/in;${day(date)};Training;18:30;90;Halle Süd  =Feld 2\r\n" +
                 "123456789;Teilnehmer/in;${day(date.plusDays(1))};Wettkampf;;;\r\n",
             file.bodyAsText())
-        assertEquals(1, audits())
+        assertEquals(2, audits(), "one event per person in the file")
+        assertEquals(setOf("987654321", "123456789"), sql { db -> db.fetch(
+            """SELECT m.js_person_number FROM audit_events a JOIN members m ON m.id = a.target_member_id
+               WHERE a.event_type = 'JS_ATTENDANCE_EXPORTED' AND a.actor_account_id = ?""", accounts.getValue("coach"))
+            .map { it.get(0, String::class.java) }.toSet() }, "each audit event names the exported member")
         assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Get, "/api/v1/teams/$team/js-attendance.csv", "coach",
             headers = mapOf("Sec-Fetch-Site" to "cross-site")).status)
         assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Get, "/api/v1/teams/$team/js-attendance", "viewer").status)

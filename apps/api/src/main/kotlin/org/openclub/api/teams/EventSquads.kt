@@ -29,9 +29,12 @@ internal class EventSquads(private val database: DSLContext, private val notifie
 
     data class Input(val members: Set<UUID>, val meetAt: OffsetDateTime?, val meetingPoint: String?)
 
-    private fun managesSomeTeam(actor: UUID): Boolean =
-        database.fetchOne("SELECT ${ActorSql.holdsTeamCapability(null, Capability.MANAGE_TEAMS)}", actor)
-            ?.get(0, Boolean::class.java) == true
+    // An unknown ID is 404 only for a club-wide MANAGE_TEAMS holder; a team-scoped coach cannot tell it from another
+    // team's (security review 2026-11-26).
+    private fun managesSomeTeam(actor: UUID): Boolean = database.fetchOne(
+            """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
+               WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability = 'MANAGE_TEAMS' LIMIT 1""",
+            actor) != null
 
     private val access = """SELECT ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)} AS allowed,
                e.kind = 'MATCH' AS is_match, (NOT e.cancelled AND e.starts_at > now()) AS open
@@ -71,9 +74,11 @@ internal class EventSquads(private val database: DSLContext, private val notifie
         if (event.get("allowed", Boolean::class.java) != true) return@transactionResult Change.DENIED
         if (event.get("is_match", Boolean::class.java) != true) return@transactionResult Change.NOT_MATCH
         if (event.get("open", Boolean::class.java) != true) return@transactionResult Change.CLOSED
+        // Lock the assignments (as attendance and shifts do): a concurrent unassign waits, and its trigger then
+        // removes the member from the squad, or wins first and the member is refused here.
         val team = db.fetch(
             """SELECT a.member_id FROM team_events e JOIN member_team_assignments a ON a.team_id = e.team_id
-               JOIN members m ON m.id = a.member_id AND m.archived_at IS NULL WHERE e.id = ?""", eventId)
+               JOIN members m ON m.id = a.member_id AND m.archived_at IS NULL WHERE e.id = ? FOR SHARE OF a""", eventId)
             .map { it.get(0, UUID::class.java) }.toSet()
         if (!team.containsAll(input.members)) return@transactionResult Change.INVALID
         db.execute(

@@ -62,3 +62,21 @@ export async function disablePush(csrfToken: string): Promise<void> {
   await changeSubscription(subscription.endpoint, false, csrfToken).catch(() => 'ok')
   await subscription.unsubscribe()
 }
+
+/**
+ * On sign-out: this browser stops waking for the member who leaves, and the service worker's "last seen" marker is
+ * cleared for whoever signs in next (security review 2026-11-26). Returns at once where this browser has no push
+ * subscription, and never delays sign-out by more than two seconds.
+ */
+export async function forgetPushOnSignOut(csrfToken: string): Promise<void> {
+  if (!pushSupported()) return
+  const done = (async () => {
+    const registration = await navigator.serviceWorker.getRegistration()
+    const subscription = await registration?.pushManager.getSubscription()
+    if (!subscription) return
+    await changeSubscription(subscription.endpoint, false, csrfToken).catch(() => 'ok')
+    await subscription.unsubscribe()
+    if (typeof caches !== 'undefined') await caches.delete('openclub-push')
+  })().catch(() => { /* sign out anyway */ })
+  await Promise.race([done, new Promise(resolve => setTimeout(resolve, 2000))])
+}

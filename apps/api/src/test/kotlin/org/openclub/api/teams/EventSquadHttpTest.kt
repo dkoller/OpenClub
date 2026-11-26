@@ -193,7 +193,11 @@ class EventSquadHttpTest {
         expect("signed out", send(HttpMethod.Get, path, null), HttpStatusCode.Unauthorized)
         expect("viewer reads", send(HttpMethod.Get, path, "viewer"), HttpStatusCode.Forbidden)
         expect("player writes", send(HttpMethod.Put, path, "player", squad(player)), HttpStatusCode.Forbidden)
-        expect("unknown event", send(HttpMethod.Get, "/api/v1/events/${UUID.randomUUID()}/squad", "coach"), HttpStatusCode.NotFound)
+        // A team-scoped coach cannot tell an unknown event from another team's; only a club-wide manager gets 404.
+        expect("unknown event, team coach", send(HttpMethod.Get, "/api/v1/events/${UUID.randomUUID()}/squad", "coach"), HttpStatusCode.Forbidden)
+        sql { it.execute("INSERT INTO club_capability_grants VALUES (?, 'MANAGE_TEAMS')", memberOf.getValue("viewer")) }
+        expect("unknown event, club-wide", send(HttpMethod.Get, "/api/v1/events/${UUID.randomUUID()}/squad", "viewer"), HttpStatusCode.NotFound)
+        sql { it.execute("DELETE FROM club_capability_grants WHERE member_id = ? AND capability = 'MANAGE_TEAMS'", memberOf.getValue("viewer")) }
         expect("training", send(HttpMethod.Put, "/api/v1/events/$training/squad", "coach", squad(player)), HttpStatusCode.Conflict)
         expect("past match", send(HttpMethod.Put, "/api/v1/events/$pastMatch/squad", "coach", squad(player)), HttpStatusCode.Conflict)
         expect("not in the team", send(HttpMethod.Put, path, "coach", squad(memberOf.getValue("outsider"))), HttpStatusCode.BadRequest)

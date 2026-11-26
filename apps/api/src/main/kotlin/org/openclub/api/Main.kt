@@ -95,7 +95,7 @@ fun main() {
         }
         if ((mail != null || push != null) && database != null) {
             mailer = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                MailWorker.run(database, notifier, mail?.let(::SmtpMailer), push?.let(::HttpPushSender))
+                MailWorker.run(database, notifier, mail?.let(::SmtpMailer), push?.let { HttpPushSender(it) })
             }
         }
         val port = environment["PORT"]?.toIntOrNull() ?: 8080

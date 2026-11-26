@@ -31,10 +31,12 @@ internal class EventPresence(private val database: DSLContext) {
 
     enum class Change { DONE, NOT_FOUND, DENIED, CLOSED, INVALID }
 
-    /** Holds `MANAGE_TEAMS` somewhere (one bind: actor). */
-    private fun managesSomeTeam(actor: UUID): Boolean =
-        database.fetchOne("SELECT ${ActorSql.holdsTeamCapability(null, Capability.MANAGE_TEAMS)}", actor)
-            ?.get(0, Boolean::class.java) == true
+    // An unknown ID is 404 only for a club-wide MANAGE_TEAMS holder; a team-scoped coach cannot tell it from another
+    // team's (security review 2026-11-26).
+    private fun managesSomeTeam(actor: UUID): Boolean = database.fetchOne(
+            """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
+               WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability = 'MANAGE_TEAMS' LIMIT 1""",
+            actor) != null
 
     private fun missing(actor: UUID): Change = if (managesSomeTeam(actor)) Change.NOT_FOUND else Change.DENIED
 
@@ -125,7 +127,7 @@ internal class EventPresence(private val database: DSLContext) {
      * The J+S attendance (NDS import "Anwesenheitskontrolle") for the team's trainings and matches that started on
      * [from]..[to] (dates in Swiss time) and were not cancelled: one row per recorded person with a J+S number.
      * People without a number and trainings without a place are reported instead, by name or title and date.
-     * [audit] records one JS_ATTENDANCE_EXPORTED event against the actor's own member row, in the same transaction.
+     * [audit] records one JS_ATTENDANCE_EXPORTED event per person whose number is in the file, in the same transaction.
      */
     fun export(actor: UUID, teamId: UUID, from: LocalDate, to: LocalDate, audit: Boolean): Export = database.transactionResult { config ->
         val db = DSL.using(config)
@@ -134,7 +136,7 @@ internal class EventPresence(private val database: DSLContext) {
             ?: return@transactionResult if (EventPresence(db).managesSomeTeam(actor)) Export.NotFound else Export.Denied
         if (team.get(0, Boolean::class.java) != true) return@transactionResult Export.Denied
         val records = db.fetch(
-            """SELECT e.kind, e.title, e.starts_at, e.ends_at, e.location, p.role, m.js_person_number,
+            """SELECT e.kind, e.title, e.starts_at, e.ends_at, e.location, p.role, m.js_person_number, m.id AS member_id,
                       CASE WHEN ${AgeSql.minor("m")} THEN m.first_name || ' ' || left(m.last_name, 1) || '.'
                            ELSE m.first_name || ' ' || m.last_name END AS display_name
                FROM team_events e
@@ -149,6 +151,7 @@ internal class EventPresence(private val database: DSLContext) {
         val rows = mutableListOf<JsRow>()
         val withoutNumber = sortedSetOf<String>()
         val withoutPlace = linkedSetOf<String>()
+        val exported = linkedSetOf<UUID>()
         records.forEach {
             val starts = it.get("starts_at", OffsetDateTime::class.java).atZoneSameInstant(SWISS)
             val ends = it.get("ends_at", OffsetDateTime::class.java).atZoneSameInstant(SWISS)
@@ -160,16 +163,18 @@ internal class EventPresence(private val database: DSLContext) {
                 withoutNumber += it.get("display_name", String::class.java)
                 return@forEach
             }
+            exported += it.get("member_id", UUID::class.java)
             rows += JsRow(number, Role.valueOf(it.get("role", String::class.java)), starts.toLocalDate(),
                 if (training) "Training" else "Wettkampf",
                 if (training) starts.format(TIME) else null,
                 if (training) java.time.Duration.between(starts, ends).toMinutes() else null,
                 if (training) place else null)
         }
-        if (audit) db.execute(
+        // One event per person whose J+S number is in the file, so each member's audit trail shows who exported it.
+        if (audit && exported.isNotEmpty()) db.execute(
             """INSERT INTO audit_events (event_type, actor_account_id, target_member_id)
-               SELECT 'JS_ATTENDANCE_EXPORTED', ?, m.id FROM members m WHERE m.account_id = ? AND m.archived_at IS NULL""",
-            actor, actor)
+               SELECT 'JS_ATTENDANCE_EXPORTED', ?, u::uuid FROM unnest(?::text[]) AS u""",
+            actor, exported.map(UUID::toString).toTypedArray())
         Export.Found(Check(rows, withoutNumber.toList(), withoutPlace.toList()))
     }
 
