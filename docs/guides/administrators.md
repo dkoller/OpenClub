@@ -16,11 +16,11 @@ tasks*): *Invitations and accounts*, *Guardians*, *Club roles* (with `MANAGE_PER
 
 ![Administration → Members: the list and the form](images/admin-members.png)
 
-- **Find, add, edit:** *Search names*; *Add member* with first and last name, date of birth and, for adults, email and
+- **Find, add, edit:** *Search names*; tap a name to open the member. *New member*, then *Add member* with first and last name, date of birth and, for adults, email and
   phone; *Player* (with *Gender* if the club requires it). *Edit* starts from the current values and refuses to save
   if someone else changed the member meanwhile. In the form: *Show on public member list* (untick on objection) and
   *J+S person number* (digits only, used only for the coaches' J+S file).
-- **Details** shows the stored fields, the sign-in and invitation state; **Export all data (JSON)** answers a person's
+- **An opened member** shows the stored fields, the sign-in and invitation state, then *Edit* and *Archive*; **Export all data (JSON)** answers a person's
   request for their data (recorded; give it only to the verified person).
 - **Archive** (then *Confirm archive*; *Undo archive* right after) removes the member from lists, permissions, teams and
   guardianships. Only *Member*-role members without a linked sign-in can be archived. The *Archive* page lists archived

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Language } from './language'
+import { readPushStatus } from './push'
 import { readNotifications, saveNotifications, type NotificationLanguage, type NotificationStatus } from './notifications'
 
 const words = {
@@ -18,6 +19,12 @@ export function NotificationSettings({ language, csrfToken }: { language: Langua
   const [settings, setSettings] = useState<NotificationStatus | 'denied' | 'error' | null>(null)
   const [notice, setNotice] = useState<'saved' | 'error' | null>(null)
   const [busy, setBusy] = useState(false)
+  const [pushOn, setPushOn] = useState(false)
+  useEffect(() => {
+    let active = true
+    readPushStatus().then(status => { if (active && status !== 'denied') setPushOn(status.enabled) }).catch(() => {})
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -42,7 +49,8 @@ export function NotificationSettings({ language, csrfToken }: { language: Langua
       <h1>{t.title}</h1>
       {!current.emailEnabled && <p>{t.off}</p>}
       {current.emailEnabled && !current.hasEmail && <p>{t.noEmail}</p>}
-      <fieldset disabled={busy || !current.emailEnabled}>
+      {/* The switches also govern push, so they show whenever email or push is on; with neither, the line above says it. */}
+      {(current.emailEnabled || pushOn) && <><fieldset disabled={busy} className="switches">
         <legend>{t.title}</legend>
         {switches.map(key => <label key={key}><input type="checkbox" checked={current[key]}
           onChange={event => { void save({ ...current, [key]: event.target.checked }) }} /> {t[key]}</label>)}
@@ -51,7 +59,7 @@ export function NotificationSettings({ language, csrfToken }: { language: Langua
           {(Object.keys(names) as NotificationLanguage[]).map(code => <option key={code} value={code}>{names[code]}</option>)}
         </select></label>
       </fieldset>
-      <p>{t.guardians}</p>
+      <p>{t.guardians}</p></>}
       {notice && <p role={notice === 'error' ? 'alert' : 'status'}>{t[notice]}</p>}
     </section>
   )

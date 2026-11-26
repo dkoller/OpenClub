@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { BackLink } from './BackLink'
 import type { Language } from './language'
 import { readTeams, type Team } from './teams'
 import { answerable, formatWhen, readAttendance, readTeamEvents, remindMissing, type AttendanceList, type TeamEvent } from './events'
 import { byAnswer, notAnswered, upcoming, type UpcomingEvent } from './coach'
 import { DateBlock, eventWords, fill } from './EventBits'
 import { formatTime } from './dates'
+import { ManageEvent } from './TeamSchedule'
 import { routeHash } from './routes'
 import { ShiftsPanel } from './ShiftsPanel'
 import { RidesPanel } from './RidesPanel'
@@ -87,6 +89,7 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
     } catch { setNotice({ ok: false, text: t.remindFailed }) } finally { setBusy(false) }
   }
   const [state, setState] = useState<'loading' | 'ready' | 'gone' | 'error'>('loading')
+  const [revision, setRevision] = useState(0)
   useEffect(() => {
     let active = true
     void (async () => {
@@ -105,10 +108,10 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
       } catch { if (active) setState('error') }
     })()
     return () => { active = false }
-  }, [teamId, eventId])
+  }, [teamId, eventId, revision])
   const groups = answers && answers !== 'denied' ? byAnswer(answers) : null
   return <>
-    <p><a href={routeHash({ page: 'team', teamId })}>← {t.back}</a></p>
+    <BackLink href={routeHash({ page: 'team', teamId })} label={team?.name ?? event?.teamName ?? t.back} />
     {state === 'loading' && <p role="status">{t.loading}</p>}
     {state === 'error' && <p role="alert">{t.error}</p>}
     {state === 'gone' && <p>{t.gone}</p>}
@@ -117,6 +120,9 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
       <p><b>{formatWhen(event, language)}</b>{event.cancelled && <> <span className="open">{t.cancelled}</span></>}</p>
       <p className="muted">{t[event.kind]} · {team?.name ?? event.teamName}{event.location ? ' · ' + event.location : ''}</p>
       {event.notes && <p className="notes">{event.notes}</p>}
+      {canManage && <ManageEvent event={event} language={language} csrfToken={csrfToken}
+        onChanged={() => setRevision(value => value + 1)}
+        onDeleted={() => { window.location.hash = routeHash({ page: 'team', teamId, section: 'schedule' }) }} />}
       <section aria-labelledby="who" className="stack">
         <h2 id="who">{t.who}</h2>
         {!groups ? <p className="muted">{t.noAnswers}</p> : <>

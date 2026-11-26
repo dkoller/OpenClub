@@ -31,10 +31,11 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 
 <img src="images/coach-team-schedule.png" alt="A team's schedule on a phone, with the form to add events" width="300">
 
-- A team's *Schedule* shows eight weeks. *Add event*: *Kind* (Training, Match, Event), *Title*, *Date*, *Start*, *End*,
+- A team's *Schedule* shows eight weeks. *New event*, then *Kind* (Training, Match, Event), *Title*, *Date*, *Start*, *End*,
   optionally *Place*, *Field or hall* (if the club keeps a list) and *Notes*. *Repeat weekly until* creates up to 52
-  copies keeping the local time.
-- *Edit*, *Cancel event* (members still see it, marked *Cancelled*; *Reinstate* undoes it) and *Delete*.
+  copies keeping the local time; *Add event* saves.
+- On the event's own page (tap it in the schedule): *Edit*, *Cancel event* (members still see it, marked *Cancelled*;
+  *Reinstate* undoes it) and *Delete*.
 - **No double booking:** a field or hall that is already booked is refused with the other event's team, title and
   time. Everyone can see the bookings under *Schedule* → *When fields and halls are booked*.
 - **Change several events:** at the bottom of the schedule choose *From*, *To*, the kinds and *Cancel*, *Reinstate*,

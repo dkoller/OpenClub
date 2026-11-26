@@ -11,9 +11,9 @@ child. See the [overview](README.md) for finding your way and signing in.
 
   <img src="images/member-start.png" alt="Start on a phone: things to answer, the next seven days and announcements" width="300">
 
-- **Schedule** lists the next eight weeks of your teams (and your children's teams), grouped by day. With children,
-  the buttons at the top show *Everyone*, *Me* or one child. *Answer missing* marks events still waiting for you. You
-  can answer until the event starts; choosing your answer again clears it. You see the team's totals, never other
+- **Schedule** lists the next eight weeks of your teams (and your children's teams), each card with its date. With
+  children, the buttons at the top show *Everyone*, *Me* or one child. An event still waiting for you has no answer
+  selected yet. You can answer until the event starts; choosing your answer again clears it. You see the team's totals, never other
   members' answers.
 
   <img src="images/member-schedule.png" alt="Schedule on a phone: the events of the parent and both children, with answer buttons" width="300">
@@ -50,7 +50,8 @@ child. See the [overview](README.md) for finding your way and signing in.
 - **Announcements** on *Start*: club-wide news and news for your teams, newest first.
 - **Email notifications** (*Family* → *Email notifications*): one switch each for event changes, new events,
   announcements, the shift reminder the day before, *Helpers wanted*, *Answer missing*, *Called up for a match* and
-  *Messages from the coach*, plus the language of the emails. Changes save at once. You need an email address.
+  *Messages from the coach*, plus the language of the emails. Changes save at once. You need an email address. If the
+  club sends neither emails nor push, the page says so and shows no switches.
 - **Push notifications** (same page, below the switches): if the club offers them, *Turn on for this device* shows the
   same messages on that phone or computer. On an iPhone add the app to the home screen first. *Turn off for this
   device* stops them. The push itself carries no text; your device fetches it from the club's server.
@@ -97,7 +98,8 @@ If the club recorded you as a guardian, *Family* → *My children* lists your ch
 
 ## Joining the club
 
-If the club switched it on, the signed-out start page shows *Join the club*: adults apply for themselves, parents for
+The signed-out start page shows *Sign in*, the club's public member list behind *Show members*, and the language
+choice. If the club switched it on, it also shows *Join the club*: adults apply for themselves, parents for
 a child. The club's administration then accepts or declines; an application nobody handles is deleted after 60 days.
 
 <img src="images/public-signed-out.png" alt="The signed-out start page on a phone with Sign in and Join the club" width="300">

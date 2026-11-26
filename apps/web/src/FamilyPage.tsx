@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { BackLink } from './BackLink'
 import type { Language } from './language'
 import type { Member } from './members'
 import { routeHash, type FamilySection } from './routes'
@@ -66,7 +67,7 @@ function Overview({ language }: { language: Language }) {
 export function FamilyPage({ language, csrfToken, self, section, onLanguage }: Props & { section?: FamilySection; onLanguage: (next: Language) => void }) {
   if (!section) return <Overview language={language} />
   return <>
-    <p className="back"><a href={routeHash({ page: 'family' })}><span aria-hidden="true">← </span>{words[language].back}</a></p>
+    <BackLink href={routeHash({ page: 'family' })} label={words[language].back} />
     {section === 'profile' && <MyProfile language={language} csrfToken={csrfToken} onLanguage={onLanguage} />}
     {section === 'children' && <MyDependents language={language} csrfToken={csrfToken} />}
     {section === 'absences' && <Absences language={language} csrfToken={csrfToken} self={self} onChange={() => undefined} />}

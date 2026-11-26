@@ -13,10 +13,6 @@ const words = {
   it: { venues: 'Occupazione di campi e palestre', called: 'Convocato', title: 'Calendario', who: 'Per chi', everyone: 'Tutti', empty: 'Nessun evento nelle prossime otto settimane.', emptyFor: 'Nessun evento per {name} nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', details: 'Passaggi, aiutanti e dettagli' },
 } satisfies Record<Language, Record<string, string>>
 
-const dayTitle = (day: string, language: Language) => new Intl.DateTimeFormat(
-  { de: 'de-CH', en: 'en-GB', fr: 'fr-CH', it: 'it-CH' }[language], { weekday: 'long', day: '2-digit', month: '2-digit' },
-).format(new Date(day + 'T12:00:00'))
-
 /** The next eight weeks by day, filtered by family member, with answers in place. */
 export function SchedulePage({ language, csrfToken, self }: { language: Language; csrfToken: string; self: string | null }) {
   const t = { ...eventWords[language], ...words[language] }
@@ -36,17 +32,15 @@ export function SchedulePage({ language, csrfToken, self }: { language: Language
         aria-pressed={personId === person.id} onClick={() => setPersonId(person.id)}>{person.id === self ? t.you : person.firstName}</button>)}
     </div>}
     {state === 'ready' && shown.length === 0 && <p className="muted">{chosen ? fill(t.emptyFor, { name: chosen.firstName }) : t.empty}</p>}
-    {byDay(shown).map(group => <section key={group.day} aria-label={dayTitle(group.day, language)} className="stack">
-      <h2 className="day">{dayTitle(group.day, language)}</h2>
-      {group.events.map(event => {
-        const missing = !event.cancelled && event.for.some(person => person.response === null) && Date.parse(event.startsAt) > Date.now()
+    {/* One list: each card's date block already names the day, so there are no day headings. */}
+    {shown.length > 0 && <div className="stack">
+      {byDay(shown).flatMap(group => group.events).map(event => {
         return <article key={event.id} className="card event-card" aria-label={event.title}>
           <a className="event-link" href={routeHash({ page: 'event', eventId: event.id })}>
             <DateBlock instant={event.startsAt} language={language} />
             <span className="event-text">
-              <span className="tags"><span className="muted small">{t[event.kind]} · {event.teamName}</span>
+              <span className="tags"><span className="muted small">{event.title !== t[event.kind] ? t[event.kind] + ' · ' : ''}{event.teamName}</span>
                 {event.cancelled && <span className="open">{t.cancelled}</span>}
-                {missing && <span className="open">{t.missing}</span>}
                 {!event.cancelled && event.for.some(person => person.squad?.called) && <span className="chip-tag">{t.called}</span>}</span>
               <b>{event.title}</b>
               <span className="muted">{formatWhen(event, language, false)}{event.location ? ' · ' + event.location : ''}</span>
@@ -57,7 +51,7 @@ export function SchedulePage({ language, csrfToken, self }: { language: Language
           <a className="small" href={routeHash({ page: 'event', eventId: event.id })}>{t.details}</a>
         </article>
       })}
-    </section>)}
+    </div>}
     {truncated && <p className="muted">{t.more}</p>}
     <p><a href={routeHash({ page: 'venues' })}>{t.venues}</a></p>
     <NoticeLine notice={notice} language={language} />

@@ -1,4 +1,5 @@
 import type { Language } from './language'
+import { BackLink } from './BackLink'
 import { AnswerButtons, NoticeLine, eventWords, fill } from './EventBits'
 import { formatWhen } from './events'
 import { routeHash } from './routes'
@@ -8,10 +9,10 @@ import { useMyEvents } from './useMyEvents'
 import { OwnSquadStatus } from './SquadPanel'
 
 const words = {
-  de: { back: 'Zurück zu den Terminen', gone: 'Diesen Termin gibt es nicht mehr, oder er betrifft dich nicht.', notes: 'Hinweise', team: 'Team bisher' },
-  en: { back: 'Back to the schedule', gone: 'This event no longer exists, or it does not concern you.', notes: 'Notes', team: 'Team so far' },
-  fr: { back: 'Retour à l’agenda', gone: 'Cet événement n’existe plus ou ne vous concerne pas.', notes: 'Remarques', team: 'Équipe jusqu’ici' },
-  it: { back: 'Torna al calendario', gone: 'Questo evento non esiste più o non ti riguarda.', notes: 'Note', team: 'Squadra finora' },
+  de: { back: 'Termine', gone: 'Diesen Termin gibt es nicht mehr, oder er betrifft dich nicht.', notes: 'Hinweise', team: 'Team bisher' },
+  en: { back: 'Schedule', gone: 'This event no longer exists, or it does not concern you.', notes: 'Notes', team: 'Team so far' },
+  fr: { back: 'Agenda', gone: 'Cet événement n’existe plus ou ne vous concerne pas.', notes: 'Remarques', team: 'Équipe jusqu’ici' },
+  it: { back: 'Calendario', gone: 'Questo evento non esiste più o non ti riguarda.', notes: 'Note', team: 'Squadra finora' },
 } satisfies Record<Language, Record<string, string>>
 
 /** One event: when and where, the answers of the member and their children, then helper shifts and rides. */
@@ -20,7 +21,7 @@ export function EventPage({ eventId, language, csrfToken, self }: { eventId: str
   const { events, state, busy, notice, respond } = useMyEvents(csrfToken)
   const event = events?.find(item => item.id === eventId)
   return <>
-    <p><a href={routeHash({ page: 'schedule' })}>← {t.back}</a></p>
+    <BackLink href={routeHash({ page: 'schedule' })} label={t.back} />
     {state === 'loading' && <p role="status">{t.loading}</p>}
     {state === 'error' && <p role="alert">{t.error}</p>}
     {(state === 'denied' || (state === 'ready' && !event)) && <p>{t.gone}</p>}
