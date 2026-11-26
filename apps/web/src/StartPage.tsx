@@ -99,7 +99,7 @@ export function StartPage({ language, csrfToken, self }: { language: Language; c
         <a href={routeHash({ page: 'event', eventId: event.id })} className="row">
           <DateBlock instant={event.startsAt} language={language} />
           <span className="event-text"><b>{event.title}</b>
-            <span className="muted">{formatTime(event.startsAt)} · {event.for.map(person => person.id === self ? t.you : person.firstName).join(', ')}</span></span>
+            <span className="muted">{formatTime(event.startsAt)}{event.location ? ' · ' + event.location : ''} · {event.teamName}</span></span>
           {event.cancelled ? <span className="open">{t.cancelled}</span>
             : <span className="muted small">{event.for.map(person => person.response ? `${person.id === self ? t.you : person.firstName}: ${t[person.response]}` : '').filter(Boolean).join(' · ')}</span>}
         </a></li>)}</ul>}

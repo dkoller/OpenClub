@@ -141,7 +141,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
     <section aria-label={t.overview}>
       <h2>{t.overview}</h2>
       {holders !== null && (holders.length === 0 ? <p>{t.nobody}</p>
-        : <ul className="member-rows grant-overview">{holders.map(holder => <li key={holder.memberId}>
+        : <ul className="rows card grant-overview">{holders.map(holder => <li key={holder.memberId} className="pad">
           <div>
             <strong>{holder.firstName} {holder.lastName}</strong>
             <ul>{holder.grants.map(grant => <li key={grant.scope + grant.capability + (grant.teamId ?? '')}>
@@ -156,7 +156,8 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
       <h2>{t.title}</h2>
       {error && <p role="alert">{t.error}</p>}
       <form onSubmit={event => { void findMember(event) }}>
-        <label>{t.search}<input value={search} maxLength={100} onChange={event => setSearch(event.target.value)} /></label>
+        <label htmlFor="grant-search">{t.search}</label>
+        <input id="grant-search" value={search} maxLength={100} onChange={event => setSearch(event.target.value)} />
         <button type="submit" disabled={busy}>{t.find}</button>
       </form>
       {members.length > 0 && <label>{t.member}
