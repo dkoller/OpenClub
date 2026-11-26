@@ -4,8 +4,8 @@
 > ergänzt am 26.11.2026 bis OpenAPI 1.33.1, keine Rechtsberatung.** Offen (#12): ob die tatsächliche Anwesenheit kürzer
 > als 24 Monate aufbewahrt wird. Grundlage: [Entscheidungsblatt](controller-decisions.md) und
 > [Bearbeitungsverzeichnis](processing-record.md). Platzhalter stehen in eckigen Klammern. Erst verwenden, wenn der
-> Verein alle Entscheide bestätigt hat; für französisch- oder italienischsprachige Mitglieder eine Übersetzung
-> bereitstellen.
+> Verein alle Entscheide bestätigt hat. Übersetzungen: [französisch](declaration-protection-donnees-projet.md),
+> [italienisch](informativa-privacy-bozza.md); bei jeder Änderung hier mit anpassen.
 
 ## Wer ist verantwortlich?
 

@@ -34,6 +34,8 @@ class MemberExportTest {
     private val other = UUID.randomUUID()
     private val teamA = UUID.randomUUID()
     private val teamB = UUID.randomUUID()
+    private val training = UUID.randomUUID()
+    private val match = UUID.randomUUID()
     private val subject = "export-subject-${UUID.randomUUID()}"
 
     @BeforeAll
@@ -65,6 +67,15 @@ class MemberExportTest {
         db.execute("INSERT INTO club_capability_grants VALUES (?, 'EDIT_MEMBERS'), (?, 'MANAGE_PERMISSIONS')", member, member)
         db.execute("INSERT INTO team_capability_grants VALUES (?, ?, 'MANAGE_TEAMS')", teamA, member)
         db.execute("INSERT INTO club_capability_grants VALUES (?, 'VIEW_TEAMS')", other)
+        // A past training where both were present, and a match where both are called up (since 1.34.0).
+        db.execute("""INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at) VALUES
+                      (?, ?, 'TRAINING', 'Export training', TIMESTAMPTZ '2026-10-01 16:00Z', TIMESTAMPTZ '2026-10-01 17:30Z'),
+                      (?, ?, 'MATCH', 'Export match', TIMESTAMPTZ '2030-05-04 08:00Z', TIMESTAMPTZ '2030-05-04 10:00Z')""",
+            training, teamA, match, teamA)
+        db.execute("INSERT INTO event_presence (event_id, member_id, role) VALUES (?, ?, 'LEADER'), (?, ?, 'PARTICIPANT')",
+            training, member, training, other)
+        db.execute("INSERT INTO event_squads (event_id, meet_at, meeting_point) VALUES (?, TIMESTAMPTZ '2030-05-04 07:15Z', 'Bus stop')", match)
+        db.execute("INSERT INTO squad_members (event_id, member_id) VALUES (?, ?), (?, ?)", match, member, match, other)
     }
 
     @AfterAll
@@ -104,11 +115,19 @@ class MemberExportTest {
         assertEquals(listOf(teamA.toString(), "Zebras", "MANAGE_TEAMS"),
             listOf("teamId", "teamName", "capability").map { teamGrant[it]!!.jsonPrimitive.content })
 
+        // Who came and call-ups (since 1.34.0): only the member's own rows.
+        val present = export["presence"]!!.jsonArray.single().jsonObject
+        assertEquals(listOf(training.toString(), teamA.toString(), "Zebras", "2026-10-01T16:00Z", "LEADER"),
+            listOf("eventId", "teamId", "teamName", "startsAt", "role").map { present[it]!!.jsonPrimitive.content })
+        val squad = export["squads"]!!.jsonArray.single().jsonObject
+        assertEquals(listOf(match.toString(), "Zebras", "2030-05-04T08:00Z", "2030-05-04T07:15Z", "Bus stop"),
+            listOf("eventId", "teamName", "startsAt", "meetAt", "meetingPoint").map { squad[it]!!.jsonPrimitive.content })
+
         // Left out on purpose: the login binding, the account id, other members and the audit trail.
         for (secret in listOf(subject, "issuer.example.invalid", account.toString(), other.toString(), "Other", "VIEW_TEAMS", "actor")) {
             assertFalse(text.contains(secret), "must not contain $secret")
         }
-        assertEquals(setOf("exportedAt", "member", "teams", "invitations", "guardianships", "fees", "attendance", "shifts", "absences", "rides", "clubGrants", "teamGrants"), export.keys)
+        assertEquals(setOf("exportedAt", "member", "teams", "invitations", "guardianships", "fees", "attendance", "shifts", "absences", "rides", "presence", "squads", "clubGrants", "teamGrants"), export.keys)
     }
 
     @Test

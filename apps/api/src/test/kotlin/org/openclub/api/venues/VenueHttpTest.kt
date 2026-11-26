@@ -10,6 +10,9 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -216,5 +219,38 @@ class VenueHttpTest {
         assertEquals(HttpStatusCode.NotFound, send(HttpMethod.Delete, "/api/v1/venues/$venue", "keeper").status)
         assertEquals(null, sql { it.fetchValue("SELECT venue_id FROM team_events WHERE id = ?::uuid", firstEvent) }, "the event stays, without the venue")
         assertTrue(sql { (it.fetchValue("SELECT count(*) FROM team_events WHERE team_id = ?", team) as Number).toInt() } >= 2, "events stay")
+    }
+
+    /** A second database connection with an open transaction, to race the API (two-connection test). */
+    private fun <T> otherTransaction(block: (java.sql.Connection) -> T): Pair<java.sql.Connection, T> {
+        val env = System.getenv()
+        val connection = java.sql.DriverManager.getConnection(env.getValue("DB_URL"), env["DB_USER"], env["DB_PASSWORD"])
+        connection.autoCommit = false
+        return connection to block(connection)
+    }
+
+    @Test
+    @Order(9)
+    fun twoCoachesBookingTheSameHallAtTheSameMomentGetA409NotA503() = app {
+        val at = start.plusDays(40)
+        val hall = send(HttpMethod.Post, "/api/v1/venues", "keeper", """{"name":"Test hall race"}""").json().getValue("id").jsonPrimitive.content
+        // Another coach's booking is in flight: inserted, not yet committed, so the API's clash check cannot see it.
+        val (other, _) = otherTransaction { c ->
+            c.prepareStatement("""INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, venue_id)
+                                  VALUES (?, ?, 'TRAINING', 'In flight', ?::timestamptz, ?::timestamptz, ?::uuid)""").use {
+                it.setObject(1, UUID.randomUUID()); it.setObject(2, otherTeam); it.setString(3, at.toString())
+                it.setString(4, at.plusMinutes(90).toString()); it.setString(5, hall); it.executeUpdate()
+            }
+        }
+        other.use { coroutineScope {
+            val create = async { send(HttpMethod.Post, "/api/v1/teams/$team/events", "coach", event(at.plusMinutes(15), hall, "Racing")) }
+            delay(1500)
+            assertTrue(!create.isCompleted, "the insert waits for the other booking")
+            other.commit()
+            val response = create.await()
+            assertEquals(HttpStatusCode.Conflict, response.status, response.bodyAsText())
+            assertTrue("venue_taken" in response.bodyAsText())
+        } }
+        assertEquals(0, sql { (it.fetchValue("SELECT count(*) FROM team_events WHERE title = 'Racing'") as Number).toInt() })
     }
 }

@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
 Maps each of the 119 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.33.1) to the tests that exercise it. The operation list and
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.34.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.

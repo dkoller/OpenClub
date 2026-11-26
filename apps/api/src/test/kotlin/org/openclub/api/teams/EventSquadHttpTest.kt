@@ -10,6 +10,9 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
@@ -220,5 +223,34 @@ class EventSquadHttpTest {
         assertEquals(1, calls(player), "switched off: no second email")
         sql { it.execute("DELETE FROM member_team_assignments WHERE team_id = ? AND member_id = ?", team, player) }
         assertEquals(0, sql { (it.fetchValue("SELECT count(*) FROM squad_members WHERE event_id = ?", match) as Number).toInt() })
+    }
+
+    /** A second database connection with an open transaction, to race the API (two-connection test). */
+    private fun <T> otherTransaction(block: (java.sql.Connection) -> T): Pair<java.sql.Connection, T> {
+        val env = System.getenv()
+        val connection = java.sql.DriverManager.getConnection(env.getValue("DB_URL"), env["DB_USER"], env["DB_PASSWORD"])
+        connection.autoCommit = false
+        return connection to block(connection)
+    }
+
+    @Test
+    @Order(5)
+    fun aSquadSaveWaitsForAConcurrentUnassignAndThenRefusesTheMember() = app {
+        val player = memberOf.getValue("player")
+        sql { it.execute("INSERT INTO member_team_assignments VALUES (?, ?) ON CONFLICT DO NOTHING", team, player) }
+        // Another transaction removes the player from the team but has not committed yet.
+        val (other, _) = otherTransaction { c ->
+            c.prepareStatement("DELETE FROM member_team_assignments WHERE team_id = ? AND member_id = ?").use {
+                it.setObject(1, team); it.setObject(2, player); it.executeUpdate()
+            }
+        }
+        other.use { coroutineScope {
+            val save = async { send(HttpMethod.Put, "/api/v1/events/$match/squad", "coach", squad(player)) }
+            delay(1500)
+            assertTrue(!save.isCompleted, "the save waits for the share lock on the assignment")
+            other.commit()
+            assertEquals(HttpStatusCode.BadRequest, save.await().status, "after the unassign the player is no team member")
+        } }
+        assertEquals(0, sql { (it.fetchValue("SELECT count(*) FROM squad_members WHERE event_id = ? AND member_id = ?", match, player) as Number).toInt() })
     }
 }

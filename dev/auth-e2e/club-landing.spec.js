@@ -409,7 +409,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/^member-[0-9a-f-]{36}\.json$/);
   const exported = JSON.parse(readFileSync(await file.path(), 'utf8'));
-  expect(Object.keys(exported).sort()).toEqual(['absences', 'attendance', 'clubGrants', 'exportedAt', 'fees', 'guardianships', 'invitations', 'member', 'rides', 'shifts', 'teamGrants', 'teams']);
+  expect(Object.keys(exported).sort()).toEqual(['absences', 'attendance', 'clubGrants', 'exportedAt', 'fees', 'guardianships', 'invitations', 'member', 'presence', 'rides', 'shifts', 'squads', 'teamGrants', 'teams']);
   expect(exported.member.firstName).toBe('Mara');
   expect(exported.member).not.toHaveProperty('accountId');
   await maraDetails.getByRole('button', { name: 'Close' }).click();
