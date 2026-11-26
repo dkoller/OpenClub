@@ -391,3 +391,9 @@ Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 71 | Member export | Approved as OpenAPI **1.34.0**, closing a gap found by the third security review: the editor's member export (`GET /v1/members/{memberId}/export`) and the operator export add `presence` (each event where the member was recorded as present: event, team, start, role, when recorded) and `squads` (each match call-up: event, team, start, meeting time and point). Other people's names stay out. No new route; the export stays editor- and operator-only. |
+
+## Addendum 40 — the club's name for visitors (2026-11-26)
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 72 | Public club name | Approved as OpenAPI **1.35.0**: `GET /v1/public/club` without a session answers only `{ "name" }` (404 before the club exists, never cached), so the header and browser tab show the club's name before sign-in and to not-yet-members instead of "Members area", as the product rules ask. The club name is not personal data; no ID, slug or setting is exposed. |

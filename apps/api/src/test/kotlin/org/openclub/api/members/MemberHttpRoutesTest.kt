@@ -221,6 +221,11 @@ class MemberHttpRoutesTest {
                 assertTrue(public.bodyAsText().contains("Nina R."))
                 assertFalse(public.bodyAsText().contains("Renamed"))
                 assertFalse(public.bodyAsText().contains(id.toString()))
+                // The club's name for visitors: the name only, never cached (1.35.0).
+                val club = client.get("/api/v1/public/club")
+                assertEquals(HttpStatusCode.OK, club.status)
+                assertEquals("""{"name":"Synthetic"}""", club.bodyAsText())
+                assertEquals("no-store", club.headers[HttpHeaders.CacheControl])
 
                 val archive = client.post("/api/v1/members/$id/archive") {
                     header(HttpHeaders.Cookie, auth("valid"))
