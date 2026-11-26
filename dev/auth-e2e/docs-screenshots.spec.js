@@ -82,10 +82,47 @@ test('screenshots of the pages the guides describe', async ({ browser }) => {
   });
   sql(null, readFileSync(new URL('../deployment/seed-demo-data.sql', import.meta.url)));
 
-  // A parent: Sandra Gerber, guardian of Lea (U12) and Nico (U17).
+  // Extra fictional data so every page has something to show (all relative to today, like the seed).
+  sql(`
+    UPDATE clubs SET join_requests_open = TRUE, helper_quota = 2, season_start_month = 8;
+    INSERT INTO venues (id, name) VALUES (gen_random_uuid(), 'Musterfeld pitch 1'), (gen_random_uuid(), 'Sports hall Musterfeld');
+    UPDATE team_events SET venue_id = (SELECT id FROM venues WHERE name = 'Musterfeld pitch 1')
+      WHERE team_id = (SELECT id FROM teams WHERE name = 'Juniors U12');
+    INSERT INTO announcements (id, title, body, show_until) VALUES (gen_random_uuid(), 'Club assembly on 15 January',
+      'All members are invited to the annual assembly in the clubhouse at 19:30.', current_date + 30);
+    INSERT INTO fee_periods (id, name, due_date, amount_cents) VALUES (gen_random_uuid(), 'Season 2026/27', current_date + 30, 18000);
+    INSERT INTO member_fees (period_id, member_id, amount_cents, paid_on)
+      SELECT p.id, m.id, 18000, CASE WHEN m.last_name IN ('Keller', 'Schmid', 'Weber') THEN current_date - 3 END
+      FROM fee_periods p CROSS JOIN members m WHERE m.archived_at IS NULL;
+    UPDATE members SET js_person_number = (100000 + (abs(hashtext(first_name || last_name)) % 900000))::text
+      WHERE id IN (SELECT a.member_id FROM member_team_assignments a JOIN teams t ON t.id = a.team_id WHERE t.name = 'Juniors U12');
+    INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, location)
+      SELECT gen_random_uuid(), id, 'TRAINING', 'Training', date_trunc('day', now()) - interval '2 days' + interval '16 hours 30 minutes',
+             date_trunc('day', now()) - interval '2 days' + interval '18 hours', 'Musterfeld sports ground'
+      FROM teams WHERE name = 'Juniors U12';
+    INSERT INTO event_attendance (event_id, member_id, response)
+      SELECT e.id, a.member_id, 'YES' FROM team_events e JOIN member_team_assignments a ON a.team_id = e.team_id
+      WHERE e.starts_at < now() AND e.team_id = (SELECT id FROM teams WHERE name = 'Juniors U12');
+    INSERT INTO event_presence (event_id, member_id, role)
+      SELECT e.id, a.member_id, 'PARTICIPANT' FROM team_events e JOIN member_team_assignments a ON a.team_id = e.team_id
+      JOIN members m ON m.id = a.member_id
+      WHERE e.starts_at < now() AND e.team_id = (SELECT id FROM teams WHERE name = 'Juniors U12') AND m.first_name <> 'Luca';
+  `);
+
+  // Signed out: the start page with the join link.
+  const visitor = await browser.newContext({ viewport: phone, hasTouch: true, isMobile: true });
+  const visitorPage = await visitor.newPage();
+  await visitorPage.goto('/');
+  await visitorPage.locator('#language').selectOption('en');
+  await shoot(visitorPage, '#/', 'public-signed-out');
+
+  // A parent: Sandra Gerber, guardian of Lea (U12) and Nico (U17). Signed in but not yet linked, she sees the
+  // invitation page.
   const parent = await browser.newContext({ viewport: phone, hasTouch: true, isMobile: true });
   const parentPage = await parent.newPage();
   await signIn(parentPage, 'openclub-ci-invitee');
+  await expect(parentPage.getByText('This account is not yet a club member.', { exact: true })).toBeVisible();
+  await shoot(parentPage, '#/', 'public-not-member');
   const parentAccount = (await (await parent.request.get('/api/v1/auth/me')).json()).accountId;
   if (!/^[0-9a-f-]{36}$/i.test(parentAccount)) throw new Error('Unexpected account ID');
   // The seed has Sandra Gerber without a login; she gets the second synthetic login, as the walkthrough does.
@@ -96,33 +133,50 @@ test('screenshots of the pages the guides describe', async ({ browser }) => {
 
   const u12 = sql("SELECT id FROM teams WHERE name = 'Juniors U12'");
   const match = sql(`SELECT id FROM team_events WHERE team_id = '${u12}' AND kind = 'MATCH' ORDER BY starts_at LIMIT 1`);
-  if (!/^[0-9a-f-]{36}$/.test(u12) || !/^[0-9a-f-]{36}$/.test(match)) throw new Error('Seed data missing');
+  const past = sql(`SELECT id FROM team_events WHERE team_id = '${u12}' AND starts_at < now() ORDER BY starts_at DESC LIMIT 1`);
+  for (const id of [u12, match, past]) if (!/^[0-9a-f-]{36}$/.test(id)) throw new Error('Seed data missing');
+  sql(`INSERT INTO event_squads (event_id, meet_at, meeting_point)
+       SELECT id, starts_at - interval '45 minutes', 'Clubhouse car park' FROM team_events WHERE id = '${match}';
+       INSERT INTO squad_members (event_id, member_id)
+       SELECT '${match}', a.member_id FROM member_team_assignments a JOIN members m ON m.id = a.member_id
+       WHERE a.team_id = '${u12}' AND m.first_name IN ('Lea', 'Noah', 'Mia')`);
 
-  // Members and parents, on a phone.
+  // Members and parents, on a phone: every page of Start, Schedule and Family.
   await parentPage.reload();
   await expect(parentPage.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
   await shoot(parentPage, '#/', 'member-start');
   await shoot(parentPage, '#/schedule', 'member-schedule');
   await shoot(parentPage, '#/schedule/' + match, 'member-event');
+  await shoot(parentPage, '#/schedule/venues', 'member-venues');
   await shoot(parentPage, '#/family', 'member-family');
-  await shoot(parentPage, '#/family/absences', 'member-absences');
+  for (const section of ['profile', 'children', 'absences', 'fees', 'calendar', 'notifications']) {
+    await shoot(parentPage, '#/family/' + section, 'member-family-' + section);
+  }
 
-  // Coaches, on a phone at the field.
+  // Coaches, on a phone at the field: every page of Team.
   const coach = await browser.newContext({ viewport: phone, hasTouch: true, isMobile: true, storageState: await admin.storageState() });
   const coachPage = await coach.newPage();
   await coachPage.goto('/');
   await expect(coachPage.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
+  await shoot(coachPage, '#/team', 'coach-teams');
   await shoot(coachPage, `#/team/${u12}`, 'coach-team');
+  for (const section of ['schedule', 'members', 'statistics']) await shoot(coachPage, `#/team/${u12}/${section}`, 'coach-team-' + section);
   await shoot(coachPage, `#/team/${u12}/event/${match}`, 'coach-event');
+  await shoot(coachPage, `#/team/${u12}/event/${past}`, 'coach-event-past');
 
-  // The treasurer and administrators, on a laptop.
+  // The treasurer and administrators, on a laptop: every page of Administration.
   await adminPage.reload();
   await expect(adminPage.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
-  await shoot(adminPage, '#/admin/fees', 'treasurer-fees');
   await shoot(adminPage, '#/admin', 'admin-overview');
   await shoot(adminPage, '#/admin/members', 'admin-members');
+  for (const part of ['invitations', 'guardians', 'roles', 'transfer', 'archived', 'public']) {
+    await shoot(adminPage, '#/admin/members/' + part, 'admin-members-' + part);
+  }
   await shoot(adminPage, '#/admin/join-requests', 'admin-join-requests');
+  await shoot(adminPage, '#/admin/fees', 'treasurer-fees');
+  await shoot(adminPage, '#/admin/venues', 'admin-venues');
   await shoot(adminPage, '#/admin/permissions', 'admin-permissions');
+  await shoot(adminPage, '#/admin/settings', 'admin-settings');
 
-  await Promise.all([admin.close(), parent.close(), coach.close()]);
+  await Promise.all([admin.close(), parent.close(), coach.close(), visitor.close()]);
 });

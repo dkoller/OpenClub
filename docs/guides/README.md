@@ -18,7 +18,7 @@ Most people hold more than one role: a coach is usually also a parent. Each guid
 
 The pictures in these guides show the fictional demo club *FC Musterfeld* in English. They are taken automatically
 from the running app after every change that passes the browser tests, so they match the current version; see
-[documentation maintenance](../contributing/documentation.md#screenshots-in-the-guides).
+[documentation maintenance](../contributing/documentation.md#screenshots-in-the-guides). **[Every screen](screens.md)** shows all pages in one place.
 
 ## Finding your way (everyone)
 
