@@ -5,6 +5,8 @@ child. See the [overview](README.md) for finding your way and signing in.
 
 ## Answering events
 
+<img src="images/member-start.png" alt="Start page on a phone: things to answer and the next seven days" width="320"> <img src="images/member-schedule.png" alt="Schedule on a phone: the coming events for the parent and both children" width="320">
+
 - **Start** shows *Things for you to do*: each event that still needs an answer from you or your child, soonest first,
   with *Yes*, *No* and *Maybe* in the card. One tap answers; the card then leaves the list. Below it, *Also in the next
   7 days* and the announcements.
@@ -18,6 +20,8 @@ child. See the [overview](README.md) for finding your way and signing in.
   is called up.
 
 ## Helping, rides and absences
+
+<img src="images/member-event.png" alt="An event page on a phone with answers, helper shifts and rides" width="320"> <img src="images/member-absences.png" alt="The absences page on a phone" width="320">
 
 - **Helper shifts:** on an event's page, *Sign up* puts you (or your child) on a shift while places are free;
   *Withdraw* takes you off, both until the shift starts. The team sees your name on the shift.
@@ -56,6 +60,8 @@ role, teams and your J+S person number (if the club entered one). Change your *E
 are changed by the club. Untick *Show my name on the public member list* to take your name off the list anyone can see.
 
 ## For parents (guardians)
+
+<img src="images/member-family.png" alt="The Family page on a phone with the parent's children" width="320">
 
 If the club recorded you as a guardian, *Family* → *My children* lists your children by first name.
 

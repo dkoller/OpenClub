@@ -1,0 +1,186 @@
+name: Documentation screenshots
+# Pictures for the user guides (docs/guides/images), taken by dev/auth-e2e/docs-screenshots.spec.js on a disposable
+# stack with the fictional demo club. After the Keycloak browser journey passed on main, the pictures are taken
+# again; if any page changed visibly, one pull request "Update documentation screenshots" is opened or updated.
+# On a pull request that changes the screenshot test, the pictures are only uploaded for review.
+on:
+  workflow_run:
+    workflows: [Keycloak browser authentication]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'dev/auth-e2e/docs-screenshots.*'
+      - '.github/workflows/docs-screenshots.yml'
+permissions:
+  contents: read
+concurrency:
+  group: docs-screenshots-${{ github.event.pull_request.number || 'main' }}
+  cancel-in-progress: true
+jobs:
+  capture:
+    # Only after a green journey of a push to main (not of a pull request).
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      COMPOSE_PROJECT_NAME: openclub-docs-screenshots
+      OPENCLUB_E2E_DISPOSABLE: 'true'
+      KEYCLOAK_DEV_ADMIN_PASSWORD: ci-only-disposable-admin-password
+      DB_URL: jdbc:postgresql://localhost:5432/openclub
+      DB_USER: openclub
+      DB_PASSWORD: openclub_dev
+      OPENCLUB_AUTH_MODE: development
+      OPENCLUB_PUBLIC_ORIGIN: http://localhost:5173
+      OPENCLUB_OIDC_ISSUER: http://localhost:8180/realms/openclub-dev
+      OPENCLUB_OIDC_AUTHORIZATION_ENDPOINT: http://localhost:8180/realms/openclub-dev/protocol/openid-connect/auth
+      OPENCLUB_OIDC_CLIENT_ID: openclub-bff
+      OPENCLUB_OIDC_REDIRECT_URI: http://localhost:5173/api/v1/auth/callback
+      PORT: '8080'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.24.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Start disposable PostgreSQL and Keycloak
+        run: |
+          set -euo pipefail
+          docker compose -f compose.yaml -f compose.auth.dev.yaml up -d postgres keycloak
+          for attempt in {1..90}; do
+            if curl -fsS --max-time 3 "$OPENCLUB_OIDC_ISSUER/.well-known/openid-configuration" -o /dev/null 2>/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'Keycloak readiness timed out' >&2
+          exit 1
+      - name: Generate ephemeral fixtures
+        run: |
+          set -euo pipefail
+          client_secret="$(openssl rand -hex 32)"
+          user_password="$(openssl rand -hex 32)"
+          echo "::add-mask::$client_secret"
+          echo "::add-mask::$user_password"
+          export OPENCLUB_E2E_CLIENT_SECRET="$client_secret"
+          export OPENCLUB_E2E_USER_PASSWORD="$user_password"
+          bash dev/keycloak/provision-test-fixtures.sh
+          echo "OPENCLUB_OIDC_CLIENT_SECRET=$client_secret" >> "$GITHUB_ENV"
+          echo "OPENCLUB_E2E_USER_PASSWORD=$user_password" >> "$GITHUB_ENV"
+      - name: Start API
+        working-directory: apps/api
+        run: |
+          set -euo pipefail
+          ./gradlew installDist --no-daemon
+          nohup build/install/openclub-api/bin/openclub-api > "$RUNNER_TEMP/api.log" 2>&1 &
+          for attempt in {1..60}; do
+            if curl -fsS --max-time 2 http://localhost:8080/health -o /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo 'API readiness timed out' >&2
+          exit 1
+      - name: Start frontend
+        working-directory: apps/web
+        env:
+          API_PROXY_TARGET: http://127.0.0.1:8080
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+          nohup pnpm dev --host 127.0.0.1 > "$RUNNER_TEMP/web.log" 2>&1 &
+          for attempt in {1..45}; do
+            if curl -fsS --max-time 2 http://localhost:5173/api/health -o /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo 'Vite proxy readiness timed out' >&2
+          exit 1
+      - name: Take the screenshots
+        working-directory: dev/auth-e2e
+        run: |
+          set -euo pipefail
+          bash install-chromium.sh
+          # First run: write every picture; later runs rewrite only pictures that changed beyond the threshold.
+          if compgen -G '../../docs/guides/images/*.png' > /dev/null; then mode=changed; else mode=all; fi
+          pnpm exec playwright test -c docs-screenshots.config.js --update-snapshots="$mode"
+      # Only the PNG pictures leave the job: no traces, storage states or logs (they can carry sign-in material).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-screenshots
+          path: docs/guides/images/*.png
+          if-no-files-found: error
+          retention-days: 7
+      - name: Stop disposable stack
+        if: always()
+        run: docker compose -f compose.yaml -f compose.auth.dev.yaml down -v
+
+  propose:
+    needs: capture
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/download-artifact@v4
+        with:
+          name: docs-screenshots
+          path: ${{ runner.temp }}/screenshots
+      - name: Check the pictures and copy them into the guides
+        env:
+          SOURCE: ${{ runner.temp }}/screenshots
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, re, shutil
+          source = pathlib.Path(os.environ["SOURCE"])
+          target = pathlib.Path("docs/guides/images")
+          target.mkdir(parents=True, exist_ok=True)
+          files = [p for p in source.rglob("*") if p.is_file()]
+          if not files or len(files) > 40:
+              raise SystemExit(f"unexpected number of pictures: {len(files)}")
+          for path in files:
+              # Flat names only, real PNG files, at most 3 MB each.
+              if not re.fullmatch(r"[a-z][a-z0-9-]{0,60}\.png", path.name) or path.parent != source:
+                  raise SystemExit(f"unexpected file: {path.relative_to(source)}")
+              data = path.read_bytes()
+              if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) > 3 * 1024 * 1024:
+                  raise SystemExit(f"not an acceptable PNG: {path.name}")
+              shutil.copyfile(path, target / path.name)
+          PY
+      - name: Open or update the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$(git status --porcelain -- docs/guides/images)" ]]; then
+            echo "No screenshot changed."
+            exit 0
+          fi
+          branch=docs-screenshots
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -C "$branch"
+          git add docs/guides/images
+          git commit -q -m "Update documentation screenshots" -m "Taken from $SHA after the Keycloak browser journey passed."
+          git push -f origin "$branch"
+          open="$(gh api "repos/$GITHUB_REPOSITORY/pulls?head=${GITHUB_REPOSITORY_OWNER}:$branch&state=open" --jq 'length')"
+          if [[ "$open" == 0 ]]; then
+            gh api "repos/$GITHUB_REPOSITORY/pulls" -f title='Update documentation screenshots' -f head="$branch" -f base=main \
+              -f body="The pictures in docs/guides/images, taken again from $SHA after the Keycloak browser journey passed on main. Only PNG files change; review them on the Files tab. Documentation: pictures only." >/dev/null
+          fi

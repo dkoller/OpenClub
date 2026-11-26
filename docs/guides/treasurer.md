@@ -5,6 +5,8 @@ collect money or read the bank account. See the [overview](README.md) for findin
 
 ## Fee periods
 
+![The fees page in Administration](images/treasurer-fees.png)
+
 - **New period:** *Name* (for example "Season 2026/27"), *Due date*, *Amount (CHF)*, then *Create period*. Every active
   member gets a fee at that amount.
 - **Open** a period to see each member's fee; *Show* filters *All*, *Open*, *Paid* or *Excluded*. Per member: *Mark paid*
