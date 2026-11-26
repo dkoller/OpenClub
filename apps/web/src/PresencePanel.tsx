@@ -30,7 +30,8 @@ export function PresencePanel({ eventId, cancelled, language, csrfToken }: {
     }).catch(() => { if (active) setPresence('error') })
     return () => { active = false }
   }, [eventId])
-  if (presence === null || presence === 'denied') return null
+  // Before the start (and for a cancelled event) there is nothing to tick, so the page does not show the part at all.
+  if (presence === null || presence === 'denied' || cancelled || (typeof presence === 'object' && !presence.open)) return null
   if (presence === 'error') return <p role="alert">{t.error}</p>
   function toggle(id: string) {
     setNotice(null)
@@ -44,14 +45,14 @@ export function PresencePanel({ eventId, cancelled, language, csrfToken }: {
     } catch { setNotice({ ok: false, text: t.failed }) } finally { setBusy(false) }
   }
   const groups = [['LEADER', t.leaders], ['PARTICIPANT', t.participants]] as const
-  return <section aria-labelledby="presence" className="stack">
-    <h2 id="presence">{t.title}</h2>
-    {cancelled ? <p className="muted">{t.cancelled}</p> : !presence.open ? <p className="muted">{t.early}</p> : <>
+  return <section aria-labelledby="presence" className="card pad stack panel">
+    <h2 id="presence">{t.title} <span className="muted small">({ticked.size})</span></h2>
+    {<>
       <p className="muted small">{t.hint}</p>
       {presence.items.length === 0 && <p>{t.nobody}</p>}
       {groups.map(([role, label]) => {
         const people = presence.items.filter(item => item.role === role)
-        return people.length > 0 && <fieldset key={role} className="card pad">
+        return people.length > 0 && <fieldset key={role}>
           <legend>{label}</legend>
           {people.map(person => <label key={person.memberId} className="check">
             <input type="checkbox" checked={ticked.has(person.memberId)} onChange={() => toggle(person.memberId)} />

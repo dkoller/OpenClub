@@ -697,11 +697,13 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(trainings.first()).toContainText('18:00');
   // Cancel and delete are on the event's own page, not in the list.
   await trainings.first().getByRole('link').click();
+  await page.getByText('Change, cancel or delete the event').click();
   await page.getByRole('button', { name: 'Cancel event', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Reinstate', exact: true })).toBeVisible();
   await page.goBack();
   await expect(trainings.first()).toContainText('Cancelled');
   await trainings.last().getByRole('link').click();
+  await page.getByText('Change, cancel or delete the event').click();
   await page.getByRole('button', { name: 'Delete', exact: true }).click();
   await page.getByRole('button', { name: 'Confirm delete' }).click();
   await expect(trainings).toHaveCount(2);
@@ -712,7 +714,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(page).toHaveURL(/#\/team\/[0-9a-f-]{36}\/event\/[0-9a-f-]{36}$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Juniors training' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'No answer yet', exact: true })).toContainText('Mara D.');
-  await expect(page.getByRole('region', { name: 'Yes', exact: true })).toContainText('Nobody.');
+  // An empty group gets no box: the counts already say 0.
+  await expect(page.getByRole('region', { name: 'Yes', exact: true })).toHaveCount(0);
   // Volunteer shifts (OpenAPI 1.16.0): the manager adds a shift with the event's times as defaults and changes it.
   const shifts = page.getByRole('region', { name: 'Volunteer shifts: Juniors training' });
   await expect(shifts.getByText('No volunteer shifts.')).toBeVisible();
@@ -887,6 +890,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   // the whole club; the text keeps its line breaks and is never interpreted as HTML.
   await show(page, '#/');
   const news = page.getByRole('region', { name: 'Announcements' });
+  await openForm(news, 'New announcement');
   await expect(news.getByLabel('For')).toHaveValue('');
   await news.getByLabel('Title').fill('Training starts again');
   await news.getByLabel('Text', { exact: true }).fill('First line <b>not bold</b>\nSecond line');

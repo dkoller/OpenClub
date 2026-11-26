@@ -16,7 +16,7 @@ tasks*): *Invitations and accounts*, *Guardians*, *Club roles* (with `MANAGE_PER
 
 ![Administration → Members: the list and the form](images/admin-members.png)
 
-- **Find, add, edit:** *Search names*; tap a name to open the member. *New member*, then *Add member* with first and last name, date of birth and, for adults, email and
+- **Find, add, edit:** *Search names*; each row shows the name and the member's teams (two columns on a laptop); tap a name to open the member. *New member*, then *Add member* with first and last name, date of birth and, for adults, email and
   phone; *Player* (with *Gender* if the club requires it). *Edit* starts from the current values and refuses to save
   if someone else changed the member meanwhile. In the form: *Show on public member list* (untick on objection) and
   *J+S person number* (digits only, used only for the coaches' J+S file).
@@ -106,7 +106,7 @@ The first administrator holds every club-wide capability from the start. *Club r
 
 ## Announcements (`POST_ANNOUNCEMENTS`)
 
-On *Start*, choose *For* (the whole club or a team you manage), *Title*, *Text*, optionally *Show until* (default 60
+On *Start*, *New announcement*, then choose *For* (the whole club or a team you manage), *Title*, *Text*, optionally *Show until* (default 60
 days), then *Post*. Announcements are deleted 6 months after their show-until date.
 
 ## Club settings (`MANAGE_PERMISSIONS`)

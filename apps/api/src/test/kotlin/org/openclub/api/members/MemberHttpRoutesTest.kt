@@ -171,7 +171,7 @@ class MemberHttpRoutesTest {
                 assertEquals(setOf("items"), memberPage.keys)
                 val items = memberPage.getValue("items").jsonArray
                 assertEquals(1, items.size)
-                assertEquals(setOf("id", "firstName", "lastName"), items.first().jsonObject.keys)
+                assertEquals(setOf("id", "firstName", "lastName", "teams"), items.first().jsonObject.keys)
                 assertEquals(id.toString(), items.first().jsonObject.getValue("id").jsonPrimitive.content)
                 assertFalse(list.bodyAsText().contains("2013-01-01"))
                 val privateAttempt = client.get("/api/v1/members/$id") {

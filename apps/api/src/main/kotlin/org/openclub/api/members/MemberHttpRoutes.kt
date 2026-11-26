@@ -357,7 +357,8 @@ private suspend fun ApplicationCall.memberPage(
             put("items", buildJsonArray {
                 page.members.forEach { member ->
                     val names = memberNameResponse(member.id, member.firstName, member.lastName)
-                    add(if (!archived) names else JsonObject(names + ("archivedAt" to
+                    add(if (!archived) JsonObject(names + ("teams" to JsonArray(member.teams.map(::JsonPrimitive))))
+                        else JsonObject(names + ("archivedAt" to
                         JsonPrimitive(requireNotNull(member.archivedAt).toInstant().toString()))))
                 }
             })

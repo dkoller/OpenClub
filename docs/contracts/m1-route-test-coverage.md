@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
 Maps each of the 121 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.36.0) to the tests that exercise it. The operation list and
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.37.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -24,7 +24,7 @@ How to read the columns of test types:
 | `PATCH /v1/club/adult-age-policy` | 204, 400, 401, 403, 409, 503 | `ClubSettingsHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `ClubPolicyChangeTest` |
 | `GET /v1/public/members` | 200, 503 | `PublicMemberNamesTest`, `AuthAndPublicRoutesInputTest` |
 | `GET /v1/public/club` | 200 | `MemberHttpRoutesTest` (name only, `no-store`); 404 and 503 not covered |
-| `GET /v1/members` | 200, 400, 401, 403, 503 | `MemberHttpRoutesTest`, `MemberHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `MemberDirectoryTest` |
+| `GET /v1/members` | 200, 400, 401, 403, 503 | `MemberHttpRoutesTest`, `MemberHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `MemberDirectoryTest` (team names per row, sorted, empty list without a team) |
 | `GET /v1/members/archived` | 200, 400, 401, 403, 503 | `ArchivedMemberSearchHttpTest` (EDIT_MEMBERS only, key set, paging, cursors bound to list and query), `PrivateRoutesRevocationTest` |
 | `POST /v1/members` | 201, 400, 401, 403, 409, 503 | `MemberHttpRoutesTest`, `MemberHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `MemberCreationTest` |
 | `GET /v1/members/{memberId}` | 200, 400, 401, 403, 404, 503 | `MemberHttpRoutesTest`, `MemberHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest` |

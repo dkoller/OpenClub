@@ -9,11 +9,14 @@ import java.util.UUID
  * `GET /api/v1/members/archived` (archived members, EDIT_MEMBERS; OpenAPI 1.5.0, owner-approved 2026-11-19).
  *
  * The installation-local actor's verified identity and the explicit grant are checked in the same SQL
- * statement as the read; linking an account alone is insufficient. Only names (and, for archived members,
- * the archive time) are returned; contacts and birth dates stay behind the restricted detail read.
+ * statement as the read; linking an account alone is insufficient. Only names, the names of the member's teams
+ * (active list, since 1.37.0) and, for archived members, the archive time are returned; contacts and birth dates stay behind the restricted detail read.
  */
 internal class MemberDirectory(private val database: DSLContext) {
-    data class Summary(val id: UUID, val firstName: String, val lastName: String, val archivedAt: OffsetDateTime? = null)
+    data class Summary(
+        val id: UUID, val firstName: String, val lastName: String, val archivedAt: OffsetDateTime? = null,
+        val teams: List<String> = emptyList(),
+    )
     data class After(val lastName: String, val firstName: String, val id: UUID)
     data class Page(val members: List<Summary>, val next: After?)
 
@@ -36,7 +39,9 @@ internal class MemberDirectory(private val database: DSLContext) {
         args.add(limit + 1)
 
         val rows = database.fetch(
-            """SELECT target.id, target.first_name, target.last_name, target.archived_at
+            """SELECT target.id, target.first_name, target.last_name, target.archived_at,
+                      ARRAY(SELECT t.name FROM member_team_assignments a JOIN teams t ON t.id = a.team_id
+                            WHERE a.member_id = target.id ORDER BY t.name) AS teams
                FROM members target
                JOIN members actor ON actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
                JOIN club_capability_grants g ON g.member_id = actor.id
@@ -54,6 +59,7 @@ internal class MemberDirectory(private val database: DSLContext) {
                 requireNotNull(it.get("first_name", String::class.java)),
                 requireNotNull(it.get("last_name", String::class.java)),
                 it.get("archived_at", OffsetDateTime::class.java),
+                (it.get("teams", Array<String>::class.java) ?: emptyArray()).toList(),
             )
         }
         val members = rows.take(limit)

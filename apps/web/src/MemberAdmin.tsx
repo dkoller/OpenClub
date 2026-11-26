@@ -202,7 +202,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
       {items === null ? (failure ? null : <p>{t.loading}</p>) : items.length === 0 ? <p>{t.empty}</p> : (
         <ul className="rows card member-rows">
           {items.map(member => (
-            <li key={member.id} className="pad">
+            <li key={member.id} className={showing === member.id || editing?.id === member.id ? 'pad wide' : 'pad'}>
               {editing?.id === member.id ? (
                 <form onSubmit={event => {
                   event.preventDefault()
@@ -226,7 +226,9 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
                   {/* The name opens the member: details first, then Edit and Archive (design rule, 2026-11-26). */}
                   <button type="button" className="row-toggle" aria-expanded={showing === member.id}
                     onClick={() => { setShowing(showing === member.id ? null : member.id); setConfirmingArchive(null) }}>
-                    {member.firstName} {member.lastName}</button>
+                    <span className="row-name">{member.firstName} {member.lastName}
+                      {member.teams && member.teams.length > 0 && <span className="muted small row-teams">{member.teams.join(', ')}</span>}
+                    </span></button>
                   {showing === member.id && <>
                   <MemberDetailsView memberId={member.id} language={language} onClose={() => setShowing(null)} />
                   <div className="actions">

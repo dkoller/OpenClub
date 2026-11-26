@@ -20,6 +20,9 @@ export default defineConfig({
     screenshot: 'off',
     video: 'off',
     locale: 'en-GB',
+    // Date and time fields are drawn by the browser in its own language, not the page's: Swiss formats (01.12.2026,
+    // 09:15) like a Swiss member's phone, instead of the runner's US default.
+    launchOptions: { args: ['--lang=de-CH'] },
     timezoneId: 'Europe/Zurich',
     colorScheme: 'light',
     reducedMotion: 'reduce',

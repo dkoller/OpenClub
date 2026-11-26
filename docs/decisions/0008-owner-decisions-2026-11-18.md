@@ -403,3 +403,9 @@ Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 73 | Permissions overview | Approved as OpenAPI **1.36.0**: `GET /v1/grants/overview`, for club-wide `MANAGE_PERMISSIONS` holders only, lists every active member who holds a club or team capability, with first and last name and each capability (team grants with the team's name). Members without grants, archived members, birth dates and contacts stay out; never cached. The Permissions page shows it first, in plain words, so an administrator sees who can do what without searching member by member. |
+
+## Addendum 42 — team names in the member list (2026-11-26)
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 74 | Member list rows | Approved as OpenAPI **1.37.0** ("Teams only"): each row of `GET /v1/members` carries `teams`, the sorted names of the member's teams, so the administrators' list shows more than a name. Same readers as before (`VIEW_MEMBER_DIRECTORY`). The owner declined a child/adult flag; no birth date, age group or contact is added. |

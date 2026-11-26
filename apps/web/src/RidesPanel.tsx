@@ -59,10 +59,10 @@ export function RidesPanel({ event, language, csrfToken, self }: {
 
   const open = (ride: Ride) => !event.cancelled && Date.parse(ride.departsAt) > Date.now()
   return (
-    <section aria-label={`${t.rides}: ${event.title}`}>
-      <h4>{t.rides}</h4>
+    <section aria-label={`${t.rides}: ${event.title}`} className="card pad stack panel">
+      <h2>{t.rides}</h2>
       {list.items.length === 0 && <p>{t.none}</p>}
-      {list.items.length > 0 && <ul>{list.items.map(ride => <li key={ride.id}>
+      {list.items.length > 0 && <ul className="rows shift-rows">{list.items.map(ride => <li key={ride.id} className="pad-y">
         <strong>{ride.driver}</strong> · {t[ride.direction]} · {t.departs} {formatDayTime(ride.departsAt, language)} · {t.at}: {ride.meetingPoint}
         {' '}· {ride.passengers.length} {t.of} {ride.seats} {t.seats}
         {' '}({ride.passengers.length ? ride.passengers.map(p => p.phone ? `${p.displayName} (${t.phone} ${p.phone})` : p.displayName).join(', ') : t.nobody})
@@ -84,9 +84,10 @@ export function RidesPanel({ event, language, csrfToken, self }: {
         <label>{t.point}<input required maxLength={200} value={current.point} onChange={e => setDraft({ ...current, point: e.target.value })} /></label>
         <label>{t.date}<input type="date" required value={current.date} onChange={e => setDraft({ ...current, date: e.target.value })} /></label>
         <label>{t.time}<input type="time" required value={current.time} onChange={e => setDraft({ ...current, time: e.target.value })} /></label>
+        <p className="muted small">{t.phones}</p>
         <button type="submit" disabled={busy}>{own ? t.save : t.offer}</button>
       </form></Reveal>}
-      <p>{t.phones}</p>
+      {list.items.length > 0 && <p className="muted small">{t.phones}</p>}
       {notice && <p role="alert">{t[notice]}</p>}
     </section>
   )

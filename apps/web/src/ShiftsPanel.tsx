@@ -79,13 +79,13 @@ export function ShiftsPanel({ event, language, csrfToken, self }: {
   if (list === 'denied') return null
   const open = (shift: Shift) => !event.cancelled && Date.parse(shift.startsAt) > Date.now()
   return (
-    <section aria-label={`${t.shifts}: ${event.title}`}>
-      <h4>{t.shifts}</h4>
+    <section aria-label={`${t.shifts}: ${event.title}`} className="card pad stack panel">
+      <h2>{t.shifts}</h2>
       {list === null && <p role="status">{t.loading}</p>}
       {list === 'error' && <p role="alert">{t.error}</p>}
       {typeof list === 'object' && list !== null && <>
         {list.items.length === 0 && <p>{t.none}</p>}
-        {list.items.length > 0 && <ul className="rows card shift-rows">{list.items.map(shift => <li key={shift.id} className="pad">
+        {list.items.length > 0 && <ul className="rows shift-rows">{list.items.map(shift => <li key={shift.id} className="pad">
           {editing?.id === shift.id ? <form onSubmit={form => { void save(form) }}>
             {fields(editing.draft, next => setEditing({ id: shift.id, draft: next }))}
             <button type="submit" disabled={busy}>{t.save}</button>
