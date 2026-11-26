@@ -890,7 +890,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   // the whole club; the text keeps its line breaks and is never interpreted as HTML.
   await show(page, '#/');
   const news = page.getByRole('region', { name: 'Announcements' });
-  await openForm(news, 'New announcement');
+  await news.getByRole('button', { name: 'New announcement' }).click();
   await expect(news.getByLabel('For')).toHaveValue('');
   await news.getByLabel('Title').fill('Training starts again');
   await news.getByLabel('Text', { exact: true }).fill('First line <b>not bold</b>\nSecond line');
