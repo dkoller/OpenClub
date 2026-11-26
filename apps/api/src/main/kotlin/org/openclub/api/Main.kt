@@ -139,6 +139,28 @@ internal fun Application.module(
                     ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
             }
         }
+        // The club's name for visitors and not-yet-members (OpenAPI 1.35.0): the name only, nothing else.
+        get("/api/v1/public/club") {
+            call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+            val unavailable = """{"code":"unavailable","message":"Club unavailable"}"""
+            try {
+                val found = database?.onDatabaseThread { db ->
+                    listOfNotNull(db.fetchOne("SELECT name FROM clubs LIMIT 1")?.get(0, String::class.java))
+                }
+                when {
+                    found == null -> call.respondText(unavailable, ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
+                    found.isEmpty() -> call.respondText("""{"code":"not_found","message":"No club yet"}""",
+                        ContentType.Application.Json, HttpStatusCode.NotFound)
+                    else -> call.respondText(kotlinx.serialization.json.buildJsonObject {
+                        put("name", kotlinx.serialization.json.JsonPrimitive(found.single()))
+                    }.toString(), ContentType.Application.Json)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                call.respondText(unavailable, ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
+            }
+        }
         // Liveness only; this endpoint does not imply database readiness.
         get("/health") {
             call.respondText("""{"status":"ok"}""", ContentType.Application.Json)

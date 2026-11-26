@@ -51,6 +51,7 @@ ROUTE_SOURCES = {
 # owner-approved contract change (PUT and reactivation: ADR-0008 addendum 5).
 EXPECTED = set("""
 GET /v1/public/members
+GET /v1/public/club
 GET /v1/club
 PATCH /v1/club
 PATCH /v1/club/player-gender-policy
@@ -205,7 +206,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.34.0"
+FROZEN_VERSION = "1.35.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}
@@ -244,7 +245,7 @@ def verify_contract(spec):
             success = "202"
         if success not in responses or "503" not in responses:
             fail(f"Expected success/unavailable statuses missing: {entry}")
-        if entry == "GET /v1/public/members":
+        if entry in ("GET /v1/public/members", "GET /v1/public/club"):
             if operation.get("security") != []:
                 fail("Public display names must explicitly override session security")
             continue

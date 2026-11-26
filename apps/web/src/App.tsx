@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { loadClubAccess, signOut, type ClubAccess } from './auth'
 import { forgetPushOnSignOut } from './push'
+import { readPublicClubName } from './publicClub'
 import { readPreferredLanguage, type Language } from './language'
 import { loadAccess, hasAdmin, noAccess, type Access } from './access'
 import { parseRoute, routeHash, tabOf, type Route } from './routes'
@@ -38,6 +39,7 @@ export function App() {
   const [access, setAccess] = useState<ClubAccess | null>(null)
   const [rights, setRights] = useState<Access | null>(null)
   const [self, setSelf] = useState<string | null>(null)
+  const [publicName, setPublicName] = useState<string | null>(null)
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash))
   const [error, setError] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -84,11 +86,19 @@ export function App() {
     }
   }, [language])
 
+  // Before sign-in (and for not-yet-members) the header shows the club's public name (OpenAPI 1.35.0).
   useEffect(() => {
-    const club = access?.state === 'ready' ? access.clubName : words.heading
+    if (!access || access.state === 'ready' || publicName !== null) return
+    let active = true
+    readPublicClubName().then(name => { if (active) setPublicName(name) }).catch(() => {})
+    return () => { active = false }
+  }, [access, publicName])
+
+  useEffect(() => {
+    const club = access?.state === 'ready' ? access.clubName : publicName ?? words.heading
     const page = route.page === 'event' ? words.schedule : words[tabOf(route)]
     document.title = route.page === 'start' ? club : `${page} · ${club}`
-  }, [access, route, words])
+  }, [access, route, words, publicName])
 
   async function retryAccess() {
     setError(false)
@@ -121,7 +131,7 @@ export function App() {
   return (
     <div className={ready ? 'app signed-in' : 'app'}>
       <header className="top">
-        {ready ? <a className="club" href={routeHash({ page: 'start' })}>{access.clubName}</a> : <span className="club">{words.heading}</span>}
+        {ready ? <a className="club" href={routeHash({ page: 'start' })}>{access.clubName}</a> : <span className="club">{publicName ?? words.heading}</span>}
         <label className="language"><span className="vh">{words.language}</span>
           <select id="language" value={language} onChange={e => setLanguage(e.target.value as Language)}>
             <option value="de">DE</option><option value="fr">FR</option><option value="it">IT</option><option value="en">EN</option>
