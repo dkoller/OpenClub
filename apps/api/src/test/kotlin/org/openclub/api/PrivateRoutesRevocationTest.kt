@@ -138,6 +138,7 @@ class PrivateRoutesRevocationTest {
         Route(HttpMethod.Get, "/api/v1/members/$target/role"),
         Route(HttpMethod.Patch, "/api/v1/members/$target/role", """{"role":"MEMBER"}"""),
         Route(HttpMethod.Get, "/api/v1/grants?memberId=$target"),
+        Route(HttpMethod.Get, "/api/v1/grants/overview"),
         Route(HttpMethod.Post, "/api/v1/grants",
             """{"memberId":"$target","capability":"VIEW_MEMBER_DIRECTORY","scope":"CLUB"}"""),
         Route(HttpMethod.Delete, "/api/v1/grants",

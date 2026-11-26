@@ -397,3 +397,9 @@ Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 72 | Public club name | Approved as OpenAPI **1.35.0**: `GET /v1/public/club` without a session answers only `{ "name" }` (404 before the club exists, never cached), so the header and browser tab show the club's name before sign-in and to not-yet-members instead of "Members area", as the product rules ask. The club name is not personal data; no ID, slug or setting is exposed. |
+
+## Addendum 41 — permissions overview (2026-11-26)
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 73 | Permissions overview | Approved as OpenAPI **1.36.0**: `GET /v1/grants/overview`, for club-wide `MANAGE_PERMISSIONS` holders only, lists every active member who holds a club or team capability, with first and last name and each capability (team grants with the team's name). Members without grants, archived members, birth dates and contacts stay out; never cached. The Permissions page shows it first, in plain words, so an administrator sees who can do what without searching member by member. |

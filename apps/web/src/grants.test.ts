@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { capabilities, capabilityChoices, capabilityForScope, fetchGrants, grantChange, probeGrantAccess } from './grants'
+import { capabilities, capabilityChoices, capabilityForScope, capabilityLabel, fetchGrantOverview, fetchGrants, grantChange,
+  grantLabel, probeGrantAccess } from './grants'
 
 describe('grant scope rules', () => {
   it('offers only team capabilities at team scope', () => {
@@ -42,5 +43,24 @@ describe('grant access probe', () => {
     expect(await probeGrantAccess(vi.fn().mockResolvedValue({ ok: false, status: 403 }))).toBe('denied')
     expect(await probeGrantAccess(vi.fn().mockResolvedValue({ ok: false, status: 401 }))).toBe('denied')
     await expect(probeGrantAccess(vi.fn().mockResolvedValue({ ok: false, status: 503 }))).rejects.toThrow()
+  })
+})
+
+describe('permissions overview', () => {
+  it('reads everyone with a permission and fails closed on denial', async () => {
+    const items = [{ memberId: 'm1', firstName: 'Ruth', lastName: 'Amstutz', grants: [{ capability: 'EDIT_MEMBERS', scope: 'CLUB' }] }]
+    const request = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ items }) })
+    expect(await fetchGrantOverview(undefined, request)).toEqual({ items })
+    expect(request.mock.calls[0][0]).toBe('/api/v1/grants/overview')
+    expect(await fetchGrantOverview(undefined, vi.fn().mockResolvedValue({ ok: false, status: 403 }))).toBe('denied')
+  })
+
+  it('names every permission in plain words in every language', () => {
+    for (const language of ['de', 'en', 'fr', 'it'] as const) {
+      for (const capability of capabilities) expect(capabilityLabel(capability, language)).not.toBe(capability)
+    }
+    expect(capabilityLabel('FUTURE_THING', 'en')).toBe('FUTURE_THING')
+    expect(grantLabel({ capability: 'MANAGE_TEAMS', scope: 'TEAM', teamId: 't1' }, 'de', 'Junioren U12')).toBe('Teams leiten: Junioren U12')
+    expect(grantLabel({ capability: 'MANAGE_FEES', scope: 'CLUB' }, 'en')).toBe('Manage fees')
   })
 })

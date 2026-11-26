@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 import { writeJson } from './api'
-import { capabilityChoices, capabilityForScope, fetchGrants, grantChange, probeGrantAccess,
-  type Capability, type Grant, type Scope } from './grants'
+import { capabilityChoices, capabilityForScope, capabilityLabel, fetchGrantOverview, fetchGrants, grantChange,
+  grantLabel, probeGrantAccess, type Capability, type Grant, type GrantHolder, type Scope } from './grants'
 import { fetchMemberPage, type Member } from './members'
 
 type Team = { id: string; name: string }
 const words = {
-  de: { title: 'Berechtigungen verwalten', search: 'Mitglied suchen', find: 'Suchen', member: 'Mitglied', scope: 'Bereich', club: 'Verein', team: 'Team', capability: 'Berechtigung', grant: 'Erteilen', revoke: 'Entziehen', existing: 'Aktive Berechtigungen', empty: 'Keine Berechtigungen.', error: 'Berechtigungen nicht verfügbar.', retry: 'Erneut versuchen', select: 'Bitte Mitglied auswählen.' },
-  en: { title: 'Manage permissions', search: 'Find member', find: 'Search', member: 'Member', scope: 'Scope', club: 'Club', team: 'Team', capability: 'Capability', grant: 'Grant', revoke: 'Revoke', existing: 'Current grants', empty: 'No grants.', error: 'Permissions unavailable.', retry: 'Try again', select: 'Select a member.' },
-  fr: { title: 'Gérer les autorisations', search: 'Chercher un membre', find: 'Chercher', member: 'Membre', scope: 'Portée', club: 'Club', team: 'Équipe', capability: 'Autorisation', grant: 'Accorder', revoke: 'Révoquer', existing: 'Autorisations actuelles', empty: 'Aucune autorisation.', error: 'Autorisations indisponibles.', retry: 'Réessayer', select: 'Choisir un membre.' },
-  it: { title: 'Gestisci permessi', search: 'Cerca membro', find: 'Cerca', member: 'Membro', scope: 'Ambito', club: 'Club', team: 'Squadra', capability: 'Permesso', grant: 'Concedi', revoke: 'Revoca', existing: 'Permessi attivi', empty: 'Nessun permesso.', error: 'Permessi non disponibili.', retry: 'Riprova', select: 'Seleziona un membro.' },
+  de: { overview: 'Wer darf was', nobody: 'Noch niemand hat eine Berechtigung.', change: 'Ändern', title: 'Berechtigungen verwalten', search: 'Mitglied suchen', find: 'Suchen', member: 'Mitglied', scope: 'Bereich', club: 'Verein', team: 'Team', capability: 'Berechtigung', grant: 'Erteilen', revoke: 'Entziehen', existing: 'Aktive Berechtigungen', empty: 'Keine Berechtigungen.', error: 'Berechtigungen nicht verfügbar.', retry: 'Erneut versuchen', select: 'Bitte Mitglied auswählen.' },
+  en: { overview: 'Who can do what', nobody: 'Nobody has a permission yet.', change: 'Change', title: 'Manage permissions', search: 'Find member', find: 'Search', member: 'Member', scope: 'Scope', club: 'Club', team: 'Team', capability: 'Capability', grant: 'Grant', revoke: 'Revoke', existing: 'Current grants', empty: 'No grants.', error: 'Permissions unavailable.', retry: 'Try again', select: 'Select a member.' },
+  fr: { overview: 'Qui peut faire quoi', nobody: 'Personne n’a encore d’autorisation.', change: 'Modifier', title: 'Gérer les autorisations', search: 'Chercher un membre', find: 'Chercher', member: 'Membre', scope: 'Portée', club: 'Club', team: 'Équipe', capability: 'Autorisation', grant: 'Accorder', revoke: 'Révoquer', existing: 'Autorisations actuelles', empty: 'Aucune autorisation.', error: 'Autorisations indisponibles.', retry: 'Réessayer', select: 'Choisir un membre.' },
+  it: { overview: 'Chi può fare cosa', nobody: 'Nessuno ha ancora un permesso.', change: 'Modifica', title: 'Gestisci permessi', search: 'Cerca membro', find: 'Cerca', member: 'Membro', scope: 'Ambito', club: 'Club', team: 'Squadra', capability: 'Permesso', grant: 'Concedi', revoke: 'Revoca', existing: 'Permessi attivi', empty: 'Nessun permesso.', error: 'Permessi non disponibili.', retry: 'Riprova', select: 'Seleziona un membro.' },
 } satisfies Record<Language, Record<string, string>>
 
 export function GrantAdmin({ language, csrfToken }: { language: Language; csrfToken: string }) {
@@ -28,6 +28,8 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
+  const [holders, setHolders] = useState<GrantHolder[] | null>(null)
+  const editor = useRef<HTMLElement | null>(null)
   const memberLookupRequest = useRef<AbortController | null>(null)
   useEffect(() => () => memberLookupRequest.current?.abort(), [])
 
@@ -40,6 +42,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
         if (access === 'denied') { setDenied(true); return }
         setAllowed(true)
         setError(false)
+        void loadOverview()
         const result = await fetch('/api/v1/teams', { credentials: 'same-origin', cache: 'no-store' })
         if (result.ok) {
           const page: { items: Team[] } = await result.json()
@@ -51,6 +54,27 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
     })()
     return () => { active = false }
   }, [retryCount])
+
+  async function loadOverview() {
+    try {
+      const result = await fetchGrantOverview()
+      if (result === 'denied') { setDenied(true); return }
+      setHolders(result.items)
+    } catch {
+      setError(true)
+    }
+  }
+
+  function changeHolder(holder: GrantHolder) {
+    memberLookupRequest.current?.abort()
+    const controller = new AbortController()
+    memberLookupRequest.current = controller
+    setMembers([{ id: holder.memberId, firstName: holder.firstName, lastName: holder.lastName }])
+    setMemberId(holder.memberId)
+    setGrants([])
+    void loadGrants(holder.memberId, controller.signal)
+    editor.current?.scrollIntoView({ block: 'start' })
+  }
 
   async function loadGrants(targetId: string, signal?: AbortSignal) {
     try {
@@ -97,6 +121,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
         return
       }
       await loadGrants(memberId)
+      void loadOverview()
     } catch {
       setError(true)
     } finally {
@@ -110,8 +135,24 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
     <button type="button" onClick={() => { setError(false); setRetryCount(value => value + 1) }}>{t.retry}</button>
   </section> : null
   const choices = capabilityChoices(scope)
-  return (
-    <section aria-label={t.title}>
+  const teamName = (grant: Grant & { teamName?: string }) =>
+    grant.teamName ?? teams.find(team => team.id === grant.teamId)?.name
+  return (<>
+    <section aria-label={t.overview}>
+      <h2>{t.overview}</h2>
+      {holders !== null && (holders.length === 0 ? <p>{t.nobody}</p>
+        : <ul className="member-rows grant-overview">{holders.map(holder => <li key={holder.memberId}>
+          <div>
+            <strong>{holder.firstName} {holder.lastName}</strong>
+            <ul>{holder.grants.map(grant => <li key={grant.scope + grant.capability + (grant.teamId ?? '')}>
+              {grantLabel(grant, language, teamName(grant) ?? t.team)}
+            </li>)}</ul>
+          </div>
+          <button type="button" disabled={busy} aria-label={t.change + ': ' + holder.firstName + ' ' + holder.lastName}
+            onClick={() => changeHolder(holder)}>{t.change}</button>
+        </li>)}</ul>)}
+    </section>
+    <section aria-label={t.title} ref={editor}>
       <h2>{t.title}</h2>
       {error && <p role="alert">{t.error}</p>}
       <form onSubmit={event => { void findMember(event) }}>
@@ -136,8 +177,8 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
         <h3>{t.existing}</h3>
         {grants.length === 0 ? <p>{t.empty}</p>
           : <ul>{grants.map(grant => <li key={grant.scope + grant.capability + (grant.teamId ?? '')}>
-            {grant.capability} · {grant.scope === 'CLUB' ? t.club
-              : teams.find(team => team.id === grant.teamId)?.name ?? t.team}
+            {grant.scope === 'CLUB' ? capabilityLabel(grant.capability, language) + ' · ' + t.club
+              : grantLabel(grant, language, teamName(grant) ?? t.team)}
             {' '}<button type="button" disabled={busy} onClick={() => {
               void changeGrant(grant, 'DELETE')
             }}>{t.revoke}</button>
@@ -163,12 +204,12 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
           </label>}
           <label>{t.capability}
             <select value={capability} onChange={event => setCapability(event.target.value as Capability)}>
-              {choices.map(value => <option key={value} value={value}>{value}</option>)}
+              {choices.map(value => <option key={value} value={value}>{capabilityLabel(value, language)}</option>)}
             </select>
           </label>
           <button type="submit" disabled={busy || (scope === 'TEAM' && !teamId)}>{t.grant}</button>
         </form>
       </> : <p>{t.select}</p>}
     </section>
-  )
+  </>)
 }
