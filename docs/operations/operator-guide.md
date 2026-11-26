@@ -55,7 +55,9 @@ fictional data, and record the evidence for the [M1 acceptance walkthrough](../d
   pair with the app's own `PushKeysCli` and prints no key; a rerun keeps the keys (new keys make every device subscribe
   again). Outside the demo kit, `./gradlew generatePushKeys` in `apps/api` prints a pair. Allow outbound HTTPS to the
   listed push hosts. The server only sends empty pushes; devices fetch the text from the app, so the push services see
-  no personal data. Members turn push on per device under *Family* → *Email notifications*.
+  no personal data. A `.suffix` in `push.hosts` needs at least three labels (`.push.apple.com`, not `.apple.com`); the
+  API calls push services directly (no HTTP proxy) and only when the name resolves to public addresses. A device that
+  fails 10 times in a row is removed and must turn push on again. Members turn push on per device under *Family* → *Email notifications*.
 
 ## Operator commands
 

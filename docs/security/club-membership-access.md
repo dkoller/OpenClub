@@ -392,7 +392,7 @@ Owner-approved (ADR-0008 addendum 24). Entering, listing and deleting are limite
 
 ## Carpooling (OpenAPI 1.21.0)
 
-Owner-approved (ADR-0008 addendum 25), including a narrow contact exception. Offering requires an adult with a verified sign-in who is in the event's team or guards a current minor in it, checked in the inserting statement; booking reuses the shifts pattern (oneself or one's current minor, assignment locked `FOR SHARE`, ride locked first and seats counted in a fresh statement, closed after departure or for a cancelled event). Visibility follows shifts. Phones are read in SQL but released by the route only to the driver (passengers' phones; for a minor the phone of the guardian who booked, never the child's own record) and to a caller who holds a seat on that ride for themselves or a minor (the driver's phone); every other caller gets `null`. Bookings and offers end when a member leaves the team (V33 trigger), cascade on erasure, and are deleted 12 months after the event. Not audited. Tests: `RideHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
+Owner-approved (ADR-0008 addendum 25), including a narrow contact exception. Offering requires an adult with a verified sign-in who is in the event's team or guards a current minor in it, checked in the inserting statement; booking reuses the shifts pattern (oneself or one's current minor, assignment locked `FOR SHARE`, ride locked first and seats counted in a fresh statement, closed after departure or for a cancelled event). Visibility follows shifts. Phones are read in SQL but released by the route only to the driver (passengers' phones; for a minor the phone of the guardian who booked, never the child's own record) and to a caller who holds a seat on that ride for themselves or a minor (the driver's phone); every other caller gets `null`. Bookings and offers end when a member leaves the team (V33 trigger), cascade on erasure, and are deleted 12 months after the event. Since 1.33.1 an offer whose driver is archived, left the team or is no longer the guardian of a current minor in it is hidden, cannot be booked and cannot be changed; a minor's booking shows the booking guardian's phone only while that person is still the minor's guardian. Not audited. Tests: `RideHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
 
 ## Push notifications (OpenAPI 1.33.0)
 
@@ -403,7 +403,13 @@ internal address. Pushes are empty (no encryption keys are stored or needed); th
 own session from `GET /v1/me/push-inbox`, which answers only the caller's messages of the last two days, by kind
 and subject. The VAPID private key comes from the environment, is checked against the public key at startup and is
 never logged. Registration needs an active membership and CSRF; an endpoint moves to the latest member who
-registered it, so a shared browser stops receiving the previous member's messages.
+registered it, and signing out in the app removes this browser's subscription, so a shared browser stops receiving the
+previous member's messages. Since 1.33.1 the host must be written in lower case (as browsers send it), every address
+the host resolves to must be public (no loopback, private, link-local, carrier-grade NAT, unique-local or reserved
+range) and the call uses no proxy; push runs in its own loop, at most 8 calls at a time, and a subscription is deleted
+after 10 failed wake-ups in a row. **Residual risk:** the address is checked before the HTTP client resolves the name
+again, so a push service's DNS that changed in between (rebinding) is not covered; the allowed hosts belong to the
+browser vendors.
 
 ## Helper duty (OpenAPI 1.32.0)
 
@@ -419,7 +425,11 @@ transaction that locks the team row, counts the day's messages (at most 10) and 
 a burst cannot outrun the check or the limit. Recipients are computed on the server from the audience and go through
 the usual rule (active, verified, address, switch on, guardians for current minors); the coach never sees who has an
 address. The subject is one line (control characters refused, newlines stripped again in the subject builder), so it
-cannot add mail headers. The log keeps no text.
+cannot add mail headers. The log keeps no text. Since 1.33.1 a log row stays when its event is deleted (and is
+removed a day later), so deleting events cannot reset the limit. The text itself is stored only in the email outbox
+until it is sent (at most 2 days), and not at all for push-only recipients; a sent row keeps only its subject.
+**Accepted:** changing an event also emails the team, including the event's notes, without a daily limit; this is the
+normal schedule channel of a coach and stays unthrottled.
 
 ## Fields and halls (OpenAPI 1.30.0)
 
@@ -453,7 +463,8 @@ the existing recipient rule (active, verified, address, switch on), in the same 
 Owner-approved (ADR-0008 addendum 31). V38 adds `event_presence` (event, member, role PARTICIPANT or LEADER) and
 `members.js_person_number`. Every route needs `MANAGE_TEAMS` for the event's team, club-wide or team-scoped, checked in
 the same statement as the read; a caller without `MANAGE_TEAMS` anywhere gets 403 before input is parsed, and an
-unknown event or team is 404 only then. Saving locks the event row (`FOR UPDATE`), refuses an event that has not
+unknown event or team is 404 only for a club-wide `MANAGE_TEAMS` holder (since 1.33.1; 403 for a team-scoped
+one). Saving locks the event row (`FOR UPDATE`), refuses an event that has not
 started or is cancelled (409) and accepts only the event's people (active team members, active team-scoped managers,
 people already recorded); anything else is 400, so a coach cannot write records about members outside the team.
 Records are kept with the event, also after the member leaves the team, and go with the event or an erased member.
@@ -461,7 +472,8 @@ Records are kept with the event, also after the member leaves the team, and go w
 The J+S person number is written only by `EDIT_MEMBERS` holders, with `If-Match`, audited `JS_NUMBER_CHANGED`, and
 read by editors, the member (My profile) and in the member export. Team managers never see it in the app; it leaves
 the server only in the NDS file, which is refused for a request another site started and audited
-`JS_ATTENDANCE_EXPORTED` per download. The file holds no names. Places are cleaned so a cell can neither split the
+`JS_ATTENDANCE_EXPORTED` once per person in the file (since 1.33.1), so each member's audit trail shows who exported
+their number, also after the event is deleted. The file holds no names. Places are cleaned so a cell can neither split the
 row nor start a spreadsheet formula.
 
 ## Swiss QR bills for fees (OpenAPI 1.26.0)
@@ -484,7 +496,36 @@ Owner-approved (ADR-0008 addendum 27). `GET /v1/shifts/unfilled` answers 403 unl
 
 ## Join requests (OpenAPI 1.22.0)
 
-Owner-approved (ADR-0008 addendum 26). The public `POST /v1/public/join-requests` is the only session-free write. Its defences, in order: the exact `Origin` of the club's site (cross-site posts and plain HTML forms fail; the JSON content type is also required); an in-memory limit of 5 submissions per client address per hour, keyed on the last `X-Forwarded-For` entry, which the bundled Caddy sets from the real connection (an installation that exposes nginx or the API directly lets clients choose that header, leaving only the global limits); strict body parsing with the existing member field rules; a honeypot field (`website`) whose hits are answered 202 and dropped; the switch (`clubs.join_requests_open`, off by default), a cap of 200 open requests and one open request per person, checked in the database, with a repeat answered 202 so the form reveals nothing about who applied. No address is stored and no email is sent, so the form cannot be used to mail strangers. Applicants' data is visible only to `EDIT_MEMBERS` holders; accepting reuses `MemberCreation` (live grant check, field rules, `MEMBER_CREATED` audit) in one transaction with the team assignment and the request's deletion; database rules that refuse the member (for example a child who has come of age) answer 409. Open requests are deleted after 60 days. Tests: `JoinRequestHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
+Owner-approved (ADR-0008 addendum 26). The public `POST /v1/public/join-requests` is the only session-free write. Its defences, in order: the exact `Origin` of the club's site (cross-site posts and plain HTML forms fail; the JSON content type is also required); an in-memory limit of 5 submissions per client address per hour, keyed on the last `X-Forwarded-For` entry, which the bundled Caddy sets from the real connection (an installation that exposes nginx or the API directly lets clients choose that header, leaving only the global limits); strict body parsing with the existing member field rules; a honeypot field (`website`) whose hits are answered 202 and dropped; the switch (`clubs.join_requests_open`, off by default), a cap of 200 open requests (counted under a lock on the club row since 1.33.1, so parallel submissions cannot exceed it) and one open request per person, checked in the database, with a repeat answered 202 so the form reveals nothing about who applied. No address is stored and no email is sent, so the form cannot be used to mail strangers. Applicants' data is visible only to `EDIT_MEMBERS` holders; accepting reuses `MemberCreation` (live grant check, field rules, `MEMBER_CREATED` audit) in one transaction with the team assignment and the request's deletion; database rules that refuse the member (for example a child who has come of age) answer 409. Open requests are deleted after 60 days. Tests: `JoinRequestHttpTest`, `RetentionCleanupTest`, `PrivateRoutesRevocationTest`, web unit tests and the Keycloak journey.
+
+## Third independent security review (2026-11-26, OpenAPI 1.33.1)
+
+Two separate review agents read everything changed from 1.14.0 to 1.33.0: one push, email, calendar feeds and the join
+form; the other the team, event, venue, fee and member features. Neither found anything critical or high; every
+authorization check traced holds inside the statement that reads or writes, and the push host rule refused every URL
+trick tried. Fixed in the follow-up PR (V44):
+
+- **Coach-message limit (medium).** Deleting an event deleted its log rows and so reset the daily limit; the log now
+  outlives the event (`ON DELETE SET NULL`). Test: `CoachMessageHttpTest`.
+- **Former guardian's ride (medium).** A guardian who drove for their child's team kept the offer, and passengers kept
+  seeing their phone, after the guardianship ended. Offers are now checked at read, booking and change time.
+  Test: `RideHttpTest`.
+- **J+S numbers without trace (medium).** The export was audited against the exporting coach only; it is now audited
+  once per exported member. A team-scoped coach may still add any member to their team (owner decision, 2026-11-26).
+  Test: `EventPresenceHttpTest`.
+- **Push hardening (low).** Resolved addresses must be public; upper-case hosts are refused so the token audience
+  matches the host; push no longer blocks email; failing subscriptions are dropped; broad host suffixes such as
+  `.googleapis.com` are refused at startup; signing out unsubscribes the browser. Tests: `PushConfigTest`, `PushHttpTest`.
+- **Existence answers (low).** Presence, squad and J+S routes answered 404 to team-scoped coaches; now 404 only for
+  club-wide holders. Tests: `EventPresenceHttpTest`, `EventSquadHttpTest`.
+- **Races (low).** Join requests count under a lock on the club row; saving a squad share-locks the assignments; two
+  coaches booking a venue at the same moment get 409 `venue_taken` instead of 503. The last two are not covered by a
+  two-connection test.
+- **Stored text (info).** Push-only recipients get no stored message text, and a sent message keeps only its subject.
+
+Left as they are: the QR bill download has no cross-site check (it is not audited and shows only one's own fee); the
+J+S file includes members archived since the activity (the activity happened; owner question in #12); the member
+export does not yet list presence records and squad call-ups.
 
 ## Second independent security review (2026-11-19, OpenAPI 1.14.1)
 

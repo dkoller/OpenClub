@@ -112,7 +112,9 @@ internal fun Application.installTeamEventHttpRoutes(
                 } catch (_: DateTimeException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 }
-                when (val result = database.onDatabaseThread { db -> db.transactionResult { c -> TeamEvents(DSL.using(c), notifier).create(actor.accountId, team, input, starts) } }) {
+                val created = venueRace { database.onDatabaseThread { db -> db.transactionResult { c -> TeamEvents(DSL.using(c), notifier).create(actor.accountId, team, input, starts) } } }
+                    ?: return@guarded call.refuse(HttpStatusCode.Conflict, "venue_taken")
+                when (val result = created) {
                     is TeamEvents.Created.Done -> call.respondText(buildJsonObject {
                         put("ids", buildJsonArray { result.ids.forEach { add(JsonPrimitive(it.toString())) } })
                     }.toString(), ContentType.Application.Json, HttpStatusCode.Created)
@@ -198,10 +200,10 @@ internal fun Application.installTeamEventHttpRoutes(
                 } catch (_: DateTimeException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 }
-                val (change, clash) = database.onDatabaseThread { db -> db.transactionResult { c ->
+                val (change, clash) = venueRace { database.onDatabaseThread { db -> db.transactionResult { c ->
                     val events = TeamEvents(DSL.using(c), notifier)
                     events.replace(actor.accountId, event, input, cancelled) to events.clash
-                } }
+                } } } ?: return@guarded call.refuse(HttpStatusCode.Conflict, "venue_taken")
                 if (change == TeamEvents.Change.VENUE_TAKEN && clash != null) return@guarded call.venueTaken(clash)
                 call.answer(change)
             }
@@ -538,6 +540,16 @@ private suspend fun ApplicationCall.answer(change: TeamEvents.Change) = when (ch
     TeamEvents.Change.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
     TeamEvents.Change.UNKNOWN_VENUE -> refuse(HttpStatusCode.BadRequest, "invalid")
     TeamEvents.Change.VENUE_TAKEN -> refuse(HttpStatusCode.Conflict, "venue_taken")
+}
+
+/**
+ * Runs [block]; null when the database's double-booking rule refused it (SQLSTATE 23P01). That happens only when two
+ * coaches book the same venue at the same moment, after both passed the clash check (security review 2026-11-26).
+ */
+private suspend fun <T> venueRace(block: suspend () -> T): T? = try {
+    block()
+} catch (error: org.jooq.exception.DataAccessException) {
+    if (error.sqlState() == "23P01") null else throw error
 }
 
 /** 409 `venue_taken` with the event already holding the venue (team, title, start), so the coach can choose. */

@@ -97,15 +97,20 @@ internal class Rides(private val database: DSLContext) {
                           'member', m.id, 'bookedBy', p.booked_by,
                           'name', CASE WHEN ${AgeSql.minor("m")} THEN m.first_name || ' ' || left(m.last_name, 1) || '.'
                                        ELSE m.first_name || ' ' || m.last_name END,
-                          'phone', CASE WHEN ${AgeSql.minor("m")} THEN booker.phone ELSE m.phone END)
+                          'phone', CASE WHEN NOT ${AgeSql.minor("m")} THEN m.phone
+                                        WHEN booker.archived_at IS NULL AND EXISTS (
+                                          SELECT 1 FROM member_guardianships bg
+                                          WHERE bg.guardian_member_id = booker.id AND bg.minor_member_id = m.id)
+                                        THEN booker.phone END)
                         ORDER BY p.booked_at, m.id) FILTER (WHERE m.id IS NOT NULL), '[]'::json)::text AS passengers
                FROM event_rides r
+               JOIN team_events e ON e.id = r.event_id
                JOIN members d ON d.id = r.driver_member_id
                JOIN clubs c ON TRUE
                LEFT JOIN ride_passengers p ON p.ride_id = r.id
                LEFT JOIN members m ON m.id = p.member_id AND m.archived_at IS NULL
                LEFT JOIN members booker ON booker.id = p.booked_by
-               WHERE r.event_id = ?
+               WHERE r.event_id = ? AND $ELIGIBLE_DRIVER
                GROUP BY r.id, d.id
                ORDER BY r.departs_at, r.id""", eventId).map { row ->
             val passengers = Json.parseToJsonElement(row.get("passengers", String::class.java)).jsonArray.map { it.jsonObject }
@@ -161,6 +166,12 @@ internal class Rides(private val database: DSLContext) {
             ?: return@transactionResult missing(db, actor)
         if (row.get("is_driver", Boolean::class.java) != true) return@transactionResult Change.DENIED
         if (row.get("booked", Int::class.java) > input.seats) return@transactionResult Change.CONFLICT
+        // A driver who left the team or is no longer a guardian there may not change the offer any more.
+        val eligible = db.fetchOne(
+            """SELECT 1 FROM event_rides r JOIN team_events e ON e.id = r.event_id
+               JOIN members d ON d.id = r.driver_member_id JOIN clubs c ON TRUE
+               WHERE r.id = ? AND $ELIGIBLE_DRIVER""", rideId) != null
+        if (!eligible) return@transactionResult Change.DENIED
         val changed = db.execute(
             """UPDATE event_rides r SET direction = ?, seats = ?, meeting_point = ?, departs_at = x.departs
                FROM team_events e, (SELECT ?::timestamptz AS departs) x
@@ -195,9 +206,11 @@ internal class Rides(private val database: DSLContext) {
                       EXISTS (SELECT 1 FROM ride_passengers rp WHERE rp.ride_id = r.id AND rp.member_id = p.id) AS booked
                FROM event_rides r
                JOIN team_events e ON e.id = r.event_id
+               JOIN members d ON d.id = r.driver_member_id
+               JOIN clubs c ON TRUE
                JOIN member_team_assignments a ON a.team_id = e.team_id
                JOIN people p ON p.id = a.member_id
-               WHERE p.id = ? AND r.id = ?
+               WHERE p.id = ? AND r.id = ? AND $ELIGIBLE_DRIVER
                -- A concurrent unassign waits for this booking (and its trigger then removes it) or wins first.
                FOR SHARE OF a)"""
 
@@ -246,5 +259,17 @@ internal class Rides(private val database: DSLContext) {
     companion object {
         /** Departure between a day before the event's start and its end. Uses `x.departs`; binds nothing. */
         private const val FITS_EVENT = "x.departs >= e.starts_at - INTERVAL '1 day' AND x.departs <= e.ends_at"
+
+        /**
+         * The driver `d` may still drive for `e.team_id` (security review 2026-11-26): an active adult with a login in
+         * the team, or the current guardian of an active minor in it. An offer whose driver left, was archived or is no
+         * longer a guardian there is hidden and cannot be booked or changed, so nobody keeps seeing their phone.
+         * Needs `clubs c`; binds nothing.
+         */
+        private val ELIGIBLE_DRIVER = """(${ActorSql.activeVerified("d")} AND ${AgeSql.adult("d")} AND (
+            EXISTS (SELECT 1 FROM member_team_assignments da WHERE da.member_id = d.id AND da.team_id = e.team_id)
+            OR EXISTS (SELECT 1 FROM member_guardianships dg JOIN members dm ON dm.id = dg.minor_member_id
+                       JOIN member_team_assignments dma ON dma.member_id = dm.id AND dma.team_id = e.team_id
+                       WHERE dg.guardian_member_id = d.id AND dm.archived_at IS NULL AND ${AgeSql.minor("dm")})))"""
     }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { loadClubAccess, signOut, type ClubAccess } from './auth'
+import { forgetPushOnSignOut } from './push'
 import { readPreferredLanguage, type Language } from './language'
 import { loadAccess, hasAdmin, noAccess, type Access } from './access'
 import { parseRoute, routeHash, tabOf, type Route } from './routes'
@@ -99,6 +100,7 @@ export function App() {
     if (loggingOut || (access?.state !== 'ready' && access?.state !== 'not-member')) return
     setLoggingOut(true)
     setError(false)
+    await forgetPushOnSignOut(access.csrfToken)
     if (await signOut(access.csrfToken)) { setAccess({ state: 'signed-out' }); window.location.hash = '' }
     else setError(true)
     setLoggingOut(false)

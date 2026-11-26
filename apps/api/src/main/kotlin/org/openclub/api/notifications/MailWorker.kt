@@ -1,9 +1,15 @@
 package org.openclub.api.notifications
 
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.openclub.api.database.DatabaseRuntime
@@ -14,20 +20,34 @@ import java.util.UUID
  * Sends the email outbox (OpenAPI 1.19.0, ADR-0008 addendum 23) once a minute: queues due shift reminders, helper calls and answer reminders, sends up
  * to [BATCH] messages and deletes old rows. Rows are locked with `SKIP LOCKED`, so two API instances never send the
  * same message. The address is read when sending; a member who is no longer active and verified, or has no
- * address, gets nothing. A failed message is tried again after 15 and 30 minutes, at most three times. Sent rows
+ * address, gets nothing. A sent message keeps only its subject; its text is cleared. A failed message is tried again after 15 and 30 minutes, at most three times. Sent rows
  * are deleted after 7 days and unsent ones after 2 days. Failures are logged without addresses or content.
  */
 internal object MailWorker {
     const val BATCH = 20
+    const val PARALLEL = 8
+    const val MAX_FAILURES = 10
 
-    suspend fun run(database: DatabaseRuntime, notifier: Notifier, mailer: Mailer?, pusher: PushSender? = null) {
-        while (currentCoroutineContext().isActive) {
+    suspend fun run(database: DatabaseRuntime, notifier: Notifier, mailer: Mailer?, pusher: PushSender? = null) = coroutineScope {
+        // Push runs in its own loop, so slow push services never hold up email (security review 2026-11-26).
+        if (pusher != null) launch {
+            while (isActive) {
+                try {
+                    wakeDevices(database, pusher)
+                } catch (cancel: CancellationException) {
+                    throw cancel
+                } catch (_: Exception) {
+                    System.err.println("Push run failed")
+                }
+                delay(30_000)
+            }
+        }
+        while (isActive) {
             try {
                 database.onDatabaseThread { db -> db.transaction { configuration -> notifier.queueShiftReminders(DSL.using(configuration)) } }
                 database.onDatabaseThread { db -> db.transaction { configuration -> notifier.queueHelperCalls(DSL.using(configuration)) } }
                 database.onDatabaseThread { db -> db.transaction { configuration -> notifier.queueAnswerReminders(DSL.using(configuration)) } }
                 if (mailer != null) database.onDatabaseThread { sendBatch(it, mailer) }
-                if (pusher != null) wakeDevices(database, pusher)
                 database.onDatabaseThread { cleanup(it) }
             } catch (cancel: CancellationException) {
                 throw cancel
@@ -54,7 +74,7 @@ internal object MailWorker {
         for (row in due) {
             val id = row.get("id", UUID::class.java)
             val address = row.get("address", String::class.java)
-            if (address == null) {
+            if (address == null || row.get("body", String::class.java).isEmpty()) {
                 // The member left, lost their sign-in or their address: drop the message.
                 db.execute("UPDATE email_outbox SET attempts = 3 WHERE id = ?", id)
                 skipped++
@@ -62,7 +82,8 @@ internal object MailWorker {
             }
             try {
                 mailer.send(address, row.get("subject", String::class.java), row.get("body", String::class.java))
-                db.execute("UPDATE email_outbox SET sent_at = now() WHERE id = ?", id)
+                // Only the subject stays (for the push inbox) until the row is deleted.
+                db.execute("UPDATE email_outbox SET sent_at = now(), body = '' WHERE id = ?", id)
                 sent++
             } catch (cancel: CancellationException) {
                 throw cancel
@@ -82,25 +103,35 @@ internal object MailWorker {
      * Push (OpenAPI 1.33.0): for messages queued in the last day and not yet pushed, wakes each recipient's devices
      * once with an empty push; the app then fetches the text from this server. Rows are marked first (`SKIP LOCKED`),
      * and the HTTP calls run outside the transaction. A subscription the push service reports gone (404, 410) is
-     * deleted. Failures are counted, never logged with endpoints.
+     * deleted, and so is one that failed 10 times in a row. Failures are counted, never logged with endpoints.
      */
     suspend fun wakeDevices(database: DatabaseRuntime, pusher: PushSender, limit: Int = 200): Int {
         val endpoints = database.onDatabaseThread { db -> dueEndpoints(db, limit) }
-        var failed = 0
-        for (endpoint in endpoints) {
-            val status = pusher.send(endpoint)
-            when {
-                status in 200..299 -> database.onDatabaseThread {
-                    it.execute("UPDATE push_subscriptions SET last_pushed_at = now() WHERE endpoint = ?", endpoint)
-                }
-                status == 404 || status == 410 -> database.onDatabaseThread {
-                    it.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", endpoint)
-                }
-                else -> failed++
-            }
+        // At most PARALLEL calls at a time, each bounded by the sender's own timeouts.
+        val statuses = coroutineScope {
+            val slots = Semaphore(PARALLEL)
+            endpoints.map { endpoint -> async(Dispatchers.IO) { slots.withPermit { endpoint to pusher.send(endpoint) } } }.awaitAll()
         }
+        val failed = statuses.count { (_, status) -> status !in 200..299 && status != 404 && status != 410 }
+        database.onDatabaseThread { db -> statuses.forEach { (endpoint, status) -> record(db, endpoint, status) } }
         if (failed > 0) System.err.println("Push: $failed device(s) could not be woken")
         return endpoints.size
+    }
+
+    /**
+     * Success resets the failure count; 404/410 (gone) deletes the subscription; any other answer, or none, counts a
+     * failure, and the [MAX_FAILURES]th in a row deletes it.
+     */
+    fun record(db: DSLContext, endpoint: String, status: Int) {
+        when {
+            status in 200..299 ->
+                db.execute("UPDATE push_subscriptions SET last_pushed_at = now(), failures = 0 WHERE endpoint = ?", endpoint)
+            status == 404 || status == 410 -> db.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", endpoint)
+            else -> {
+                db.execute("UPDATE push_subscriptions SET failures = failures + 1 WHERE endpoint = ?", endpoint)
+                db.execute("DELETE FROM push_subscriptions WHERE endpoint = ? AND failures >= ?", endpoint, MAX_FAILURES)
+            }
+        }
     }
 
     /** Marks up to [limit] queued messages as pushed and answers the endpoints of their recipients' devices. */
@@ -117,8 +148,15 @@ internal object MailWorker {
             members.map(UUID::toString).toTypedArray()).map { it.get(0, String::class.java) }
     }
 
-    fun cleanup(database: DSLContext): Int = database.execute(
-        """DELETE FROM email_outbox
-           WHERE (sent_at IS NOT NULL AND sent_at < now() - INTERVAL '7 days')
-              OR (sent_at IS NULL AND created_at < now() - INTERVAL '2 days')""")
+    /**
+     * Deletes old outbox rows (answers how many) and the coach-message log rows whose event was deleted, once they no
+     * longer count for the daily limit.
+     */
+    fun cleanup(database: DSLContext): Int {
+        database.execute("DELETE FROM coach_messages WHERE event_id IS NULL AND sent_at < now() - INTERVAL '1 day'")
+        return database.execute(
+            """DELETE FROM email_outbox
+               WHERE (sent_at IS NOT NULL AND sent_at < now() - INTERVAL '7 days')
+                  OR (sent_at IS NULL AND created_at < now() - INTERVAL '2 days')""")
+    }
 }

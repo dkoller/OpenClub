@@ -38,6 +38,7 @@ child. See the [overview](README.md) for finding your way and signing in.
 - **Push notifications** (same page, below the switches): if the club offers them, *Turn on for this device* shows the
   same messages on that phone or computer. On an iPhone add the app to the home screen first. *Turn off for this
   device* stops them. The push itself carries no text; your device fetches it from the club's server.
+  Signing out also turns them off on that device, so on a shared computer the next person gets none of yours.
 - **Calendar subscription** (*Family* → *Calendar subscription*): *Create link* gives a private link for your phone's
   calendar with your and your children's events. Anyone with the link sees your schedule; *Create a new link* or
   *Revoke link* ends the old one.

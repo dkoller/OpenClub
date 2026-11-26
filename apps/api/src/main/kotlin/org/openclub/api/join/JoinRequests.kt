@@ -50,31 +50,30 @@ internal class JoinRequests(private val database: DSLContext) {
             .map { it.get(0, UUID::class.java) to it.get(1, String::class.java) }
     }
 
-    fun submit(application: Application): Submitted {
-        val open = database.fetchOne(
+    fun submit(application: Application): Submitted = database.transactionResult { config ->
+        val db = org.jooq.impl.DSL.using(config)
+        // The club row is locked, so concurrent submissions count one after the other and the cap of MAX_OPEN holds
+        // (security review 2026-11-26).
+        val open = db.fetchOne(
             """SELECT c.join_requests_open, (SELECT count(*) FROM join_requests) AS open_requests,
                       CASE WHEN ?::text = 'SELF' THEN ?::date <= (CURRENT_DATE - make_interval(years => c.adult_age_years))::date
                            ELSE ?::date > (CURRENT_DATE - make_interval(years => c.adult_age_years))::date END AS age_fits,
                       (?::uuid IS NULL OR EXISTS (SELECT 1 FROM teams WHERE id = ?::uuid)) AS team_fits
-               FROM clubs c LIMIT 1""",
+               FROM clubs c LIMIT 1 FOR NO KEY UPDATE OF c""",
             application.kind.name, application.dateOfBirth.toString(), application.dateOfBirth.toString(),
-            application.teamId?.toString(), application.teamId?.toString()) ?: return Submitted.CLOSED
-        if (open.get(0, Boolean::class.java) != true) return Submitted.CLOSED
-        if (open.get(1, Int::class.java) >= MAX_OPEN) return Submitted.FULL
-        if (open.get(2, Boolean::class.java) != true || open.get(3, Boolean::class.java) != true) return Submitted.INVALID
-        try {
-            database.execute(
-                """INSERT INTO join_requests (id, kind, first_name, last_name, date_of_birth, email, phone,
-                       parent_first_name, parent_last_name, team_id, message)
-                   VALUES (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?::uuid, ?)""",
-                UUID.randomUUID(), application.kind.name, application.firstName, application.lastName,
-                application.dateOfBirth.toString(), application.email, application.phone, application.parentFirstName,
-                application.parentLastName, application.teamId?.toString(), application.message)
-        } catch (failure: DataAccessException) {
-            // The same person already has an open request: answer as if accepted, revealing nothing.
-            if (failure.sqlState() != "23505") throw failure
-        }
-        return Submitted.ACCEPTED
+            application.teamId?.toString(), application.teamId?.toString()) ?: return@transactionResult Submitted.CLOSED
+        if (open.get(0, Boolean::class.java) != true) return@transactionResult Submitted.CLOSED
+        if (open.get(1, Int::class.java) >= MAX_OPEN) return@transactionResult Submitted.FULL
+        if (open.get(2, Boolean::class.java) != true || open.get(3, Boolean::class.java) != true) return@transactionResult Submitted.INVALID
+        // The same person already has an open request: answer as if accepted, revealing nothing.
+        db.execute(
+            """INSERT INTO join_requests (id, kind, first_name, last_name, date_of_birth, email, phone,
+                   parent_first_name, parent_last_name, team_id, message)
+               VALUES (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?::uuid, ?) ON CONFLICT DO NOTHING""",
+            UUID.randomUUID(), application.kind.name, application.firstName, application.lastName,
+            application.dateOfBirth.toString(), application.email, application.phone, application.parentFirstName,
+            application.parentLastName, application.teamId?.toString(), application.message)
+        Submitted.ACCEPTED
     }
 
     /** Null without `EDIT_MEMBERS`. */

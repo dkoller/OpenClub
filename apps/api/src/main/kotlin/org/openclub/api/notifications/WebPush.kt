@@ -1,6 +1,8 @@
 package org.openclub.api.notifications
 
 import java.math.BigInteger
+import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -35,10 +37,13 @@ internal data class PushConfig(
 ) {
     override fun toString() = "PushConfig(subject=$subject, hosts=$hosts)"
 
-    /** True for an `https` URL without user info or port other than 443 on an allowed host. */
+    /**
+     * True for an `https` URL without user info or port other than 443 on an allowed host, written in lower case (as
+     * browsers do), so the host checked here, the one called and the token's audience are the same string.
+     */
     fun allows(endpoint: String): Boolean {
         val uri = runCatching { URI(endpoint) }.getOrNull() ?: return false
-        val host = uri.host?.lowercase() ?: return false
+        val host = uri.host?.takeIf { it == it.lowercase() } ?: return false
         if (uri.scheme != "https" || uri.rawUserInfo != null || (uri.port != -1 && uri.port != 443)) return false
         if (endpoint.length > 1000) return false
         return hosts.any { allowed -> if (allowed.startsWith(".")) host.endsWith(allowed) && host.length > allowed.length else host == allowed }
@@ -69,6 +74,10 @@ internal data class PushConfig(
             require(subject.none { it == '"' || it == '\\' || Character.isISOControl(it) }) { "OPENCLUB_PUSH_SUBJECT is invalid" }
             val hosts = env["OPENCLUB_PUSH_HOSTS"].orEmpty().split(',').map { it.trim().lowercase() }.filter(String::isNotEmpty)
             require(hosts.isNotEmpty() && hosts.all(HOST::matches)) { "OPENCLUB_PUSH_HOSTS must list push service host names" }
+            // A suffix must name a push service, not a whole provider or country domain (".googleapis.com", ".co.uk").
+            require(hosts.filter { it.startsWith(".") }.all { it.count { c -> c == '.' } >= 3 }) {
+                "OPENCLUB_PUSH_HOSTS suffixes need at least three labels, for example .push.apple.com"
+            }
             val decoder = Base64.getUrlDecoder()
             val point = runCatching { decoder.decode(public) }.getOrNull()
             val scalar = runCatching { decoder.decode(private) }.getOrNull()
@@ -113,12 +122,25 @@ internal fun interface PushSender {
     fun send(endpoint: String): Int
 }
 
-internal class HttpPushSender(private val config: PushConfig) : PushSender {
+/**
+ * Calls the push service. Besides the host list, every address the host resolves to must be public (security review
+ * 2026-11-26): a name under an allowed suffix that resolves to a private, loopback or link-local address is not called.
+ */
+internal class HttpPushSender(
+    private val config: PushConfig,
+    private val resolve: (String) -> List<InetAddress> = { InetAddress.getAllByName(it).toList() },
+) : PushSender {
     private val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10))
-        .followRedirects(HttpClient.Redirect.NEVER).build()
+        .followRedirects(HttpClient.Redirect.NEVER).proxy(java.net.ProxySelector.of(null)).build()
 
     override fun send(endpoint: String): Int {
         if (!config.allows(endpoint)) return 410
+        val addresses = try {
+            resolve(URI(endpoint).host)
+        } catch (_: java.net.UnknownHostException) {
+            return 0
+        }
+        if (addresses.isEmpty() || !addresses.all(::isPublic)) return 0
         val request = HttpRequest.newBuilder(URI(endpoint)).timeout(Duration.ofSeconds(15))
             .header("Authorization", config.authorization(endpoint))
             .header("TTL", "86400").header("Urgency", "normal")
@@ -131,5 +153,21 @@ internal class HttpPushSender(private val config: PushConfig) : PushSender {
             Thread.currentThread().interrupt()
             0
         }
+    }
+}
+
+/** False for loopback, private, link-local, carrier-grade NAT, unique-local, multicast, reserved and unspecified addresses. */
+internal fun isPublic(address: InetAddress): Boolean {
+    if (address.isAnyLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress || address.isSiteLocalAddress ||
+        address.isMulticastAddress) return false
+    val b = address.address.map { it.toInt() and 0xff }
+    return if (address is Inet4Address) {
+        !(b[0] == 0 || b[0] == 10 || b[0] == 127 || b[0] >= 224 ||
+            (b[0] == 100 && b[1] in 64..127) || (b[0] == 169 && b[1] == 254) || (b[0] == 172 && b[1] in 16..31) ||
+            (b[0] == 192 && b[1] == 168) || (b[0] == 192 && b[1] == 0 && b[2] == 0) || (b[0] == 198 && b[1] in 18..19))
+    } else {
+        // fc00::/7 unique local, fec0::/10 site local, and IPv4-compatible/mapped or NAT64 forms are refused.
+        !((b[0] and 0xfe) == 0xfc || (b[0] == 0xfe && (b[1] and 0xc0) == 0xc0) || b.take(10).all { it == 0 } ||
+            (b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b) || (b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x0d && b[3] == 0xb8))
     }
 }

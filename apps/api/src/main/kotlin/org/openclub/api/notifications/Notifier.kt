@@ -341,8 +341,10 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
         }
         db.execute(
             """INSERT INTO email_outbox (id, member_id, kind, subject, body)
-               SELECT gen_random_uuid(), u.member_id::uuid, ?, u.subject, u.body
-               FROM unnest(?::text[], ?::text[], ?::text[]) AS u(member_id, subject, body)""",
+               SELECT gen_random_uuid(), u.member_id::uuid, ?, u.subject, CASE WHEN m.email IS NULL THEN '' ELSE u.body END
+               FROM unnest(?::text[], ?::text[], ?::text[]) AS u(member_id, subject, body)
+               -- Push-only recipients get no stored text: their devices show the subject only.
+               JOIN members m ON m.id = u.member_id::uuid""",
             kind.name, rows.map { it.first.toString() }.toTypedArray(), rows.map { it.second }.toTypedArray(),
             rows.map { it.third }.toTypedArray())
     }

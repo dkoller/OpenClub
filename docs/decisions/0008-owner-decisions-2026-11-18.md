@@ -379,3 +379,9 @@ Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
 | --- | --- | --- |
 | 69 | Push notifications | Approved as OpenAPI **1.33.0** (V43), Web Push with VAPID and **no payload**: the server sends an empty push to the member's registered browsers for every queued message, and the service worker reads the subjects from `GET /v1/me/push-inbox` with the member's own session, so no personal data passes through the vendors' push services. Implemented with the JDK only (ES256 signing, `java.net.http`), no new dependency. Operator settings from the environment that the deployment YAML writes: key pair, a `mailto:` contact and the **allowed push hosts** (`push.hosts` in the demo YAML), outside of which no endpoint is accepted or called. Members keep at most 5 devices; an endpoint moves to whoever registered it last; endpoints the service reports gone (404/410) are deleted. The same per-kind switches as for email apply; messages are now queued for members with an email address **or** a device, so push works without SMTP. Not audited. |
 
+
+## Addendum 38 — third security review (2026-11-26)
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 70 | Fixes of the third security review | The owner asked to fix the review's findings (OpenAPI **1.33.1**, V44; details in `docs/security/club-membership-access.md`). On the one question raised, the owner decided that a team-scoped `MANAGE_TEAMS` holder may keep adding any active member to their team; the J+S export is instead audited once per exported member, so such a use stays traceable. Accepted without change: event-change emails, including notes, have no daily limit. |
