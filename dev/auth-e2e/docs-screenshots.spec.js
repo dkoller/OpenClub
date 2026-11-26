@@ -51,7 +51,9 @@ async function open(page, hash) {
 
 async function shoot(page, hash, name) {
   await open(page, hash);
-  await expect(page).toHaveScreenshot(name + '.png', { fullPage: true });
+  // A phone picture shows one screen, as on the phone (the fixed tab bar would otherwise land mid-page);
+  // a laptop picture shows the whole page.
+  await expect(page).toHaveScreenshot(name + '.png', { fullPage: page.viewportSize().width > 600 });
 }
 
 test('screenshots of the pages the guides describe', async ({ browser }) => {

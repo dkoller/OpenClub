@@ -180,7 +180,8 @@ jobs:
           git commit -q -m "Update documentation screenshots" -m "Taken from $SHA after the Keycloak browser journey passed."
           git push -f origin "$branch"
           open="$(gh api "repos/$GITHUB_REPOSITORY/pulls?head=${GITHUB_REPOSITORY_OWNER}:$branch&state=open" --jq 'length')"
-          if [[ "$open" == 0 ]]; then
-            gh api "repos/$GITHUB_REPOSITORY/pulls" -f title='Update documentation screenshots' -f head="$branch" -f base=main \
-              -f body="The pictures in docs/guides/images, taken again from $SHA after the Keycloak browser journey passed on main. Only PNG files change; review them on the Files tab. Documentation: pictures only." >/dev/null
+          if [[ "$open" == 0 ]] && ! gh api "repos/$GITHUB_REPOSITORY/pulls" -f title='Update documentation screenshots' -f head="$branch" -f base=main \
+              -f body="The pictures in docs/guides/images, taken again from $SHA after the Keycloak browser journey passed on main. Only PNG files change; review them on the Files tab. Documentation: pictures only." >/dev/null; then
+            # The repository does not let workflows open pull requests: the branch is pushed, a person opens the PR.
+            echo "::warning::Screenshots changed; branch $branch is pushed. Open a pull request from it, or allow GitHub Actions to create pull requests."
           fi
