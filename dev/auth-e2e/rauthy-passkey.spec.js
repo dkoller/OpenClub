@@ -70,6 +70,8 @@ test('Rauthy account can enroll a passkey and use it for OpenClub sign-in', asyn
       .toBeGreaterThan(signatureBeforePassword);
     expect((await context.request.get('/api/v1/auth/me')).status()).toBe(200);
     await page.getByRole('button', { name: 'Sign out' }).click();
+    // Let the sign-out navigation finish; a goto during it was aborted (net::ERR_ABORTED).
+    await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
     await context.clearCookies();
     await page.goto('https://localhost:5443/');
     await page.getByRole('link', { name: 'Sign in' }).click();
