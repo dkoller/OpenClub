@@ -38,7 +38,8 @@ async function open(page, hash) {
   page.on('requestfailed', ended);
   await page.evaluate(target => { window.location.hash = target; }, hash);
   await page.waitForTimeout(300);
-  for (let quiet = 0; quiet < 4;) {
+  // Quiet for 600 ms, or give up waiting after 8 s (a long-lived request must not hold the run).
+  for (let quiet = 0, rounds = 0; quiet < 4 && rounds < 53; rounds += 1) {
     await page.waitForTimeout(150);
     quiet = pending <= 0 ? quiet + 1 : 0;
   }
@@ -108,6 +109,7 @@ test('screenshots of the pages the guides describe', async ({ browser }) => {
   const coach = await browser.newContext({ viewport: phone, hasTouch: true, isMobile: true, storageState: await admin.storageState() });
   const coachPage = await coach.newPage();
   await coachPage.goto('/');
+  await expect(coachPage.getByText('Signed in and authorized for this club.', { exact: true })).toBeVisible();
   await shoot(coachPage, `#/team/${u12}`, 'coach-team');
   await shoot(coachPage, `#/team/${u12}/event/${match}`, 'coach-event');
 
