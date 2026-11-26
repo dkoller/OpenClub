@@ -18,6 +18,8 @@
 | Endpoints, request/response DTOs or authorization | `docs/contracts/`, relevant ADRs, API examples, developer docs |
 | PostgreSQL, Flyway, jOOQ or backend test infrastructure | API `AGENTS.md`, ADR implementation notes, database/run commands and CI docs |
 | Frontend navigation, user-facing behavior or tooling | Web `AGENTS.md`, UI docs, setup/test commands, contract usage |
+| A feature a club member uses | The role guide(s) in [`docs/guides/`](../guides/README.md) for everyone who uses it (members and parents, coaches, treasurer, administrators) |
+| Configuration, environment variables, operator commands, retention or deployment | The [operator guide](../operations/operator-guide.md) and the detailed runbook it links to |
 | Package or tool versions (including Dependabot PRs) | Version-specific instructions, lockfile, CI/Docker compatibility and relevant docs **if affected** |
 | Docker, secrets, environment variables or CI workflow | `docs/concepts/ai/one-command-run.md`, `scaffold.md`, `ci-optimization.md`, README |
 | Accepted architecture or product scope | ADR (or explicit follow-up ADR), `docs/roadmap.md`, README and affected design docs |
