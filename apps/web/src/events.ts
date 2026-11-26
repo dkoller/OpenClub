@@ -1,3 +1,5 @@
+import { formatRange } from './dates'
+import type { Language } from './language'
 /** Trainings and events (OpenAPI 1.10.0). */
 export type EventKind = 'TRAINING' | 'MATCH' | 'OTHER'
 
@@ -146,19 +148,9 @@ export function localParts(event: Pick<TeamEvent, 'startsAt' | 'endsAt'>) {
   }
 }
 
-const locales = { de: 'de-CH', en: 'en-GB', fr: 'fr-CH', it: 'it-CH' } as const
-
-/** "Thu 26 Nov, 18:00–19:30" in the chosen language and the browser's time zone. */
-export function formatWhen(event: Pick<TeamEvent, 'startsAt' | 'endsAt'>, language: keyof typeof locales): string {
-  const locale = locales[language]
-  const from = new Date(event.startsAt)
-  const to = new Date(event.endsAt)
-  const day = new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short' }).format(from)
-  const time = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' })
-  const sameDay = from.toDateString() === to.toDateString()
-  const end = sameDay ? time.format(to) : new Intl.DateTimeFormat(locale,
-    { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(to)
-  return `${day}, ${time.format(from)}–${end}`
+/** "Sa 28.11.2026, 18:00–19:30" (Swiss style, browser time zone); `withDate: false` next to a date block. */
+export function formatWhen(event: Pick<TeamEvent, 'startsAt' | 'endsAt'>, language: Language, withDate = true): string {
+  return formatRange(event.startsAt, event.endsAt, language, withDate)
 }
 
 /** The caller may answer until the event starts, and not for a cancelled event (the server decides; 409 otherwise). */

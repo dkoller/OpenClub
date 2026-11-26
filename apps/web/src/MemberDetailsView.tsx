@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatDate, formatDayTime } from './dates'
 import type { Language } from './language'
 import { fetchMemberDetails, memberExportPath, type MemberDetails } from './memberDetails'
 
@@ -32,7 +33,7 @@ export function MemberDetailsView({ memberId, language, onClose }: {
 
   const text = (value: string | null | undefined) => value ?? t.notSet
   const flag = (value: boolean) => value ? t.yes : t.no
-  const date = (value: string | null | undefined) => value ? new Date(value).toLocaleDateString(language) : t.notSet
+  const date = (value: string | null | undefined) => value ? formatDate(value) : t.notSet
 
   let body
   if (state === 'loading') body = <p role="status">{t.loading}</p>
@@ -41,7 +42,7 @@ export function MemberDetailsView({ memberId, language, onClose }: {
   else if (state === 'error') body = <p role="alert">{t.error}</p>
   else {
     const rows: [string, string][] = []
-    if ('dateOfBirth' in state) rows.push([t.dateOfBirth, text(state.dateOfBirth)])
+    if ('dateOfBirth' in state) rows.push([t.dateOfBirth, state.dateOfBirth ? formatDate(state.dateOfBirth) : text(state.dateOfBirth)])
     if ('email' in state) rows.push([t.email, text(state.email)])
     if ('phone' in state) rows.push([t.phone, text(state.phone)])
     if ('gender' in state) rows.push([t.gender, text(state.gender)])
@@ -50,7 +51,7 @@ export function MemberDetailsView({ memberId, language, onClose }: {
     if (state.listedPublicly !== undefined) rows.push([t.listedPublicly, flag(state.listedPublicly)])
     if (state.jsPersonNumber !== undefined) rows.push([t.jsPersonNumber, state.jsPersonNumber ?? t.notSet])
     if (state.invitation) rows.push([t.invitation, state.invitation.status === 'OPEN'
-      ? `${t.open} ${state.invitation.expiresAt ? new Date(state.invitation.expiresAt).toLocaleString(language) : ''}`.trim()
+      ? `${t.open} ${state.invitation.expiresAt ? formatDayTime(state.invitation.expiresAt, language) : ''}`.trim()
       : t.none])
     if ('archivedAt' in state && state.archivedAt) rows.push([t.archivedAt, date(state.archivedAt)])
     body = <>

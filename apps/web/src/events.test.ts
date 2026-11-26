@@ -63,7 +63,8 @@ describe('events client', () => {
     expect(instants('2026-11-26', '18:00', '18:00')).toBeNull()
     expect(instants('', '18:00', '19:00')).toBeNull()
     expect(localParts(times)).toEqual({ date: '2026-11-26', start: '18:00', end: '19:30' })
-    expect(formatWhen(times, 'en')).toMatch(/26 Nov, 18:00–19:30$/)
+    expect(formatWhen(times, 'en')).toBe('Thu 26.11.2026, 18:00–19:30')
+    expect(formatWhen(times, 'en', false)).toBe('18:00–19:30')
   })
 
   it('answers, clears and lists attendance', async () => {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatDayTime } from './dates'
 import type { Language } from './language'
 import type { MyEvent, TeamEvent } from './events'
 import { readSquad, saveSquad, type Squad } from './squads'
@@ -90,7 +91,7 @@ export function OwnSquadStatus({ event, self, language }: { event: MyEvent; self
     <h2>{t.title}</h2>
     {people.map(person => {
       const squad = person.squad!
-      const when = squad.meetAt ? new Date(squad.meetAt).toLocaleString(language + '-CH', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : null
+      const when = squad.meetAt ? formatDayTime(squad.meetAt, language) : null
       return <p key={person.id} className={squad.called ? 'attention-ok' : 'muted'}>
         {person.id !== self && fill(t.forName, { name: person.firstName })}<b>{squad.called ? t.called : t.notCalled}</b>
         {squad.called && when && <> · {fill(t.meet, { when })}</>}

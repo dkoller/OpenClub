@@ -1,13 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Reveal } from './Reveal'
 import type { Language } from './language'
 import { routeHash } from './routes'
 import { createTeam as requestCreateTeam, readTeams, type Team } from './teams'
 
 const words = {
-  de: { title: 'Teams', loading: 'Teams werden geladen…', error: 'Teams nicht verfügbar.', retry: 'Erneut versuchen', empty: 'Keine Teams vorhanden.', one: '1 Mitglied', many: '{n} Mitglieder', name: 'Teamname', create: 'Team hinzufügen', createError: 'Team konnte nicht erstellt werden.' },
-  en: { title: 'Teams', loading: 'Loading teams…', error: 'Teams unavailable.', retry: 'Try again', empty: 'No teams yet.', one: '1 member', many: '{n} members', name: 'Team name', create: 'Add team', createError: 'Could not create team.' },
-  fr: { title: 'Équipes', loading: 'Chargement des équipes…', error: 'Équipes indisponibles.', retry: 'Réessayer', empty: 'Aucune équipe.', one: '1 membre', many: '{n} membres', name: 'Nom de l’équipe', create: 'Ajouter une équipe', createError: 'Impossible de créer l’équipe.' },
-  it: { title: 'Squadre', loading: 'Caricamento squadre…', error: 'Squadre non disponibili.', retry: 'Riprova', empty: 'Nessuna squadra.', one: '1 membro', many: '{n} membri', name: 'Nome squadra', create: 'Aggiungi squadra', createError: 'Impossibile creare la squadra.' },
+  de: { newTeam: 'Neues Team', title: 'Teams', loading: 'Teams werden geladen…', error: 'Teams nicht verfügbar.', retry: 'Erneut versuchen', empty: 'Keine Teams vorhanden.', one: '1 Mitglied', many: '{n} Mitglieder', name: 'Teamname', create: 'Team hinzufügen', createError: 'Team konnte nicht erstellt werden.' },
+  en: { newTeam: 'New team', title: 'Teams', loading: 'Loading teams…', error: 'Teams unavailable.', retry: 'Try again', empty: 'No teams yet.', one: '1 member', many: '{n} members', name: 'Team name', create: 'Add team', createError: 'Could not create team.' },
+  fr: { newTeam: 'Nouvelle équipe', title: 'Équipes', loading: 'Chargement des équipes…', error: 'Équipes indisponibles.', retry: 'Réessayer', empty: 'Aucune équipe.', one: '1 membre', many: '{n} membres', name: 'Nom de l’équipe', create: 'Ajouter une équipe', createError: 'Impossible de créer l’équipe.' },
+  it: { newTeam: 'Nuova squadra', title: 'Squadre', loading: 'Caricamento squadre…', error: 'Squadre non disponibili.', retry: 'Riprova', empty: 'Nessuna squadra.', one: '1 membro', many: '{n} membri', name: 'Nome squadra', create: 'Aggiungi squadra', createError: 'Impossibile creare la squadra.' },
 } satisfies Record<Language, Record<string, string>>
 
 /** "1 member", "12 members" in the given language. */
@@ -81,10 +82,10 @@ export function TeamDirectory({ language, csrfToken }: { language: Language; csr
               <span className="chevron" aria-hidden="true">›</span>
             </a>
           </li>)}</ul></div>}
-      {!createDenied && <form className="team-create" onSubmit={event => { void createTeam(event) }}>
+      {!createDenied && <Reveal label={t.newTeam}><form className="team-create" onSubmit={event => { void createTeam(event) }}>
         <label>{t.name}<input value={name} maxLength={200} required onChange={event => setName(event.target.value)} /></label>
         <button type="submit" disabled={creating}>{t.create}</button>
-      </form>}
+      </form></Reveal>}
       {createError && <p role="alert">{t.createError}</p>}
     </section>
   )

@@ -1,4 +1,5 @@
 import { BulkEventsPanel } from './BulkEventsPanel'
+import { formatDayTime } from './dates'
 import { fill } from './EventBits'
 import { readVenues, type Venue } from './venues'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -86,7 +87,7 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
       const outcome = await action()
       if (outcome === 'ok') { setNotice(success ?? null); setRevision(value => value + 1); return true }
       if (typeof outcome === 'object') {
-        const when = new Date(outcome.taken.startsAt).toLocaleString(language + '-CH', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+        const when = formatDayTime(outcome.taken.startsAt, language)
         setTaken(fill(t.taken, { venue: t.venue, team: outcome.taken.teamName, title: outcome.taken.title, when })); setNotice('taken'); return false
       }
       setNotice(outcome === 'invalid' ? 'invalid' : outcome === 'denied' ? 'denied' : 'gone')
@@ -134,7 +135,7 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
           <a className="row" href={routeHash({ page: 'team-event', teamId, eventId: item.id })}>
             <DateBlock instant={item.startsAt} language={language} />
             <span className="event-text"><b>{item.title}</b>
-              <span className="muted">{t[item.kind]} · {formatWhen(item, language)}{item.location && <> · {item.location}</>}{item.venueName && <> · {item.venueName}</>}</span>
+              <span className="muted">{t[item.kind]} · {formatWhen(item, language, false)}{item.location && <> · {item.location}</>}{item.venueName && <> · {item.venueName}</>}</span>
               {item.cancelled ? <span><span className="open">{t.cancelled}</span></span>
                 : <span>{t.answers}: {item.counts.yes} {t.YES}, {item.counts.no} {t.NO}, {item.counts.maybe} {t.MAYBE}</span>}
             </span>

@@ -1,13 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Reveal } from './Reveal'
 import type { Language } from './language'
 import { formatWhen, instants, localParts } from './events'
 import { createShift, deleteShift, readShifts, replaceShift, volunteer, type Shift, type ShiftList, type ShiftOutcome } from './shifts'
 
 const words = {
-  de: { shifts: 'Helfereinsätze', none: 'Keine Helfereinsätze.', loading: 'Wird geladen…', error: 'Helfereinsätze nicht verfügbar.', filled: 'besetzt', of: 'von', nobody: 'noch niemand', signUp: 'Eintragen', withdraw: 'Austragen', you: 'Ich', title: 'Aufgabe', date: 'Datum', start: 'Beginn', end: 'Ende', needed: 'Anzahl Personen', add: 'Einsatz hinzufügen', save: 'Speichern', cancel: 'Abbrechen', edit: 'Bearbeiten', remove: 'Löschen', confirmRemove: 'Wirklich löschen (mit allen Eintragungen)', invalid: 'Bitte Angaben prüfen: höchstens 24 Stunden und nahe beim Anlass.', denied: 'Keine Berechtigung.', closed: 'Der Einsatz hat begonnen oder der Anlass ist abgesagt.', full: 'Der Einsatz ist bereits voll.', conflict: 'Es sind mehr Personen eingetragen als Plätze.', failed: 'Nicht gespeichert. Bitte erneut versuchen.' },
-  en: { shifts: 'Volunteer shifts', none: 'No volunteer shifts.', loading: 'Loading…', error: 'Shifts unavailable.', filled: 'filled', of: 'of', nobody: 'nobody yet', signUp: 'Sign up', withdraw: 'Withdraw', you: 'Me', title: 'Task', date: 'Date', start: 'Start', end: 'End', needed: 'People needed', add: 'Add shift', save: 'Save', cancel: 'Cancel', edit: 'Edit', remove: 'Delete', confirmRemove: 'Really delete (with all sign-ups)', invalid: 'Please check the fields: at most 24 hours and close to the event.', denied: 'No permission.', closed: 'The shift has started or the event is cancelled.', full: 'The shift is already full.', conflict: 'More people are signed up than there are places.', failed: 'Not saved. Please try again.' },
-  fr: { shifts: 'Bénévolat', none: 'Aucun créneau de bénévolat.', loading: 'Chargement…', error: 'Créneaux indisponibles.', filled: 'occupé(s)', of: 'sur', nobody: 'personne pour l’instant', signUp: 'S’inscrire', withdraw: 'Se désinscrire', you: 'Moi', title: 'Tâche', date: 'Date', start: 'Début', end: 'Fin', needed: 'Personnes nécessaires', add: 'Ajouter un créneau', save: 'Enregistrer', cancel: 'Annuler', edit: 'Modifier', remove: 'Supprimer', confirmRemove: 'Vraiment supprimer (avec toutes les inscriptions)', invalid: 'Vérifiez les champs : 24 heures au plus et proche de l’événement.', denied: 'Pas d’autorisation.', closed: 'Le créneau a commencé ou l’événement est annulé.', full: 'Le créneau est déjà complet.', conflict: 'Plus de personnes sont inscrites qu’il n’y a de places.', failed: 'Non enregistré. Veuillez réessayer.' },
-  it: { shifts: 'Turni di volontariato', none: 'Nessun turno di volontariato.', loading: 'Caricamento…', error: 'Turni non disponibili.', filled: 'occupati', of: 'su', nobody: 'ancora nessuno', signUp: 'Iscriviti', withdraw: 'Ritirati', you: 'Io', title: 'Compito', date: 'Data', start: 'Inizio', end: 'Fine', needed: 'Persone necessarie', add: 'Aggiungi turno', save: 'Salva', cancel: 'Annulla', edit: 'Modifica', remove: 'Elimina', confirmRemove: 'Eliminare davvero (con tutte le iscrizioni)', invalid: 'Controlla i campi: al massimo 24 ore e vicino all’evento.', denied: 'Nessun permesso.', closed: 'Il turno è iniziato o l’evento è annullato.', full: 'Il turno è già al completo.', conflict: 'Ci sono più persone iscritte che posti.', failed: 'Non salvato. Riprova.' },
+  de: { newShift: 'Neuer Helfereinsatz', shifts: 'Helfereinsätze', none: 'Keine Helfereinsätze.', loading: 'Wird geladen…', error: 'Helfereinsätze nicht verfügbar.', filled: 'besetzt', of: 'von', nobody: 'noch niemand', signUp: 'Eintragen', withdraw: 'Austragen', you: 'Ich', title: 'Aufgabe', date: 'Datum', start: 'Beginn', end: 'Ende', needed: 'Anzahl Personen', add: 'Einsatz hinzufügen', save: 'Speichern', cancel: 'Abbrechen', edit: 'Bearbeiten', remove: 'Löschen', confirmRemove: 'Wirklich löschen (mit allen Eintragungen)', invalid: 'Bitte Angaben prüfen: höchstens 24 Stunden und nahe beim Anlass.', denied: 'Keine Berechtigung.', closed: 'Der Einsatz hat begonnen oder der Anlass ist abgesagt.', full: 'Der Einsatz ist bereits voll.', conflict: 'Es sind mehr Personen eingetragen als Plätze.', failed: 'Nicht gespeichert. Bitte erneut versuchen.' },
+  en: { newShift: 'New shift', shifts: 'Volunteer shifts', none: 'No volunteer shifts.', loading: 'Loading…', error: 'Shifts unavailable.', filled: 'filled', of: 'of', nobody: 'nobody yet', signUp: 'Sign up', withdraw: 'Withdraw', you: 'Me', title: 'Task', date: 'Date', start: 'Start', end: 'End', needed: 'People needed', add: 'Add shift', save: 'Save', cancel: 'Cancel', edit: 'Edit', remove: 'Delete', confirmRemove: 'Really delete (with all sign-ups)', invalid: 'Please check the fields: at most 24 hours and close to the event.', denied: 'No permission.', closed: 'The shift has started or the event is cancelled.', full: 'The shift is already full.', conflict: 'More people are signed up than there are places.', failed: 'Not saved. Please try again.' },
+  fr: { newShift: 'Nouvelle intervention', shifts: 'Bénévolat', none: 'Aucun créneau de bénévolat.', loading: 'Chargement…', error: 'Créneaux indisponibles.', filled: 'occupé(s)', of: 'sur', nobody: 'personne pour l’instant', signUp: 'S’inscrire', withdraw: 'Se désinscrire', you: 'Moi', title: 'Tâche', date: 'Date', start: 'Début', end: 'Fin', needed: 'Personnes nécessaires', add: 'Ajouter un créneau', save: 'Enregistrer', cancel: 'Annuler', edit: 'Modifier', remove: 'Supprimer', confirmRemove: 'Vraiment supprimer (avec toutes les inscriptions)', invalid: 'Vérifiez les champs : 24 heures au plus et proche de l’événement.', denied: 'Pas d’autorisation.', closed: 'Le créneau a commencé ou l’événement est annulé.', full: 'Le créneau est déjà complet.', conflict: 'Plus de personnes sont inscrites qu’il n’y a de places.', failed: 'Non enregistré. Veuillez réessayer.' },
+  it: { newShift: 'Nuovo turno', shifts: 'Turni di volontariato', none: 'Nessun turno di volontariato.', loading: 'Caricamento…', error: 'Turni non disponibili.', filled: 'occupati', of: 'su', nobody: 'ancora nessuno', signUp: 'Iscriviti', withdraw: 'Ritirati', you: 'Io', title: 'Compito', date: 'Data', start: 'Inizio', end: 'Fine', needed: 'Persone necessarie', add: 'Aggiungi turno', save: 'Salva', cancel: 'Annulla', edit: 'Modifica', remove: 'Elimina', confirmRemove: 'Eliminare davvero (con tutte le iscrizioni)', invalid: 'Controlla i campi: al massimo 24 ore e vicino all’evento.', denied: 'Nessun permesso.', closed: 'Il turno è iniziato o l’evento è annullato.', full: 'Il turno è già al completo.', conflict: 'Ci sono più persone iscritte che posti.', failed: 'Non salvato. Riprova.' },
 } satisfies Record<Language, Record<string, string>>
 
 type Draft = { title: string; date: string; start: string; end: string; needed: string }
@@ -84,22 +85,27 @@ export function ShiftsPanel({ event, language, csrfToken, self }: {
       {list === 'error' && <p role="alert">{t.error}</p>}
       {typeof list === 'object' && list !== null && <>
         {list.items.length === 0 && <p>{t.none}</p>}
-        {list.items.length > 0 && <ul>{list.items.map(shift => <li key={shift.id}>
+        {list.items.length > 0 && <ul className="rows card shift-rows">{list.items.map(shift => <li key={shift.id} className="pad">
           {editing?.id === shift.id ? <form onSubmit={form => { void save(form) }}>
             {fields(editing.draft, next => setEditing({ id: shift.id, draft: next }))}
             <button type="submit" disabled={busy}>{t.save}</button>
             <button type="button" disabled={busy} onClick={() => setEditing(null)}>{t.cancel}</button>
           </form> : <>
-            <strong>{shift.title}</strong> · {formatWhen(shift, language)} · {shift.volunteers.length} {t.of} {shift.needed} {t.filled}
-            {' '}({shift.volunteers.length ? shift.volunteers.join(', ') : t.nobody})
+            <p><strong>{shift.title}</strong> · {formatWhen(shift, language, false)} · {shift.volunteers.length} {t.of} {shift.needed} {t.filled}
+            {' '}({shift.volunteers.length ? shift.volunteers.join(', ') : t.nobody})</p>
+            <div className="actions">
             {list.people.map(person => {
               const signed = shift.signedUp.includes(person.id)
               const who = person.id === self ? t.you : person.firstName
+              // A full shift says so instead of offering a button that does nothing.
+              if (!signed && shift.volunteers.length >= shift.needed) return null
               return <button key={person.id} type="button" aria-pressed={signed}
-                disabled={busy || !open(shift) || (!signed && shift.volunteers.length >= shift.needed)}
+                disabled={busy || !open(shift)}
                 onClick={() => { void run(() => volunteer(shift.id, person.id, signed, csrfToken)) }}>
                 {signed ? t.withdraw : t.signUp}: {who}</button>
             })}
+            {shift.volunteers.length >= shift.needed && !list.people.some(person => shift.signedUp.includes(person.id)) &&
+              <span className="muted">{t.full}</span>}
             {list.canManage && <>
               <button type="button" disabled={busy} onClick={() => {
                 const parts = localParts(shift)
@@ -109,12 +115,13 @@ export function ShiftsPanel({ event, language, csrfToken, self }: {
                 ? <button type="button" disabled={busy} onClick={() => { setDeleting(null); void run(() => deleteShift(shift.id, csrfToken)) }}>{t.confirmRemove}</button>
                 : <button type="button" disabled={busy} onClick={() => setDeleting(shift.id)}>{t.remove}</button>}
             </>}
+            </div>
           </>}
         </li>)}</ul>}
-        {list.canManage && <form aria-label={t.add} onSubmit={form => { void add(form) }}>
+        {list.canManage && <Reveal label={t.newShift}><form aria-label={t.add} onSubmit={form => { void add(form) }}>
           {fields(draft, setDraft)}
           <button type="submit" disabled={busy}>{t.add}</button>
-        </form>}
+        </form></Reveal>}
       </>}
       {notice && <p role="alert">{t[notice]}</p>}
     </section>

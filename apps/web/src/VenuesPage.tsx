@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { formatRange } from './dates'
 import type { Language } from './language'
 import { routeHash } from './routes'
 import { changeVenue, readBookings, readVenues, type Booking, type Venue } from './venues'
@@ -38,12 +39,7 @@ export function VenuesPage({ language }: { language: Language }) {
       .catch(() => { if (active) setBookings('error') })
     return () => { active = false }
   }, [chosen])
-  const when = (booking: Booking) => {
-    const start = new Date(booking.startsAt)
-    const end = new Date(booking.endsAt)
-    return start.toLocaleString(locale[language], { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) +
-      '–' + end.toLocaleTimeString(locale[language], { hour: '2-digit', minute: '2-digit' })
-  }
+  const when = (booking: Booking) => formatRange(booking.startsAt, booking.endsAt, language)
   return <section aria-labelledby="venues-title" className="stack">
     <p><a href={routeHash({ page: 'schedule' })}>← {t.back}</a></p>
     <h1 id="venues-title">{t.title}</h1>

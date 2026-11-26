@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { formatDate } from './dates'
 import type { Language } from './language'
 import type { Member } from './members'
 import { listDependents, readDependent, replaceDependentContacts, type Dependent } from './guardians'
@@ -68,7 +69,7 @@ export function MyDependents({ language, csrfToken }: { language: Language; csrf
         </button>
         {open?.id === child.id && <div>
           <dl>
-            <div><dt>{t.dob}</dt><dd>{open.dateOfBirth}</dd></div>
+            <div><dt>{t.dob}</dt><dd>{formatDate(open.dateOfBirth)}</dd></div>
             <div><dt>{t.player}</dt><dd>{open.isPlayer ? t.yes : t.no}</dd></div>
             <div><dt>{t.teams}</dt><dd>{open.teams.length ? open.teams.join(', ') : t.noTeams}</dd></div>
           </dl>

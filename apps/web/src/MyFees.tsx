@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatDate } from './dates'
 import type { Language } from './language'
 import { formatFrancs, qrBillPath, readMyFees, type MyFee } from './fees'
 import { fetchMyProfile } from './myProfile'
@@ -37,8 +38,8 @@ export function MyFees({ language }: { language: Language }) {
     <section aria-label={t.title}>
       <h1>{t.title}</h1>
       <ul>{fees.map(fee => <li key={fee.periodId + fee.for.id}>
-        <strong>{fee.periodName}</strong> · {formatFrancs(fee.amountCents, language)} · {t.due} {fee.dueDate} ·{' '}
-        {fee.paidOn ? `${t.paid} ${fee.paidOn}` : <em>{t.open}</em>}
+        <strong>{fee.periodName}</strong> · {formatFrancs(fee.amountCents, language)} · {t.due} {formatDate(fee.dueDate)} ·{' '}
+        {fee.paidOn ? `${t.paid} ${formatDate(fee.paidOn)}` : <em>{t.open}</em>}
         {fee.for.id !== self && <> · {t.for} {fee.for.firstName}</>}
         {fee.qrBill && <> · <a href={qrBillPath(fee.periodId, fee.for.id, language)} download
           aria-label={`${t.qrBill}: ${fee.periodName}${fee.for.id !== self ? `, ${fee.for.firstName}` : ''}`}>{t.qrBill}</a></>}

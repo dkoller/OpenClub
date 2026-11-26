@@ -69,7 +69,7 @@ member (and puts them in the wished team); *Decline* deletes the application. Un
 
 ## Teams (`MANAGE_TEAMS` club-wide)
 
-On the *Team* page, *Add team* creates a team; each team's page has *Manage team* (*Rename*, *Delete team*) and
+On the *Team* page, *New team*, a name and *Add team* create a team; each team's page has *Manage team* (*Rename*, *Delete team*) and
 *Members* (*Assign*, *Remove*). Deleting a team deletes its schedule.
 
 ## Fields and halls (`MANAGE_VENUES`)

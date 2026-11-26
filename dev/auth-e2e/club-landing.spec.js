@@ -3,6 +3,12 @@ import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+/** Occasional forms sit behind a button (Reveal); opens one if it is still closed. */
+async function openForm(scope, name) {
+  const button = scope.getByRole('button', { name, exact: true });
+  if (await button.count() > 0) await button.first().click();
+}
+
 /**
  * Signed in, the language is chosen under Family → My profile (not in the header). Opens it, chooses, and returns to
  * the page the test was on.
@@ -404,7 +410,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   expect((await detailsResponse).headers()['cache-control']).toBe('no-store');
   const maraDetails = maraRow.getByRole('region', { name: 'Details: Mara Demo' });
   await expect(maraDetails.getByText('Synthetic test value')).toBeVisible();
-  await expect(maraDetails.getByText('2015-01-01')).toBeVisible();
+  await expect(maraDetails.getByText('01.01.2015')).toBeVisible();
   await expect(maraDetails.getByText('not set').first()).toBeVisible();
   await expect(maraRow.getByRole('button', { name: 'Details', exact: true })).toHaveAttribute('aria-expanded', 'true');
   // Export (OpenAPI 1.7.0): the editor downloads everything stored about Mara as a JSON attachment.
@@ -442,7 +448,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const dependentRead = page.waitForResponse(response => /\/api\/v1\/me\/dependents\/[^/]+$/.test(new URL(response.url()).pathname));
   await maraChild.getByRole('button', { name: 'Open' }).click();
   expect((await dependentRead).headers()['cache-control']).toBe('no-store');
-  await expect(maraChild.getByText('2015-01-01')).toBeVisible();
+  await expect(maraChild.getByText('01.01.2015')).toBeVisible();
   await maraChild.getByLabel('Email').fill('mara.parent@example.invalid');
   await maraChild.getByRole('button', { name: 'Save contacts' }).click();
   await expect(children.getByText('Contacts saved.')).toBeVisible();
@@ -563,6 +569,7 @@ test('verified login gains club access only after restricted operator bootstrap'
       await route.continue();
     }
   });
+  await openForm(teams, 'New team');
   await teams.getByLabel('Team name').fill('Juniors');
   await teams.getByRole('button', { name: 'Add team' }).click();
   // Each team is one link to its own page (#/team/<id>), which links to its schedule, members and statistics.
@@ -682,6 +689,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   // Volunteer shifts (OpenAPI 1.16.0): the manager adds a shift with the event's times as defaults and changes it.
   const shifts = page.getByRole('region', { name: 'Volunteer shifts: Juniors training' });
   await expect(shifts.getByText('No volunteer shifts.')).toBeVisible();
+  await openForm(shifts, 'New shift');
   await shifts.getByLabel('Task').fill('Bar');
   await shifts.getByLabel('People needed').fill('2');
   await shifts.getByRole('button', { name: 'Add shift' }).click();
@@ -708,7 +716,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(page.getByRole('heading', { level: 1, name: 'Juniors training' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'No answer yet' })).toContainText('Mara D.');
   // Answer reminders (OpenAPI 1.25.0): this installation sends no email, so the coach is told so.
-  await page.getByRole('button', { name: 'Remind all 1 without an answer' }).click();
+  await page.getByRole('button', { name: 'Remind the one without an answer' }).click();
   await expect(page.getByRole('alert')).toHaveText('This club does not send emails.');
   await expect(page.getByRole('region', { name: 'Volunteer shifts: Juniors training' })).toContainText('Bar');
   await show(page, juniorsPage);
@@ -770,6 +778,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   // includes every active member; marking Mara's fee paid updates the totals; the administrator sees their own fee.
   await show(page, '#/admin/fees');
   const feeAdmin = page.getByRole('region', { name: 'Membership fees' });
+  await openForm(feeAdmin, 'New fee period');
   await feeAdmin.getByLabel('Name').fill('Season 2026/27');
   await feeAdmin.getByLabel('Due date').fill('2026-12-31');
   await feeAdmin.getByLabel('Amount (CHF)').fill('150');
@@ -949,10 +958,12 @@ test('verified login gains club access only after restricted operator bootstrap'
       await route.continue();
     }
   });
+  await openForm(teams, 'New team');
   await teams.getByLabel('Team name').fill('Transient Team');
   await teams.getByRole('button', { name: 'Add team' }).click();
   await expect.poll(() => failedTeamList).toBe(true);
   await expect(teams.getByRole('alert').filter({ hasText: 'Teams unavailable.' })).toBeVisible();
+  await openForm(teams, 'New team');
   await teams.getByLabel('Team name').fill('Recovered Team');
   await teams.getByRole('button', { name: 'Add team' }).click();
   await expect(teams.getByRole('listitem').filter({ hasText: 'Recovered Team' })).toContainText('0 members');
@@ -1246,6 +1257,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     route.request().method() === 'POST'
       ? route.fulfill({ status: 401, body: 'Unauthorized' }) : route.continue());
   await show(page, '#/team');
+  await openForm(teams, 'New team');
   await teams.getByLabel('Team name').fill('Expired Session Team');
   await teams.getByRole('button', { name: 'Add team' }).click();
   await expect(teams).toHaveCount(0);
@@ -1310,6 +1322,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     ['duplicate team name', '  ' + teamsBeforeInvalid[0].name.toUpperCase() + ' '],
     ['whitespace-only team name', '    '],
   ]) {
+    await openForm(teamsForm, 'New team');
     await teamsForm.getByLabel('Team name').fill(name);
     const rejected = page.waitForResponse(response => response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/v1/teams');

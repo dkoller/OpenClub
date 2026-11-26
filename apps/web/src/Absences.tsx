@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { formatDate } from './dates'
 import type { Language } from './language'
 import { createAbsence, deleteAbsence, readAbsences, type AbsenceList } from './absences'
 
@@ -51,7 +52,7 @@ export function Absences({ language, csrfToken, self, onChange }: {
       <h1>{t.title}</h1>
       <p>{t.intro}</p>
       {list.items.length === 0 ? <p>{t.none}</p> : <ul>{list.items.map(item => <li key={item.id}>
-        {name(item.memberId, item.firstName)}: {item.from}{item.to !== item.from ? ` – ${item.to}` : ''}
+        {name(item.memberId, item.firstName)}: {formatDate(item.from)}{item.to !== item.from ? ` – ${formatDate(item.to)}` : ''}
         {' '}<button type="button" disabled={busy} onClick={() => { void run(() => deleteAbsence(item.id, csrfToken)) }}>{t.remove}</button>
       </li>)}</ul>}
       <form onSubmit={add}>

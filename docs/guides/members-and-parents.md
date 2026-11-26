@@ -6,8 +6,8 @@ child. See the [overview](README.md) for finding your way and signing in.
 ## Answering events
 
 - **Start** shows *Things for you to do*: each event that still needs an answer from you or your child, soonest first,
-  with *Yes*, *No* and *Maybe* in the card. One tap answers; the card then leaves the list. Below it, *Also in the next
-  7 days* and the announcements.
+  with *Yes*, *No* and *Maybe* in the card. One tap answers; the card then leaves the list. The next three are shown;
+  *Show all* lists the rest. Below them, *Also in the next 7 days* and the announcements.
 
   <img src="images/member-start.png" alt="Start on a phone: things to answer, the next seven days and announcements" width="300">
 

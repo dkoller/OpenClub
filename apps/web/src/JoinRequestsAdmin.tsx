@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatDate } from './dates'
 import type { Language } from './language'
 import { acceptJoinRequest, declineJoinRequest, readJoinRequests, readJoinSettings, setJoinOpen, type JoinRequest } from './joinRequests'
 
@@ -46,7 +47,7 @@ export function JoinRequestsAdmin({ language, csrfToken, onChanged }: { language
       <label><input type="checkbox" checked={open} disabled={busy}
         onChange={event => { void act(() => setJoinOpen(event.target.checked, csrfToken)) }} /> {t.switch}</label>
       {items.length === 0 ? <p>{t.none}</p> : <ul>{items.map(item => <li key={item.id}>
-        <strong>{item.firstName} {item.lastName}</strong> ({item.dateOfBirth}{item.kind === 'CHILD' ? `, ${t.child}` : ''})
+        <strong>{item.firstName} {item.lastName}</strong> ({formatDate(item.dateOfBirth)}{item.kind === 'CHILD' ? `, ${t.child}` : ''})
         {item.kind === 'CHILD' && <> · {t.parent}: {item.parentFirstName} {item.parentLastName}</>}
         {' '}· {item.email} · {item.phone}{item.teamName && <> · {t.team}: {item.teamName}</>}
         {item.message && <blockquote>{item.message}</blockquote>}
