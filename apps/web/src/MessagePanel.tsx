@@ -29,7 +29,7 @@ export function MessagePanel({ event, language, csrfToken }: { event: TeamEvent;
       } else setNotice({ ok: false, text: outcome === 'denied' ? t.failed : t[outcome] })
     } catch { setNotice({ ok: false, text: t.failed }) } finally { setBusy(false) }
   }
-  return <details className="card pad">
+  return <details className="card pad fold">
     <summary>{t.title}</summary>
     <form className="stack" onSubmit={form => { void send(form) }}>
       <p className="muted small">{t.hint}</p>

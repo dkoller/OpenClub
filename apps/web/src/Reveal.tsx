@@ -9,3 +9,14 @@ export function Reveal({ label, open: initiallyOpen = false, children }: { label
   if (open) return <>{children}</>
   return <p><button type="button" className="btn" aria-expanded="false" onClick={() => setOpen(true)}>{label}</button></p>
 }
+
+/**
+ * A part of a page most visits do not need (squad, message, changing the event): a card whose title opens it.
+ * Native <details>, so it works with the keyboard and screen readers without script.
+ */
+export function Fold({ title, children }: { title: ReactNode; children: ReactNode }) {
+  return <details className="card pad fold">
+    <summary>{title}</summary>
+    <div className="stack">{children}</div>
+  </details>
+}

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { formatDayTime } from './dates'
 import type { Language } from './language'
 import type { MyEvent, TeamEvent } from './events'
-import { readSquad, saveSquad, type Squad } from './squads'
+import { meetInstant, readSquad, saveSquad, toTime, type Squad } from './squads'
+import { Fold } from './Reveal'
 
 const words = {
   de: { title: 'Aufgebot', hint: 'Wer neu aufgeboten wird, erhält eine E-Mail (bei Kindern die Eltern). Die Liste sehen nur Sie; Spieler sehen nur, ob sie dabei sind.', meetAt: 'Besammlung (Zeit)', meetingPoint: 'Besammlungsort', said: 'Antwort', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', none: 'keine', yes: 'Alle mit Ja auswählen', save: 'Aufgebot speichern', saved: 'Gespeichert.', failed: 'Nicht gespeichert. Bitte Angaben prüfen.', closed: 'Das Spiel hat begonnen oder ist abgesagt.', nobody: 'Niemand im Team.', count: '{n} aufgeboten', called: 'Aufgeboten', notCalled: 'Nicht aufgeboten', meet: 'Besammlung {when}', forName: '{name}: ' },
@@ -14,13 +15,6 @@ const words = {
 const fill = (text: string, values: Record<string, string | number>) =>
   text.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ''))
 
-/** A local "YYYY-MM-DDTHH:mm" for a datetime-local field, and back to an instant. */
-const toLocal = (instant: string) => {
-  const date = new Date(instant)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-const toInstant = (local: string) => (local ? new Date(local).toISOString() : null)
 
 /** Coach event page, matches only: pick the squad, the meeting time and place. */
 export function SquadPanel({ event, language, csrfToken }: { event: TeamEvent; language: Language; csrfToken: string }) {
@@ -39,7 +33,7 @@ export function SquadPanel({ event, language, csrfToken }: { event: TeamEvent; l
       setSquad(next)
       if (typeof next === 'object') {
         setCalled(new Set(next.items.filter(item => item.called).map(item => item.memberId)))
-        setMeetAt(next.meetAt ? toLocal(next.meetAt) : ''); setPoint(next.meetingPoint ?? '')
+        setMeetAt(next.meetAt ? toTime(next.meetAt) : ''); setPoint(next.meetingPoint ?? '')
       }
     }).catch(() => { if (active) setSquad('error') })
     return () => { active = false }
@@ -49,15 +43,14 @@ export function SquadPanel({ event, language, csrfToken }: { event: TeamEvent; l
   async function save() {
     setBusy(true); setNotice(null)
     try {
-      const outcome = await saveSquad(event.id, [...called], toInstant(meetAt), point.trim() || null, csrfToken)
+      const outcome = await saveSquad(event.id, [...called], meetInstant(meetAt, event.startsAt), point.trim() || null, csrfToken)
       setNotice(outcome === 'ok' ? { ok: true, text: t.saved } : outcome === 'closed' ? { ok: false, text: t.closed } : { ok: false, text: t.failed })
     } catch { setNotice({ ok: false, text: t.failed }) } finally { setBusy(false) }
   }
   const open = squad.open
-  return <section aria-labelledby="squad" className="stack">
-    <h2 id="squad">{t.title} <span className="muted small">({fill(t.count, { n: called.size })})</span></h2>
+  return <Fold title={<>{t.title} <span className="muted">({fill(t.count, { n: called.size })})</span></>}>
     {!open ? <p className="muted">{t.closed}</p> : <p className="muted small">{t.hint}</p>}
-    {squad.items.length === 0 ? <p>{t.nobody}</p> : <fieldset className="card pad" disabled={!open}>
+    {squad.items.length === 0 ? <p>{t.nobody}</p> : <fieldset disabled={!open}>
       <legend>{t.title}</legend>
       {squad.items.map(person => <label key={person.memberId} className="check">
         <input type="checkbox" checked={called.has(person.memberId)} onChange={() => {
@@ -68,7 +61,7 @@ export function SquadPanel({ event, language, csrfToken }: { event: TeamEvent; l
       </label>)}
     </fieldset>}
     {open && <>
-      <label>{t.meetAt}<input type="datetime-local" value={meetAt} onChange={e => setMeetAt(e.target.value)} /></label>
+      <label>{t.meetAt}<input type="time" value={meetAt} onChange={e => setMeetAt(e.target.value)} /></label>
       <label>{t.meetingPoint}<input value={point} maxLength={200} onChange={e => setPoint(e.target.value)} /></label>
       <div className="actions">
         <button type="button" className="btn" disabled={busy} onClick={() => {
@@ -79,7 +72,7 @@ export function SquadPanel({ event, language, csrfToken }: { event: TeamEvent; l
       </div>
     </>}
     {notice && <p role={notice.ok ? 'status' : 'alert'}>{notice.text}</p>}
-  </section>
+  </Fold>
 }
 
 /** Member event page: each person's own squad status, once the coach saved a squad. */

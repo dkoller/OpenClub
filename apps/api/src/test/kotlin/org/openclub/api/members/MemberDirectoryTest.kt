@@ -34,6 +34,8 @@ class MemberDirectoryTest {
             val duplicateA = UUID.randomUUID()
             val duplicateB = UUID.randomUUID()
             val special = UUID.randomUUID()
+            val teamA = UUID.randomUUID()
+            val teamB = UUID.randomUUID()
             try {
                 db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Synthetic', ?)",
                     club, "directory-" + club)
@@ -66,6 +68,13 @@ class MemberDirectoryTest {
                 assertNull(second.next)
                 assertEquals(listOf("Ben"), directory.search(linked, "bEN exAMple").members.map { it.firstName })
                 assertEquals(listOf("Ben"), directory.search(linked, "EXAMPLE BEN").members.map { it.firstName })
+                // Each row names the member's teams, sorted (OpenAPI 1.37.0); none is an empty list.
+                db.execute("INSERT INTO teams (id, name) VALUES (?, 'Seniors directory'), (?, 'Juniors directory')", teamA, teamB)
+                db.execute("INSERT INTO member_team_assignments (team_id, member_id) VALUES (?, ?), (?, ?)",
+                    teamA, fixtures[1].first, teamB, fixtures[1].first)
+                assertEquals(listOf("Juniors directory", "Seniors directory"),
+                    directory.search(linked, "Ben Example").members.single().teams)
+                assertEquals(emptyList<String>(), directory.search(linked, "Amy Example").members.single().teams)
                 assertTrue(directory.search(linked, "%").members.isEmpty())
                 assertThrows(IllegalArgumentException::class.java) {
                     directory.search(linked, query = "a".repeat(101))
@@ -121,6 +130,7 @@ class MemberDirectoryTest {
             } finally {
                 db.execute("DELETE FROM members WHERE id IN (?, ?, ?)", duplicateA, duplicateB, special)
                 fixtures.forEach { (id, _, _) -> db.execute("DELETE FROM members WHERE id = ?", id) }
+                db.execute("DELETE FROM teams WHERE id IN (?, ?)", teamA, teamB)
                 db.execute("DELETE FROM accounts WHERE id IN (?, ?)", linked, outsider)
                 db.execute("DELETE FROM clubs WHERE id = ?", club)
             }

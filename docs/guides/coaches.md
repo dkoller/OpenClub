@@ -15,10 +15,12 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 
   <img src="images/coach-team.png" alt="A team's page on a phone" width="300">
 
-- **An event's page** shows *Who is coming?*: totals, then names under *No answer yet*, *No*, *Maybe* and *Yes*
-  (adults by full name, children by first name and initial). Absences count as *No*; no reason is ever shown.
+- **An event's page** starts with *Who is coming?*: totals, then the names under *No answer yet*, *No*, *Maybe* and
+  *Yes* (adults by full name, children by first name and initial); a group nobody is in is left out. Absences count as
+  *No*; no reason is ever shown. Below come *Squad* (matches) and *Message to the team*, each opened by tapping its
+  title, then helpers and rides, and last *Change, cancel or delete the event*.
 
-  <img src="images/coach-event.png" alt="A coming match for the coach: who is coming, the squad, helpers, rides and the message form" width="300">
+  <img src="images/coach-event.png" alt="A coming match for the coach: who is coming, then squad and message to open, helpers and rides" width="300">
 
 - **Remind** (`MANAGE_TEAMS`): *Remind all 3 without an answer* emails them (parents for their children), at most every
   12 hours. An automatic reminder also goes out two days before every event.
@@ -34,8 +36,8 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 - A team's *Schedule* shows eight weeks. *New event*, then *Kind* (Training, Match, Event), *Title*, *Date*, *Start*, *End*,
   optionally *Place*, *Field or hall* (if the club keeps a list) and *Notes*. *Repeat weekly until* creates up to 52
   copies keeping the local time; *Add event* saves.
-- On the event's own page (tap it in the schedule): *Edit*, *Cancel event* (members still see it, marked *Cancelled*;
-  *Reinstate* undoes it) and *Delete*.
+- On the event's own page (tap it in the schedule), at the bottom under *Change, cancel or delete the event*: *Edit*,
+  *Cancel event* (members still see it, marked *Cancelled*; *Reinstate* undoes it) and *Delete*.
 - **No double booking:** a field or hall that is already booked is refused with the other event's team, title and
   time. Everyone can see the bookings under *Schedule* → *When fields and halls are booked*.
 - **Change several events:** at the bottom of the schedule choose *From*, *To*, the kinds and *Cancel*, *Reinstate*,
@@ -54,8 +56,9 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 
 ## Matches: the squad (Aufgebot)
 
-For a match, *Squad* on the event page lists the team with their answers. Tick who is called up (*Select everyone who
-said yes* helps), optionally *Meet at* and *Meeting point*, then *Save squad*, until the match starts. Members called
+For a match, tap *Squad* on the event page (its title shows how many are called up) to see the team with their
+answers. Tick who is called up (*Select everyone who said yes* helps), optionally the time to *Meet at* (on the match
+day; a time after kick-off means the evening before) and the *Meeting point*, then *Save squad*, until the match starts. Members called
 for the first time get an email (parents for children); removing someone sends nothing. Only you see the list; each
 player and parent sees only their own status.
 

@@ -1,6 +1,7 @@
 import { readItems } from './api'
 
-export type Member = { id: string; firstName: string; lastName: string }
+/** `teams` (names, since OpenAPI 1.37.0) comes only with the active member list. */
+export type Member = { id: string; firstName: string; lastName: string; teams?: string[] }
 
 export type MemberDraft = {
   firstName: string; lastName: string; dateOfBirth: string

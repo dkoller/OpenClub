@@ -11,14 +11,15 @@ import { routeHash } from './routes'
 import { ShiftsPanel } from './ShiftsPanel'
 import { RidesPanel } from './RidesPanel'
 import { PresencePanel } from './PresencePanel'
+import { Fold } from './Reveal'
 import { SquadPanel } from './SquadPanel'
 import { MessagePanel } from './MessagePanel'
 
 const words = {
-  de: { remindOne: 'Die Person ohne Antwort erinnern', next: 'Nächste Termine', none: 'In den nächsten 14 Tagen stehen keine Termine an.', summary: '{yes} Ja · {no} Nein', openTag: '{open} offen', allAnswered: 'alle haben geantwortet', more: 'Nur die ersten {n} Teams sind berücksichtigt; alle Termine stehen im Programm des jeweiligen Teams.', back: 'Zurück zum Team', who: 'Wer kommt?', open: 'Noch offen', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', nobody: 'Niemand.', gone: 'Diesen Termin gibt es nicht mehr, oder du siehst dieses Team nicht.', noAnswers: 'Die Antworten sind nicht sichtbar.', absence: 'Abwesenheiten zählen als Nein. Gründe werden nie erfasst.', remind: 'Alle {n} ohne Antwort erinnern', reminded: 'Erinnerung an {n} verschickt (per E-Mail, an Eltern für ihre Kinder).', recent: 'Für diesen Termin wurde in den letzten 12 Stunden schon erinnert.', emailOff: 'Dieser Verein versendet keine E-Mails.', remindFailed: 'Erinnerung nicht verschickt. Bitte später nochmals versuchen.' },
-  en: { remindOne: 'Remind the one without an answer', next: 'Next events', none: 'No events in the next 14 days.', summary: '{yes} yes · {no} no', openTag: '{open} open', allAnswered: 'everyone answered', more: 'Only the first {n} teams are included; every event is in its team’s schedule.', back: 'Back to team', who: 'Who is coming?', open: 'No answer yet', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', nobody: 'Nobody.', gone: 'This event no longer exists, or you cannot see this team.', noAnswers: 'The answers are not visible.', absence: 'Absences count as No. Reasons are never recorded.', remind: 'Remind all {n} without an answer', reminded: 'Reminder sent to {n} (by email, to parents for their children).', recent: 'A reminder for this event was already sent in the last 12 hours.', emailOff: 'This club does not send emails.', remindFailed: 'Reminder not sent. Please try again later.' },
-  fr: { remindOne: 'Relancer la personne sans réponse', next: 'Prochains événements', none: 'Aucun événement dans les 14 prochains jours.', summary: '{yes} oui · {no} non', openTag: '{open} sans réponse', allAnswered: 'tout le monde a répondu', more: 'Seules les {n} premières équipes sont prises en compte ; tous les événements figurent dans le programme de chaque équipe.', back: 'Retour à l’équipe', who: 'Qui vient ?', open: 'Pas encore répondu', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', nobody: 'Personne.', gone: 'Cet événement n’existe plus ou vous ne voyez pas cette équipe.', noAnswers: 'Les réponses ne sont pas visibles.', absence: 'Les absences comptent comme non. Les motifs ne sont jamais enregistrés.', remind: 'Relancer les {n} sans réponse', reminded: 'Rappel envoyé à {n} (par e-mail, aux parents pour leurs enfants).', recent: 'Un rappel a déjà été envoyé pour cet événement ces 12 dernières heures.', emailOff: 'Ce club n’envoie pas d’e-mails.', remindFailed: 'Rappel non envoyé. Veuillez réessayer plus tard.' },
-  it: { remindOne: 'Ricorda alla persona senza risposta', next: 'Prossimi eventi', none: 'Nessun evento nei prossimi 14 giorni.', summary: '{yes} sì · {no} no', openTag: '{open} senza risposta', allAnswered: 'hanno risposto tutti', more: 'Sono considerate solo le prime {n} squadre; tutti gli eventi sono nel programma di ogni squadra.', back: 'Torna alla squadra', who: 'Chi viene?', open: 'Non ancora risposto', YES: 'Sì', NO: 'No', MAYBE: 'Forse', nobody: 'Nessuno.', gone: 'Questo evento non esiste più o non vedi questa squadra.', noAnswers: 'Le risposte non sono visibili.', absence: 'Le assenze contano come no. I motivi non vengono mai registrati.', remind: 'Ricorda a tutti i {n} senza risposta', reminded: 'Promemoria inviato a {n} (via email, ai genitori per i figli).', recent: 'Per questo evento è già stato inviato un promemoria nelle ultime 12 ore.', emailOff: 'Questo club non invia email.', remindFailed: 'Promemoria non inviato. Riprovate più tardi.' },
+  de: { changeEvent: 'Termin ändern, absagen oder löschen', remindOne: 'Die Person ohne Antwort erinnern', next: 'Nächste Termine', none: 'In den nächsten 14 Tagen stehen keine Termine an.', summary: '{yes} Ja · {no} Nein', openTag: '{open} offen', allAnswered: 'alle haben geantwortet', more: 'Nur die ersten {n} Teams sind berücksichtigt; alle Termine stehen im Programm des jeweiligen Teams.', back: 'Zurück zum Team', who: 'Wer kommt?', open: 'Noch offen', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', nobody: 'Niemand.', gone: 'Diesen Termin gibt es nicht mehr, oder du siehst dieses Team nicht.', noAnswers: 'Die Antworten sind nicht sichtbar.', absence: 'Abwesenheiten zählen als Nein. Gründe werden nie erfasst.', remind: 'Alle {n} ohne Antwort erinnern', reminded: 'Erinnerung an {n} verschickt (per E-Mail, an Eltern für ihre Kinder).', recent: 'Für diesen Termin wurde in den letzten 12 Stunden schon erinnert.', emailOff: 'Dieser Verein versendet keine E-Mails.', remindFailed: 'Erinnerung nicht verschickt. Bitte später nochmals versuchen.' },
+  en: { changeEvent: 'Change, cancel or delete the event', remindOne: 'Remind the one without an answer', next: 'Next events', none: 'No events in the next 14 days.', summary: '{yes} yes · {no} no', openTag: '{open} open', allAnswered: 'everyone answered', more: 'Only the first {n} teams are included; every event is in its team’s schedule.', back: 'Back to team', who: 'Who is coming?', open: 'No answer yet', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', nobody: 'Nobody.', gone: 'This event no longer exists, or you cannot see this team.', noAnswers: 'The answers are not visible.', absence: 'Absences count as No. Reasons are never recorded.', remind: 'Remind all {n} without an answer', reminded: 'Reminder sent to {n} (by email, to parents for their children).', recent: 'A reminder for this event was already sent in the last 12 hours.', emailOff: 'This club does not send emails.', remindFailed: 'Reminder not sent. Please try again later.' },
+  fr: { changeEvent: 'Modifier, annuler ou supprimer l’événement', remindOne: 'Relancer la personne sans réponse', next: 'Prochains événements', none: 'Aucun événement dans les 14 prochains jours.', summary: '{yes} oui · {no} non', openTag: '{open} sans réponse', allAnswered: 'tout le monde a répondu', more: 'Seules les {n} premières équipes sont prises en compte ; tous les événements figurent dans le programme de chaque équipe.', back: 'Retour à l’équipe', who: 'Qui vient ?', open: 'Pas encore répondu', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', nobody: 'Personne.', gone: 'Cet événement n’existe plus ou vous ne voyez pas cette équipe.', noAnswers: 'Les réponses ne sont pas visibles.', absence: 'Les absences comptent comme non. Les motifs ne sont jamais enregistrés.', remind: 'Relancer les {n} sans réponse', reminded: 'Rappel envoyé à {n} (par e-mail, aux parents pour leurs enfants).', recent: 'Un rappel a déjà été envoyé pour cet événement ces 12 dernières heures.', emailOff: 'Ce club n’envoie pas d’e-mails.', remindFailed: 'Rappel non envoyé. Veuillez réessayer plus tard.' },
+  it: { changeEvent: 'Modifica, annulla o elimina l’evento', remindOne: 'Ricorda alla persona senza risposta', next: 'Prossimi eventi', none: 'Nessun evento nei prossimi 14 giorni.', summary: '{yes} sì · {no} no', openTag: '{open} senza risposta', allAnswered: 'hanno risposto tutti', more: 'Sono considerate solo le prime {n} squadre; tutti gli eventi sono nel programma di ogni squadra.', back: 'Torna alla squadra', who: 'Chi viene?', open: 'Non ancora risposto', YES: 'Sì', NO: 'No', MAYBE: 'Forse', nobody: 'Nessuno.', gone: 'Questo evento non esiste più o non vedi questa squadra.', noAnswers: 'Le risposte non sono visibili.', absence: 'Le assenze contano come no. I motivi non vengono mai registrati.', remind: 'Ricorda a tutti i {n} senza risposta', reminded: 'Promemoria inviato a {n} (via email, ai genitori per i figli).', recent: 'Per questo evento è già stato inviato un promemoria nelle ultime 12 ore.', emailOff: 'Questo club non invia email.', remindFailed: 'Promemoria non inviato. Riprovate più tardi.' },
 } satisfies Record<Language, Record<string, string>>
 
 const TEAM_LIMIT = 8
@@ -120,9 +121,6 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
       <p><b>{formatWhen(event, language)}</b>{event.cancelled && <> <span className="open">{t.cancelled}</span></>}</p>
       <p className="muted">{t[event.kind]} · {team?.name ?? event.teamName}{event.location ? ' · ' + event.location : ''}</p>
       {event.notes && <p className="notes">{event.notes}</p>}
-      {canManage && <ManageEvent event={event} language={language} csrfToken={csrfToken}
-        onChanged={() => setRevision(value => value + 1)}
-        onDeleted={() => { window.location.hash = routeHash({ page: 'team', teamId, section: 'schedule' }) }} />}
       <section aria-labelledby="who" className="stack">
         <h2 id="who">{t.who}</h2>
         {!groups ? <p className="muted">{t.noAnswers}</p> : <>
@@ -130,10 +128,11 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
             {(['YES', 'NO', 'open'] as const).map(key => <p key={key} className={key === 'open' && groups.open.length > 0 ? 'card pad attention' : 'card pad'}>
               <b>{groups[key].length}</b> <span>{key === 'open' ? t.open : t[key]}</span></p>)}
           </div>
-          {(['open', 'NO', 'MAYBE', 'YES'] as const).map(key => (key !== 'MAYBE' || groups.MAYBE.length > 0) &&
+          {/* Only groups with names: the counts above already say when a group is empty. */}
+          {(['open', 'NO', 'MAYBE', 'YES'] as const).map(key => groups[key].length > 0 &&
             <section key={key} aria-label={key === 'open' ? t.open : t[key]} className="card pad">
               <h3>{key === 'open' ? t.open : t[key]} ({groups[key].length})</h3>
-              <p>{groups[key].length > 0 ? groups[key].join(', ') : t.nobody}</p>
+              <p>{groups[key].join(', ')}</p>
             </section>)}
           {canManage && groups.open.length > 0 && event && answerable(event) &&
             <button type="button" className="btn primary" disabled={busy} onClick={() => { void remind() }}>
@@ -142,11 +141,17 @@ export function CoachEventPage({ teamId, eventId, language, csrfToken, self }: {
           <p className="muted small">{t.absence}</p>
         </>}
       </section>
-      {canManage && <MessagePanel event={event} language={language} csrfToken={csrfToken} />}
-      {canManage && <SquadPanel event={event} language={language} csrfToken={csrfToken} />}
       {canManage && <PresencePanel eventId={event.id} cancelled={event.cancelled} language={language} csrfToken={csrfToken} />}
+      {canManage && <SquadPanel event={event} language={language} csrfToken={csrfToken} />}
+      {canManage && <MessagePanel event={event} language={language} csrfToken={csrfToken} />}
       <ShiftsPanel event={event} language={language} csrfToken={csrfToken} self={self} />
       <RidesPanel event={event} language={language} csrfToken={csrfToken} self={self} />
+      {/* Rare actions last, behind one title, so the page starts with who is coming (design review, 2026-11-26). */}
+      {canManage && <Fold title={t.changeEvent}>
+        <ManageEvent event={event} language={language} csrfToken={csrfToken}
+          onChanged={() => setRevision(value => value + 1)}
+          onDeleted={() => { window.location.hash = routeHash({ page: 'team', teamId, section: 'schedule' }) }} />
+      </Fold>}
     </>}
   </>
 }
