@@ -498,12 +498,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await clubSettings.getByRole('button', { name: 'Save adult age' }).click();
   await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).adultAgeYears).toBe(20);
   await show(page, '#/admin/members');
+  await openForm(memberAdmin, 'New member');
   await expect(memberAdmin.getByText('Adult from age 20.')).toBeVisible();
   await show(page, '#/admin/settings');
   await adultAge.fill('18');
   await clubSettings.getByRole('button', { name: 'Save adult age' }).click();
   await expect.poll(async () => (await (await context.request.get('/api/v1/club')).json()).adultAgeYears).toBe(18);
   await show(page, '#/admin/members');
+  await openForm(memberAdmin, 'New member');
   await expect(memberAdmin.getByText('Adult from age 18.')).toBeVisible();
 
   // When the club enables this rule, player creation cannot omit gender.
@@ -1161,7 +1163,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     const deniedMemberAdmin = page.getByRole('region', { name: 'Manage members' });
     await expect(deniedMemberAdmin.getByRole('alert'))
       .toContainText('No permission to manage members.');
-    await expect(deniedMemberAdmin.getByRole('button', { name: 'Add member' })).toHaveCount(0);
+    await expect(deniedMemberAdmin.getByRole('button', { name: /^(Add member|New member)$/ })).toHaveCount(0);
     const readBack = await context.request.get('/api/v1/members?q=Synthetic');
     expect(readBack.status()).toBe(200);
     expect((await readBack.json()).items)
@@ -1171,7 +1173,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   }
   await page.reload();
   await expect(page.getByRole('region', { name: 'Manage members' })
-    .getByRole('button', { name: 'Add member' })).toBeVisible();
+    .getByRole('button', { name: 'New member' })).toBeVisible();
 
   // A real read-grant revocation must also hide already rendered member names
   // and edit controls, without affecting the separate anonymous name policy.
@@ -1184,7 +1186,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     await expect(memberPanel.getByRole('alert'))
       .toContainText('No permission to manage members.');
     await expect(memberPanel.getByRole('listitem')).toHaveCount(0);
-    await expect(memberPanel.getByRole('button', { name: 'Add member' })).toHaveCount(0);
+    await expect(memberPanel.getByRole('button', { name: /^(Add member|New member)$/ })).toHaveCount(0);
     const publicAfterRevocation = await context.request.get('/api/v1/public/members');
     expect(publicAfterRevocation.status()).toBe(200);
     expect(await publicAfterRevocation.json())
@@ -1277,7 +1279,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await privateMembers.getByRole('button', { name: 'Search' }).click();
   await expect(privateMembers.getByRole('alert')).toContainText('No permission to manage members.');
   await expect(privateMembers.getByRole('listitem')).toHaveCount(0);
-  await expect(privateMembers.getByRole('button', { name: 'Add member' })).toHaveCount(0);
+  await expect(privateMembers.getByRole('button', { name: /^(Add member|New member)$/ })).toHaveCount(0);
   await page.unroute('**/api/v1/members?**');
   // A session-expired team write must not leave previously authorized team names visible.
   await page.route('**/api/v1/teams', route =>
