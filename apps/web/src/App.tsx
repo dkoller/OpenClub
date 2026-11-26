@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { loadClubAccess, signOut, type ClubAccess } from './auth'
 import { forgetPushOnSignOut } from './push'
 import { readPublicClubName } from './publicClub'
+import { LanguageChoice } from './LanguageChoice'
 import { readPreferredLanguage, type Language } from './language'
 import { loadAccess, hasAdmin, noAccess, type Access } from './access'
 import { parseRoute, routeHash, tabOf, type Route } from './routes'
@@ -132,10 +133,6 @@ export function App() {
     <div className={ready ? 'app signed-in' : 'app'}>
       <header className="top">
         {ready ? <a className="club" href={routeHash({ page: 'start' })}>{access.clubName}</a> : <span className="club">{publicName ?? words.heading}</span>}
-        <label className="language"><span className="vh">{words.language}</span>
-          <select id="language" value={language} onChange={e => setLanguage(e.target.value as Language)}>
-            <option value="de">DE</option><option value="fr">FR</option><option value="it">IT</option><option value="en">EN</option>
-          </select></label>
         {(access?.state === 'ready' || access?.state === 'not-member') && <button type="button" className="btn" disabled={loggingOut}
           onClick={() => { void logout() }}>{loggingOut ? words.loggingOut : words.logout}</button>}
       </header>
@@ -153,15 +150,17 @@ export function App() {
           <a className="btn primary big" href="/api/v1/auth/login">{words.login}</a>
           <JoinForm language={language} />
           <PublicMembers language={language} revision={directoryRevision} />
+          <LanguageChoice language={language} label={words.language} onChange={setLanguage} />
         </>}
         {access?.state === 'not-member' && <AcceptInvitation language={language} csrfToken={access.csrfToken} initial={invite}
           onAccepted={() => { try { window.sessionStorage.removeItem('openclub.invite') } catch { /* storage may be disabled */ } void retryAccess() }} />}
+        {access?.state === 'not-member' && <LanguageChoice language={language} label={words.language} onChange={setLanguage} />}
         {ready && shown.page === 'start' && <StartPage language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && shown.page === 'schedule' && <SchedulePage language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && shown.page === 'venues' && <VenuesPage language={language} />}
         {ready && shown.page === 'event' && <EventPage key={shown.eventId} eventId={shown.eventId} language={language} csrfToken={access.csrfToken} self={self} />}
         {ready && shown.page === 'family' && <FamilyPage key={shown.section ?? 'overview'} section={shown.section}
-          language={language} csrfToken={access.csrfToken} self={self} />}
+          language={language} csrfToken={access.csrfToken} self={self} onLanguage={setLanguage} />}
         {ready && waiting && <p role="status">{words.loading}</p>}
         {ready && !waiting && shown.page === 'team' && !shown.teamId && <><h1>{words.team}</h1><CoachOverview language={language} /><HelpersMissing language={language} /><TeamDirectory language={language} csrfToken={access.csrfToken} /></>}
         {ready && !waiting && shown.page === 'team' && shown.teamId && <TeamPage key={shown.teamId + (shown.section ?? '')} teamId={shown.teamId}

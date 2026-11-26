@@ -3,6 +3,18 @@ import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+/**
+ * Signed in, the language is chosen under Family → My profile (not in the header). Opens it, chooses, and returns to
+ * the page the test was on.
+ */
+async function chooseLanguage(page, code) {
+  const back = await page.evaluate(() => window.location.hash);
+  await page.evaluate(() => { window.location.hash = '#/family/profile'; });
+  await page.locator('#language').selectOption(code);
+  await expect(page.locator('html')).toHaveAttribute('lang', code);
+  await page.evaluate(target => { window.location.hash = target; }, back || '#/');
+}
+
 // The app shows one page at a time (Start, Schedule, Family, Team, Administration); tests open a page by its
 // address, which a reload keeps.
 async function show(page, hash) {
@@ -213,12 +225,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(searchForm.getByRole('alert')).toContainText('Member management unavailable.');
   await expect(searchForm.getByText('Loading members…')).toHaveCount(0);
   for (const locale of [
-    { code: 'de', heading: 'Mitglieder verwalten', error: 'Mitgliederverwaltung nicht verfügbar.' },
-    { code: 'fr', heading: 'Gérer les membres', error: 'Gestion des membres indisponible.' },
-    { code: 'it', heading: 'Gestisci membri', error: 'Gestione membri non disponibile.' },
     { code: 'en', heading: 'Manage members', error: 'Member management unavailable.' },
   ]) {
-    await page.locator('#language').selectOption(locale.code);
     await expect(page.getByRole('region', { name: locale.heading }).getByRole('alert')).toContainText(locale.error);
   }
   await searchForm.getByRole('button', { name: 'Try again' }).click();
@@ -350,18 +358,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(completeAdult).toHaveCount(0);
 
 
-  // Canceling a member-specific archive must work after switching languages.
+  // Canceling a member-specific archive must work.
   await memberAdminForAdult.getByLabel('First name').fill('Locale');
   await memberAdminForAdult.getByLabel('Last name').fill('Synthetic');
   await memberAdminForAdult.getByLabel('Date of birth').fill('2015-01-01');
   await memberAdminForAdult.getByRole('button', { name: 'Add member' }).click();
   for (const locale of [
-    ['de', 'Mitglieder verwalten', 'Archivieren', 'Mitglied wirklich archivieren?', 'Abbrechen', 'Für Erwachsene sind E-Mail und Telefonnummer erforderlich; für Minderjährige sind beide freiwillig.'],
-    ['fr', 'Gérer les membres', 'Archiver', 'Archiver ce membre ?', 'Annuler', 'Pour les adultes, l’e-mail et le téléphone sont obligatoires ; les deux sont facultatifs pour les mineurs.'],
-    ['it', 'Gestisci membri', 'Archivia', 'Archiviare questo membro?', 'Annulla', 'Per gli adulti sono obbligatori sia l’email sia il telefono; per i minorenni sono facoltativi.'],
     ['en', 'Manage members', 'Archive', 'Archive this member?', 'Cancel', 'Adults must provide both email and phone; both are optional for minors.'],
   ]) {
-    await page.locator('#language').selectOption(locale[0]);
     const form = page.getByRole('region', { name: locale[1] });
     await expect(form.getByText(locale[5])).toBeVisible();
     const row = page.getByRole('region', { name: locale[1] })
@@ -972,7 +976,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     { code: 'it', member: 'Gestisci membri', team: 'Squadre', grant: 'Gestisci permessi', search: 'Cerca nomi', find: 'Cerca' },
     { code: 'en', member: 'Manage members', team: 'Teams', grant: 'Manage permissions', search: 'Search names', find: 'Search' },
   ]) {
-    await page.locator('#language').selectOption(locale.code);
+    await chooseLanguage(page, locale.code);
     await show(page, '#/team');
     await expect(page.getByRole('region', { name: locale.team, exact: true })).toBeVisible();
     await show(page, '#/admin/permissions');
@@ -991,7 +995,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     await expect(names.getByLabel(locale.search)).toBeVisible();
   }
 
-  // Policy conflicts stay localized even if language changes after a failed save.
+  // Policy conflicts are shown next to the setting (the language is chosen in My profile, so it cannot change meanwhile).
   await show(page, '#/admin/settings');
   const settings = page.getByRole('region', { name: 'Edit club name' });
   await settings.getByLabel('Require gender for players').uncheck();
@@ -1006,12 +1010,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   });
   await settings.getByRole('button', { name: 'Save policy' }).click();
   for (const locale of [
-    { code: 'de', setting: 'Vereinsname bearbeiten', error: 'Aktive Spieler ohne Geschlechtsangabe verhindern diese Regel.' },
-    { code: 'fr', setting: 'Modifier le nom du club', error: 'Des joueurs sans genre renseigné empêchent cette règle.' },
-    { code: 'it', setting: 'Modifica nome del club', error: 'Alcuni giocatori non hanno un genere indicato.' },
     { code: 'en', setting: 'Edit club name', error: 'Existing players without gender must be updated first.' },
   ]) {
-    await page.locator('#language').selectOption(locale.code);
     await expect(page.getByRole('region', { name: locale.setting }).getByRole('alert')).toContainText(locale.error);
   }
   await page.unroute('**/api/v1/club/player-gender-policy');
@@ -1025,12 +1025,8 @@ test('verified login gains club access only after restricted operator bootstrap'
       ? route.fulfill({ status: 503, body: 'Unavailable' }) : route.continue());
   await settings.getByRole('button', { name: 'Save policy' }).click();
   for (const locale of [
-    { code: 'fr', setting: 'Modifier le nom du club', error: 'Impossible d’enregistrer la règle.' },
-    { code: 'it', setting: 'Modifica nome del club', error: 'Impossibile salvare la regola.' },
-    { code: 'de', setting: 'Vereinsname bearbeiten', error: 'Regel konnte nicht gespeichert werden.' },
     { code: 'en', setting: 'Edit club name', error: 'Could not save the player policy.' },
   ]) {
-    await page.locator('#language').selectOption(locale.code);
     await expect(page.getByRole('region', { name: locale.setting }).getByRole('alert')).toContainText(locale.error);
   }
   await page.unroute('**/api/v1/club/player-gender-policy');
@@ -1367,12 +1363,12 @@ test('verified login gains club access only after restricted operator bootstrap'
   }
   // The document language follows the selected language (screen readers pick pronunciation from it).
   for (const [code, label] of [['de', 'Deutsch'], ['fr', 'Français'], ['it', 'Italiano'], ['en', 'English']]) {
-    await page.locator('#language').selectOption(code);
+    await chooseLanguage(page, code);
     await expect(page.locator('html'), label).toHaveAttribute('lang', code);
   }
   // Every control a user can operate has an accessible name, in English and in another language.
   for (const code of ['en', 'fr']) {
-    await page.locator('#language').selectOption(code);
+    await chooseLanguage(page, code);
     const unnamedControls = await page.locator('main input:not([type=hidden]), main select, main textarea, main button')
       .evaluateAll(elements => elements.filter(element => {
         if (element.offsetParent === null) return false;
@@ -1384,7 +1380,7 @@ test('verified login gains club access only after restricted operator bootstrap'
       }).map(element => element.outerHTML.slice(0, 120)));
     expect(unnamedControls, 'controls without an accessible name (' + code + ')').toEqual([]);
   }
-  await page.locator('#language').selectOption('en');
+  await chooseLanguage(page, 'en');
   // aria-describedby and aria-labelledby must point at elements that exist.
   const danglingReferences = await page.locator('[aria-describedby], [aria-labelledby]').evaluateAll(elements =>
     elements.flatMap(element => ['aria-describedby', 'aria-labelledby'].flatMap(attribute =>

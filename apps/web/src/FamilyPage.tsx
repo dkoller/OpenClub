@@ -63,11 +63,11 @@ function Overview({ language }: { language: Language }) {
 }
 
 /** Family: the overview at #/family, or one part on its own page with a link back. */
-export function FamilyPage({ language, csrfToken, self, section }: Props & { section?: FamilySection }) {
+export function FamilyPage({ language, csrfToken, self, section, onLanguage }: Props & { section?: FamilySection; onLanguage: (next: Language) => void }) {
   if (!section) return <Overview language={language} />
   return <>
     <p className="back"><a href={routeHash({ page: 'family' })}><span aria-hidden="true">← </span>{words[language].back}</a></p>
-    {section === 'profile' && <MyProfile language={language} csrfToken={csrfToken} />}
+    {section === 'profile' && <MyProfile language={language} csrfToken={csrfToken} onLanguage={onLanguage} />}
     {section === 'children' && <MyDependents language={language} csrfToken={csrfToken} />}
     {section === 'absences' && <Absences language={language} csrfToken={csrfToken} self={self} onChange={() => undefined} />}
     {section === 'fees' && <><MyFees language={language} /><MyHelperDutyCard language={language} /></>}

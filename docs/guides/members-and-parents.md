@@ -76,7 +76,8 @@ the club's account). A fee shows as paid only after the treasurer has seen the p
 
 *My profile* shows what the club stores about you: name, date of birth, gender (if recorded), whether you play, your
 role, teams and your J+S person number (if the club entered one). Change your *Email* and *Phone* there; other details
-are changed by the club. Untick *Show my name on the public member list* to take your name off the list anyone can see.
+are changed by the club. Untick *Show my name on the public member list* to take your name off the list anyone can see. *Language of the app*
+sets the language on this device; the language of emails is set under *Email notifications*.
 
 <img src="images/member-family-profile.png" alt="My profile on a phone" width="300">
 
