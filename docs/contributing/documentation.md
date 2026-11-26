@@ -54,7 +54,7 @@ photographs each page in English. Sign-in pages are never photographed, and only
   workflows; the picture-only PR needs none.
 - **Sizes:** phone pictures are 390 wide and show the whole page as one tall screen (at most 4000 pixels), with the tab
   bar at the bottom; laptop pictures are 1280 wide and show the whole page.
-- **Every view:** the spec photographs every page of the app (34 pictures, listed in `docs/guides/screens.md`). A new
+- **Every view:** the spec photographs every page of the app (33 pictures, listed in `docs/guides/screens.md`). A new
   page needs a `shoot(...)` line there and an entry in `screens.md`.
 - **New picture:** add a `shoot(page, '#/…', 'name')` line to the spec and reference `images/name.png` from the guide;
   the next run on `main` adds the file. Keep names flat (`a-z`, digits, `-`), as the workflow refuses anything else.
