@@ -83,6 +83,60 @@ internal fun Application.installGrantHttpRoutes(
                 call.grantError(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
+        get("/api/v1/grants/overview") {
+            call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+            try {
+                val actor = call.grantActor(sessions, cookies) ?: return@get
+                val rows = database.onDatabaseThread { db ->
+                    if (!ClubCapabilityAccess(db).has(actor.accountId,
+                            ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS)) null
+                    else db.fetch(
+                        """SELECT m.id, m.first_name, m.last_name, g.capability, g.team_id, t.name
+                           FROM (SELECT member_id, capability, NULL::uuid AS team_id FROM club_capability_grants
+                                 UNION ALL
+                                 SELECT member_id, capability, team_id FROM team_capability_grants) g
+                           JOIN members m ON m.id = g.member_id AND m.archived_at IS NULL
+                           LEFT JOIN teams t ON t.id = g.team_id
+                           ORDER BY m.last_name, m.first_name, m.id, g.team_id NULLS FIRST, t.name, g.capability""",
+                    ).map { row -> OverviewRow(
+                        requireNotNull(row.get(0, UUID::class.java)),
+                        requireNotNull(row.get(1, String::class.java)),
+                        requireNotNull(row.get(2, String::class.java)),
+                        requireNotNull(row.get(3, String::class.java)),
+                        row.get(4, UUID::class.java),
+                        row.get(5, String::class.java),
+                    ) }
+                }
+                if (rows == null) {
+                    call.grantError(HttpStatusCode.Forbidden, "forbidden")
+                    return@get
+                }
+                val response = buildJsonObject {
+                    put("items", buildJsonArray {
+                        for ((memberId, grants) in rows.groupBy { it.memberId }) add(buildJsonObject {
+                            put("memberId", memberId.toString())
+                            put("firstName", grants.first().firstName)
+                            put("lastName", grants.first().lastName)
+                            put("grants", buildJsonArray {
+                                for (grant in grants) add(buildJsonObject {
+                                    put("capability", grant.capability)
+                                    put("scope", if (grant.teamId == null) "CLUB" else "TEAM")
+                                    if (grant.teamId != null) {
+                                        put("teamId", grant.teamId.toString())
+                                        put("teamName", grant.teamName ?: "")
+                                    }
+                                })
+                            })
+                        })
+                    })
+                }
+                call.respondText(response.toString(), ContentType.Application.Json)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                call.grantError(HttpStatusCode.ServiceUnavailable, "unavailable")
+            }
+        }
         post("/api/v1/grants") {
             call.mutateGrant(sessions, cookies, origin, database, granting = true)
         }
@@ -91,6 +145,15 @@ internal fun Application.installGrantHttpRoutes(
         }
     }
 }
+
+private data class OverviewRow(
+    val memberId: UUID,
+    val firstName: String,
+    val lastName: String,
+    val capability: String,
+    val teamId: UUID?,
+    val teamName: String?,
+)
 
 private sealed interface GrantRead {
     data object Denied : GrantRead

@@ -925,9 +925,16 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
   await permissionAdmin.getByLabel('Capability').selectOption('VIEW_TEAMS');
   await permissionAdmin.getByRole('button', { name: 'Grant' }).click();
-  await expect(permissionAdmin.getByRole('listitem').filter({ hasText: 'VIEW_TEAMS' })).toBeVisible();
+  await expect(permissionAdmin.getByRole('listitem').filter({ hasText: 'See teams' })).toBeVisible();
+  // The overview lists the new permission in plain words, and its Change button opens that member in the editor.
+  const whoCan = page.getByRole('region', { name: 'Who can do what' });
+  await expect(whoCan.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toContainText('See teams');
+  await whoCan.getByRole('button', { name: 'Change: Mara Demo' }).click();
+  await expect(permissionAdmin.getByRole('combobox', { name: 'Member' })).toHaveValue(
+    await permissionAdmin.getByRole('option', { name: 'Mara Demo' }).getAttribute('value'));
   await permissionAdmin.getByRole('button', { name: 'Revoke' }).click();
   await expect(permissionAdmin.getByText('No grants.')).toBeVisible();
+  await expect(whoCan.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(0);
   // Switching grant targets must cancel the previous member's pending grant read.
   await permissionAdmin.getByLabel('Find member').fill('a');
   await permissionAdmin.getByRole('button', { name: 'Search' }).click();

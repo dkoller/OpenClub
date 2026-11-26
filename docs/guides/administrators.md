@@ -81,21 +81,23 @@ one keeps its events, without the place. Coaches then pick a field or hall per e
 
 ## Permissions (`MANAGE_PERMISSIONS`)
 
-Find a member, choose the *Scope* (*Club* or one *Team*) and the *Capability*, then *Grant*; *Revoke* removes one. A
+*Who can do what* lists everyone who holds a permission, with each permission in plain words (a team permission
+names its team). *Change* next to a name opens that member below. To give a permission to someone not yet listed, find
+the member, choose the *Scope* (*Club* or one *Team*) and the *Capability*, then *Grant*; *Revoke* removes one. A
 change applies to the member's next action.
 
 ![Permissions](images/admin-permissions.png)
 
-| Capability | Allows |
-| --- | --- |
-| `VIEW_MEMBER_DIRECTORY` | Searching members by name |
-| `EDIT_MEMBERS` | Members, archive, guardians, invitations, import and export, join requests, J+S numbers |
-| `VIEW_TEAMS` | Seeing teams, their members, schedules and statistics (club-wide or one team) |
-| `MANAGE_TEAMS` | Managing teams, schedules, shifts, squads, attendance, J+S files, coach messages and team announcements, and reading active team members' contacts (club-wide or one team) |
-| `MANAGE_PERMISSIONS` | Granting and revoking permissions, club roles and settings; with the *Administrator* role also unlinking sign-ins |
-| `MANAGE_FEES` | Fees, QR-bill payment details and helper duty (club-wide only) |
-| `POST_ANNOUNCEMENTS` | Announcements to the whole club (club-wide only) |
-| `MANAGE_VENUES` | The club's fields and halls (club-wide only) |
+| Capability | Shown as | Allows |
+| --- | --- | --- |
+| `VIEW_MEMBER_DIRECTORY` | *See the member list* | Searching members by name |
+| `EDIT_MEMBERS` | *Edit members* | Members, archive, guardians, invitations, import and export, join requests, J+S numbers |
+| `VIEW_TEAMS` | *See teams* | Seeing teams, their members, schedules and statistics (club-wide or one team) |
+| `MANAGE_TEAMS` | *Run teams* | Managing teams, schedules, shifts, squads, attendance, J+S files, coach messages and team announcements, and reading active team members' contacts (club-wide or one team) |
+| `MANAGE_PERMISSIONS` | *Manage permissions* | Granting and revoking permissions, club roles and settings; with the *Administrator* role also unlinking sign-ins |
+| `MANAGE_FEES` | *Manage fees* | Fees, QR-bill payment details and helper duty (club-wide only) |
+| `POST_ANNOUNCEMENTS` | *Post announcements* | Announcements to the whole club (club-wide only) |
+| `MANAGE_VENUES` | *Manage fields and halls* | The club's fields and halls (club-wide only) |
 
 The first administrator holds every club-wide capability from the start. *Club roles* switches a member between
 *Member* and *Administrator*; the last administrator cannot be demoted.

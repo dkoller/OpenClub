@@ -10,7 +10,11 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -143,6 +147,31 @@ class GrantHttpRoutesTest {
                 assertTrue(listed.bodyAsText().contains("MANAGE_TEAMS"))
                 assertTrue(listed.bodyAsText().contains(team.toString()))
                 assertFalse(listed.bodyAsText().contains("target@example.invalid"))
+                // The overview: only club-wide MANAGE_PERMISSIONS, names and grants, no contacts.
+                assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/grants/overview").status)
+                assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/grants/overview") {
+                    header(HttpHeaders.Cookie, outsiderCookie)
+                }.status)
+                val overview = client.get("/api/v1/grants/overview") {
+                    header(HttpHeaders.Cookie, managerCookie)
+                }
+                assertEquals(HttpStatusCode.OK, overview.status)
+                assertEquals("no-store", overview.headers[HttpHeaders.CacheControl])
+                val overviewText = overview.bodyAsText()
+                assertFalse(overviewText.contains("@example.invalid"))
+                assertFalse(overviewText.contains("1990-01-01"))
+                val people = Json.parseToJsonElement(overviewText).jsonObject["items"]!!.jsonArray
+                    .map { it.jsonObject }.associateBy { it["memberId"]!!.jsonPrimitive.content }
+                assertFalse(people.containsKey(outsider.toString()), "members without grants are left out")
+                val targetRow = requireNotNull(people[target.toString()])
+                assertEquals("Target", targetRow["firstName"]!!.jsonPrimitive.content)
+                val targetGrants = targetRow["grants"]!!.jsonArray.map { it.jsonObject }
+                assertEquals(listOf("VIEW_MEMBER_DIRECTORY", "MANAGE_TEAMS"),
+                    targetGrants.map { it["capability"]!!.jsonPrimitive.content })
+                assertEquals("CLUB", targetGrants[0]["scope"]!!.jsonPrimitive.content)
+                assertEquals("Juniors", targetGrants[1]["teamName"]!!.jsonPrimitive.content)
+                assertEquals(team.toString(), targetGrants[1]["teamId"]!!.jsonPrimitive.content)
+                assertTrue(people.containsKey(manager.toString()))
                 assertEquals(HttpStatusCode.Forbidden, client.post("/api/v1/grants") {
                     header(HttpHeaders.Cookie, managerCookie)
                     header(HttpHeaders.Origin, origin)
@@ -176,6 +205,9 @@ class GrantHttpRoutesTest {
                     }
                 }
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/grants?memberId=$target") {
+                    header(HttpHeaders.Cookie, managerCookie)
+                }.status)
+                assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/grants/overview") {
                     header(HttpHeaders.Cookie, managerCookie)
                 }.status)
                 assertEquals(HttpStatusCode.Forbidden, client.post("/api/v1/grants") {
