@@ -31,10 +31,7 @@ internal class EventSquads(private val database: DSLContext, private val notifie
 
     // An unknown ID is 404 only for a club-wide MANAGE_TEAMS holder; a team-scoped coach cannot tell it from another
     // team's (security review 2026-11-26).
-    private fun managesSomeTeam(actor: UUID): Boolean = database.fetchOne(
-            """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-               WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability = 'MANAGE_TEAMS' LIMIT 1""",
-            actor) != null
+    private fun managesSomeTeam(actor: UUID): Boolean = ActorSql.holdsClubWide(database, actor, Capability.MANAGE_TEAMS)
 
     private val access = """SELECT ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)} AS allowed,
                e.kind = 'MATCH' AS is_match, (NOT e.cancelled AND e.starts_at > now()) AS open

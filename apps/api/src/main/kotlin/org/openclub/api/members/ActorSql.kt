@@ -1,6 +1,8 @@
 package org.openclub.api.members
 
+import org.jooq.DSLContext
 import org.openclub.api.members.ClubCapabilityAccess.Capability
+import java.util.UUID
 
 /**
  * The single definition of the SQL actor-authorization predicate.
@@ -66,5 +68,20 @@ internal object ActorSql {
                            WHERE g.member_id = actor.id$teamFilter AND g.capability IN ($names))
               )
         )"""
+    }
+
+    /**
+     * True when the actor (verified-session account ID) is active, verified and holds one of [capabilities]
+     * club-wide. Used to answer 404 only to club-wide holders, and as the up-front check of a transaction. With
+     * [lock], the actor's member row and grant are share-locked until the transaction ends, so a concurrent
+     * revocation waits for the work it authorizes.
+     */
+    fun holdsClubWide(db: DSLContext, actor: UUID, vararg capabilities: Capability, lock: Boolean = false): Boolean {
+        require(capabilities.isNotEmpty()) { "At least one capability" }
+        val names = capabilities.joinToString(", ") { "'${it.name}'" }
+        return db.fetchOne(
+            """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
+               WHERE actor.account_id = ? AND ${activeVerified("actor")} AND g.capability IN ($names)
+               LIMIT 1${if (lock) " FOR SHARE OF actor, g" else ""}""", actor) != null
     }
 }

@@ -48,4 +48,12 @@ class ActorSqlTest {
         val bound = ActorSql.holdsTeamCapability("?", Capability.MANAGE_TEAMS)
         assertTrue(bound.count { it == '?' } == 2)
     }
+
+    @Test
+    fun clubWideCheckNeedsACapability() {
+        // The database part is covered by every route's 404/403 tests; without capabilities it refuses before SQL.
+        assertThrows(IllegalArgumentException::class.java) {
+            ActorSql.holdsClubWide(org.jooq.impl.DSL.using(org.jooq.SQLDialect.POSTGRES), java.util.UUID.randomUUID())
+        }
+    }
 }

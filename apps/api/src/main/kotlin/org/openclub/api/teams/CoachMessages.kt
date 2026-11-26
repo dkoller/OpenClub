@@ -33,10 +33,7 @@ internal class CoachMessages(private val database: DSLContext, private val notif
                       ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)} AS allowed
                FROM team_events e WHERE e.id = ?""", actor, eventId)
             // An unknown event is 404 only for a club-wide manager; a team-scoped one cannot tell it from a foreign one.
-            ?: return@transactionResult if (db.fetchOne(
-                """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability = 'MANAGE_TEAMS'""",
-                actor) != null) Outcome.NotFound else Outcome.Denied
+            ?: return@transactionResult if (ActorSql.holdsClubWide(db, actor, Capability.MANAGE_TEAMS)) Outcome.NotFound else Outcome.Denied
         if (event.get("allowed", Boolean::class.java) != true) return@transactionResult Outcome.Denied
         if (!notifier.enabled) return@transactionResult Outcome.EmailOff
         if (event.get("open", Boolean::class.java) != true) return@transactionResult Outcome.Closed

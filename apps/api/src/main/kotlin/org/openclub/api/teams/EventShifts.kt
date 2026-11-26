@@ -262,10 +262,7 @@ internal class EventShifts(private val database: DSLContext) {
 
     private fun holdsClubTeamCapability(actor: UUID) = holdsClubTeamCapability(database, actor)
 
-    private fun holdsClubTeamCapability(db: DSLContext, actor: UUID): Boolean = db.fetchOne(
-        """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-           WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
-             AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS') LIMIT 1""", actor) != null
+    private fun holdsClubTeamCapability(db: DSLContext, actor: UUID): Boolean = ActorSql.holdsClubWide(db, actor, Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)
 
     companion object {
         const val MAX_PER_EVENT = 50

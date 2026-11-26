@@ -1,6 +1,7 @@
 package org.openclub.api.fees
 
 import org.jooq.DSLContext
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.jooq.exception.DataAccessException
 import org.jooq.impl.DSL
 import org.openclub.api.members.ActorSql
@@ -51,10 +52,7 @@ internal class MembershipFees(private val database: DSLContext) {
     }
 
     /** Locks the actor's live MANAGE_FEES grant and member row for the rest of the transaction; false without one. */
-    private fun lockManager(db: DSLContext, actor: UUID): Boolean = db.fetchOne(
-        """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id AND g.capability = 'MANAGE_FEES'
-           WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
-           FOR SHARE OF actor, g""", actor) != null
+    private fun lockManager(db: DSLContext, actor: UUID): Boolean = ActorSql.holdsClubWide(db, actor, Capability.MANAGE_FEES, lock = true)
 
     private fun audit(db: DSLContext, type: String, actor: UUID, member: UUID) = db.execute(
         "INSERT INTO audit_events (event_type, actor_account_id, target_member_id) VALUES (?, ?, ?)", type, actor, member)

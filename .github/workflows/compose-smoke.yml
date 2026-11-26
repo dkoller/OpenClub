@@ -77,7 +77,7 @@ jobs:
     env:
       COMPOSE_PROJECT_NAME: openclub
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Validate optional Keycloak dev overlay and realm JSON
         env:
           KEYCLOAK_DEV_ADMIN_PASSWORD: ci-validation-only-not-a-real-credential

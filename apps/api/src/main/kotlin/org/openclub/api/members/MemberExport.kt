@@ -1,6 +1,7 @@
 package org.openclub.api.members
 
 import kotlinx.serialization.json.JsonNull
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
@@ -47,10 +48,7 @@ internal class MemberExport(private val database: DSLContext) {
     fun exportAsEditor(actorAccountId: UUID, memberId: UUID, exportedAt: Instant = Instant.now()): EditorExport =
         database.transactionResult { configuration ->
             val db = DSL.using(configuration)
-            val editor = db.fetchOne(
-                """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id JOIN clubs club ON TRUE
-                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability = 'EDIT_MEMBERS'
-                   FOR SHARE OF actor, g""", actorAccountId) != null
+            val editor = ActorSql.holdsClubWide(db, actorAccountId, Capability.EDIT_MEMBERS, lock = true)
             if (!editor) return@transactionResult EditorExport.Denied
             val json = build(db, memberId, exportedAt) ?: return@transactionResult EditorExport.NotFound
             AuditEvents.record(db, AuditEvents.Type.MEMBER_EXPORTED, actorAccountId, memberId)

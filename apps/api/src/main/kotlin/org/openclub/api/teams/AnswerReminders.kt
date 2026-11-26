@@ -46,10 +46,7 @@ internal class AnswerReminders(private val database: DSLContext, private val not
     }
 
     /** An unknown event is 404 only for a club-wide team holder; anyone else cannot tell it from a foreign one. */
-    private fun holdsClubTeamCapability(db: DSLContext, actor: UUID): Boolean = db.fetchOne(
-        """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-           WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
-             AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS') LIMIT 1""", actor) != null
+    private fun holdsClubTeamCapability(db: DSLContext, actor: UUID): Boolean = ActorSql.holdsClubWide(db, actor, Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)
 
     companion object {
         const val MIN_HOURS = 12
