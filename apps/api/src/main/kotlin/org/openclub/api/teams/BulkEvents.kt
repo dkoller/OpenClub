@@ -39,10 +39,7 @@ internal class BulkEvents(private val database: DSLContext, private val notifier
             actor, input.teams.map(UUID::toString).toTypedArray())
         if (teams.any { it.get("allowed", Boolean::class.java) != true }) return@transactionResult Result.Denied
         if (teams.size != input.teams.size) {
-            val clubWide = db.fetchOne(
-                """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability = 'MANAGE_TEAMS'""", actor)
-            return@transactionResult if (clubWide != null) Result.NotFound else Result.Denied
+            return@transactionResult if (ActorSql.holdsClubWide(db, actor, Capability.MANAGE_TEAMS)) Result.NotFound else Result.Denied
         }
         if (input.venueId != null && db.fetchOne("SELECT 1 FROM venues WHERE id = ?", input.venueId) == null) {
             return@transactionResult Result.UnknownVenue

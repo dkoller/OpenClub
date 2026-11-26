@@ -1,6 +1,7 @@
 package org.openclub.api.members
 
 import kotlinx.serialization.json.Json
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import org.jooq.DSLContext
@@ -23,10 +24,7 @@ internal class MemberListTransfer(private val database: DSLContext) {
 
     data class Imported(val rows: List<Checked>, val created: Int?)
 
-    private fun lockEditor(db: DSLContext, actor: UUID): Boolean = db.fetchOne(
-        """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id AND g.capability = 'EDIT_MEMBERS'
-           WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
-           FOR SHARE OF actor, g""", actor) != null
+    private fun lockEditor(db: DSLContext, actor: UUID): Boolean = ActorSql.holdsClubWide(db, actor, Capability.EDIT_MEMBERS, lock = true)
 
     /** Null without the grant. [table] is the parsed file; rows are checked against the club's current rules. */
     fun importRows(actor: UUID, table: List<List<String>>, commit: Boolean): Imported? = database.transactionResult { configuration ->

@@ -79,10 +79,7 @@ internal class EventAttendance(private val database: DSLContext) {
     fun list(actor: UUID, eventId: UUID): Listing {
         val access = database.fetchOne(
             "SELECT ${ActorSql.holdsTeamCapability("e.team_id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)} FROM team_events e WHERE e.id = ?",
-            actor, eventId) ?: return if (database.fetchOne(
-                """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS') LIMIT 1""",
-                actor) != null) Listing.NotFound else Listing.Denied
+            actor, eventId) ?: return if (ActorSql.holdsClubWide(database, actor, Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)) Listing.NotFound else Listing.Denied
         if (access.get(0, Boolean::class.java) != true) return Listing.Denied
         val answers = database.fetch(
             """SELECT CASE WHEN ${AgeSql.minor("m")}
@@ -120,10 +117,7 @@ internal class EventAttendance(private val database: DSLContext) {
     fun statistics(actor: UUID, teamId: UUID, from: LocalDate, to: LocalDate): Statistics {
         val access = database.fetchOne(
             "SELECT ${ActorSql.holdsTeamCapability("t.id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)} FROM teams t WHERE t.id = ?",
-            actor, teamId) ?: return if (database.fetchOne(
-                """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-                   WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS') LIMIT 1""",
-                actor) != null) Statistics.NotFound else Statistics.Denied
+            actor, teamId) ?: return if (ActorSql.holdsClubWide(database, actor, Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)) Statistics.NotFound else Statistics.Denied
         if (access.get(0, Boolean::class.java) != true) return Statistics.Denied
         val held = (database.fetchValue(
             """SELECT count(*) FROM team_events e WHERE e.team_id = ? AND NOT e.cancelled AND e.starts_at <= now()

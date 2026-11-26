@@ -36,10 +36,7 @@ internal class MemberDetailsRead(private val database: DSLContext) {
 
     fun read(actorAccountId: UUID, memberId: UUID): Result = database.transactionResult { configuration ->
         val db = DSL.using(configuration)
-        val editor = db.fetchOne(
-            """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-               WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
-                 AND g.capability = '${Capability.EDIT_MEMBERS.name}'""", actorAccountId) != null
+        val editor = ActorSql.holdsClubWide(db, actorAccountId, Capability.EDIT_MEMBERS)
         if (editor) {
             val row = db.fetchOne(
                 """SELECT first_name, last_name, date_of_birth, email, phone, gender, is_player, archived_at, row_version,

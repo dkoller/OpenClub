@@ -90,10 +90,7 @@ internal class Announcements(private val database: DSLContext) {
     }
 
     /** Club-wide holders may learn that a team or announcement does not exist; team-scoped ones get 403 instead. */
-    private fun clubWide(actor: UUID): Boolean = database.fetchOne(
-        """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-           WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability IN ('MANAGE_TEAMS', 'POST_ANNOUNCEMENTS') LIMIT 1""",
-        actor) != null
+    private fun clubWide(actor: UUID): Boolean = ActorSql.holdsClubWide(database, actor, Capability.MANAGE_TEAMS, Capability.POST_ANNOUNCEMENTS)
 
     fun create(actor: UUID, teamId: UUID?, title: String, body: String, showUntil: LocalDate): Created {
         if (teamId != null && database.fetchOne("SELECT 1 FROM teams WHERE id = ?", teamId) == null) {

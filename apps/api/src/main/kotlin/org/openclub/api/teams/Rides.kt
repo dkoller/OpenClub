@@ -251,10 +251,7 @@ internal class Rides(private val database: DSLContext) {
 
     private fun clubWideTeamHolder(actor: UUID) = clubWideTeamHolder(database, actor)
 
-    private fun clubWideTeamHolder(db: DSLContext, actor: UUID): Boolean = db.fetchOne(
-        """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id
-           WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")}
-             AND g.capability IN ('VIEW_TEAMS', 'MANAGE_TEAMS') LIMIT 1""", actor) != null
+    private fun clubWideTeamHolder(db: DSLContext, actor: UUID): Boolean = ActorSql.holdsClubWide(db, actor, Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)
 
     companion object {
         /** Departure between a day before the event's start and its end. Uses `x.departs`; binds nothing. */

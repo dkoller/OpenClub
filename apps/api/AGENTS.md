@@ -6,7 +6,7 @@ Read root `AGENTS.md` and ADR-0001 first.
 - Use jOOQ's **plain-SQL API with `?` bind parameters**; feature code does not use generated classes (see the ADR-0001 2026-11-17 amendment). Never interpolate request input into SQL.
 - Read JSON request bodies only through `receiveJsonObject` (`JsonRequestBodies.kt`): it enforces content type, the 4 KiB limit, an object body and the exact allowed key set. All violations map to 400. Keep its database-free tests in `JsonRequestBodiesTest`.
 - Keep operator CLI input checks in functions that take the environment as a map (`bootstrapInput`, `recoveryInput`) so they are tested without a database.
-- Use `members/ActorSql.kt` for the actor-authorization predicate (active member + current verified identity + capability) instead of copying it into new queries.
+- Use `members/ActorSql.kt` for the actor-authorization predicate (active member + current verified identity + capability) instead of copying it into new queries. For a stand-alone club-wide check (the 404-or-403 decision, or a share-locked up-front check in a transaction) use `ActorSql.holdsClubWide`.
 - Do not introduce Hibernate/JPA or Exposed as an alternative persistence layer.
 - Keep jOOQ code and generated database records out of public API DTOs.
 - Prefer concrete services and data access classes; add abstractions only where they provide an actual boundary. First trace a feature end-to-end through HTTP, authentication/authorization, SQL, tests and OpenAPI before changing the structure.

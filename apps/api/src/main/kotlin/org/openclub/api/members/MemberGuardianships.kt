@@ -1,6 +1,7 @@
 package org.openclub.api.members
 
 import kotlinx.serialization.json.Json
+import org.openclub.api.members.ClubCapabilityAccess.Capability
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import org.jooq.DSLContext
@@ -44,10 +45,7 @@ internal class MemberGuardianships(private val database: DSLContext) {
     }
     enum class Change { DONE, ABSENT, NOT_FOUND, CONFLICT, DENIED }
 
-    private fun editor(db: DSLContext, actor: UUID): Boolean = db.fetchOne(
-        """SELECT 1 FROM members actor JOIN club_capability_grants g ON g.member_id = actor.id JOIN clubs club ON TRUE
-           WHERE actor.account_id = ? AND ${ActorSql.activeVerified("actor")} AND g.capability = 'EDIT_MEMBERS'
-           FOR SHARE OF actor, g""", actor) != null
+    private fun editor(db: DSLContext, actor: UUID): Boolean = ActorSql.holdsClubWide(db, actor, Capability.EDIT_MEMBERS, lock = true)
 
     private fun activeMinor(db: DSLContext, id: UUID): Boolean = db.fetchOne(
         "SELECT 1 FROM members m JOIN clubs c ON TRUE WHERE m.id = ? AND m.archived_at IS NULL AND ${minor("m")}", id) != null
