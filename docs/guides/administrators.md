@@ -6,15 +6,15 @@ you*: open join requests, helper shifts of the next 14 days that still need peop
 each with a button to the right section. The treasurer's tasks are in the [treasurer guide](treasurer.md), the
 coaches' in the [coach guide](coaches.md).
 
+![Administration → Waiting for you](images/admin-overview.png)
+
 ## Members (`EDIT_MEMBERS`)
-
-![Administration start: what is waiting for a decision](images/admin-overview.png)
-
-![The member list in Administration](images/admin-members.png)
 
 *Administration* → *Members* shows the member list and form; the other member tasks have their own pages (*More
 tasks*): *Invitations and accounts*, *Guardians*, *Club roles* (with `MANAGE_PERMISSIONS`), *Excel import and export*,
 *Archive* and *Public member list*.
+
+![Administration → Members: the list and the form](images/admin-members.png)
 
 - **Find, add, edit:** *Search names*; *Add member* with first and last name, date of birth and, for adults, email and
   phone; *Player* (with *Gender* if the club requires it). *Edit* starts from the current values and refuses to save
@@ -26,9 +26,19 @@ tasks*): *Invitations and accounts*, *Guardians*, *Club roles* (with `MANAGE_PER
   guardianships. Only *Member*-role members without a linked sign-in can be archived. The *Archive* page lists archived
   members; *Reactivate* brings one back without former rights. Archived members are erased automatically after
   24 months; earlier erasure on request is done by the operator.
+
+  ![Members → Archive](images/admin-members-archived.png)
+
+- **Public member list** (page): exactly what visitors see on the signed-out page: adults by full name, children by
+  first name and initial, without members who chose not to be listed.
+
+  ![Members → Public member list](images/admin-members-public.png)
+
 - **Excel:** download the member list as CSV, or import from *CSV UTF-8* (First name, Last name, Date of birth, and
   optionally Email, Phone, Gender, Player). *Check file* previews every row; nothing is created until *Import N
   members*; existing members are never changed.
+
+  ![Members → Excel import and export](images/admin-members-transfer.png)
 
 ## Invitations and sign-in
 
@@ -39,19 +49,23 @@ tasks*): *Invitations and accounts*, *Guardians*, *Club roles* (with `MANAGE_PER
 
 Minors and archived members cannot be invited.
 
+![Members → Invitations and accounts](images/admin-members-invitations.png)
+
 ## Guardians
 
 *Guardians*: find the minor, then *Find a guardian* (an adult member with a sign-in) and *Add as guardian*. You confirm
 that you checked the relationship outside OpenClub. At most two per child. Guardianships end by themselves at the club's
 adult age, on archiving or when the guardian's sign-in is unlinked. A guardianship gives no other permission.
 
-## Join requests (`EDIT_MEMBERS`)
+![Members → Guardians](images/admin-members-guardians.png)
 
-![An open join request](images/admin-join-requests.png)
+## Join requests (`EDIT_MEMBERS`)
 
 *Join requests*: tick *Public application form is on* to show *Join the club* on the signed-out page. *Accept* creates the
 member (and puts them in the wished team); *Decline* deletes the application. Unhandled applications are deleted after
 60 days. For a child, link the parent as guardian afterwards.
+
+![Join requests](images/admin-join-requests.png)
 
 ## Teams (`MANAGE_TEAMS` club-wide)
 
@@ -63,12 +77,14 @@ On the *Team* page, *Add team* creates a team; each team's page has *Manage team
 *Administration* → *Fields and halls*: *Add* the club's fields and halls by name, *Rename* or *Delete* them. Deleting
 one keeps its events, without the place. Coaches then pick a field or hall per event and double bookings are refused.
 
-## Permissions (`MANAGE_PERMISSIONS`)
+![Fields and halls](images/admin-venues.png)
 
-![The permissions page](images/admin-permissions.png)
+## Permissions (`MANAGE_PERMISSIONS`)
 
 Find a member, choose the *Scope* (*Club* or one *Team*) and the *Capability*, then *Grant*; *Revoke* removes one. A
 change applies to the member's next action.
+
+![Permissions](images/admin-permissions.png)
 
 | Capability | Allows |
 | --- | --- |
@@ -84,6 +100,8 @@ change applies to the member's next action.
 The first administrator holds every club-wide capability from the start. *Club roles* switches a member between
 *Member* and *Administrator*; the last administrator cannot be demoted.
 
+![Members → Club roles](images/admin-members-roles.png)
+
 ## Announcements (`POST_ANNOUNCEMENTS`)
 
 On *Start*, choose *For* (the whole club or a team you manage), *Title*, *Text*, optionally *Show until* (default 60
@@ -93,6 +111,8 @@ days), then *Post*. Announcements are deleted 6 months after their show-until da
 
 *Edit club name*; *Adult age* (13 to 25, default 18; raising it is refused while members who would become adults lack
 email or phone); *Require gender for players*.
+
+![Settings](images/admin-settings.png)
 
 ## What the operator does instead
 

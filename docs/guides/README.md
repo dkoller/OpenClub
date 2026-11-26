@@ -46,6 +46,8 @@ Choose *Sign in*. You are sent to the club's sign-in service, then back to the c
 not yet a club member*, your account works but no member record is linked to it: ask the club for an invitation, or
 paste one you received into *Accept an invitation*. *Sign out* ends your session on this device.
 
+<img src="images/public-signed-out.png" alt="Signed out: the start page with Sign in" width="300"> <img src="images/public-not-member.png" alt="Signed in, but not yet a member: Accept an invitation" width="300">
+
 ## Privacy in short
 
 - Contacts (email, phone, birth date) are shown only to people the club explicitly allowed. The one exception is
