@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { formatDate } from './dates'
 import type { Language } from './language'
 import { fetchArchivedPage, type ArchivedMember } from './members'
 import { reactivateMember } from './memberDetails'
@@ -86,7 +87,7 @@ export function ArchivedMembers({ language, csrfToken, revision, onChanged }: {
         : items.length === 0 ? <p>{t.empty}</p>
           : <ul>{items.map(member => <li key={member.id}>
             {member.firstName} {member.lastName}{' '}
-            <span>({t.archived} {new Date(member.archivedAt).toLocaleDateString(language)})</span>{' '}
+            <span>({t.archived} {formatDate(member.archivedAt)})</span>{' '}
             <button type="button" disabled={busy} onClick={() => { void reactivate(member) }}>{t.reactivate}</button>
           </li>)}</ul>}
       {cursor && <button type="button" disabled={busy} onClick={() => { void load(query, cursor) }}>{t.more}</button>}

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { formatDate } from './dates'
 import type { Language } from './language'
 import { LanguageChoice } from './LanguageChoice'
 import { fetchMyProfile, replaceMyContacts, setMyPublicListing, type MyProfile as Profile } from './myProfile'
@@ -68,7 +69,7 @@ export function MyProfile({ language, csrfToken, onLanguage }: { language: Langu
       <h1>{t.title}</h1>
       <dl>
         <div><dt>{t.name}</dt><dd>{profile.firstName} {profile.lastName}</dd></div>
-        <div><dt>{t.dob}</dt><dd>{profile.dateOfBirth}</dd></div>
+        <div><dt>{t.dob}</dt><dd>{formatDate(profile.dateOfBirth)}</dd></div>
         {profile.gender && <div><dt>{t.gender}</dt><dd>{profile.gender}</dd></div>}
         <div><dt>{t.player}</dt><dd>{profile.isPlayer ? t.yes : t.no}</dd></div>
         <div><dt>{t.role}</dt><dd>{t[profile.role]}</dd></div>

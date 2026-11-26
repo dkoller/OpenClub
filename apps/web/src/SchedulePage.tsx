@@ -49,7 +49,7 @@ export function SchedulePage({ language, csrfToken, self }: { language: Language
                 {missing && <span className="open">{t.missing}</span>}
                 {!event.cancelled && event.for.some(person => person.squad?.called) && <span className="chip-tag">{t.called}</span>}</span>
               <b>{event.title}</b>
-              <span className="muted">{formatWhen(event, language)}{event.location ? ' · ' + event.location : ''}</span>
+              <span className="muted">{formatWhen(event, language, false)}{event.location ? ' · ' + event.location : ''}</span>
             </span>
           </a>
           {!event.cancelled && event.for.map(person => <AnswerButtons key={person.id} event={event} person={person} self={self}

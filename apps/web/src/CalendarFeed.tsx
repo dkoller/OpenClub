@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatDate } from './dates'
 import type { Language } from './language'
 import { createFeed, readFeedStatus, revokeFeed, type FeedStatus } from './calendarFeed'
 
@@ -46,7 +47,7 @@ export function CalendarFeed({ language, csrfToken }: { language: Language; csrf
       <h1>{t.title}</h1>
       <p>{t.intro}</p>
       {status === 'error' ? <p role="alert">{t.error}</p> : <>
-        <p>{status.active && status.createdAt ? `${t.active} ${new Date(status.createdAt).toLocaleDateString(language)}` : t.none}</p>
+        <p>{status.active && status.createdAt ? `${t.active} ${formatDate(status.createdAt)}` : t.none}</p>
         {link && <>
           <label>{t.link}<input readOnly value={link} onFocus={event => event.target.select()} /></label>
           <button type="button" onClick={() => { void copy() }}>{t.copy}</button>

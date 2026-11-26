@@ -40,6 +40,21 @@ input, select, textarea { min-height: 44px; box-sizing: border-box; border: 1px 
   padding: 0 0.75rem; background: var(--card); max-width: 100%; }
 textarea { padding: 0.5rem 0.75rem; }
 label { display: inline-flex; flex-direction: column; gap: 0.25rem; margin: 0.25rem 0.5rem 0.25rem 0; }
+/* Tick boxes and radio buttons keep their normal size beside their text; the whole label stays a 44px touch target. */
+input[type='checkbox'], input[type='radio'] { width: 1.375rem; height: 1.375rem; min-height: 0; padding: 0; margin: 0;
+  flex: none; accent-color: var(--club); }
+label:has(> input[type='checkbox']), label:has(> input[type='radio']) { flex-direction: row; align-items: center;
+  gap: 0.625rem; min-height: 44px; }
+/* Facts such as name and date of birth: label and value side by side, not indented. */
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0; }
+dl > div { display: contents; }
+dt { color: var(--muted); }
+dd { margin: 0; }
+caption { text-align: left; font-weight: 700; padding-bottom: 0.5rem; }
+.shift-rows { list-style: none; padding: 0; }
+.shift-rows li { margin: 0; border-top: 1px solid var(--line); }
+.shift-rows li:first-child { border-top: 0; }
+.shift-rows p { margin: 0 0 0.25rem; }
 button { min-height: 44px; min-width: 44px; box-sizing: border-box; border-radius: 10px; padding: 0 0.875rem;
   border: 1px solid var(--control); background: var(--card); cursor: pointer; margin: 0.25rem 0.25rem 0.25rem 0; }
 button:disabled { cursor: default; opacity: 0.6; }

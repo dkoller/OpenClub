@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState, type FormEvent } from 'react'
+import { formatDate } from './dates'
 import type { Language } from './language'
 import {
   deleteAnnouncement, postAnnouncement, readAnnouncements, replaceAnnouncement,
@@ -86,7 +87,7 @@ export function Announcements({ language, csrfToken }: { language: Language; csr
           <button type="button" onClick={() => setEditing(null)}>{t.cancel}</button>
         </form> : <article aria-label={item.title}>
           <h3>{item.title}</h3>
-          <p>{item.teamName ?? t.club} · {item.createdAt.slice(0, 10)} · {t.shownUntil} {item.showUntil}</p>
+          <p className="muted small">{item.teamName ?? t.club} · {formatDate(item.createdAt)}{item.canManage && <> · {t.shownUntil} {formatDate(item.showUntil)}</>}</p>
           <Lines text={item.body} />
           {item.canManage && <>
             <button type="button" disabled={busy} onClick={() => setEditing({ id: item.id, draft: { title: item.title, body: item.body, showUntil: item.showUntil } })}>{t.edit}</button>

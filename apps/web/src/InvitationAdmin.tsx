@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { formatDayTime } from './dates'
 import type { Language } from './language'
 import { fetchMemberPage, type Member } from './members'
 import { latestLookup } from './roles'
@@ -103,7 +104,7 @@ export function InvitationAdmin({ language, csrfToken }: { language: Language; c
           <input readOnly size={60} value={invitationLink(window.location.origin, invitation.secret)}
             onFocus={event => event.currentTarget.select()} />
         </label>
-        {' '}{t.expires} {new Date(invitation.expiresAt).toLocaleString(language)}
+        {' '}{t.expires} {formatDayTime(invitation.expiresAt, language)}
       </p>}
       {message && <p role="status">{message === 'conflict' ? t.conflict : t[message]}</p>}
       {error && <p role="alert">{t.error}</p>}

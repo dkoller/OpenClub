@@ -43,7 +43,7 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 
 ## Helpers, rides and messages
 
-- **Volunteer shifts:** add helper jobs to an event (*Task*, times, *People needed*); the team sees who signed up.
+- **Volunteer shifts:** *New shift* adds a helper job to an event (*Task*, times, *People needed*, *Add shift*); the team sees who signed up.
   *Helpers missing* on the *Team* page lists shifts of the next 14 days with free places. Seven days before such a
   shift the team and the parents are asked by email.
 - **Rides:** the event page lists the team's carpool offers and bookings.
