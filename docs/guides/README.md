@@ -16,6 +16,10 @@ Button and field names are the English ones; the app also speaks German, French 
 
 Most people hold more than one role: a coach is usually also a parent. Each guide describes only its own tasks.
 
+The pictures in these guides show the fictional demo club *FC Musterfeld* in English. They are taken automatically
+from the running app after every change that passes the browser tests, so they match the current version; see
+[documentation maintenance](../contributing/documentation.md#screenshots-in-the-guides).
+
 ## Finding your way (everyone)
 
 The app shows one page at a time. At the top are the club's name (back to *Start*), the language box and *Sign out*.

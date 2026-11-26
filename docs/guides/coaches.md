@@ -5,6 +5,8 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 
 ## Who is coming
 
+<img src="images/coach-team.png" alt="A team page on a phone" width="320"> <img src="images/coach-event.png" alt="A match page for the coach: who is coming, the squad and who came" width="320">
+
 - **Next events** opens the *Team* page: the next 14 days of your teams (at most eight teams) with totals and how
   many have not answered (*11 yes · 2 no · 3 open*).
 - **An event's page** shows *Who is coming?*: totals, then names under *No answer yet*, *No*, *Maybe* and *Yes*

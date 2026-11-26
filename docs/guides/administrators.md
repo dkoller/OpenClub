@@ -8,6 +8,10 @@ coaches' in the [coach guide](coaches.md).
 
 ## Members (`EDIT_MEMBERS`)
 
+![Administration start: what is waiting for a decision](images/admin-overview.png)
+
+![The member list in Administration](images/admin-members.png)
+
 *Administration* → *Members* shows the member list and form; the other member tasks have their own pages (*More
 tasks*): *Invitations and accounts*, *Guardians*, *Club roles* (with `MANAGE_PERMISSIONS`), *Excel import and export*,
 *Archive* and *Public member list*.
@@ -43,6 +47,8 @@ adult age, on archiving or when the guardian's sign-in is unlinked. A guardiansh
 
 ## Join requests (`EDIT_MEMBERS`)
 
+![An open join request](images/admin-join-requests.png)
+
 *Join requests*: tick *Public application form is on* to show *Join the club* on the signed-out page. *Accept* creates the
 member (and puts them in the wished team); *Decline* deletes the application. Unhandled applications are deleted after
 60 days. For a child, link the parent as guardian afterwards.
@@ -58,6 +64,8 @@ On the *Team* page, *Add team* creates a team; each team's page has *Manage team
 one keeps its events, without the place. Coaches then pick a field or hall per event and double bookings are refused.
 
 ## Permissions (`MANAGE_PERMISSIONS`)
+
+![The permissions page](images/admin-permissions.png)
 
 Find a member, choose the *Scope* (*Club* or one *Team*) and the *Capability*, then *Grant*; *Revoke* removes one. A
 change applies to the member's next action.

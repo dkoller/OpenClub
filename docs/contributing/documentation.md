@@ -35,3 +35,23 @@ For live delivery gates, start with the [short current roadmap](../roadmap.md) a
 - [ADR-0001](../decisions/0001-stack-selection.md) and [ADR-0005](../decisions/0005-single-club-installation.md): accepted stack and **current one-club-per-installation** member/account boundaries. [ADR-0002](../decisions/0002-identity-and-membership-model.md) is **superseded**, retained only as historical context; do not implement its multi-club/global-person assumptions.
 - [CI workflow](../../.github/workflows/build.yml): currently PostgreSQL service-based tests, **not** Testcontainers.
 - [Application manifests](../../apps/web/package.json) and lockfile: actual installed versions (including Vitest), rather than stale version references in prose.
+
+## Screenshots in the guides
+
+The pictures in `docs/guides/images` are not taken by hand. `dev/auth-e2e/docs-screenshots.spec.js` starts from an
+empty club, fills it with the fictional demo data (`dev/deployment/seed-demo-data.sql`), signs in as a parent
+(phone size) and as the administrator (phone size for the coach pages, laptop size for administration) and
+photographs each page in English. Sign-in pages are never photographed, and only the PNG files leave the CI job.
+
+- **When:** the workflow `.github/workflows/docs-screenshots.yml` runs after the Keycloak browser journey has passed
+  on `main`. A picture is replaced only when it differs by more than 3% of its pixels, so a date that moved by a day
+  does not count, while a changed screen does. If any picture changed, the workflow opens or updates one pull request
+  *Update documentation screenshots* (branch `docs-screenshots`) that contains only PNG files; it is merged like any
+  other docs PR. A pull request that changes the screenshot test itself uploads the pictures for review instead.
+- **Repository setting:** *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests*
+  must be on. Pull requests created by the workflow token start no other workflows; the picture-only PR needs none.
+- **New picture:** add a `shoot(page, '#/…', 'name')` line to the spec and reference `images/name.png` from the guide;
+  the next run on `main` adds the file. Keep names flat (`a-z`, digits, `-`), as the workflow refuses anything else.
+- **Run locally:** with the Keycloak stack of the browser journey running, from `dev/auth-e2e`:
+  `OPENCLUB_E2E_DISPOSABLE=true pnpm exec playwright test -c docs-screenshots.config.js --update-snapshots=all`
+  (it bootstraps the club, so it needs an empty disposable database).
