@@ -53,6 +53,8 @@ photographs each page in English. Sign-in pages are never photographed, and only
   warning, and a person opens the PR from that branch. Pull requests created by the workflow token start no other
   workflows; the picture-only PR needs none.
 - **Sizes:** phone pictures (390 × 844) show one screen, as on a phone; laptop pictures (1280 wide) show the whole page.
+- **Every view:** the spec photographs every page of the app (34 pictures, listed in `docs/guides/screens.md`). A new
+  page needs a `shoot(...)` line there and an entry in `screens.md`.
 - **New picture:** add a `shoot(page, '#/…', 'name')` line to the spec and reference `images/name.png` from the guide;
   the next run on `main` adds the file. Keep names flat (`a-z`, digits, `-`), as the workflow refuses anything else.
 - **Run locally:** with the Keycloak stack of the browser journey running, from `dev/auth-e2e`:
