@@ -1,7 +1,8 @@
 # Datenschutzerklärung — ENTWURF
 
-> **Entwurf vom 19.11.2026, Fristen und Ausblenden der öffentlichen Liste am 20.11.2026 vom Verein entschieden, keine
-> Rechtsberatung.** Grundlage: [Entscheidungsblatt](controller-decisions.md) und
+> **Entwurf vom 19.11.2026, Fristen und Ausblenden der öffentlichen Liste am 20.11.2026 vom Verein entschieden,
+> ergänzt am 26.11.2026 bis OpenAPI 1.33.1, keine Rechtsberatung.** Offen (#12): ob die tatsächliche Anwesenheit kürzer
+> als 24 Monate aufbewahrt wird. Grundlage: [Entscheidungsblatt](controller-decisions.md) und
 > [Bearbeitungsverzeichnis](processing-record.md). Platzhalter stehen in eckigen Klammern. Erst verwenden, wenn der
 > Verein alle Entscheide bestätigt hat; für französisch- oder italienischsprachige Mitglieder eine Übersetzung
 > bereitstellen.
@@ -24,7 +25,8 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
   oder neuen Terminen Ihres Teams (oder der Teams Ihrer Kinder), zu Mitteilungen, als Erinnerung vor Helfereinsätzen
   eine Woche vor Helfereinsätzen mit freien Plätzen («Helfer gesucht», nur mit Anzahl, ohne Namen) und wenn Ihre Antwort
   zu einem Termin fehlt (zwei Tage vorher oder wenn die Trainerin oder der Trainer erinnert). Sie können jede
-  Art unter «Familie» → «E-Mail-Benachrichtigungen» abbestellen. Versendete Nachrichten löschen wir nach 7 Tagen.
+  Art unter «Familie» → «E-Mail-Benachrichtigungen» abbestellen. Den Text einer Nachricht löschen wir, sobald sie
+  versendet ist; Betreff und Versandstatus nach 7 Tagen.
 - **Kalender-Abo (freiwillig):** Wenn Sie unter «Familie» → «Kalender-Abo» einen Kalender-Link erstellen, lädt Ihre
   Kalender-App (z. B. Google oder Apple) Ihre Termine samt Ort und Notizen über diesen Link und speichert sie in Ihrem
   Konto bei diesem Anbieter. Sie können den Link jederzeit widerrufen.
@@ -44,6 +46,20 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
   Konto des Vereins. Die Rechnung wird beim Herunterladen erstellt und nicht gespeichert; Ihre Adresse steht nicht
   darauf, weil wir keine Adressen erfassen. Mit der Referenz ordnet die Kassierin oder der Kassier Ihre Zahlung zu.
 - **Mitteilungen** des Vereins und Ihrer Teams.
+- **Push-Benachrichtigungen (freiwillig):** Wenn Sie sie unter «Familie» → «E-Mail-Benachrichtigungen» für ein Gerät
+  einschalten, speichern wir die Push-Adresse, die Ihr Browser dafür vergibt. Der Push-Dienst des Browser-Herstellers
+  (z. B. Google, Apple, Mozilla) erhält nur ein leeres Signal, nie Text oder Namen; Ihr Gerät holt den Text danach
+  bei uns ab. Abmelden in der App oder Ausschalten löscht die Adresse für dieses Gerät.
+- **Anwesenheit und J+S:** Trainerinnen und Trainer halten fest, wer an einem Training oder Spiel tatsächlich da war
+  (als Teilnehmende oder Leitende). Für die Abrechnung mit Jugend+Sport (J+S) erfasst der Verein Ihre J+S-Personennummer
+  und meldet die Anwesenheiten mit dieser Nummer über das J+S-Portal (NDS) des Bundesamts für Sport; jeder Download
+  dieser Datei wird pro Person protokolliert.
+- **Aufgebot:** wer für ein Spiel aufgeboten ist, mit Treffpunkt und Zeit. Sie sehen nur Ihr eigenes Aufgebot (bzw.
+  das Ihres Kindes).
+- **Nachrichten der Trainerin oder des Trainers:** E-Mails an das Team, die der Server versendet; niemand sieht dabei
+  Adressen. Wir protokollieren nur Zeit, Empfängergruppe und Anzahl, nicht den Text.
+- **Helferpflicht:** Wenn der Verein eine Anzahl Helfereinsätze pro Saison festlegt, sieht die Kassierin oder der
+  Kassier, wie viele Einsätze jede erwachsene Person (inkl. ihrer Kinder) geleistet hat; Sie sehen Ihre eigene Zahl.
 
 Gesundheitsdaten oder Gründe für Abwesenheiten erfassen wir nicht. Bitte schreiben Sie solche Angaben auch nicht in
 Mitteilungen oder Notizen.
@@ -70,7 +86,8 @@ im Sinne des Vereins wird.
 ## Wie lange bewahren wir Daten auf?
 
 Solange Sie Mitglied sind. Nach dem Austritt löschen wir Ihre Daten nach 24 Monaten. Antworten zur Anwesenheit
-und Eintragungen für Helfereinsätze löschen wir 12 Monate nach dem Anlass, Trainings und Anlässe 24 Monate danach, Beitragsdaten 24 Monate nach der
+und Eintragungen für Helfereinsätze löschen wir 12 Monate nach dem Anlass, Trainings und Anlässe samt
+tatsächlicher Anwesenheit und Aufgebot 24 Monate danach, Beitragsdaten 24 Monate nach der
 Fälligkeit (die Buchhaltung des Vereins bewahrt ihre Belege gesetzlich 10 Jahre auf), Mitteilungen 6 Monate nach
 Ablauf. OpenClub löscht diese Daten automatisch. Das Protokoll der Zugriffe enthält keine Namen und wird nach 12
 Monaten gelöscht. Sicherungskopien werden nach 30 Tagen überschrieben.

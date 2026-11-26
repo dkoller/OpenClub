@@ -89,6 +89,30 @@ desktop browser in a private window per person; you need **three** Rauthy users,
       event's page offers *Sign up: Lea* for the shift.
 - [ ] D4 Remove Sandra as guardian of both: *My children* disappears for `parent@…` after a reload.
 
+## G. Match day, planning and helper duty (OpenAPI 1.27–1.33)
+
+Continue as `coach@…` with the `MANAGE_TEAMS` grant for Juniors U12 from C3 (give it again if C5 revoked it), and as
+the administrator.
+
+- [ ] G1 Administrator: *Administration* → *Fields and halls*, add "Musterfeld pitch 1". As the coach, set it on one U12
+      training; a second U12 event at an overlapping time on the same pitch is refused and names the first one.
+      *Schedule* → *Fields and halls* shows the booking to every member.
+- [ ] G2 Coach: on the U12 home match, *Squad*: tick three players, set a meeting time and point, *Save squad*. As
+      `parent@…` (guardian of Lea, D2) *Schedule* shows whether Lea is called up, never the whole list.
+- [ ] G3 Coach: on the U12 page, *Change several events*: cancel the U12 trainings of one week with *Check* first
+      (the count is shown), then apply; *Reinstate* them the same way.
+- [ ] G4 Coach: on a U12 event, *Message to the team* → *Send* answers "This club does not send emails." (the demo
+      has no SMTP server).
+      With SMTP configured: send to *No answer yet*; only those members (guardians for minors) get it.
+- [ ] G5 Administrator: give Lea Brunner a J+S person number (*Details*). Coach: on a training that has started, *Who
+      came?*: tick Lea and save. The team's *J+S attendance* check names people without a number; *Download* gives a
+      semicolon-separated file with her number. Import it into a test J+S course if you have one and note the result.
+- [ ] G6 Administrator: *Fees* → *Helper duty*: 2 shifts per season. `parent@…` sees the family's count under
+      *Family*; the overview lists who still owes shifts.
+- [ ] G7 Optional, with push configured (operator guide): as `parent@…` on a phone, *Family* → *Email notifications*
+      → turn on push; a new announcement wakes the phone and the notification shows its subject. *Sign out* turns push
+      off for that phone.
+
 ## E. Denial and sessions
 
 - [ ] E1 A Rauthy user who is not a club member sees "not yet a club member" and nothing else.
@@ -114,6 +138,7 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 | Members, languages, own profile, fees, Excel, announcements, public list and calendar (B1–B12) | pass / fail, notes \_ |
 | Teams, invitations, scoped permissions, schedule (C1–C5) | pass / fail, notes \_ |
 | Guardians (D1–D4) | pass / fail, notes \_ |
+| Match day, planning, helper duty, push (G1–G7) | pass / fail, NDS import tried yes / no, notes \_ |
 | Denial and sessions (E1–E3) | pass / fail, notes \_ |
 | Restart and reboot persistence (F1–F2) | pass / fail |
 | Peak memory / swap / disk (F3) | \_ MB / \_ MB / \_ GB used |
