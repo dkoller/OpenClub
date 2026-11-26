@@ -51,9 +51,18 @@ async function open(page, hash) {
 
 async function shoot(page, hash, name) {
   await open(page, hash);
-  // A phone picture shows one screen, as on the phone (the fixed tab bar would otherwise land mid-page);
-  // a laptop picture shows the whole page.
-  await expect(page).toHaveScreenshot(name + '.png', { fullPage: page.viewportSize().width > 600 });
+  const viewport = page.viewportSize();
+  if (viewport.width > 600) {
+    await expect(page).toHaveScreenshot(name + '.png', { fullPage: true });
+    return;
+  }
+  // A phone picture shows the whole page as one tall screen, so the fixed tab bar stays at the bottom (a normal
+  // full-page capture would leave it in the middle).
+  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.setViewportSize({ width: viewport.width, height: Math.min(Math.max(height, viewport.height), 4000) });
+  await page.waitForTimeout(200);
+  await expect(page).toHaveScreenshot(name + '.png');
+  await page.setViewportSize(viewport);
 }
 
 test('screenshots of the pages the guides describe', async ({ browser }) => {
