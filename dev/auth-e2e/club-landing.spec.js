@@ -391,6 +391,7 @@ test('verified login gains club access only after restricted operator bootstrap'
     const row = page.getByRole('region', { name: locale[1] })
       .getByRole('listitem').filter({ hasText: 'Locale Synthetic' });
     await expect(row).toBeVisible();
+    await openMember(row);
     await row.getByRole('button', { name: locale[2], exact: true }).click();
     await expect(row.getByRole('group', {
       name: locale[3] + ' Locale Synthetic',
