@@ -79,15 +79,14 @@ test('screenshots of the pages the guides describe', async ({ browser }) => {
   });
   sql(null, readFileSync(new URL('../deployment/seed-demo-data.sql', import.meta.url)));
 
-  // A parent: the second synthetic login becomes Sandra Gerber, guardian of Lea (U12) and Nico (U17).
+  // A parent: Sandra Gerber, guardian of Lea (U12) and Nico (U17).
   const parent = await browser.newContext({ viewport: phone, hasTouch: true, isMobile: true });
   const parentPage = await parent.newPage();
   await signIn(parentPage, 'openclub-ci-invitee');
   const parentAccount = (await (await parent.request.get('/api/v1/auth/me')).json()).accountId;
   if (!/^[0-9a-f-]{36}$/i.test(parentAccount)) throw new Error('Unexpected account ID');
-  sql(`INSERT INTO members (id, first_name, last_name, date_of_birth, email, phone, account_id)
-       VALUES (gen_random_uuid(), 'Sandra', 'Gerber', current_date - interval '42 years', 'sandra.gerber@example.invalid',
-               '+41000000002', '${parentAccount}')`);
+  // The seed has Sandra Gerber without a login; she gets the second synthetic login, as the walkthrough does.
+  sql(`UPDATE members SET account_id = '${parentAccount}' WHERE first_name = 'Sandra' AND last_name = 'Gerber'`);
   sql(`INSERT INTO member_guardianships (minor_member_id, guardian_member_id)
        SELECT minor.id, guardian.id FROM members minor, members guardian
        WHERE guardian.last_name = 'Gerber' AND minor.last_name = 'Brunner' AND minor.first_name IN ('Lea', 'Nico')`);
