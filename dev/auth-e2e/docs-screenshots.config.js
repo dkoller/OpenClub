@@ -1,8 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
 // Screenshots for the user guides (docs/guides/images), taken by docs-screenshots.spec.js against a disposable
-// stack with the fictional demo club. `--update-snapshots=changed` rewrites only pictures that differ by more than
-// the threshold below, so a date that moved by a day does not produce a new picture, while a changed screen does.
+// stack with the fictional demo club. The workflow always rewrites every picture (`--update-snapshots=all`) and
+// decides by the changed source files whether they replace the ones in the guides.
 export default defineConfig({
   testDir: '.',
   testMatch: ['docs-screenshots.spec.js'],
