@@ -252,7 +252,7 @@ class RideHttpTest {
         assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, seat(guardianRide, rider), "rider").status)
         assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, seat(driverRide, kid), "guardian").status)
         val path = "/api/v1/events/$event/rides"
-        fun rides(handle: String) = send(HttpMethod.Get, path, handle).json().getValue("items").jsonArray.map { it.jsonObject }
+        suspend fun rides(handle: String) = send(HttpMethod.Get, path, handle).json().getValue("items").jsonArray.map { it.jsonObject }
         assertEquals(2, rides("rider").size)
 
         sql { it.execute("DELETE FROM member_guardianships WHERE minor_member_id = ? AND guardian_member_id = ?", kid, memberOf.getValue("guardian")) }
