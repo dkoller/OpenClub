@@ -48,8 +48,11 @@ photographs each page in English. Sign-in pages are never photographed, and only
   does not count, while a changed screen does. If any picture changed, the workflow opens or updates one pull request
   *Update documentation screenshots* (branch `docs-screenshots`) that contains only PNG files; it is merged like any
   other docs PR. A pull request that changes the screenshot test itself uploads the pictures for review instead.
-- **Repository setting:** *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests*
-  must be on. Pull requests created by the workflow token start no other workflows; the picture-only PR needs none.
+- **Repository setting:** with *Settings → Actions → General → Allow GitHub Actions to create and approve pull
+  requests* on, the workflow opens the PR itself; with it off, it pushes the branch `docs-screenshots` and leaves a
+  warning, and a person opens the PR from that branch. Pull requests created by the workflow token start no other
+  workflows; the picture-only PR needs none.
+- **Sizes:** phone pictures (390 × 844) show one screen, as on a phone; laptop pictures (1280 wide) show the whole page.
 - **New picture:** add a `shoot(page, '#/…', 'name')` line to the spec and reference `images/name.png` from the guide;
   the next run on `main` adds the file. Keep names flat (`a-z`, digits, `-`), as the workflow refuses anything else.
 - **Run locally:** with the Keycloak stack of the browser journey running, from `dev/auth-e2e`:
