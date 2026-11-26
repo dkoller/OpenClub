@@ -1,7 +1,7 @@
 # OpenClub guides
 
 One guide for each kind of person who uses a club's OpenClub, and a separate one for the person who runs the server.
-Button and field names are the English ones; the app also speaks German, French and Italian (language box at the top).
+Button and field names are the English ones; the app also speaks German, French and Italian (*Family* → *My profile* → *Language of the app*).
 
 > **Fictional data only.** OpenClub is in a synthetic-data test phase. Do not enter real people's names, birth dates,
 > addresses or phone numbers until the club's privacy approval is complete (see the [README](../../README.md)).
@@ -22,7 +22,8 @@ from the running app after every change that passes the browser tests, so they m
 
 ## Finding your way (everyone)
 
-The app shows one page at a time. At the top are the club's name (back to *Start*), the language box and *Sign out*.
+The app shows one page at a time. At the top are the club's name (back to *Start*) and *Sign out*. The language is chosen once under *Family* →
+*My profile* (*Language of the app*, for this device); before signing in, at the bottom of the start page.
 The main menu sits at the bottom of a phone screen and on the left of a computer screen. Entries you cannot use are
 not shown at all, and the server checks every action again.
 
