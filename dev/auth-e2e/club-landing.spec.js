@@ -748,7 +748,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   const todayLocal = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' }).format(new Date());
   await absences.getByLabel('From').fill(todayLocal);
   await absences.getByRole('button', { name: 'Add absence' }).click();
-  await expect(absences.getByRole('listitem')).toHaveText(`Me: ${todayLocal} Delete`);
+  const [year, month, day] = todayLocal.split('-');
+  await expect(absences.getByRole('listitem')).toHaveText(`Me: ${day}.${month}.${year} Delete`);
   await absences.getByRole('button', { name: 'Delete' }).click();
   await expect(absences.getByText('No absences.')).toBeVisible();
   // Join requests (OpenAPI 1.22.0): the form is off by default; the administrator opens it, an anonymous visitor
