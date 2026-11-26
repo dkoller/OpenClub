@@ -111,6 +111,8 @@ test('Rauthy registers email OTP and verifies password plus delivered OTP before
   await expect(page).toHaveURL('https://localhost:5443/');
   expect((await context.request.get('/api/v1/auth/me')).status()).toBe(200);
   expect((await context.request.get('/api/v1/club')).status()).toBe(403);
+  // Wait for the sign-out to finish before asking the server: the click only starts it (flaky before, 3 of 94 runs).
   await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
   expect((await context.request.get('/api/v1/auth/me')).status()).toBe(401);
 });

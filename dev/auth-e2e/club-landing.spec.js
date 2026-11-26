@@ -12,8 +12,10 @@ async function openMember(row) {
 
 /** Occasional forms sit behind a button (Reveal); opens one if it is still closed. */
 async function openForm(scope, name) {
-  const button = scope.getByRole('button', { name, exact: true });
-  if (await button.count() > 0) await button.first().click();
+  // The button may render a moment after the page; give it a short wait instead of checking once (a single check
+  // skipped the button while the page loaded, and the next fill then waited out the whole test timeout).
+  const button = scope.getByRole('button', { name, exact: true }).first();
+  if (await button.waitFor({ timeout: 3000 }).then(() => true, () => false)) await button.click();
 }
 
 /**

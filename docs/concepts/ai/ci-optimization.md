@@ -106,3 +106,24 @@ Changes:
 - **Rauthy: 150s** (was ~146s). Launching the API dropped from ~36s to 2s, but the following "require actual provider-generated signing-key rotation" step rose from 0s to 49s. The test rotation runs on a once-per-minute schedule, and the sequential build used to hide most of the wait for the next minute boundary. The overlap is kept: it never adds time, and its expected average saving is small (~10s).
 
 The Gradle cache had no effect on that run because the cache is only written by `main`. Re-measure after several PRs. The rotation wait in the Rauthy job is now its main fixed cost. Shortening it would mean changing the test rotation schedule, which needs a separate review of what the test proves.
+
+## 2026-11-26 failure review: what fails, and why
+
+Runs since 2026-11-19 (660 runs, excluding cancelled ones replaced by a newer push): *Keycloak browser
+authentication* failed 15 of 106 times, *Rauthy browser authentication* 7 of 95, *Build and test* 5 of 135,
+*Compose smoke test* 2 of 134, *Documentation screenshots* 3 of 22; the size, contract and drill checks never failed.
+Most failures were real: a feature branch whose end-to-end test had not yet followed a UI change, or a compile or
+test error. Those are the checks doing their job. These were not, and are fixed:
+
+| Cause | Seen | Fix |
+| --- | --- | --- |
+| Rauthy OTP test asked the server right after *clicking* Sign out, before the sign-out finished (`/auth/me` 200, not 401) | 3, once on `main` | wait for *Sign in* to appear first |
+| Rauthy passkey test navigated while the sign-out navigation was running (`net::ERR_ABORTED`) | 1, on `main` | same wait |
+| Runs between 23:00 and 01:00 UTC: the runner (UTC) and the club (Zurich) disagreed about "today" | 1, on `main` | `TZ` and the browser's `timezoneId` set to `Europe/Zurich` in both Playwright configs |
+| `openForm` checked once for a button that was still rendering, skipped it, and the next field waited out the 180 s timeout | 2 | wait up to 3 s for the button |
+| Maven Central dropped a request (`Could not get resource …qrbill-generator…pom`) | 2, once on `main` | Gradle retries downloads 6 times with a 2 s initial pause (`apps/api/gradle.properties`) |
+
+Not fixed: one `pnpm/action-setup` self-install failed on a network error (exit 236, all three jobs of one push at
+once). It happened once; a re-run is the remedy. The Keycloak journey is still one long test (`club-landing.spec.js`):
+one failure stops everything after it and costs a full run to retry. Splitting it into independent tests per area
+would make failures cheaper, but needs per-test data set-up; it is a separate change.
