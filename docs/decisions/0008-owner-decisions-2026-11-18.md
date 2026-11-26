@@ -385,3 +385,9 @@ Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 70 | Fixes of the third security review | The owner asked to fix the review's findings (OpenAPI **1.33.1**, V44; details in `docs/security/club-membership-access.md`). On the one question raised, the owner decided that a team-scoped `MANAGE_TEAMS` holder may keep adding any active member to their team; the J+S export is instead audited once per exported member, so such a use stays traceable. Accepted without change: event-change emails, including notes, have no daily limit. |
+
+## Addendum 39 — presence and call-ups in the member export (2026-11-26)
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 71 | Member export | Approved as OpenAPI **1.34.0**, closing a gap found by the third security review: the editor's member export (`GET /v1/members/{memberId}/export`) and the operator export add `presence` (each event where the member was recorded as present: event, team, start, role, when recorded) and `squads` (each match call-up: event, team, start, meeting time and point). Other people's names stay out. No new route; the export stays editor- and operator-only. |

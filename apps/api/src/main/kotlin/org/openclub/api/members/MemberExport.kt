@@ -20,7 +20,7 @@ import java.util.UUID
  * by an editor (`GET /api/v1/members/{id}/export`, owner-approved 2026-11-19, ADR-0008 addendum 10). It contains
  * the member's own stored fields, their team assignments, their invitation timestamps, their grants and their
  * guardianships (the other member only as an ID, with the date), membership fees (since OpenAPI 1.12.0),
- * attendance answers (since 1.14.1), volunteer shifts (since 1.16.0), absences (since 1.20.0), ride offers and bookings (since 1.21.0). It deliberately leaves out the login binding
+ * attendance answers (since 1.14.1), volunteer shifts (since 1.16.0), absences (since 1.20.0), ride offers and bookings (since 1.21.0), recorded presence (who came) and match call-ups (since 1.34.0). It deliberately leaves out the login binding
  * (issuer and subject), sessions, other people's names and contacts, and the audit trail, whose actor identifiers
  * belong to other people; whether a login is linked is reported only as a yes or no. The read and its
  * `MEMBER_EXPORTED` audit event happen in one transaction, so every export that produced data is audited. Active,
@@ -106,6 +106,19 @@ internal class MemberExport(private val database: DSLContext) {
                    FROM ride_passengers p JOIN event_rides r ON r.id = p.ride_id WHERE p.member_id = ?
                    ORDER BY 5, 1""", memberId, memberId)
 
+            // Who came (since OpenAPI 1.34.0): each event where the member was recorded, with the team and role.
+            val presence = db.fetch(
+                """SELECT e.id, t.id, t.name, e.starts_at, p.role, p.recorded_at
+                   FROM event_presence p JOIN team_events e ON e.id = p.event_id JOIN teams t ON t.id = e.team_id
+                   WHERE p.member_id = ? ORDER BY e.starts_at, e.id""", memberId)
+
+            // Match call-ups (since OpenAPI 1.34.0): the match, its team and start, and the meeting time and point.
+            val squads = db.fetch(
+                """SELECT e.id, t.id, t.name, e.starts_at, s.meet_at, s.meeting_point
+                   FROM squad_members m JOIN event_squads s ON s.event_id = m.event_id
+                   JOIN team_events e ON e.id = m.event_id JOIN teams t ON t.id = e.team_id
+                   WHERE m.member_id = ? ORDER BY e.starts_at, e.id""", memberId)
+
             val invitations = db.fetch(
                 "SELECT created_at, expires_at, used_at, revoked_at FROM member_invitations WHERE member_id = ? ORDER BY created_at, id",
                 memberId)
@@ -188,6 +201,23 @@ internal class MemberExport(private val database: DSLContext) {
                         put("rideId", it.get(0).toString()); put("eventId", it.get(1).toString()); put("role", it.get(2).toString())
                         put("direction", it.get(3).toString())
                         put("departsAt", it.get(4, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
+                    }) }
+                })
+                fun utc(value: Any?) = (value as OffsetDateTime?)?.withOffsetSameInstant(ZoneOffset.UTC)?.toString()
+                    ?.let(::JsonPrimitive) ?: JsonNull
+                put("presence", buildJsonArray {
+                    presence.forEach { add(buildJsonObject {
+                        put("eventId", it.get(0).toString()); put("teamId", it.get(1).toString()); put("teamName", it.get(2).toString())
+                        put("startsAt", utc(it.get(3, OffsetDateTime::class.java))); put("role", it.get(4).toString())
+                        put("recordedAt", utc(it.get(5, OffsetDateTime::class.java)))
+                    }) }
+                })
+                put("squads", buildJsonArray {
+                    squads.forEach { add(buildJsonObject {
+                        put("eventId", it.get(0).toString()); put("teamId", it.get(1).toString()); put("teamName", it.get(2).toString())
+                        put("startsAt", utc(it.get(3, OffsetDateTime::class.java)))
+                        put("meetAt", utc(it.get(4, OffsetDateTime::class.java)))
+                        put("meetingPoint", it.get(5)?.toString()?.let(::JsonPrimitive) ?: JsonNull)
                     }) }
                 })
                 put("clubGrants", buildJsonArray { clubGrants.forEach { add(JsonPrimitive(it.get(0).toString())) } })

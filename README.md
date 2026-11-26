@@ -26,7 +26,7 @@ OpenClub is a **pre-production, synthetic-data-only** application. Each installa
 - **Guardians:** an administrator records up to two guardians for a minor. A guardian sees *My children* with the child's details and can update the child's email and phone. Access ends automatically at the club's adult age ([design](docs/security/guardian-design.md)).
 - **Club settings:** name, adult age (13 to 25, default 18) and whether players need a gender. Public member lists show adults' full names and minors' first name plus surname initial, nothing private.
 - **Layout:** one page at a time, organised by task: *Start* (what needs your answer), *Schedule*, *Family*, and *Team* or *Administration* only for people who can use them. Phone first, with the menu at the bottom of the screen and tables as cards; a computer shows the same pages with a sidebar ([guides](docs/guides/README.md#finding-your-way-everyone)). It can be added to a phone's home screen and then opens like an app. The Atkinson Hyperlegible font (SIL Open Font License, `apps/web/src/fonts/OFL.txt`) is served by the app itself, not by a font service.
-- **Security:** login through Keycloak or Rauthy (one per installation, [ADR-0006](docs/decisions/0006-oidc-provider-choice.md)) with server-side sessions. Every protected read or write checks the actor's current verified identity and explicit grant in the same SQL statement, and changes are kept in an identifier-only audit trail. The HTTP API is the frozen [OpenAPI 1.33.1](docs/contracts/openapi-v1.yaml) contract (119 operations), guarded against drift in CI. CI also runs PostgreSQL integration tests and real Keycloak and Rauthy browser journeys.
+- **Security:** login through Keycloak or Rauthy (one per installation, [ADR-0006](docs/decisions/0006-oidc-provider-choice.md)) with server-side sessions. Every protected read or write checks the actor's current verified identity and explicit grant in the same SQL statement, and changes are kept in an identifier-only audit trail. The HTTP API is the frozen [OpenAPI 1.34.0](docs/contracts/openapi-v1.yaml) contract (119 operations), guarded against drift in CI. CI also runs PostgreSQL integration tests and real Keycloak and Rauthy browser journeys.
 - **Deployment:** one command on an Infomaniak VPS, driven by one settings file ([runbook](docs/deployment/infomaniak-demo.md)), with optional email, push and fictional demo data ([operator guide](docs/operations/operator-guide.md)).
 
 **Not yet accepted:**
@@ -61,7 +61,7 @@ Each independent installation owns its club's member data: no shared database, c
 - [Hosted demo on Infomaniak (runbook)](docs/deployment/infomaniak-demo.md) and the [M1 acceptance walkthrough](docs/deployment/m1-acceptance-walkthrough.md)
 - [Guides for members and parents, coaches, the treasurer and administrators](docs/guides/README.md)
 - [Operator guide](docs/operations/operator-guide.md): configuration, email and push, operator commands, housekeeping, backups and upgrades
-- [HTTP API contract (OpenAPI 1.33.1)](docs/contracts/openapi-v1.yaml) and its [test coverage](docs/contracts/m1-route-test-coverage.md)
+- [HTTP API contract (OpenAPI 1.34.0)](docs/contracts/openapi-v1.yaml) and its [test coverage](docs/contracts/m1-route-test-coverage.md)
 - [Original milestone concept](docs/concepts/ai/first-milestone.md)
 - [AI-assisted development concept](docs/concepts/ai/ai-agent-development.md)
 - [Agent contribution rules](AGENTS.md)
