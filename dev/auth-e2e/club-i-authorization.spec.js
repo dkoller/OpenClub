@@ -74,6 +74,7 @@ test('removing a real grant during a login hides editors and names at once', asy
 });
 
 test('a failed next page keeps the loaded names and retries the same cursor', async ({ page }) => {
+  await show(page, '#/admin/members');
   // A failed subsequent page must preserve the already loaded member names,
   // retry the same opaque cursor and append only the missing results.
   fixtureSql(`INSERT INTO members (id, first_name, last_name, date_of_birth)
