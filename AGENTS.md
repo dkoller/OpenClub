@@ -8,7 +8,7 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 - Search for reusable code and built-in platform capabilities before writing more.
 - Avoid speculative abstractions, generic frameworks, new dependencies and unnecessary layers.
 - Simplicity never justifies skipping authorization, input validation, accessibility, necessary tests or data integrity.
-- For a focused review, use the official Ponytail skill where installed (see `docs/concepts/ai/ponytail.md`). Do not assume it is automatically installed.
+- Review every diff against these rules before merging. Use the official Ponytail review skill for this where installed (see `docs/concepts/ai/ponytail.md`); do not assume it is installed, and state in the PR which review was performed.
 
 ## Every pull request
 
@@ -25,7 +25,7 @@ Applies to humans and AI agents. Read the relevant ADRs before changing code. Th
 
 - Continue through consecutive useful increments within one execution rather than stopping after a fixed number of PRs. Do not stop at or wait for a checkpoint.
 - Prefer meaningful coherent increments; **5,000** changed lines is the upper bound, not an instruction to force tiny PRs or pad large ones.
-- For each increment, review issues, code and docs; implement a complete scoped change; perform Ponytail review; run applicable CI; fix failures; and merge only when all required checks pass and the change satisfies the safety gates above.
+- For each increment, review issues, code and docs; implement a complete scoped change; review the diff against the engineering-approach rules (with Ponytail where installed); run applicable CI; fix failures; and merge only when all required checks pass and the change satisfies the safety gates above.
 - Only create or advance `loopcounterN.txt` **when execution actually must end**, recording the next resume point, never as a reason to end. Counter must never exceed 100. The dedicated counter CI check waits 20 seconds.
 - If truly blocked, document the precise blocker and any incomplete checks. Never claim asynchronous work will continue once the execution ends.
 
