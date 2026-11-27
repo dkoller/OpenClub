@@ -189,8 +189,6 @@ th, td { text-align: left; padding: 0.375rem 0.5rem; vertical-align: top; }
 .team-row .event-text > span, .team-events .event-text > span { overflow-wrap: anywhere; }
 .team-events > li + li { border-top: 1px solid #e6eae7; }
 .team-events > li > .row { border-top: 0; }
-.team-event-actions { padding: 0 0.875rem 0.625rem; }
-.team-event-actions button { margin: 0; }
 .team-add h2 { margin-bottom: 0.25rem; }
 .team-create { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 0.5rem; }
 

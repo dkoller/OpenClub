@@ -47,7 +47,7 @@ export function memberParts(access: Access): MemberPart[] {
 }
 
 /** The sections this person may use, in sidebar order. */
-export function adminSections(access: Access): AdminSection[] {
+function adminSections(access: Access): AdminSection[] {
   return [
     'overview',
     ...(access.editor || access.directory || access.permissions ? ['members' as const] : []),

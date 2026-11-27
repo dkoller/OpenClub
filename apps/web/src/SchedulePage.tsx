@@ -7,10 +7,10 @@ import { routeHash } from './routes'
 import { useMyEvents } from './useMyEvents'
 
 const words = {
-  de: { venues: 'Belegung der Plätze und Hallen', called: 'Aufgeboten', title: 'Termine', who: 'Für wen', everyone: 'Alle', empty: 'Keine Termine in den nächsten acht Wochen.', emptyFor: 'Für {name} keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', details: 'Fahrten, Helfer und Details' },
-  en: { venues: 'When fields and halls are booked', called: 'Called up', title: 'Schedule', who: 'For whom', everyone: 'Everyone', empty: 'No events in the next eight weeks.', emptyFor: 'No events for {name} in the next eight weeks.', more: 'More events follow later.', details: 'Rides, helpers and details' },
-  fr: { venues: 'Occupation des terrains et salles', called: 'Convoqué', title: 'Agenda', who: 'Pour qui', everyone: 'Tous', empty: 'Aucun événement dans les huit prochaines semaines.', emptyFor: 'Aucun événement pour {name} dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', details: 'Covoiturage, bénévoles et détails' },
-  it: { venues: 'Occupazione di campi e palestre', called: 'Convocato', title: 'Calendario', who: 'Per chi', everyone: 'Tutti', empty: 'Nessun evento nelle prossime otto settimane.', emptyFor: 'Nessun evento per {name} nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', details: 'Passaggi, aiutanti e dettagli' },
+  de: { venues: 'Belegung der Plätze und Hallen', called: 'Aufgeboten', title: 'Termine', who: 'Für wen', everyone: 'Alle', empty: 'Keine Termine in den nächsten acht Wochen.', emptyFor: 'Für {name} keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.' },
+  en: { venues: 'When fields and halls are booked', called: 'Called up', title: 'Schedule', who: 'For whom', everyone: 'Everyone', empty: 'No events in the next eight weeks.', emptyFor: 'No events for {name} in the next eight weeks.', more: 'More events follow later.' },
+  fr: { venues: 'Occupation des terrains et salles', called: 'Convoqué', title: 'Agenda', who: 'Pour qui', everyone: 'Tous', empty: 'Aucun événement dans les huit prochaines semaines.', emptyFor: 'Aucun événement pour {name} dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.' },
+  it: { venues: 'Occupazione di campi e palestre', called: 'Convocato', title: 'Calendario', who: 'Per chi', everyone: 'Tutti', empty: 'Nessun evento nelle prossime otto settimane.', emptyFor: 'Nessun evento per {name} nelle prossime otto settimane.', more: 'Altri eventi seguiranno.' },
 } satisfies Record<Language, Record<string, string>>
 
 /** The next eight weeks by day, filtered by family member, with answers in place. */
