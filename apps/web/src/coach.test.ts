@@ -5,7 +5,7 @@ import { byAnswer, notAnswered, upcoming } from './coach'
 const now = Date.parse('2026-11-23T08:00:00Z')
 const event = (id: string, startsAt: string): TeamEvent => ({ id, teamId: 't', teamName: 'U12', kind: 'TRAINING', title: id,
   startsAt, endsAt: new Date(Date.parse(startsAt) + 3600000).toISOString(), location: null, notes: null, cancelled: false,
-  counts: { yes: 0, no: 0, maybe: 0 }, venueId: null, venueName: null })
+  counts: { yes: 0, no: 0, maybe: 0 }, venueId: null, venueName: null, answersUntil: null })
 
 describe('coach helpers', () => {
   it('counts who has not answered, never below zero', () => {
@@ -15,8 +15,8 @@ describe('coach helpers', () => {
 
   it('groups names by answer with the open ones first', () => {
     const groups = byAnswer({ counts: { yes: 1, no: 1, maybe: 1 }, items: [
-      { displayName: 'Lea M.', response: 'YES' }, { displayName: 'Mia S.', response: null },
-      { displayName: 'Luca F.', response: 'NO' }, { displayName: 'Jonas B.', response: null }, { displayName: 'Ava H.', response: 'MAYBE' }] })
+      { displayName: 'Lea M.', response: 'YES', note: null }, { displayName: 'Mia S.', response: null, note: null },
+      { displayName: 'Luca F.', response: 'NO', note: null }, { displayName: 'Jonas B.', response: null, note: null }, { displayName: 'Ava H.', response: 'MAYBE', note: null }] })
     expect(groups).toEqual({ open: ['Mia S.', 'Jonas B.'], NO: ['Luca F.'], MAYBE: ['Ava H.'], YES: ['Lea M.'] })
   })
 

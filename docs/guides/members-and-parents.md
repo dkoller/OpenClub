@@ -44,7 +44,8 @@ child. See the [overview](README.md) for finding your way and signing in.
   ride*, *Book seat* for you or your child, *Withdraw ride*. Once booked, you and the driver see each other's phone;
   nobody else does. *Start* suggests a free seat for events you said *Yes* to.
 - **Absences** (*Family* → *Absences*): enter the days you or your child are away. Every unanswered event on those days
-  counts as *No*; you can still answer *Yes*. No reason is asked or stored.
+  counts as *No*; you can still answer *Yes*. *Note for the coach (optional)* adds a short note (at most 100
+  characters, for example *School camp*) that only the coaches see. Please write no health details.
 
   <img src="images/member-family-absences.png" alt="Family → Absences on a phone" width="300">
 

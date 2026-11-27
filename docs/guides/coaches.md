@@ -17,7 +17,8 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 
 - **An event's page** starts with *Who is coming?*: totals, then the names under *No answer yet*, *No*, *Maybe* and
   *Yes* (adults by full name, children by first name and initial); a group nobody is in is left out. Absences count as
-  *No*; no reason is ever shown. Below come *Squad* (matches) and *Message to the team*, each opened by tapping its
+  *No*. A note a member or parent added to an answer or an absence (*Comes at 18:30*, *School camp*) stands under the
+  group as *Name: note*; only coaches and team viewers see it. Below come *Squad* (matches) and *Message to the team*, each opened by tapping its
   title, then helpers and rides, and last *Change, cancel or delete the event*.
 
   <img src="images/coach-event.png" alt="A coming match for the coach: who is coming, then squad and message to open, helpers and rides" width="300">

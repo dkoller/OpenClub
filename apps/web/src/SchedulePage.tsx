@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Language } from './language'
-import { AnswerButtons, DateBlock, NoticeLine, eventWords, fill } from './EventBits'
-import { formatWhen } from './events'
+import { AnswerButtons, DateBlock, NoticeLine, eventWords, fill, shortWhen } from './EventBits'
+import { answerable, formatWhen } from './events'
 import { byDay, forPerson, people } from './schedule'
 import { routeHash } from './routes'
 import { useMyEvents } from './useMyEvents'
@@ -44,6 +44,7 @@ export function SchedulePage({ language, csrfToken, self }: { language: Language
                 {!event.cancelled && event.for.some(person => person.squad?.called) && <span className="chip-tag">{t.called}</span>}</span>
               <b>{event.title}</b>
               <span className="muted">{formatWhen(event, language, false)}{event.location ? ' · ' + event.location : ''}</span>
+              {event.answersUntil && answerable(event) && <span className="muted small">{fill(t.until, { when: shortWhen(event.answersUntil, language) })}</span>}
             </span>
           </a>
           {!event.cancelled && event.for.map(person => <AnswerButtons key={person.id} event={event} person={person} self={self}

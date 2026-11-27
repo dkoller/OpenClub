@@ -1,5 +1,6 @@
 /** Absences of the member and their minors (OpenAPI 1.20.0). Dates are YYYY-MM-DD in the club's time zone. */
-export type Absence = { id: string; memberId: string; firstName: string; from: string; to: string }
+/** `note`: at most 100 characters, seen by the coaches next to the implied No (OpenAPI 1.39.0). */
+export type Absence = { id: string; memberId: string; firstName: string; from: string; to: string; note: string | null }
 export type AbsenceList = { items: Absence[]; people: { id: string; firstName: string }[] }
 
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -11,7 +12,8 @@ const day = /^\d{4}-\d{2}-\d{2}$/
 export function parseAbsences(body: unknown): AbsenceList {
   const valid = record(body) && Object.keys(body).length === 2 &&
     Array.isArray(body.items) && body.items.every(item => record(item) &&
-      exactly(item, ['id', 'memberId', 'firstName', 'from', 'to']) && day.test(item.from as string) && day.test(item.to as string)) &&
+      Object.keys(item).length === 6 && ['id', 'memberId', 'firstName', 'from', 'to'].every(key => typeof item[key] === 'string') &&
+      (item.note === null || typeof item.note === 'string') && day.test(item.from as string) && day.test(item.to as string)) &&
     Array.isArray(body.people) && body.people.every(person => record(person) && exactly(person, ['id', 'firstName']))
   if (!valid) throw new Error('Invalid absences')
   return body as AbsenceList
@@ -25,10 +27,10 @@ export async function readAbsences(request: typeof fetch = fetch): Promise<Absen
 }
 
 export async function createAbsence(memberId: string, from: string, to: string, csrfToken: string,
-  request: typeof fetch = fetch): Promise<'ok' | 'invalid' | 'denied'> {
+  request: typeof fetch = fetch, note = ''): Promise<'ok' | 'invalid' | 'denied'> {
   const response = await request('/api/v1/me/absences', {
     method: 'POST', credentials: 'same-origin',
-    headers: { 'X-CSRF-Token': csrfToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ memberId, from, to }),
+    headers: { 'X-CSRF-Token': csrfToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ memberId, from, to, ...(note.trim() ? { note: note.trim() } : {}) }),
   })
   if (response.ok) return 'ok'
   if (response.status === 400) return 'invalid'

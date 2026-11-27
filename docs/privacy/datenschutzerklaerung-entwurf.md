@@ -61,8 +61,9 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
 - **Helferpflicht:** Wenn der Verein eine Anzahl Helfereinsätze pro Saison festlegt, sieht die Kassierin oder der
   Kassier, wie viele Einsätze jede erwachsene Person (inkl. ihrer Kinder) geleistet hat; Sie sehen Ihre eigene Zahl.
 
-Gesundheitsdaten oder Gründe für Abwesenheiten erfassen wir nicht. Bitte schreiben Sie solche Angaben auch nicht in
-Mitteilungen oder Notizen.
+Gesundheitsdaten erfassen wir nicht. Zu einer Antwort oder Abwesenheit können Sie einen kurzen Hinweis für die
+Trainerinnen und Trainer schreiben (höchstens 100 Zeichen, zum Beispiel «Lager»); nur sie sehen ihn. Bitte schreiben
+Sie dort, in Mitteilungen oder Notizen keine Gesundheitsangaben.
 
 ## Kinder und Jugendliche
 

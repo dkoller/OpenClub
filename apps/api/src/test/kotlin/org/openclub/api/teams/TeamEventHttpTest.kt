@@ -222,7 +222,7 @@ class TeamEventHttpTest {
         assertEquals(false, viewer.getValue("canManage").jsonPrimitive.content.toBoolean())
         assertEquals(true, send(HttpMethod.Get, teamEvents(teamA), "teamManager").json().getValue("canManage").jsonPrimitive.content.toBoolean())
         val item = viewer.getValue("items").jsonArray.single().jsonObject
-        assertEquals(setOf("id", "teamId", "teamName", "kind", "title", "startsAt", "endsAt", "location", "notes", "cancelled", "counts", "venueId", "venueName"), item.keys)
+        assertEquals(setOf("id", "teamId", "teamName", "kind", "title", "startsAt", "endsAt", "location", "notes", "cancelled", "counts", "venueId", "venueName", "answersUntil"), item.keys)
         assertTrue(item.getValue("startsAt").jsonPrimitive.content.endsWith("Z"))
         // An explicit range includes the past event.
         val past = send(HttpMethod.Get, teamEvents(teamA) + "?from=" + start.minusDays(40).toString().replace("+", "%2B") + "&to=" + start.plusDays(1), "viewer")
@@ -314,7 +314,7 @@ class TeamEventHttpTest {
         assertEquals("no-store", list.headers[HttpHeaders.CacheControl])
         val items = list.json().getValue("items").jsonArray.map { it.jsonObject }
         assertEquals(listOf("player Events" to "MAYBE"), items.map { it.getValue("displayName").jsonPrimitive.content to it.getValue("response").jsonPrimitive.content })
-        assertEquals(setOf("displayName", "response"), items.single().keys)
+        assertEquals(setOf("displayName", "response", "note"), items.single().keys)
         val minors = send(HttpMethod.Get, "/api/v1/events/$b/attendance", "clubManager").json().getValue("items").jsonArray.map { it.jsonObject }
         assertEquals(listOf("Kiddo E."), minors.map { it.getValue("displayName").jsonPrimitive.content })
         val check2 = Check()

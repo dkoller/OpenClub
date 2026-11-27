@@ -1,7 +1,7 @@
 import type { Language } from './language'
 import { BackLink } from './BackLink'
-import { AnswerButtons, NoticeLine, eventWords, fill } from './EventBits'
-import { formatWhen } from './events'
+import { AnswerButtons, NoticeLine, eventWords, fill, shortWhen } from './EventBits'
+import { answerable, formatWhen } from './events'
 import { routeHash } from './routes'
 import { ShiftsPanel } from './ShiftsPanel'
 import { RidesPanel } from './RidesPanel'
@@ -18,7 +18,7 @@ const words = {
 /** One event: when and where, the answers of the member and their children, then helper shifts and rides. */
 export function EventPage({ eventId, language, csrfToken, self }: { eventId: string; language: Language; csrfToken: string; self: string | null }) {
   const t = { ...eventWords[language], ...words[language] }
-  const { events, state, busy, notice, respond } = useMyEvents(csrfToken)
+  const { events, state, busy, notice, respond, saveNote } = useMyEvents(csrfToken)
   const event = events?.find(item => item.id === eventId)
   return <>
     <BackLink href={routeHash({ page: 'schedule' })} label={t.back} />
@@ -31,10 +31,13 @@ export function EventPage({ eventId, language, csrfToken, self }: { eventId: str
         <p><b>{formatWhen(event, language)}</b>{event.cancelled && <> <span className="open">{t.cancelled}</span></>}</p>
         <p className="muted">{t[event.kind]} · {event.teamName}{event.location ? ' · ' + event.location : ''}</p>
         {event.notes && <p className="notes">{event.notes}</p>}
+        {event.answersUntil && !event.cancelled && Date.parse(event.startsAt) > Date.now() && <p className={answerable(event) ? 'muted' : 'open'}>
+          {answerable(event) ? fill(t.until, { when: shortWhen(event.answersUntil, language) }) : t.answersClosed}</p>}
       </section>
       {!event.cancelled && <section aria-label={t.comingSelf} className="card pad stack">
         {event.for.map(person => <AnswerButtons key={person.id} event={event} person={person} self={self} language={language}
-          busy={busy} onAnswer={(e, id, current, next) => { void respond(e, id, current, next) }} />)}
+          busy={busy} onAnswer={(e, id, current, next) => { void respond(e, id, current, next) }}
+          onNote={(e, id, response, note) => { void saveNote(e, id, response, note) }} />)}
         <p className="muted small">{t.team}: {fill(t.answers, event.counts)}</p>
         <NoticeLine notice={notice} language={language} />
       </section>}

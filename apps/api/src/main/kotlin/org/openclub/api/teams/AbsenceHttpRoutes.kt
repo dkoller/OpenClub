@@ -20,6 +20,9 @@ import org.openclub.api.refuse
 import org.openclub.api.respondJson
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
+import org.openclub.api.members.optionalText
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 import java.time.DateTimeException
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -31,6 +34,8 @@ import java.util.UUID
  * Order of answers: session (401); for changes exact Origin and CSRF (403); an active verified member (403); the IDs
  * and body (400); then 403 for a member or absence the caller may not act for, 400 for dates outside the rules.
  */
+private class Input(val memberId: UUID, val from: LocalDate, val to: LocalDate, val note: String?)
+
 internal fun Application.installAbsenceHttpRoutes(
     sessions: BrowserSessionOperations,
     cookies: AuthCookiePolicy,
@@ -47,6 +52,7 @@ internal fun Application.installAbsenceHttpRoutes(
                         listing.items.forEach { add(buildJsonObject {
                             put("id", it.id.toString()); put("memberId", it.memberId.toString()); put("firstName", it.firstName)
                             put("from", it.from.toString()); put("to", it.to.toString())
+                            put("note", it.note?.let(::JsonPrimitive) ?: JsonNull)
                         }) }
                     })
                     put("people", buildJsonArray {
@@ -62,15 +68,17 @@ internal fun Application.installAbsenceHttpRoutes(
                 }
                 val strict = DateTimeFormatter.ofPattern("uuuu-MM-dd").withResolverStyle(ResolverStyle.STRICT)
                 val input = try {
-                    val body = call.receiveJsonObject(setOf("memberId", "from", "to"))
-                    Triple(UUID.fromString(body.requiredString("memberId")),
-                        LocalDate.parse(body.requiredString("from"), strict), LocalDate.parse(body.requiredString("to"), strict))
+                    // Since 1.39.0 an optional note of at most 100 characters, seen by the coaches next to the implied No.
+                    val body = call.receiveJsonObject(setOf("memberId", "from", "to"), setOf("note"))
+                    Input(UUID.fromString(body.requiredString("memberId")),
+                        LocalDate.parse(body.requiredString("from"), strict), LocalDate.parse(body.requiredString("to"), strict),
+                        text(body.optionalText("note"), NOTE_LENGTH))
                 } catch (_: IllegalArgumentException) {
                     null
                 } catch (_: DateTimeException) {
                     null
                 } ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
-                when (val result = database.onDatabaseThread { Absences(it).create(actor.accountId, input.first, input.second, input.third) }) {
+                when (val result = database.onDatabaseThread { Absences(it).create(actor.accountId, input.memberId, input.from, input.to, input.note) }) {
                     is Absences.Created.Done -> call.respondText(buildJsonObject { put("id", result.id.toString()) }.toString(),
                         ContentType.Application.Json, HttpStatusCode.Created)
                     Absences.Created.Invalid -> call.refuse(HttpStatusCode.BadRequest, "invalid")

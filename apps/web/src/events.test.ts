@@ -6,18 +6,18 @@ import {
 
 const event = {
   id: 'e1', teamId: 't1', teamName: 'U10', kind: 'TRAINING', title: 'Training', startsAt: '2026-11-26T17:00:00Z',
-  endsAt: '2026-11-26T18:30:00Z', location: 'Hall', notes: null, cancelled: false, counts: { yes: 2, no: 0, maybe: 1 }, venueId: null, venueName: null,
+  endsAt: '2026-11-26T18:30:00Z', location: 'Hall', notes: null, cancelled: false, counts: { yes: 2, no: 0, maybe: 1 }, venueId: null, venueName: null, answersUntil: null,
 }
 const res = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
 
 describe('events client', () => {
   it('reads my events strictly', async () => {
-    const mine = { ...event, for: [{ id: 'k1', firstName: 'Kim', response: 'YES', squad: { called: true, meetAt: '2026-11-28T08:00:00Z', meetingPoint: null } }] }
+    const mine = { ...event, for: [{ id: 'k1', firstName: 'Kim', response: 'YES', note: 'late', squad: { called: true, meetAt: '2026-11-28T08:00:00Z', meetingPoint: null } }] }
     expect(await readMyEvents(vi.fn().mockResolvedValue(res(200, { items: [mine], truncated: false }))))
       .toEqual({ items: [mine], truncated: false })
     expect(await readMyEvents(vi.fn().mockResolvedValue(res(403)))).toBe('denied')
     for (const broken of [{ ...mine, extra: 1 }, { ...mine, for: [{ id: 'k1', firstName: 'Kim' }] }, { ...mine, kind: 'PARTY' },
-      { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'yes', squad: null }] }, { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'YES' }] }, { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'YES', squad: { called: 'yes', meetAt: null, meetingPoint: null } }] }, { ...mine, counts: { yes: -1, no: 0, maybe: 0 } },
+      { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'yes', squad: null }] }, { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'YES', squad: null }] }, { ...mine, for: [{ id: 'k1', firstName: 'Kim', response: 'YES', squad: { called: 'yes', meetAt: null, meetingPoint: null } }] }, { ...mine, counts: { yes: -1, no: 0, maybe: 0 } },
       { ...mine, counts: undefined },
       { ...mine, startsAt: 'soon' }, event]) {
       await expect(readMyEvents(vi.fn().mockResolvedValue(res(200, { items: [broken], truncated: false })))).rejects.toThrow()
@@ -77,15 +77,20 @@ describe('events client', () => {
     expect(del.mock.calls[0][1]).toMatchObject({ method: 'DELETE' })
     expect(del.mock.calls[0][1]).not.toHaveProperty('body')
     expect(await answerAttendance('e1', 'm1', 'YES', 'c', vi.fn().mockResolvedValue(res(409)))).toBe('closed')
+    // A note replaces the stored one (blank removes it); without one the body has only the response.
+    const noted = vi.fn().mockResolvedValue(res(204))
+    await answerAttendance('e1', 'm1', 'YES', 'c', noted, ' at 18:30 ')
+    await answerAttendance('e1', 'm1', 'YES', 'c', noted, '  ')
+    expect(noted.mock.calls.map(call => call[1].body)).toEqual(['{"response":"YES","note":"at 18:30"}', '{"response":"YES","note":null}'])
     expect(await clearAttendance('e1', 'm1', 'c', vi.fn().mockResolvedValue(res(403)))).toBe('denied')
     await expect(answerAttendance('e1', 'm1', 'NO', 'c', vi.fn().mockResolvedValue(res(500)))).rejects.toThrow()
 
-    const list = { items: [{ displayName: 'Kim K.', response: null }, { displayName: 'Ada Example', response: 'NO' }],
+    const list = { items: [{ displayName: 'Kim K.', response: null, note: null }, { displayName: 'Ada Example', response: 'NO', note: 'school camp' }],
       counts: { yes: 0, no: 1, maybe: 0 } }
     expect(await readAttendance('e1', vi.fn().mockResolvedValue(res(200, list)))).toEqual(list)
     expect(await readAttendance('e1', vi.fn().mockResolvedValue(res(403)))).toBe('denied')
-    for (const broken of [{ ...list, extra: 1 }, { ...list, items: [{ displayName: 'x', response: 'NO', id: 'm1' }] },
-      { ...list, items: [{ displayName: 'x', response: 'LATE' }] }]) {
+    for (const broken of [{ ...list, extra: 1 }, { ...list, items: [{ displayName: 'x', response: 'NO', note: null, id: 'm1' }] },
+      { ...list, items: [{ displayName: 'x', response: 'LATE', note: null }] }]) {
       await expect(readAttendance('e1', vi.fn().mockResolvedValue(res(200, broken)))).rejects.toThrow()
     }
   })
@@ -95,6 +100,9 @@ describe('events client', () => {
     expect(answerable(event, now)).toBe(true)
     expect(answerable({ ...event, cancelled: true }, now)).toBe(false)
     expect(answerable(event, Date.parse('2026-11-26T17:00:00Z'))).toBe(false)
+    // An answer deadline (1.39.0) closes answers before the start.
+    expect(answerable({ ...event, answersUntil: '2026-11-26T12:00:00Z' }, Date.parse('2026-11-26T11:59:00Z'))).toBe(true)
+    expect(answerable({ ...event, answersUntil: '2026-11-26T12:00:00Z' }, Date.parse('2026-11-26T12:00:00Z'))).toBe(false)
   })
 })
 
