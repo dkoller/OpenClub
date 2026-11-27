@@ -148,11 +148,11 @@ test('a field or hall added by the administrator shows for every member', async 
   await schedule.getByLabel('Date', { exact: true }).fill(day);
   const hall = schedule.getByRole('option', { name: /^Synthetic Hall North/ });
   await expect(hall).toHaveText('Synthetic Hall North (booked: Hall Owners 18:00–19:30)');
-  await expect(hall).toBeDisabled();
+  await expect(hall).toHaveAttribute('disabled', '');
   await schedule.getByLabel('Start').fill('20:00');
   await schedule.getByLabel('End').fill('21:00');
   await expect(hall).toHaveText('Synthetic Hall North');
-  await expect(hall).toBeEnabled();
+  await expect(hall).not.toHaveAttribute('disabled');
 });
 
 test('an announcement keeps its line breaks and is never HTML', async ({ page }) => {
