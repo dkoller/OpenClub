@@ -11,6 +11,7 @@ import kotlinx.coroutines.CancellationException
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.refuse
 
 /**
  * `GET /api/v1/members/{memberId}/details` (OpenAPI 1.3.0; owner-approved 2026-11-18). Authorization is decided

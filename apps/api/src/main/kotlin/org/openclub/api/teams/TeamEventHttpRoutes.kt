@@ -28,8 +28,8 @@ import org.openclub.api.notifications.Notifier
 import org.openclub.api.members.guarded
 import org.openclub.api.members.isCrossSiteRequest
 import org.openclub.api.members.optionalText
-import org.openclub.api.members.readSession
-import org.openclub.api.members.refuse
+import org.openclub.api.readSession
+import org.openclub.api.refuse
 import org.openclub.api.members.respondJson
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredBoolean

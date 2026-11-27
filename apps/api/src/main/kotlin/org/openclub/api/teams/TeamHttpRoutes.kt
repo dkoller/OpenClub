@@ -29,6 +29,8 @@ import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
+import org.openclub.api.refuse
+import org.openclub.api.readSession
 
 /** Team names/counts are private, and are never returned without a verified team grant. */
 internal fun Application.installTeamHttpRoutes(
@@ -39,14 +41,7 @@ internal fun Application.installTeamHttpRoutes(
 ) {
     routing {
         get("/api/v1/teams") {
-            call.response.headers.append(HttpHeaders.CacheControl, "no-store")
-            try {
-                val actor = sessions.read(call.request.cookies[cookies.sessionName])
-                if (actor == null) {
-                    call.respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
-                        HttpStatusCode.Unauthorized)
-                    return@get
-                }
+            call.readSession(sessions, cookies) { actor ->
                 val teams = database.onDatabaseThread { db ->
                     // The service filters individual team visibility; no blanket club-wide grant
                     // is required for readers with a grant on only one team.
@@ -57,8 +52,7 @@ internal fun Application.installTeamHttpRoutes(
                     if (allowed) TeamAssignments(db).list(actor.accountId) else null
                 }
                 if (teams == null) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
+                    call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 } else {
                     val payload = buildJsonObject {
                         put("items", buildJsonArray {
@@ -73,11 +67,6 @@ internal fun Application.installTeamHttpRoutes(
                     }
                     call.respondText(payload.toString(), ContentType.Application.Json)
                 }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
-                    HttpStatusCode.ServiceUnavailable)
             }
         }
         post("/api/v1/teams") {
@@ -85,32 +74,27 @@ internal fun Application.installTeamHttpRoutes(
             try {
                 val actor = sessions.read(call.request.cookies[cookies.sessionName])
                 if (actor == null) {
-                    call.respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
-                        HttpStatusCode.Unauthorized)
+                    call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
                     return@post
                 }
                 if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
                     call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
+                    call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@post
                 }
                 if (!database.onDatabaseThread { it.canManageTeams(actor.accountId) }) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
+                    call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@post
                 }
                 val name = try {
                     TeamAssignments.validName(call.readTeamName())
                 } catch (_: IllegalArgumentException) {
-                    call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                        HttpStatusCode.BadRequest)
+                    call.refuse(HttpStatusCode.BadRequest, "invalid")
                     return@post
                 }
                 val id = database.onDatabaseThread { TeamAssignments(it).create(actor.accountId, name) }
                 if (id == null) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
+                    call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 } else {
                     call.response.headers.append(HttpHeaders.Location, "/api/v1/teams/$id")
                     call.respondText(buildJsonObject { put("id", id.toString()) }.toString(),
@@ -120,15 +104,12 @@ internal fun Application.installTeamHttpRoutes(
                 throw cancelled
             } catch (failure: DataAccessException) {
                 if (failure.rejectedTheData()) {
-                    call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
-                        HttpStatusCode.Conflict)
+                    call.refuse(HttpStatusCode.Conflict, "conflict")
                 } else {
-                    call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
-                        HttpStatusCode.ServiceUnavailable)
+                    call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
             } catch (_: Exception) {
-                call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
-                    HttpStatusCode.ServiceUnavailable)
+                call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
         patch("/api/v1/teams/{teamId}") {
@@ -136,47 +117,39 @@ internal fun Application.installTeamHttpRoutes(
             try {
                 val actor = sessions.read(call.request.cookies[cookies.sessionName])
                 if (actor == null) {
-                    call.respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
-                        HttpStatusCode.Unauthorized)
+                    call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
                     return@patch
                 }
                 if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
                     call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
+                    call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@patch
                 }
                 if (!database.onDatabaseThread { it.canManageTeams(actor.accountId) }) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
+                    call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@patch
                 }
                 val (teamId, name) = try {
                     UUID.fromString(call.parameters["teamId"]) to TeamAssignments.validName(call.readTeamName())
                 } catch (_: IllegalArgumentException) {
-                    call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                        HttpStatusCode.BadRequest)
+                    call.refuse(HttpStatusCode.BadRequest, "invalid")
                     return@patch
                 }
                 if (database.onDatabaseThread { TeamAssignments(it).rename(actor.accountId, teamId, name) }) {
                     call.respond(HttpStatusCode.NoContent)
                 } else {
-                    call.respondText("""{"code":"not_found"}""", ContentType.Application.Json,
-                        HttpStatusCode.NotFound)
+                    call.refuse(HttpStatusCode.NotFound, "not_found")
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: DataAccessException) {
                 if (failure.rejectedTheData()) {
-                    call.respondText("""{"code":"conflict"}""", ContentType.Application.Json,
-                        HttpStatusCode.Conflict)
+                    call.refuse(HttpStatusCode.Conflict, "conflict")
                 } else {
-                    call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
-                        HttpStatusCode.ServiceUnavailable)
+                    call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
             } catch (_: Exception) {
-                call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
-                    HttpStatusCode.ServiceUnavailable)
+                call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
         delete("/api/v1/teams/{teamId}") {
@@ -184,26 +157,22 @@ internal fun Application.installTeamHttpRoutes(
             try {
                 val actor = sessions.read(call.request.cookies[cookies.sessionName])
                 if (actor == null) {
-                    call.respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
-                        HttpStatusCode.Unauthorized)
+                    call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
                     return@delete
                 }
                 if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
                     call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
+                    call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@delete
                 }
                 if (!database.onDatabaseThread { it.canManageTeams(actor.accountId) }) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
+                    call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@delete
                 }
                 val (teamId, expectedName) = try {
                     UUID.fromString(call.parameters["teamId"]) to call.readTeamName()
                 } catch (_: IllegalArgumentException) {
-                    call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                        HttpStatusCode.BadRequest)
+                    call.refuse(HttpStatusCode.BadRequest, "invalid")
                     return@delete
                 }
                 val outcome = database.onDatabaseThread { db ->
@@ -225,19 +194,15 @@ internal fun Application.installTeamHttpRoutes(
                     }
                 }
                 when (outcome) {
-                    TeamDelete.FORBIDDEN -> call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
-                    TeamDelete.NOT_FOUND -> call.respondText("""{"code":"not_found"}""", ContentType.Application.Json,
-                        HttpStatusCode.NotFound)
-                    TeamDelete.NAME_CHANGED -> call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                        HttpStatusCode.BadRequest)
+                    TeamDelete.FORBIDDEN -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                    TeamDelete.NOT_FOUND -> call.refuse(HttpStatusCode.NotFound, "not_found")
+                    TeamDelete.NAME_CHANGED -> call.refuse(HttpStatusCode.BadRequest, "invalid")
                     TeamDelete.DELETED -> call.respond(HttpStatusCode.NoContent)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
-                    HttpStatusCode.ServiceUnavailable)
+                call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
     }

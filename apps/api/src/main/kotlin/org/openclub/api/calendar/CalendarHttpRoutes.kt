@@ -19,8 +19,8 @@ import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.members.guarded
-import org.openclub.api.members.readSession
-import org.openclub.api.members.refuse
+import org.openclub.api.readSession
+import org.openclub.api.refuse
 import org.openclub.api.members.respondJson
 
 /**

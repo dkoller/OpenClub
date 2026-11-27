@@ -1,11 +1,9 @@
 package org.openclub.api.club
 
-import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CancellationException
@@ -17,6 +15,7 @@ import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
+import org.openclub.api.refuse
 
 /** A narrow synthetic-M1 settings write; neither role nor actor is supplied by the caller. */
 internal fun Application.installClubNameRoutes(
@@ -31,21 +30,18 @@ internal fun Application.installClubNameRoutes(
             try {
                 val actor = sessions.read(call.request.cookies[cookies.sessionName])
                 if (actor == null) {
-                    call.respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
-                        HttpStatusCode.Unauthorized)
+                    call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
                     return@patch
                 }
                 if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
                     call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
+                    call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@patch
                 }
                 // Checked before the body is validated, so callers without the grant always get 403.
                 // The UPDATE below repeats the check atomically.
                 if (database.onDatabaseThread { it.holdsClubAdminGrant(actor.accountId) }.not()) {
-                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                        HttpStatusCode.Forbidden)
+                    call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@patch
                 }
                 val name = try {
@@ -53,8 +49,7 @@ internal fun Application.installClubNameRoutes(
                         require(it.length in 1..200 && it.none { char -> char.isISOControl() })
                     }
                 } catch (_: IllegalArgumentException) {
-                    call.respondText("""{"code":"invalid"}""", ContentType.Application.Json,
-                        HttpStatusCode.BadRequest)
+                    call.refuse(HttpStatusCode.BadRequest, "invalid")
                     return@patch
                 }
                 // The update and live authorization are one statement, so grant revocation
@@ -67,13 +62,11 @@ internal fun Application.installClubNameRoutes(
                     ) == 1
                 }
                 if (changed) call.respond(HttpStatusCode.NoContent)
-                else call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                    HttpStatusCode.Forbidden)
+                else call.refuse(HttpStatusCode.Forbidden, "forbidden")
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
-                    HttpStatusCode.ServiceUnavailable)
+                call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
     }
