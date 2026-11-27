@@ -641,14 +641,14 @@ test('verified login gains club access only after restricted operator bootstrap'
   await roster.getByRole('button', { name: 'Assign' }).click();
   await expect(roster.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(1);
   // Tapping the name opens the contacts; a 403 from the server is shown as a denial, never as data.
-  const maraRow = roster.getByRole('button', { name: 'Mara Demo', exact: true });
-  await maraRow.click();
+  const maraRoster = roster.getByRole('button', { name: 'Mara Demo', exact: true });
+  await maraRoster.click();
   await expect(roster.getByRole('region', { name: 'Details: Mara Demo' })).toBeVisible();
   await roster.getByRole('button', { name: 'Close' }).click();
   // Not `times: 1`: StrictMode runs the effect twice in development, and the first request is aborted.
   await page.route('**/api/v1/members/*/details', route => route.fulfill({
     status: 403, contentType: 'application/json', body: '{"code":"forbidden"}' }));
-  await maraRow.click();
+  await maraRoster.click();
   await expect(roster.getByRole('alert').filter({ hasText: 'No permission to see these details.' })).toBeVisible();
   await expect(roster.getByRole('region', { name: 'Details: Mara Demo' })).toHaveCount(0);
   await roster.getByRole('button', { name: 'Close' }).click();
@@ -669,7 +669,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   });
   const canceledOldRoster = page.waitForEvent('requestfailed',
     request => request.url().includes('/api/v1/teams/') && request.url().includes('/members?'));
-  await maraRow.click();
+  await maraRoster.click();
   await roster.getByRole('button', { name: 'Remove from team' }).click();
   await oldRosterStarted;
   await roster.getByRole('button', { name: 'Assign' }).click();
