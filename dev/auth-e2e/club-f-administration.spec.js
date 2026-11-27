@@ -1,4 +1,4 @@
-import { ensureMara, expect, openForm, show, test } from './club-fixtures.js';
+import { ensureTeam, fixtureSql, ensureMara, expect, openForm, show, test } from './club-fixtures.js';
 import { readFileSync } from 'node:fs';
 import { request as playwrightRequest } from '@playwright/test';
 // Join requests, fees and QR bills, Excel import, fields and halls, announcements.
@@ -130,6 +130,29 @@ test('a field or hall added by the administrator shows for every member', async 
   await expect(plan.locator('[aria-current="date"]')).toHaveCount(0);
   await page.getByRole('button', { name: 'This week' }).click();
   await expect(week).toHaveText(thisWeek ?? '');
+
+  // The event form marks a field or hall that is already booked at the chosen time, before saving.
+  const owners = ensureTeam('Hall Owners');
+  const guests = '#/team/' + ensureTeam('Hall Guests');
+  fixtureSql(`INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, venue_id)
+    SELECT gen_random_uuid(), '${owners}', 'TRAINING', 'Owners training',
+      ((current_date + 3) + time '18:00') AT TIME ZONE 'Europe/Zurich', ((current_date + 3) + time '19:30') AT TIME ZONE 'Europe/Zurich', id
+    FROM venues WHERE name = 'Synthetic Hall North'`);
+  const day = await page.evaluate(() => {
+    const date = new Date(Date.now() + 3 * 86400000);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  });
+  await show(page, guests + '/schedule');
+  const schedule = page.getByRole('region', { name: 'Schedule Hall Guests' });
+  await openForm(schedule, 'New event');
+  await schedule.getByLabel('Date', { exact: true }).fill(day);
+  const hall = schedule.getByRole('option', { name: /^Synthetic Hall North/ });
+  await expect(hall).toHaveText('Synthetic Hall North (booked: Hall Owners 18:00–19:30)');
+  await expect(hall).toHaveAttribute('disabled', '');
+  await schedule.getByLabel('Start').fill('20:00');
+  await schedule.getByLabel('End').fill('21:00');
+  await expect(hall).toHaveText('Synthetic Hall North');
+  await expect(hall).not.toHaveAttribute('disabled');
 });
 
 test('an announcement keeps its line breaks and is never HTML', async ({ page }) => {
