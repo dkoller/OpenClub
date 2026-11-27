@@ -198,7 +198,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git switch -C "$branch"
           git add docs/guides/images
-          git commit -q -m "Update documentation screenshots" -m "Taken from $SHA after the Keycloak browser journey passed."
+          git commit -q -m "Update documentation screenshots [skip ci]" -m "Taken from $SHA after the Keycloak browser journey passed. [skip ci] keeps the other checks off this picture-only branch: they cannot run on a pull request the workflow opened and only ever showed a failure."
           git push -f origin "$branch"
           # Find or open the pull request (the repository lets workflows open pull requests since 2026-11-27).
           number="$(gh api "repos/$GITHUB_REPOSITORY/pulls?head=${GITHUB_REPOSITORY_OWNER}:$branch&state=open" --jq '.[0].number // empty')"
