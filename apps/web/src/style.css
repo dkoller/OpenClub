@@ -313,6 +313,6 @@ input[type='file']::file-selector-button { min-height: 44px; padding: 0 1rem; ma
 @media (max-width: 600px) {
   main input:not([type='checkbox']):not([type='radio']):not([type='file']), main select, main textarea { width: 100%; box-sizing: border-box; }
   /* The field's label wraps it and shrinks to fit, so the label has to take the full width as well. */
-  main label:has(> input:not([type='checkbox']):not([type='radio'])), main label:has(> select), main label:has(> textarea) { display: flex; width: 100%; }
+  main label:has(> input:not([type='checkbox']):not([type='radio'])), main label:has(> select), main label:has(> textarea) { display: flex; width: 100%; margin-right: 0; }
 }
 .field.stack { gap: 0.25rem; align-items: flex-start; }
