@@ -756,7 +756,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   // Attendance statistics (OpenAPI 1.18.0): the last 12 months by default; the new trainings lie ahead, so none held.
   const statistics = page.getByRole('region', { name: 'Attendance statistics Juniors' });
   await expect(statistics.getByText('Events held: 0')).toBeVisible();
-  await expect(statistics.getByRole('row', { name: /Mara D\./ })).toContainText('0');
+  // One row per member: the name, then the four counts.
+  await expect(statistics.getByRole('listitem').filter({ hasText: 'Mara D.' })).toContainText('Yes 0 · No 0 · Maybe 0 · No answer 0');
   await show(page, '#/schedule');
   await expect(page.getByRole('main').getByText('No events in the next eight weeks.')).toBeVisible();
   await show(page, '#/family/calendar');
