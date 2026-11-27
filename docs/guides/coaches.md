@@ -39,8 +39,10 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
   copies keeping the local time; *Add event* saves.
 - On the event's own page (tap it in the schedule), at the bottom under *Change, cancel or delete the event*: *Edit*,
   *Cancel event* (members still see it, marked *Cancelled*; *Reinstate* undoes it) and *Delete*.
-- **No double booking:** a field or hall that is already booked is refused with the other event's team, title and
-  time. Before you plan, look at the week plan under *Schedule* → *When fields and halls are booked*: every day of a
+- **No double booking:** as soon as date, start and end are filled in, *Field or hall* marks each one that is already
+  booked then, with the team and time (for example *Hall North (booked: U14 18:00–19:30)*), and it cannot be chosen.
+  For a weekly series only the first date is checked; a later clash is refused on saving with the other event's
+  team, title and time. Before you plan, look at the week plan under *Schedule* → *When fields and halls are booked*: every day of a
   week with what is booked where, so you see which field or hall is free.
 - **Change several events:** at the bottom of the schedule choose *From*, *To*, the kinds and *Cancel*, *Reinstate*,
   *New place* or *Another field or hall*, then *Check*; it says how many events change, and *Change N events* applies
