@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { formatDayTime } from './dates'
+import { formatDayTime, formatTime } from './dates'
 import type { Language } from './language'
 import type { MyEvent, TeamEvent } from './events'
 import { meetInstant, readSquad, saveSquad, toTime, type Squad } from './squads'
@@ -84,7 +84,9 @@ export function OwnSquadStatus({ event, self, language }: { event: MyEvent; self
     <h2>{t.title}</h2>
     {people.map(person => {
       const squad = person.squad!
-      const when = squad.meetAt ? formatDayTime(squad.meetAt, language) : null
+      // On the match day the heading already names the date, so only the time; the evening before keeps its day.
+      const sameDay = squad.meetAt && new Date(squad.meetAt).toDateString() === new Date(event.startsAt).toDateString()
+      const when = squad.meetAt ? (sameDay ? formatTime(squad.meetAt) : formatDayTime(squad.meetAt, language)) : null
       return <p key={person.id} className={squad.called ? 'attention-ok' : 'muted'}>
         {person.id !== self && fill(t.forName, { name: person.firstName })}<b>{squad.called ? t.called : t.notCalled}</b>
         {squad.called && when && <> · {fill(t.meet, { when })}</>}

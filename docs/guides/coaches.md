@@ -24,8 +24,9 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 
 - **Remind** (`MANAGE_TEAMS`): *Remind all 3 without an answer* emails them (parents for their children), at most every
   12 hours. An automatic reminder also goes out two days before every event.
-- **Attendance statistics:** the team's *Statistics* page shows, for up to a year, how each member answered. Answers
-  are deleted 12 months after an event.
+- **Attendance statistics:** the team's *Statistics* page shows, for up to a year (*From*, *To*, *Show*), the events
+  held and the totals, then one row per member with their answers and a bar for the share of *Yes*. Answers are
+  deleted 12 months after an event.
 
   <img src="images/coach-team-statistics.png" alt="A team's statistics on a phone, with the J+S export" width="300">
 
@@ -71,7 +72,7 @@ player and parent sees only their own status.
 
   <img src="images/coach-event-past.png" alt="A past training on a phone: who came" width="300">
 
-- **J+S attendance** on the team's *Statistics* page: choose the dates and *Check*. It shows how many rows the file
+- **J+S attendance** on the team's *Statistics* page uses the same period as the statistics above. It shows how many rows the file
   will have, who has no J+S person number (an administrator adds it) and which trainings have no place. *Download file*
   gives the CSV for the import of the attendance record (*Anwesenheitskontrolle*) in the NDS. Trainings become
   *Training* with time, duration and place, matches *Wettkampf*. Every download is recorded. The import itself is done

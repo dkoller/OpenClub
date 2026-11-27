@@ -55,7 +55,7 @@ export function Absences({ language, csrfToken, self, onChange }: {
         {name(item.memberId, item.firstName)}: {formatDate(item.from)}{item.to !== item.from ? ` – ${formatDate(item.to)}` : ''}
         {' '}<button type="button" disabled={busy} onClick={() => { void run(() => deleteAbsence(item.id, csrfToken)) }}>{t.remove}</button>
       </li>)}</ul>}
-      <form onSubmit={add}>
+      <form className="form-grid" onSubmit={add}>
         {list.people.length > 1 && <label>{t.who}<select value={person} onChange={event => setWho(event.target.value)}>
           {list.people.map(p => <option key={p.id} value={p.id}>{name(p.id, p.firstName)}</option>)}
         </select></label>}
