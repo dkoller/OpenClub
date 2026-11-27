@@ -33,13 +33,14 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 - [ ] B7 *Family* shows one link per part (*My profile*, *Absences*, *Fees*, *Calendar subscription*, *Email
       notifications*; no *My children* for the administrator); each opens its own page with *← Family*. *My profile* shows the administrator's own record and role; change the phone, *Save contacts*, reload: the new
       phone is kept and nothing else changed.
-- [ ] B8 *Membership fees*: create "Season 2026/27" (due date, CHF 150): every active member is listed; *Mark paid*
-      for one, *Change amount* for another, *Exclude* a third; the totals change. After a reload *Family* shows how many fees are open and *Family* → *Fees* shows the
+- [ ] B8 *Administration* → *Fees*: create "Season 2026/27" (due date, CHF 150); its card says how many fees are open
+      and how much is outstanding. *Open* it: every active member is listed; *Mark paid* for one, *Change amount* for
+      another, *Exclude* a third; the card's totals change. After a reload *Family* shows how many fees are open and *Family* → *Fees* shows the
       administrator's own fee. Only members with the `MANAGE_FEES` permission see the panel.
 - [ ] B9 *Excel import and export* (link above the member list): download the member list and open it in Excel (umlauts and phone numbers shown
       correctly). Add two new rows and one copy of an existing member, *Save As* → *CSV UTF-8*, *Check file*: 2 will be
       imported, 1 already exists; *Import 2 members*: both appear in *Manage members*.
-- [ ] B10 *Announcements*: post one to the whole club with two lines of text; it shows with *Whole club* and both lines.
+- [ ] B10 *Announcements* on *Start*: *New announcement*, post one to the whole club with two lines of text; it shows with *Whole club* and both lines.
       As `coach@…` in C3 post one for Juniors U12 only; `parent@…` in D3 sees both, a member of another team only the
       club-wide one.
 - [ ] B11 *Family* → *My profile*: untick *Show my name on the public member list*; the anonymous list (B6) no longer shows the
@@ -50,25 +51,27 @@ desktop browser in a private window per person; you need **three** Rauthy users,
 ## C. Teams and permissions
 
 - [ ] C1 *Team* → *Teams*: each team is one row with its number of members. Open Juniors U12: its page shows the
-      name, the member count, *Schedule*, *Members*, *Statistics* and *Manage team*. *Members* lists its members; assign
+      name, *Schedule*, *Members* (with the member count), *Statistics* and *Manage team* (*Rename*, *Delete team* below it). *Members* lists its members; assign
       and remove a member. *Rename* a test team and back; on a phone (390 px) nothing scrolls sideways.
 - [ ] C2 *Members* → *Invitations and accounts*: create an invitation for Peter Zürcher (adult); open the link in a second private window, sign in
       as `coach@…` and accept. The coach sees *Start*, *Schedule* and *Family*, but no *Team* or *Administration* in the menu.
 - [ ] C3 As administrator, give Peter a **team** grant `MANAGE_TEAMS` for Juniors U12 only. As `coach@…` (reload): *Team* appears in the
       menu and only Juniors U12 is listed under *Teams*; on its *Members* page *Contact details* of a U12 member works; another
       team's page (pasted address `#/team/<id>`) says the team does not exist or is not visible, and its members are not reachable.
+      As administrator, *Administration* → *Permissions* lists Peter under *Who can do what* with "Run teams: Juniors U12".
       On Juniors U12's page, *Rename* under *Manage team* is refused (it needs a club-wide grant): the buttons give way
       to *No permission to change this team.*
-- [ ] C4 Still as `coach@…`: Juniors U12 → *Schedule*, add a training (*Add event*) with *Repeat weekly until* three weeks later:
-      four dates appear. *Cancel event* on one (marked *Cancelled*), *Delete* and *Confirm delete* another. *Start*
+- [ ] C4 Still as `coach@…`: Juniors U12 → *Schedule*, *New event*, a training with *Repeat weekly until* three weeks later, *Add event*:
+      four dates appear. Open one; under *Change, cancel or delete the event* at the bottom, *Cancel event* (marked
+      *Cancelled*); on another, *Delete* and *Confirm delete*. *Start*
       (reload) lists the remaining U12 dates under *Things for you to do*, because Peter is in that team; answer *Yes*
       for one with one tap: it leaves the list. On *Team*,
       *Next events* shows the training with its open answers; opening it lists Peter Zürcher under *Yes* and the minors
       as first name plus initial under *No answer yet*.
       Tap one date in the team's *Schedule*: its page shows the same answers, then the helper shifts and rides; add
       "Bar" with 1 person; *Sign up: Me* fills it; the button for anyone else is disabled (full). Before that, the
-      coach's *Team* page listed it under *Helpers missing*. The team's *Statistics* page shows the team's members with
-      no events held yet (dates lie ahead).
+      coach's *Team* page listed it under *Helpers missing*. The team's *Statistics* page shows *Events held: 0* and one row per member
+      (dates lie ahead).
       The seeded U12 dates are there too: the first training shows Yes, No and open answers from other members; on the
       second one Luca F. counts as *No* because of an absence; the home match five days ahead has a full *Kiosk* shift
       and a *Cake stall* with 2 of 3 places free (also under *Helpers missing*), and two rides (one full, one with
@@ -97,7 +100,8 @@ the administrator.
 - [ ] G1 Administrator: *Administration* → *Fields and halls*, add "Musterfeld pitch 1". As the coach, set it on one U12
       training; a second U12 event at an overlapping time on the same pitch is refused and names the first one.
       *Schedule* → *Fields and halls* shows the booking to every member.
-- [ ] G2 Coach: on the U12 home match, *Squad*: tick three players, set a meeting time and point, *Save squad*. As
+- [ ] G2 Coach: on the U12 home match, tap *Squad*: tick three players, set a meeting time (a time on the match day)
+      and point, *Save squad*; the title shows "3 called up". As
       `parent@…` (guardian of Lea, D2) *Schedule* shows whether Lea is called up, never the whole list.
 - [ ] G3 Coach: on the U12 page, *Change several events*: cancel the U12 trainings of one week with *Check* first
       (the count is shown), then apply; *Reinstate* them the same way.
