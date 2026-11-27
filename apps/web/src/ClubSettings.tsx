@@ -81,28 +81,29 @@ export function ClubSettings({ language, name, csrfToken, onChanged,
 
   if (denied) return null
   return (
-    <section aria-label={t.title}>
-      <h3>{t.title}</h3>
-      <form onSubmit={event => { void save(event) }}>
-        <label>{t.label}
+    <section aria-label={t.title} className="stack">
+      {/* One card per setting: what it is, the field with its label above, and a save that wakes up on a change. */}
+      <form className="card pad stack setting" onSubmit={event => { void save(event) }}>
+        <h2>{t.label}</h2>
+        <label><span className="vh">{t.label}</span>
           <input required maxLength={200} value={draft} onChange={event => setDraft(event.target.value)} />
         </label>
-        <button type="submit" disabled={busy}>{t.save}</button>
+        <button type="submit" disabled={busy || draft.trim() === '' || draft.trim() === name}>{t.save}</button>
+        {error && <p role="alert">{t.error}</p>}
       </form>
-      {error && <p role="alert">{t.error}</p>}
-      <h3>{t.policyTitle}</h3>
-      <form onSubmit={event => { void saveGenderPolicy(event) }}>
-        <label>{t.required}
+      <form className="card pad stack setting" onSubmit={event => { void saveGenderPolicy(event) }}>
+        <h2>{t.policyTitle}</h2>
+        <label className="check">{t.required}
           <input type="checkbox" checked={requiresGender} disabled={busy}
             onChange={event => setRequiresGender(event.target.checked)} />
         </label>
         <button type="submit" disabled={busy || requiresGender === genderRequiredForPlayers}>
           {t.savePolicy}
         </button>
+        {policyError && <p role="alert">{policyError === 'conflict' ? t.conflict : t.policyError}</p>}
       </form>
-      {policyError && <p role="alert">{policyError === 'conflict' ? t.conflict : t.policyError}</p>}
-      <h3>{t.ageTitle}</h3>
-      <form onSubmit={event => { void saveAge(event) }}>
+      <form className="card pad stack setting" onSubmit={event => { void saveAge(event) }}>
+        <h2>{t.ageTitle}</h2>
         <label>{t.ageLabel}
           <input type="number" inputMode="numeric" required min={ADULT_AGE_MIN} max={ADULT_AGE_MAX} step={1}
             value={ageDraft} disabled={busy} onChange={event => setAgeDraft(event.target.value)} />
@@ -111,8 +112,8 @@ export function ClubSettings({ language, name, csrfToken, onChanged,
           disabled={busy || parseAdultAge(ageDraft) === null || parseAdultAge(ageDraft) === adultAgeYears}>
           {t.saveAge}
         </button>
+        {ageError && <p role="alert">{ageError === 'conflict' ? t.ageConflict : t.ageError}</p>}
       </form>
-      {ageError && <p role="alert">{ageError === 'conflict' ? t.ageConflict : t.ageError}</p>}
     </section>
   )
 }

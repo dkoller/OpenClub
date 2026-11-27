@@ -191,7 +191,7 @@ export function MemberAdmin({ language, csrfToken, onChanged, genderRequiredForP
   return (
     <section aria-labelledby="member-admin-heading">
       <h2 id="member-admin-heading">{t.heading}</h2>
-      <form onSubmit={submitSearch}>
+      <form className="search" onSubmit={submitSearch}>
         <label htmlFor="member-search">{t.search}</label>
         <input id="member-search" value={search} maxLength={100} onChange={e => setSearch(e.target.value)} />
         <button type="submit">{t.find}</button>

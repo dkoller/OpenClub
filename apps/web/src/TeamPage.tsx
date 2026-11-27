@@ -76,10 +76,14 @@ function ManageTeam({ team, language, csrfToken, onRenamed, onDenied }: {
         <button type="submit" disabled={busy}>{t.save}</button>
         <button type="button" disabled={busy} onClick={() => setEditing(null)}>{t.cancel}</button>
       </div>
-    </form> : !deleting && <div className="actions">
-      <button type="button" disabled={busy} onClick={() => { setEditing(team.name); setRenameError(false) }}>{t.rename}</button>
-      <button type="button" disabled={busy} onClick={() => { setDeleting(true); setConfirmation(''); setDeleteError(false) }}>{t.delete}</button>
-    </div>}
+    </form> : !deleting && <>
+      <div className="actions">
+        <button type="button" disabled={busy} onClick={() => { setEditing(team.name); setRenameError(false) }}>{t.rename}</button>
+      </div>
+      {/* Deleting is rare and final: a quiet red link under the everyday action, not a twin button beside it. */}
+      <button type="button" className="danger-quiet" disabled={busy}
+        onClick={() => { setDeleting(true); setConfirmation(''); setDeleteError(false) }}>{t.delete}</button>
+    </>}
     {deleting && <form onSubmit={event => { void remove(event) }}>
       <p>{t.deleteWarning}</p>
       <label>{t.name}<input value={confirmation} onChange={event => setConfirmation(event.target.value)} required autoComplete="off" /></label>
@@ -93,7 +97,7 @@ function ManageTeam({ team, language, csrfToken, onRenamed, onDenied }: {
   </section>
 }
 
-/** The team's own page: its name and size, one large link per part, and Rename/Delete. */
+/** The team's own page: its name, one large link per part (Members shows the size), and Rename/Delete. */
 function TeamHome({ team, language, csrfToken, onChanged, onDenied }: {
   team: Team; language: Language; csrfToken: string; onChanged: () => void; onDenied: () => void
 }) {
@@ -104,7 +108,6 @@ function TeamHome({ team, language, csrfToken, onChanged, onDenied }: {
   return <>
     <BackLink href={routeHash({ page: 'team' })} label={t.back} />
     <h1>{team.name}</h1>
-    <p className="muted">{memberCount(team.memberCount, language)}</p>
     <nav aria-label={t.parts} className="card team-list">
       <ul className="rows">{teamSections.map(section => <li key={section}>
         <a className="row team-row" href={routeHash({ page: 'team', teamId: team.id, section })}>

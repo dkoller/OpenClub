@@ -28,8 +28,9 @@ export function PublicMembers({ language, revision = 0, collapsed = false }: { l
   }, [attempt, revision])
 
   return (
-    <section aria-labelledby="public-members-heading">
-      <h2 id="public-members-heading">{text.heading}</h2>
+    <section aria-label={text.heading}>
+      {/* Signed out, the list is one quiet link under Sign in and Join; its heading appears once it is open. */}
+      {!collapsed && <h2>{text.heading}</h2>}
       {error ? (
         <p role="alert">{text.error}{' '}
           <button type="button" onClick={() => { setError(false); setNames(null); setAttempt(a => a + 1) }}>
@@ -41,7 +42,7 @@ export function PublicMembers({ language, revision = 0, collapsed = false }: { l
       ) : names.length === 0 ? (
         <p>{text.empty}</p>
       ) : (
-        <Reveal label={text.show} open={!collapsed}><ul>{names.map((item, index) => <li key={index}>{item.displayName}</li>)}</ul></Reveal>
+        <Reveal label={text.show} open={!collapsed} quiet><ul>{names.map((item, index) => <li key={index}>{item.displayName}</li>)}</ul></Reveal>
       )}
     </section>
   )

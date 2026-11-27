@@ -47,8 +47,7 @@ export function SchedulePage({ language, csrfToken, self }: { language: Language
             </span>
           </a>
           {!event.cancelled && event.for.map(person => <AnswerButtons key={person.id} event={event} person={person} self={self}
-            language={language} busy={busy} onAnswer={(e, id, current, next) => { void respond(e, id, current, next) }} />)}
-          <a className="small" href={routeHash({ page: 'event', eventId: event.id })}>{t.details}</a>
+            language={language} busy={busy} compact onAnswer={(e, id, current, next) => { void respond(e, id, current, next) }} />)}
         </article>
       })}
     </div>}

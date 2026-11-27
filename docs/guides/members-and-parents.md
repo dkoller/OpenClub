@@ -12,11 +12,12 @@ child. See the [overview](README.md) for finding your way and signing in.
   <img src="images/member-start.png" alt="Start on a phone: things to answer, the next seven days and announcements" width="300">
 
 - **Schedule** lists the next eight weeks of your teams (and your children's teams), each card with its date. With
-  children, the buttons at the top show *Everyone*, *Me* or one child. An event still waiting for you has no answer
-  selected yet. You can answer until the event starts; choosing your answer again clears it. You see the team's totals, never other
+  children, the buttons at the top show *Everyone*, *Me* or one child. An event still waiting for you shows *Yes*, *No*
+  and *Maybe*; once answered it shrinks to one line ("Is Lea coming? ✓ Yes") with *Change*. Tap a card for its page.
+  You can answer until the event starts; choosing your answer again clears it. You see the team's totals, never other
   members' answers.
 
-  <img src="images/member-schedule.png" alt="Schedule on a phone: the events of the parent and both children, with answer buttons" width="300">
+  <img src="images/member-schedule.png" alt="Schedule on a phone: open events with answer buttons, answered ones as one line with Change" width="300">
 
 - **One event:** tap it to see when and where, notes, your answers, the totals, helper shifts and rides.
 
@@ -67,9 +68,9 @@ child. See the [overview](README.md) for finding your way and signing in.
 
 ## Fees
 
-*Family* → *Fees* lists your membership fees (and your children's) with amount, due date and whether they are paid.
-For an open fee, *QR bill (PDF)* downloads a Swiss QR bill to pay in your banking app (once the treasurer has entered
-the club's account). A fee shows as paid only after the treasurer has seen the payment.
+*Family* → *Fees* shows one card per fee (yours and your children's): for whom, *Open* or *Paid*, the amount and the
+due date. On an open fee, *Pay with QR bill (PDF)* downloads a Swiss QR bill to pay in your banking app; until the
+treasurer has entered the club's account, the card says the bill will follow. A fee shows as paid only after the treasurer has seen the payment.
 
 <img src="images/member-family-fees.png" alt="Family → Fees on a phone, with helper duty" width="300">
 

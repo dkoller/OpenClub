@@ -1,8 +1,8 @@
 # Guide for club administrators
 
 For members who run the club in the app. Each part needs its own permission; the *Administrator* role alone allows
-nothing except protecting the last administrator. Everything is under *Administration*, which opens on *Waiting for
-you*: open join requests, helper shifts of the next 14 days that still need people and fee periods with unpaid fees,
+nothing except protecting the last administrator. Everything is under *Administration* (its areas are buttons on a phone and tabs above the page on a laptop), which
+opens on *Waiting for you*: open join requests, helper shifts of the next 14 days that still need people and fee periods with unpaid fees,
 each with a button to the right section. The treasurer's tasks are in the [treasurer guide](treasurer.md), the
 coaches' in the [coach guide](coaches.md).
 
@@ -69,7 +69,7 @@ member (and puts them in the wished team); *Decline* deletes the application. Un
 
 ## Teams (`MANAGE_TEAMS` club-wide)
 
-On the *Team* page, *New team*, a name and *Add team* create a team; each team's page has *Manage team* (*Rename*, *Delete team*) and
+On the *Team* page, *New team*, a name and *Add team* create a team; each team's page has *Manage team* (*Rename*; *Delete team* below it) and
 *Members* (*Assign*, *Remove*). Deleting a team deletes its schedule.
 
 ## Fields and halls (`MANAGE_VENUES`)
@@ -111,8 +111,9 @@ days), then *Post*. Announcements are deleted 6 months after their show-until da
 
 ## Club settings (`MANAGE_PERMISSIONS`)
 
-*Edit club name*; *Adult age* (13 to 25, default 18; raising it is refused while members who would become adults lack
-email or phone); *Require gender for players*.
+One card per setting, each with its own save button that is enabled once you change something: *Club name*, *Player
+gender rule* (*Require gender for players*) and *Adult age* (13 to 25, default 18; raising it is refused while members
+who would become adults lack email or phone).
 
 ![Settings](images/admin-settings.png)
 

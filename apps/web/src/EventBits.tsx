@@ -1,12 +1,13 @@
+import { useState } from 'react'
 import type { Language } from './language'
 import { answerable, type AttendanceResponse, type MyEvent } from './events'
 import type { Notice } from './useMyEvents'
 
 export const eventWords = {
-  de: { TRAINING: 'Training', MATCH: 'Spiel', OTHER: 'Termin', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', you: 'Ich', coming: 'Kommt {name}?', comingSelf: 'Kommst du?', missing: 'Antwort fehlt', cancelled: 'Abgesagt', closed: 'Antworten nicht mehr möglich.', denied: 'Keine Berechtigung.', failed: 'Antwort nicht gespeichert. Bitte nochmals versuchen.', loading: 'Wird geladen…', error: 'Termine sind gerade nicht verfügbar. Bitte später nochmals versuchen.', open: 'Öffnen', answers: '{yes} Ja · {no} Nein · {maybe} Vielleicht' },
-  en: { TRAINING: 'Training', MATCH: 'Match', OTHER: 'Event', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', you: 'Me', coming: 'Is {name} coming?', comingSelf: 'Are you coming?', missing: 'Answer missing', cancelled: 'Cancelled', closed: 'Answers are closed for this event.', denied: 'No permission.', failed: 'Answer not saved. Please try again.', loading: 'Loading…', error: 'Events are unavailable right now. Please try again later.', open: 'Open', answers: '{yes} yes · {no} no · {maybe} maybe' },
-  fr: { TRAINING: 'Entraînement', MATCH: 'Match', OTHER: 'Événement', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', you: 'Moi', coming: '{name} vient ?', comingSelf: 'Venez-vous ?', missing: 'Réponse manquante', cancelled: 'Annulé', closed: 'Les réponses sont closes pour cet événement.', denied: 'Pas d’autorisation.', failed: 'Réponse non enregistrée. Veuillez réessayer.', loading: 'Chargement…', error: 'Les événements sont indisponibles. Veuillez réessayer plus tard.', open: 'Ouvrir', answers: '{yes} oui · {no} non · {maybe} peut-être' },
-  it: { TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', YES: 'Sì', NO: 'No', MAYBE: 'Forse', you: 'Io', coming: '{name} viene?', comingSelf: 'Vieni?', missing: 'Risposta mancante', cancelled: 'Annullato', closed: 'Le risposte sono chiuse per questo evento.', denied: 'Nessuna autorizzazione.', failed: 'Risposta non salvata. Riprova.', loading: 'Caricamento…', error: 'Gli eventi non sono disponibili. Riprova più tardi.', open: 'Apri', answers: '{yes} sì · {no} no · {maybe} forse' },
+  de: { change: 'Ändern', TRAINING: 'Training', MATCH: 'Spiel', OTHER: 'Termin', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', you: 'Ich', coming: 'Kommt {name}?', comingSelf: 'Kommst du?', missing: 'Antwort fehlt', cancelled: 'Abgesagt', closed: 'Antworten nicht mehr möglich.', denied: 'Keine Berechtigung.', failed: 'Antwort nicht gespeichert. Bitte nochmals versuchen.', loading: 'Wird geladen…', error: 'Termine sind gerade nicht verfügbar. Bitte später nochmals versuchen.', open: 'Öffnen', answers: '{yes} Ja · {no} Nein · {maybe} Vielleicht' },
+  en: { change: 'Change', TRAINING: 'Training', MATCH: 'Match', OTHER: 'Event', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', you: 'Me', coming: 'Is {name} coming?', comingSelf: 'Are you coming?', missing: 'Answer missing', cancelled: 'Cancelled', closed: 'Answers are closed for this event.', denied: 'No permission.', failed: 'Answer not saved. Please try again.', loading: 'Loading…', error: 'Events are unavailable right now. Please try again later.', open: 'Open', answers: '{yes} yes · {no} no · {maybe} maybe' },
+  fr: { change: 'Modifier', TRAINING: 'Entraînement', MATCH: 'Match', OTHER: 'Événement', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', you: 'Moi', coming: '{name} vient ?', comingSelf: 'Venez-vous ?', missing: 'Réponse manquante', cancelled: 'Annulé', closed: 'Les réponses sont closes pour cet événement.', denied: 'Pas d’autorisation.', failed: 'Réponse non enregistrée. Veuillez réessayer.', loading: 'Chargement…', error: 'Les événements sont indisponibles. Veuillez réessayer plus tard.', open: 'Ouvrir', answers: '{yes} oui · {no} non · {maybe} peut-être' },
+  it: { change: 'Modifica', TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', YES: 'Sì', NO: 'No', MAYBE: 'Forse', you: 'Io', coming: '{name} viene?', comingSelf: 'Vieni?', missing: 'Risposta mancante', cancelled: 'Annullato', closed: 'Le risposte sono chiuse per questo evento.', denied: 'Nessuna autorizzazione.', failed: 'Risposta non salvata. Riprova.', loading: 'Caricamento…', error: 'Gli eventi non sono disponibili. Riprova più tardi.', open: 'Apri', answers: '{yes} sì · {no} no · {maybe} forse' },
 } satisfies Record<Language, Record<string, string>>
 
 export const fill = (text: string, values: Record<string, string | number>) =>
@@ -32,19 +33,28 @@ export function DateBlock({ instant, language }: { instant: string; language: La
 }
 
 /** Yes / No / Maybe for one person; the chosen answer is pressed and carries a check mark, not only a colour. */
-export function AnswerButtons({ event, person, self, language, busy, onAnswer }: {
+export function AnswerButtons({ event, person, self, language, busy, onAnswer, compact = false }: {
   event: MyEvent; person: MyEvent['for'][number]; self: string | null; language: Language; busy: boolean
   onAnswer: (event: MyEvent, memberId: string, current: AttendanceResponse | null, next: AttendanceResponse) => void
+  /** In a long list an answered person shrinks to one line with Change, so open answers stand out. */
+  compact?: boolean
 }) {
   const t = eventWords[language]
+  const [changing, setChanging] = useState(false)
   const label = person.id === self ? t.comingSelf : fill(t.coming, { name: person.firstName })
   const open = answerable(event)
+  if (compact && person.response && !changing) return <div className="answer answered">
+    <p className="answer-label">{label} <b className={'reply reply-' + person.response.toLowerCase()}>
+      <span aria-hidden="true">{person.response === 'YES' ? '✓ ' : person.response === 'NO' ? '✕ ' : '? '}</span>{t[person.response]}</b></p>
+    {open && <button type="button" className="quiet" aria-label={`${t.change}: ${label} ${event.title}`}
+      onClick={() => setChanging(true)}>{t.change}</button>}
+  </div>
   return <div className="answer">
     <p className="answer-label">{label}</p>
     <div className="seg" role="group" aria-label={`${label} ${event.title}`}>
       {(['YES', 'NO', 'MAYBE'] as const).map(choice => <button key={choice} type="button"
         className={person.response === choice ? 'btn on' : 'btn'} aria-pressed={person.response === choice}
-        disabled={busy || !open} onClick={() => onAnswer(event, person.id, person.response, choice)}>
+        disabled={busy || !open} onClick={() => { setChanging(false); onAnswer(event, person.id, person.response, choice) }}>
         {person.response === choice && <span aria-hidden="true">✓ </span>}{t[choice]}</button>)}
     </div>
   </div>
