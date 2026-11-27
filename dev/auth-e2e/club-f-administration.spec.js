@@ -115,8 +115,21 @@ test('a field or hall added by the administrator shows for every member', async 
   await venueAdmin.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(venueAdmin.getByText('Synthetic Hall North', { exact: true })).toBeVisible();
   await show(page, '#/schedule/venues');
-  await expect(page.getByRole('heading', { level: 1, name: 'Fields and halls' })).toBeVisible();
-  await expect(page.getByRole('combobox', { name: 'Field or hall' })).toHaveValue(/.+/);
+  await expect(page.getByRole('heading', { level: 1, name: 'When fields and halls are booked' })).toBeVisible();
+  const field = page.getByRole('combobox', { name: 'Field or hall' });
+  await expect(field).toHaveValue('');
+  await expect(field.getByRole('option', { name: 'Synthetic Hall North' })).toBeAttached();
+  // The week plan: seven days from Monday, today marked, and the next week one tap away.
+  const plan = page.locator('ol.week-plan');
+  await expect(plan.locator(':scope > li')).toHaveCount(7);
+  await expect(plan.locator('[aria-current="date"]')).toHaveCount(1);
+  const week = page.getByRole('navigation', { name: 'Choose a week' }).getByRole('heading', { level: 2 });
+  const thisWeek = await week.textContent();
+  await page.getByRole('button', { name: 'Next week' }).click();
+  await expect(week).not.toHaveText(thisWeek ?? '');
+  await expect(plan.locator('[aria-current="date"]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'This week' }).click();
+  await expect(week).toHaveText(thisWeek ?? '');
 });
 
 test('an announcement keeps its line breaks and is never HTML', async ({ page }) => {

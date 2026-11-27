@@ -34,7 +34,7 @@ Phone size, as Sandra Gerber, guardian of Lea (U12) and Nico (U17). See the [gui
 
 **Schedule → Fields and halls**
 
-<img src="images/member-venues.png" alt="Schedule → Fields and halls" width="260">
+<img src="images/member-venues.png" alt="Schedule → Fields and halls: the week plan" width="260">
 
 **Family**
 
