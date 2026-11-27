@@ -208,9 +208,10 @@ class AnswerNotesHttpTest {
             "repeatWeeklyUntil":"${LocalDate.now(zurich).plusDays(13)}","timeZone":"Europe/Zurich"}"""
         val response = send(HttpMethod.Post, "/api/v1/teams/$team/events", "coach", body)
         assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+        val ids = response.json().getValue("ids").jsonArray.map { it.jsonPrimitive.content }.toTypedArray()
         val leads = sql { db ->
-            db.fetch("SELECT extract(epoch FROM starts_at - answers_until)::int FROM team_events WHERE id = ANY(?::uuid[])",
-                response.json().getValue("ids").jsonArray.map { it.jsonPrimitive.content }.toTypedArray()).map { it.get(0, Int::class.java) }
+            db.fetch("SELECT extract(epoch FROM starts_at - answers_until)::int FROM team_events WHERE id = ANY(?::uuid[])", ids)
+                .map { it.get(0, Int::class.java) }
         }
         assertEquals(listOf(2 * 86400, 2 * 86400), leads)
     }
