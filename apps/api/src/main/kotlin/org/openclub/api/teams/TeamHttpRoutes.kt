@@ -32,6 +32,7 @@ import org.openclub.api.requiredString
 import org.openclub.api.refuse
 import org.openclub.api.readSession
 import org.openclub.api.logFailure
+import org.openclub.api.isSameOriginWrite
 
 /** Team names/counts are private, and are never returned without a verified team grant. */
 internal fun Application.installTeamHttpRoutes(
@@ -78,8 +79,7 @@ internal fun Application.installTeamHttpRoutes(
                     call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
                     return@post
                 }
-                if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-                    call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+                if (!call.isSameOriginWrite(actor, origin)) {
                     call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@post
                 }
@@ -122,8 +122,7 @@ internal fun Application.installTeamHttpRoutes(
                     call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
                     return@patch
                 }
-                if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-                    call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+                if (!call.isSameOriginWrite(actor, origin)) {
                     call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@patch
                 }
@@ -163,8 +162,7 @@ internal fun Application.installTeamHttpRoutes(
                     call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
                     return@delete
                 }
-                if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-                    call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+                if (!call.isSameOriginWrite(actor, origin)) {
                     call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@delete
                 }

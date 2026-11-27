@@ -40,6 +40,9 @@ internal class DatabaseRuntime private constructor(
             return zone
         }
 
+        /** The club's time zone for dates and times computed in Kotlin; SQL uses `club_time_zone()` (V32). */
+        val clubZone: java.time.ZoneId by lazy { java.time.ZoneId.of(clubTimeZone(System.getenv())) }
+
         fun openIfConfigured(env: Map<String, String>): DatabaseRuntime? {
             val url = env["DB_URL"] ?: return null
             require(url.startsWith("jdbc:postgresql://")) { "PostgreSQL DB_URL is required" }

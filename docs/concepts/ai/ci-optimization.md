@@ -26,7 +26,7 @@ The expensive `Keycloak browser authentication` workflow runs for application AP
 
 ## Cancellation and caching
 
-For each workflow, `concurrency` cancels older, superseded runs for the **same** PR or branch, but not other parallel PRs. For the web build, pnpm dependency caching uses `apps/web/pnpm-lock.yaml`. The API uses Gradle's existing action cache and invokes `test generateJooq` together to avoid repeated Gradle initialization.
+For each workflow, `concurrency` cancels older, superseded runs for the **same** PR or branch, but not other parallel PRs. For the web build, pnpm dependency caching uses `apps/web/pnpm-lock.yaml`. The API uses Gradle's existing action cache and runs `./gradlew test` (jOOQ code generation was removed on 2026-11-27, ADR-0001).
 
 ## Compose image cache and service lifetime
 

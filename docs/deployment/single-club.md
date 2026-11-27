@@ -285,7 +285,7 @@ services:
       OPENCLUB_SMTP_USERNAME: club@example.ch
       OPENCLUB_SMTP_PASSWORD: ${OPENCLUB_SMTP_PASSWORD:?set in the private env file}
       OPENCLUB_SMTP_FROM: "FC Example <club@example.ch>"
-      OPENCLUB_TIME_ZONE: Europe/Zurich          # times in emails and absence days (default)
+      OPENCLUB_TIME_ZONE: Europe/Zurich          # all club dates and times (default)
 ```
 
 The API refuses to start with a partial or invalid email setup. It needs the OIDC settings (the browser origin is the link in every message). Plain-text SMTP is never used. The SMTP provider processes members' addresses and message contents for the club: list it in the processing record (C8) and conclude a data processing agreement before real data. Messages wait at most 2 days in the database; failures are logged as a count only.

@@ -39,13 +39,7 @@ The Kotlin integration test uses a real PostgreSQL database when DB_URL, DB_USER
 
 Setting `DB_URL`, `DB_USER` and `DB_PASSWORD` on API startup migrates the database via Flyway and performs a small jOOQ query. Without DB_URL, the health-only scaffold can start without a database.
 
-After starting PostgreSQL and running the API once to migrate the schema, from `apps/api` run:
-
-```sh
-./gradlew generateJooq
-```
-
-This generates database types from the local migrated schema into `build/generated-src/jooq`. The generator XML uses **local-only** connection settings; change it to secure environment-provided credentials when configuring nonlocal code generation.
+The API uses jOOQ's plain-SQL API with bind parameters and generates no code (ADR-0001, amendment of 2026-11-17).
 
 On Windows without WSL, use `gradlew.bat` instead of `./gradlew`. Do not manually edit `pnpm-lock.yaml`: update it using `pnpm install` when dependencies change.
 

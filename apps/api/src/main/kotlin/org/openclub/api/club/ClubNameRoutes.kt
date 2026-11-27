@@ -17,6 +17,7 @@ import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
 import org.openclub.api.refuse
 import org.openclub.api.logFailure
+import org.openclub.api.isSameOriginWrite
 
 /** A narrow synthetic-M1 settings write; neither role nor actor is supplied by the caller. */
 internal fun Application.installClubNameRoutes(
@@ -34,8 +35,7 @@ internal fun Application.installClubNameRoutes(
                     call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
                     return@patch
                 }
-                if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-                    call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+                if (!call.isSameOriginWrite(actor, origin)) {
                     call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@patch
                 }

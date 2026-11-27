@@ -22,6 +22,7 @@ import org.openclub.api.requiredString
 import java.util.UUID
 import org.openclub.api.refuse
 import org.openclub.api.logFailure
+import org.openclub.api.guarded
 
 /**
  * Invitations and account unlinking (OpenAPI 1.2.0; owner-approved 2026-11-18). Every route is `no-store`, decides
@@ -112,36 +113,3 @@ internal fun memberETag(version: Long): String = "\"$version\""
 internal fun parseMemberETag(value: String): Long? =
     Regex("^\"([1-9][0-9]{0,18})\"$").matchEntire(value.trim())?.groupValues?.get(1)?.toLongOrNull()
 
-
-/**
- * The shared order of answers: session (401), exact Origin and session CSRF (403), the capability if the route
- * needs one (403), and only then the route's own validation and work. Any unexpected failure is a 503.
- */
-internal suspend fun ApplicationCall.guarded(
-    sessions: BrowserSessionOperations,
-    cookies: AuthCookiePolicy,
-    origin: String,
-    database: DatabaseRuntime,
-    capability: ClubCapabilityAccess.Capability?,
-    block: suspend (ActiveSession) -> Unit,
-) {
-    response.headers.append(HttpHeaders.CacheControl, "no-store")
-    try {
-        val actor = sessions.read(request.cookies[cookies.sessionName])
-            ?: return refuse(HttpStatusCode.Unauthorized, "unauthenticated")
-        if (request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-            request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
-            return refuse(HttpStatusCode.Forbidden, "forbidden")
-        }
-        if (capability != null &&
-            !database.onDatabaseThread { ClubCapabilityAccess(it).has(actor.accountId, capability) }) {
-            return refuse(HttpStatusCode.Forbidden, "forbidden")
-        }
-        block(actor)
-    } catch (cancelled: CancellationException) {
-        throw cancelled
-    } catch (failure: Exception) {
-        logFailure(failure)
-        refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
-    }
-}
