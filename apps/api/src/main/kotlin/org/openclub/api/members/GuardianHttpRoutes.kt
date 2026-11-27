@@ -41,6 +41,22 @@ internal fun Application.installGuardianHttpRoutes(
     database: DatabaseRuntime,
 ) {
     routing {
+        // Minors without a guardian (OpenAPI 1.38.0, ADR-0008 addendum 43): names only, for editors, so the
+        // Guardians page can start with the work instead of an empty search.
+        get("/api/v1/guardians/missing") {
+            call.readSession(sessions, cookies) { actor ->
+                val minors = database.onDatabaseThread { db ->
+                    if (!ClubCapabilityAccess(db).has(actor.accountId, ClubCapabilityAccess.Capability.EDIT_MEMBERS)) null
+                    else db.fetch(
+                        """SELECT m.id, m.first_name, m.last_name FROM members m JOIN clubs c ON TRUE
+                           WHERE m.archived_at IS NULL AND ${AgeSql.minor("m")}
+                             AND NOT EXISTS (SELECT 1 FROM member_guardianships g WHERE g.minor_member_id = m.id)
+                           ORDER BY m.last_name, m.first_name, m.id""",
+                    ).map { MemberDirectory.Summary(it.get(0, UUID::class.java), it.get(1, String::class.java), it.get(2, String::class.java)) }
+                } ?: return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
+                call.respondJson(names(minors))
+            }
+        }
         get("/api/v1/members/{memberId}/guardians") {
             call.readSession(sessions, cookies) { actor ->
                 if (!database.onDatabaseThread {

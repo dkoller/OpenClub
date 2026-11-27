@@ -1,4 +1,4 @@
-import { writeJson, type Denied } from './api'
+import { readItems, writeJson, type Denied } from './api'
 
 export type Role = 'ADMIN' | 'MEMBER'
 
@@ -17,6 +17,13 @@ export async function readRole(memberId: string, signal?: AbortSignal,
   if (!value || typeof value !== 'object' || !('role' in value) ||
       (value.role !== 'ADMIN' && value.role !== 'MEMBER')) throw new Error('Invalid role')
   return value.role
+}
+
+export type RoleHolder = { memberId: string; firstName: string; lastName: string; role: Role }
+
+/** Everyone with a role above member (OpenAPI 1.38.0), for MANAGE_PERMISSIONS holders. */
+export function fetchRoleHolders(signal?: AbortSignal, request: typeof fetch = fetch) {
+  return readItems<RoleHolder>('/api/v1/roles/holders', signal, request)
 }
 
 export function saveRole(memberId: string, role: Role, csrfToken: string, request: typeof fetch = fetch) {

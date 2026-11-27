@@ -303,3 +303,14 @@ p > button.quiet:first-child { padding-left: 0; }
 .actions button.danger-quiet { align-self: center; }
 /* Inside a row of actions a quiet link sits on the same line as the buttons. */
 .actions { align-items: center; }
+dl.summary > div { display: contents; }
+/* File choice: the browser's own picker, dressed as an outlined button; the chosen name stays visible beside it. */
+.file-form { align-items: flex-start; }
+.file-form input[type='file'] { border: 0; padding: 0; background: none; min-height: 44px; }
+input[type='file']::file-selector-button { min-height: 44px; padding: 0 1rem; margin-right: 0.75rem; border-radius: 10px;
+  border: 1px solid var(--control); background: var(--card); color: var(--ink); font: inherit; cursor: pointer; }
+/* Phone: text fields fill the width, so long addresses are not cut. */
+@media (max-width: 600px) {
+  main input:not([type='checkbox']):not([type='radio']):not([type='file']), main select, main textarea { width: 100%; box-sizing: border-box; }
+}
+.field.stack { gap: 0.25rem; align-items: flex-start; }

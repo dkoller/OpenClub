@@ -206,6 +206,27 @@ class GuardianHttpTest {
     }
 
     @Test
+    fun editorsSeeMinorsWithoutAGuardianAndNobodyElseDoes() = app {
+        val lonely = minor("Lonely")
+        val cared = minor("Cared").also { link(it, "g1") }
+        val archived = minor("Archived").also { id -> sql { it.execute("UPDATE members SET archived_at = now() WHERE id = ?", id) } }
+        val missing = "/api/v1/guardians/missing"
+        assertEquals(HttpStatusCode.Unauthorized, send(HttpMethod.Get, missing, null).status)
+        val refused = send(HttpMethod.Get, missing, "plain")
+        assertEquals(HttpStatusCode.Forbidden, refused.status)
+        assertEquals("no-store", refused.headers[HttpHeaders.CacheControl])
+        val listed = send(HttpMethod.Get, missing, "editor")
+        assertEquals("no-store", listed.headers[HttpHeaders.CacheControl])
+        val items = listed.json()["items"]!!.jsonArray.map { it.jsonObject }
+        val ids = items.map { it["id"]!!.jsonPrimitive.content }
+        assertTrue(lonely.toString() in ids, "a minor without a guardian is listed")
+        assertFalse(cared.toString() in ids, "a minor with a guardian is not")
+        assertFalse(archived.toString() in ids, "an archived minor is not")
+        assertFalse(memberOf.getValue("plain").toString() in ids, "an adult is not")
+        assertEquals(setOf("id", "firstName", "lastName"), items.first { it["id"]!!.jsonPrimitive.content == lonely.toString() }.keys)
+    }
+
+    @Test
     fun aGuardianSeesOnlyTheirOwnMinorsAndMayReplaceOnlyTheirContacts() = app {
         val kid = minor("Mine")
         val notMine = minor("NotMine")

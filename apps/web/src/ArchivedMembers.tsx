@@ -78,9 +78,10 @@ export function ArchivedMembers({ language, csrfToken, revision, onChanged }: {
   if (denied) return null
   return (
     <section aria-label={t.title}>
-      <h2>{t.title}</h2>
-      <form onSubmit={submit}>
-        <label>{t.search}<input value={search} maxLength={100} onChange={event => setSearch(event.target.value)} /></label>
+      <h2 className="vh">{t.title}</h2>
+      <form className="search" onSubmit={submit}>
+        <label htmlFor="archive-search">{t.search}</label>
+        <input id="archive-search" value={search} maxLength={100} onChange={event => setSearch(event.target.value)} />
         <button type="submit">{t.find}</button>
       </form>
       {items === null ? <p role="status">{t.loading}</p>

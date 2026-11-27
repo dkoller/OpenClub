@@ -127,7 +127,7 @@ test('Rauthy: an administrator invites a member, a second Rauthy user accepts, a
     await show(second, '#/family/children');
     const children = second.getByRole('region', { name: 'My children' });
     const tim = children.getByRole('listitem').filter({ hasText: 'Tim Minor' });
-    await tim.getByRole('button', { name: 'Open' }).click();
+    await tim.locator('button.row-toggle').click();
     await expect(tim.getByText('Date of birth')).toBeVisible();
     await tim.getByLabel('Phone').fill('+41000000066');
     await tim.getByRole('button', { name: 'Save contacts' }).click();

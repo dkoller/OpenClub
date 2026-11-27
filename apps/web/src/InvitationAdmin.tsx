@@ -76,11 +76,10 @@ export function InvitationAdmin({ language, csrfToken }: { language: Language; c
   if (denied || (editor !== 'editor' && permissions !== 'allowed')) return null
   return (
     <section aria-label={t.title}>
-      <h2>{t.title}</h2>
-      <form onSubmit={event => { void find(event) }}>
-        <label>{t.search}
-          <input maxLength={100} value={query} onChange={event => setQuery(event.target.value)} />
-        </label>
+      <h2 className="vh">{t.title}</h2>
+      <form className="search" onSubmit={event => { void find(event) }}>
+        <label htmlFor="invitation-search">{t.search}</label>
+        <input id="invitation-search" maxLength={100} value={query} onChange={event => setQuery(event.target.value)} />
         <button type="submit" disabled={busy}>{t.find}</button>
       </form>
       {members?.length === 0 && <p>{t.empty}</p>}

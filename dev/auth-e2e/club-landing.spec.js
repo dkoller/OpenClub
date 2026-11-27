@@ -449,6 +449,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   // the minor and replaces only her contacts; removing the guardianship ends access at the next request.
   await show(page, '#/admin/members/guardians');
   const guardiansRegion = page.getByRole('region', { name: 'Guardians' });
+  // The page starts with the children who have no guardian yet (OpenAPI 1.38.0).
+  await expect(guardiansRegion.getByRole('button', { name: 'Add a guardian: Mara Demo' })).toBeVisible();
   await guardiansRegion.getByLabel('Find a minor').fill('Mara');
   await guardiansRegion.getByRole('button', { name: 'Search' }).first().click();
   await expect(guardiansRegion.getByText('No guardians recorded.')).toBeVisible();
@@ -458,6 +460,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await guardiansRegion.getByRole('button', { name: 'Add as guardian' }).click();
   await expect(guardiansRegion.getByText('Guardian added.')).toBeVisible();
   await expect(guardiansRegion.getByRole('listitem').filter({ hasText: 'Synthetic Administrator' })).toBeVisible();
+  await expect(guardiansRegion.getByRole('button', { name: 'Add a guardian: Mara Demo' })).toHaveCount(0);
   // Adding the same guardian twice is refused with the rule, not an error.
   await guardiansRegion.getByRole('button', { name: 'Add as guardian' }).click();
   await expect(guardiansRegion.getByText(/Not possible/)).toBeVisible();
@@ -466,7 +469,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   const children = page.getByRole('region', { name: 'My children' });
   const maraChild = children.getByRole('listitem').filter({ hasText: 'Mara Demo' });
   const dependentRead = page.waitForResponse(response => /\/api\/v1\/me\/dependents\/[^/]+$/.test(new URL(response.url()).pathname));
-  await maraChild.getByRole('button', { name: 'Open' }).click();
+  await maraChild.locator('button.row-toggle').click();
   expect((await dependentRead).headers()['cache-control']).toBe('no-store');
   await expect(maraChild.getByText('01.01.2015')).toBeVisible();
   await maraChild.getByLabel('Email').fill('mara.parent@example.invalid');
@@ -636,16 +639,16 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(roster.getByRole('option', { name: 'Mara Demo' })).toHaveCount(1);
   await page.unroute('**/api/v1/members?**');
   await roster.getByRole('button', { name: 'Assign' }).click();
-  await expect(roster.getByRole('button', { name: 'Remove' })).toBeVisible();
   await expect(roster.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(1);
-  // Contact details open from the roster; a 403 from the server is shown as a denial, never as data.
-  await roster.getByRole('button', { name: 'Contact details' }).click();
+  // Tapping the name opens the contacts; a 403 from the server is shown as a denial, never as data.
+  const maraRow = roster.getByRole('button', { name: 'Mara Demo', exact: true });
+  await maraRow.click();
   await expect(roster.getByRole('region', { name: 'Details: Mara Demo' })).toBeVisible();
   await roster.getByRole('button', { name: 'Close' }).click();
   // Not `times: 1`: StrictMode runs the effect twice in development, and the first request is aborted.
   await page.route('**/api/v1/members/*/details', route => route.fulfill({
     status: 403, contentType: 'application/json', body: '{"code":"forbidden"}' }));
-  await roster.getByRole('button', { name: 'Contact details' }).click();
+  await maraRow.click();
   await expect(roster.getByRole('alert').filter({ hasText: 'No permission to see these details.' })).toBeVisible();
   await expect(roster.getByRole('region', { name: 'Details: Mara Demo' })).toHaveCount(0);
   await roster.getByRole('button', { name: 'Close' }).click();
@@ -666,11 +669,12 @@ test('verified login gains club access only after restricted operator bootstrap'
   });
   const canceledOldRoster = page.waitForEvent('requestfailed',
     request => request.url().includes('/api/v1/teams/') && request.url().includes('/members?'));
-  await roster.getByRole('button', { name: 'Remove' }).click();
+  await maraRow.click();
+  await roster.getByRole('button', { name: 'Remove from team' }).click();
   await oldRosterStarted;
   await roster.getByRole('button', { name: 'Assign' }).click();
   await canceledOldRoster;
-  await expect(roster.getByRole('button', { name: 'Remove' })).toBeVisible();
+  await expect(roster.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(1);
   await page.unroute('**/api/v1/teams/*/members?**');
   // The team list counts the assignment.
   await show(page, '#/team');
@@ -979,7 +983,8 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(permissionAdmin.getByRole('alert')).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
   await show(page, juniorsPage + '/members');
-  await roster.getByRole('button', { name: 'Remove' }).click();
+  await roster.getByRole('button', { name: 'Mara Demo', exact: true }).click();
+  await roster.getByRole('button', { name: 'Remove from team' }).click();
   await expect(roster.getByText('No assignments.')).toBeVisible();
   // A rename on the team's page preserves the team's ID (same address), membership relationship and permissions.
   await show(page, juniorsPage);

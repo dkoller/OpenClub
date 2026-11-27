@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Language } from './language'
 import { fetchMemberPage, type Member } from './members'
-import { latestLookup, readRole, saveRole, type Role } from './roles'
+import { fetchRoleHolders, latestLookup, readRole, saveRole, type Role, type RoleHolder } from './roles'
 
 const words = {
-  de: { title: 'Vereinsrollen verwalten', search: 'Mitglied suchen', find: 'Suchen', member: 'Mitglied', role: 'Rolle', save: 'Rolle speichern', admin: 'Administrator', regular: 'Mitglied', error: 'Rollenverwaltung nicht verfügbar.', empty: 'Keine Mitglieder gefunden.' },
-  en: { title: 'Manage club roles', search: 'Find member', find: 'Search', member: 'Member', role: 'Role', save: 'Save role', admin: 'Administrator', regular: 'Member', error: 'Role management unavailable.', empty: 'No members found.' },
-  fr: { title: 'Gérer les rôles du club', search: 'Chercher un membre', find: 'Chercher', member: 'Membre', role: 'Rôle', save: 'Enregistrer le rôle', admin: 'Administrateur', regular: 'Membre', error: 'Gestion des rôles indisponible.', empty: 'Aucun membre trouvé.' },
-  it: { title: 'Gestisci ruoli del club', search: 'Cerca membro', find: 'Cerca', member: 'Membro', role: 'Ruolo', save: 'Salva ruolo', admin: 'Amministratore', regular: 'Membro', error: 'Gestione ruoli non disponibile.', empty: 'Nessun membro trovato.' },
+  de: { holders: 'Administratorinnen und Administratoren', change: 'Rolle ändern', other: 'Ein anderes Mitglied', title: 'Vereinsrollen verwalten', search: 'Mitglied suchen', find: 'Suchen', member: 'Mitglied', role: 'Rolle', save: 'Rolle speichern', admin: 'Administrator', regular: 'Mitglied', error: 'Rollenverwaltung nicht verfügbar.', empty: 'Keine Mitglieder gefunden.' },
+  en: { holders: 'Administrators', change: 'Change role', other: 'Another member', title: 'Manage club roles', search: 'Find member', find: 'Search', member: 'Member', role: 'Role', save: 'Save role', admin: 'Administrator', regular: 'Member', error: 'Role management unavailable.', empty: 'No members found.' },
+  fr: { holders: 'Administratrices et administrateurs', change: 'Changer le rôle', other: 'Un autre membre', title: 'Gérer les rôles du club', search: 'Chercher un membre', find: 'Chercher', member: 'Membre', role: 'Rôle', save: 'Enregistrer le rôle', admin: 'Administrateur', regular: 'Membre', error: 'Gestion des rôles indisponible.', empty: 'Aucun membre trouvé.' },
+  it: { holders: 'Amministratrici e amministratori', change: 'Cambia ruolo', other: 'Un altro membro', title: 'Gestisci ruoli del club', search: 'Cerca membro', find: 'Cerca', member: 'Membro', role: 'Ruolo', save: 'Salva ruolo', admin: 'Amministratore', regular: 'Membro', error: 'Gestione ruoli non disponibile.', empty: 'Nessun membro trovato.' },
 } satisfies Record<Language, Record<string, string>>
 
 export function RoleAdmin({ language, csrfToken }: { language: Language; csrfToken: string }) {
@@ -20,8 +20,23 @@ export function RoleAdmin({ language, csrfToken }: { language: Language; csrfTok
   const [error, setError] = useState(false)
   const [denied, setDenied] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [holders, setHolders] = useState<RoleHolder[] | null>(null)
   const lookups = useRef(latestLookup())
   useEffect(() => () => lookups.current.cancel(), [])
+  useEffect(() => { void loadHolders() }, [])
+
+  async function loadHolders() {
+    try {
+      const result = await fetchRoleHolders()
+      if (result === 'denied') { setDenied(true); return }
+      setHolders(result.items)
+    } catch { setError(true) }
+  }
+
+  function changeHolder(holder: RoleHolder) {
+    setMembers([{ id: holder.memberId, firstName: holder.firstName, lastName: holder.lastName }])
+    void loadRole(holder.memberId, lookups.current.next())
+  }
 
   async function loadRole(id: string, signal: AbortSignal) {
     setMemberId(id)
@@ -60,22 +75,30 @@ export function RoleAdmin({ language, csrfToken }: { language: Language; csrfTok
     try {
       if (await saveRole(memberId, chosen, csrfToken) === 'denied') { setDenied(true); return }
       await loadRole(memberId, lookups.current.next())
+      void loadHolders()
     } catch { setError(true) }
     finally { setBusy(false) }
   }
 
   if (denied) return null
   return (
-    <section aria-label={t.title}>
-      <h2>{t.title}</h2>
-      <form onSubmit={event => { void find(event) }}>
-        <label>{t.search}
-          <input maxLength={100} value={query} onChange={event => setQuery(event.target.value)} />
-        </label>
+    <section aria-label={t.title} className="stack">
+      {/* Who holds a role today comes first; the search below is for giving one to someone else. */}
+      <h2>{t.holders}</h2>
+      {holders !== null && <ul className="rows card">{holders.map(holder => <li key={holder.memberId} className="row pad">
+        <span className="event-text"><b>{holder.firstName} {holder.lastName}</b>
+          <span className="muted small">{holder.role === 'ADMIN' ? t.admin : t.regular}</span></span>
+        <button type="button" className="btn" disabled={busy} aria-label={`${t.change}: ${holder.firstName} ${holder.lastName}`}
+          onClick={() => changeHolder(holder)}>{t.change}</button>
+      </li>)}</ul>}
+      <h2>{t.other}</h2>
+      <form className="search" onSubmit={event => { void find(event) }}>
+        <label htmlFor="role-search">{t.search}</label>
+        <input id="role-search" maxLength={100} value={query} onChange={event => setQuery(event.target.value)} />
         <button type="submit" disabled={busy}>{t.find}</button>
       </form>
       {members?.length === 0 && <p>{t.empty}</p>}
-      {members && members.length > 0 && <form onSubmit={event => { void save(event) }}>
+      {members && members.length > 0 && <form className="form-grid" onSubmit={event => { void save(event) }}>
         <label>{t.member}
           <select value={memberId} disabled={busy} onChange={event => {
             void loadRole(event.target.value, lookups.current.next())

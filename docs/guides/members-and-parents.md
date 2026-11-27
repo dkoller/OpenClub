@@ -89,7 +89,7 @@ If the club recorded you as a guardian, *Family* → *My children* lists your ch
 
 <img src="images/member-family.png" alt="The Family page on a phone" width="300"> <img src="images/member-family-children.png" alt="Family → My children on a phone" width="300">
 
-- *Open* shows a child's date of birth, whether they play and their teams; you can change the child's *Email* and
+- Tapping a child's name shows their date of birth, whether they play and their teams; you can change the child's *Email* and
   *Phone*. Nothing else about the child, and nothing about other members, can be seen or changed.
 - Your children's events appear on *Start* and *Schedule* (*Is Lea coming?*), and you answer for them there. You also
   sign them up for shifts, book them a seat, enter their absences and get the club's emails for their teams.

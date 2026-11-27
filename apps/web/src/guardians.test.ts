@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { addGuardian, listDependents, listGuardians, readDependent, removeGuardian, replaceDependentContacts } from './guardians'
+import { addGuardian, listDependents, listGuardians, listMinorsWithoutGuardian, readDependent, removeGuardian, replaceDependentContacts } from './guardians'
 
 const res = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
 const csrf = 'c'.repeat(43)
@@ -38,5 +38,15 @@ describe('guardian requests', () => {
     expect(await replaceDependentContacts('m', ' k@example.invalid ', '', csrf, put)).toBe('ok')
     expect(put.mock.calls[0]).toEqual(['/api/v1/me/dependents/m/contacts', expect.objectContaining({
       method: 'PUT', body: '{"email":"k@example.invalid"}' })])
+  })
+})
+
+describe('minors without a guardian', () => {
+  it('lists them for editors and fails closed on denial', async () => {
+    const items = [{ id: 'k1', firstName: 'Mila', lastName: 'Baumann' }]
+    const request = vi.fn().mockResolvedValue(res(200, { items }))
+    expect(await listMinorsWithoutGuardian(undefined, request)).toEqual(items)
+    expect(request.mock.calls[0][0]).toBe('/api/v1/guardians/missing')
+    expect(await listMinorsWithoutGuardian(undefined, vi.fn().mockResolvedValue(res(403)))).toBe('denied')
   })
 })

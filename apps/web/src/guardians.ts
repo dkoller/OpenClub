@@ -39,6 +39,12 @@ export const addGuardian = (minorId: string, guardianId: string, csrfToken: stri
 export const removeGuardian = (minorId: string, guardianId: string, csrfToken: string, request: typeof fetch = fetch) =>
   write(base(minorId) + '/' + encodeURIComponent(guardianId), 'DELETE', csrfToken, undefined, request)
 
+/** Active minors without a guardian, for editors (OpenAPI 1.38.0). */
+export async function listMinorsWithoutGuardian(signal?: AbortSignal, request: typeof fetch = fetch): Promise<Member[] | Denied> {
+  const page = await readItems<Member>('/api/v1/guardians/missing', signal, request)
+  return page === 'denied' ? page : page.items
+}
+
 /** The signed-in guardian's minors; everyone else gets an empty list. */
 export async function listDependents(signal?: AbortSignal, request: typeof fetch = fetch): Promise<Member[] | Denied> {
   const page = await readItems<Member>('/api/v1/me/dependents', signal, request)

@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
-Maps each of the 121 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.37.0) to the tests that exercise it. The operation list and
+Maps each of the 123 registered synthetic M1 operations in
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.38.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -40,6 +40,8 @@ How to read the columns of test types:
 | `POST /v1/teams/{teamId}/members/{memberId}` | 204, 400, 401, 403, 409, 503 | `TeamMemberHttpRoutesTest`, `TeamHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `TeamScopedGrantsTest` |
 | `DELETE /v1/teams/{teamId}/members/{memberId}` | 204, 400, 401, 403, 404, 503 | `TeamMemberHttpRoutesTest`, `TeamHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `TeamScopedGrantsTest` |
 | `GET /v1/grants` | 200, 400, 401, 403, 503 | `GrantHttpRoutesTest`, `GrantHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest` |
+| `GET /v1/roles/holders` | 200, 401, 403, 503 | `MemberRoleHttpRoutesTest`, `PrivateRoutesRevocationTest` (only club-wide `MANAGE_PERMISSIONS`; names and role, members and archived members left out) |
+| `GET /v1/guardians/missing` | 200, 401, 403, 503 | `GuardianHttpTest`, `PrivateRoutesRevocationTest` (only `EDIT_MEMBERS`; minors without a guardian, not adults, guarded minors or archived ones) |
 | `GET /v1/grants/overview` | 200, 401, 403, 503 | `GrantHttpRoutesTest` (only club-wide `MANAGE_PERMISSIONS`; names and grants with team names, no contacts, archived members and members without grants left out) |
 | `POST /v1/grants` | 204, 400, 401, 403, 503 | `GrantHttpRoutesTest`, `GrantHttpInputAndEscalationTest`, `PrivateRoutesRevocationTest`, `CapabilityGrantsTest` |
 | `POST /v1/members/{memberId}/invitation` | 201, 400, 401, 403, 404, 409, 503 | `MemberInvitationHttpTest`, `PrivateRoutesRevocationTest`, `MemberInvitationsTest` |
