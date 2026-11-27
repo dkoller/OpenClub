@@ -28,6 +28,9 @@ name/path/security policy and return 204. Storage failure returns 503 without
 clearing the cookie or claiming success. An already revoked session returns 401.
 This terminates only the OpenClub session; a later login may reuse Keycloak SSO.
 
+Every other write checks the exact `Origin` and the session's `X-CSRF-Token` through `isSameOriginWrite()` in
+`HttpAnswers.kt`, which also compares the token in constant time (`MessageDigest.isEqual`, since 2026-11-27).
+
 Run apps/api/gradlew test (gradlew.bat on Windows) with DB_URL/DB_USER/DB_PASSWORD
 pointing to a migrated synthetic PostgreSQL database. SessionRoutesTest exercises
 the HTTP boundary; AuthSessionsTest covers the actual PostgreSQL transaction,

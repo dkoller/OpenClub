@@ -46,7 +46,8 @@ advice. Placeholders are in square brackets.
   idle 30 minutes); CSRF and origin checks on every change.
 - Least privilege: separate permissions for members, teams, permissions, fees and announcements; every check runs in the
   same database statement as the read or change.
-- Identifier-only audit trail; no personal data in application logs.
+- Identifier-only audit trail; no personal data in application logs: failure lines carry only the route shape (IDs as
+  `{id}`), exception classes, SQL state and code locations, never messages, bodies or parameters (since 2026-11-27).
 - Minimisation: no health data, no reasons for absences, no bank data, public list without contacts or birth dates.
 - Data export and erasure built in; erasure deletes the record (backups expire, never edited).
 - Independent security reviews of each feature set (2026-11-19); automated tests for every permission boundary.
