@@ -124,6 +124,6 @@ test error. Those are the checks doing their job. These were not, and are fixed:
 | Maven Central dropped a request (`Could not get resource …qrbill-generator…pom`) | 2, once on `main` | Gradle retries downloads 6 times with a 2 s initial pause (`apps/api/gradle.properties`) |
 
 Not fixed: one `pnpm/action-setup` self-install failed on a network error (exit 236, all three jobs of one push at
-once). It happened once; a re-run is the remedy. The Keycloak journey is still one long test (`club-landing.spec.js`):
-one failure stops everything after it and costs a full run to retry. Splitting it into independent tests per area
-would make failures cheaper, but needs per-test data set-up; it is a separate change.
+once). It happened once; a re-run is the remedy. The long Keycloak journey (`club-landing.spec.js`, one 1,500-line test
+in which one failure skipped everything after it) was split on 2026-11-27 into 29 tests per area that each create
+their own data; see [browser e2e](../../development/auth-browser-e2e.md).

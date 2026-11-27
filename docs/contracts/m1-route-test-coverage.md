@@ -141,7 +141,7 @@ How to read the columns of test types:
 | `DELETE /v1/announcements/{announcementId}` | 204, 400, 401, 403, 404, 503 | `AnnouncementHttpTest` (delete then 404, bad id 400, revoked grant 403), `PrivateRoutesRevocationTest` |
 | `GET /v1/members/{memberId}/export` | 200, 400, 401, 403, 404, 503 | `MemberExportHttpTest` (editors only, attachment headers, content incl. guardianships, no login binding, audit), `PrivateRoutesRevocationTest`, `MemberExportTest` |
 | `POST /v1/members/{memberId}/erase` | 204, 400, 401, 403, 503 | `MemberDetailsAndErasureHttpTest` (one generic 403 for every refusal), `PrivateRoutesRevocationTest`, `MemberErasureTest` |
-Browser coverage of the same operations is in `dev/auth-e2e/club-landing.spec.js` (real Keycloak and
+Browser coverage of the same operations is in `dev/auth-e2e/club-*.spec.js` (real Keycloak and
 Chromium, synthetic data): member, team, grant, role and club-setting workflows in four languages, real
 database denial with grants removed, a team-scoped grant that shows one team, invalid-input handling and
 accessibility structure (#25). The anonymous and authentication routes outside the 98 operations are covered
