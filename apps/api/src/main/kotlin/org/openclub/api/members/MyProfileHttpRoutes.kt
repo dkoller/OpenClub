@@ -20,6 +20,8 @@ import org.openclub.api.database.rejectedTheData
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredBoolean
 import java.util.UUID
+import org.openclub.api.refuse
+import org.openclub.api.readSession
 
 /**
  * `GET /api/v1/me/profile` and `PUT /api/v1/me/profile/contacts` (OpenAPI 1.9.0). Order of answers: session (401);

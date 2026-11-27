@@ -24,6 +24,8 @@ import org.openclub.api.database.rejectedTheData
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.readBounded
 import java.time.LocalDate
+import org.openclub.api.refuse
+import org.openclub.api.readSession
 
 /** At most 512 KiB of CSV, enough for 1,000 members with every column. */
 private const val MAX_CSV_BYTES = 512 * 1024

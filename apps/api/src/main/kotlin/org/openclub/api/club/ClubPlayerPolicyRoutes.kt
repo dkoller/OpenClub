@@ -1,12 +1,10 @@
 package org.openclub.api.club
 
-import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CancellationException
@@ -21,6 +19,7 @@ import org.openclub.api.database.rejectedTheData
 import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.receiveJsonObject
+import org.openclub.api.refuse
 
 /** Club member-policy settings (player gender, adult age). Database triggers enforce existing member compatibility. */
 internal fun Application.installClubPlayerPolicyRoutes(
@@ -72,27 +71,25 @@ private suspend fun ApplicationCall.updateClubPolicy(
     try {
         val actor = sessions.read(request.cookies[cookies.sessionName])
         if (actor == null) {
-            respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
-                HttpStatusCode.Unauthorized)
+            refuse(HttpStatusCode.Unauthorized, "unauthenticated")
             return
         }
         if (request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
             request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
-            respondText("""{"code":"forbidden"}""", ContentType.Application.Json,
-                HttpStatusCode.Forbidden)
+            refuse(HttpStatusCode.Forbidden, "forbidden")
             return
         }
         // Checked before the body is validated, so callers without the grant always get 403.
         // The UPDATE below repeats the check atomically.
         if (!database.onDatabaseThread { it.holdsClubAdminGrant(actor.accountId) }) {
-            respondText("""{"code":"forbidden"}""", ContentType.Application.Json, HttpStatusCode.Forbidden)
+            refuse(HttpStatusCode.Forbidden, "forbidden")
             return
         }
         val value = try {
             val fields = receiveJsonObject(required = setOf(field))
             parse(fields[field] as? JsonPrimitive ?: throw IllegalArgumentException("Missing policy"))
         } catch (_: IllegalArgumentException) {
-            respondText("""{"code":"invalid"}""", ContentType.Application.Json, HttpStatusCode.BadRequest)
+            refuse(HttpStatusCode.BadRequest, "invalid")
             return
         }
         val updated = database.onDatabaseThread { db ->
@@ -103,18 +100,16 @@ private suspend fun ApplicationCall.updateClubPolicy(
             ) == 1
         }
         if (updated) respond(HttpStatusCode.NoContent)
-        else respondText("""{"code":"forbidden"}""", ContentType.Application.Json, HttpStatusCode.Forbidden)
+        else refuse(HttpStatusCode.Forbidden, "forbidden")
     } catch (cancelled: CancellationException) {
         throw cancelled
     } catch (failure: DataAccessException) {
         if (failure.rejectedTheData()) {
-            respondText("""{"code":"conflict"}""", ContentType.Application.Json, HttpStatusCode.Conflict)
+            refuse(HttpStatusCode.Conflict, "conflict")
         } else {
-            respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
-                HttpStatusCode.ServiceUnavailable)
+            refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
         }
     } catch (_: Exception) {
-        respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
-            HttpStatusCode.ServiceUnavailable)
+        refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
     }
 }

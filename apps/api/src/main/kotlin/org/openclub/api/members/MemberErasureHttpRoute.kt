@@ -10,6 +10,7 @@ import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
+import org.openclub.api.refuse
 
 /**
  * `POST /api/v1/members/{memberId}/erase` (OpenAPI 1.3.0; owner-approved 2026-11-18): permanent erasure of an

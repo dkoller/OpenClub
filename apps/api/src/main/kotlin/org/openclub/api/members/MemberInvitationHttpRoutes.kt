@@ -20,6 +20,7 @@ import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
 import java.util.UUID
+import org.openclub.api.refuse
 
 /**
  * Invitations and account unlinking (OpenAPI 1.2.0; owner-approved 2026-11-18). Every route is `no-store`, decides
@@ -110,8 +111,6 @@ internal fun memberETag(version: Long): String = "\"$version\""
 internal fun parseMemberETag(value: String): Long? =
     Regex("^\"([1-9][0-9]{0,18})\"$").matchEntire(value.trim())?.groupValues?.get(1)?.toLongOrNull()
 
-internal suspend fun ApplicationCall.refuse(status: HttpStatusCode, code: String) =
-    respondText("""{"code":"$code"}""", ContentType.Application.Json, status)
 
 /**
  * The shared order of answers: session (401), exact Origin and session CSRF (403), the capability if the route

@@ -1,7 +1,6 @@
 package org.openclub.api.members
 
 import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -11,7 +10,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.routing
-import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -19,7 +17,6 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.jooq.exception.DataAccessException
-import org.openclub.api.auth.ActiveSession
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
@@ -27,6 +24,8 @@ import org.openclub.api.database.rejectedTheData
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
 import java.util.UUID
+import org.openclub.api.refuse
+import org.openclub.api.readSession
 
 /**
  * Guardian routes (OpenAPI 1.6.0, ADR-0008 addendum 8). Editors manage a minor's guardians under
@@ -139,23 +138,6 @@ internal fun Application.installGuardianHttpRoutes(
     }
 }
 
-/** A read: session (401), then the route's own checks; no Origin or CSRF; never cacheable; faults are 503. */
-internal suspend fun ApplicationCall.readSession(
-    sessions: BrowserSessionOperations,
-    cookies: AuthCookiePolicy,
-    block: suspend (ActiveSession) -> Unit,
-) {
-    response.headers.append(HttpHeaders.CacheControl, "no-store")
-    try {
-        val actor = sessions.read(request.cookies[cookies.sessionName])
-            ?: return refuse(HttpStatusCode.Unauthorized, "unauthenticated")
-        block(actor)
-    } catch (cancelled: CancellationException) {
-        throw cancelled
-    } catch (_: Exception) {
-        refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
-    }
-}
 
 private suspend fun ApplicationCall.answer(result: MemberGuardianships.Change) = when (result) {
     MemberGuardianships.Change.DONE, MemberGuardianships.Change.ABSENT -> respondText("", status = HttpStatusCode.NoContent)
