@@ -127,3 +127,15 @@ Not fixed: one `pnpm/action-setup` self-install failed on a network error (exit 
 once). It happened once; a re-run is the remedy. The long Keycloak journey (`club-landing.spec.js`, one 1,500-line test
 in which one failure skipped everything after it) was split on 2026-11-27 into 29 tests per area that each create
 their own data; see [browser e2e](../../development/auth-browser-e2e.md).
+
+## 2026-11-27 follow-up
+
+- **Picture pull requests stay green:** the screenshot workflow's commit carries `[skip ci]`. Without it, the size and
+  Compose checks started on the pull request the workflow opened and failed at once with no job ("workflow file
+  issue", 3 times); the workflow already refuses to merge anything but the pictures and `SOURCE`.
+- **Browser failures show the page:** when a Keycloak or Rauthy browser test fails, the job prints Playwright's
+  `error-context.md` for each failed test, the page's accessibility tree as text (synthetic data only; no cookies,
+  tokens, traces or network logs, and nothing is uploaded). Two runs this week went to guessing what the page showed.
+- **Not changed:** on pull requests the Gradle cache is already read-only (`setup-gradle` default; its post step takes
+  1 s). Building the API while Keycloak starts would save about 20 s but makes both compete for the runner, which
+  could bring back timeouts at readiness; it was left out.

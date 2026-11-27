@@ -361,7 +361,13 @@ jobs:
             tail -n 60 "$RUNNER_TEMP/openclub-browser-setup.log" >&2 || true
             exit 1
           fi
-          pnpm exec playwright test --config rauthy.playwright.config.js
+          pnpm exec playwright test --config rauthy.playwright.config.js || { status=$?
+            # On failure, print Playwright's text snapshot of each failed page (its accessibility tree: synthetic
+            # demo data only, no cookies, tokens or network logs) so the cause is visible without uploads.
+            find test-results -name error-context.md -print0 2>/dev/null | while IFS= read -r -d '' file; do
+              echo "::group::Page at the failure: ${file%/error-context.md}"; cat "$file"; echo "::endgroup::"
+            done
+            exit "$status"; }
       - name: Verify provider outage cannot create an OpenClub session
         shell: bash
         run: |
