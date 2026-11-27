@@ -291,3 +291,6 @@ dl.summary dd { margin: 0; }
 .setting h2 { margin: 0; font-size: 1.0625rem; }
 .setting button[type='submit'] { align-self: flex-start; }
 label.check { flex-direction: row; align-items: center; gap: 0.5rem; }
+/* Quiet actions start at the left edge like the text around them, never centred or indented. */
+button.quiet, button.danger-quiet { align-self: flex-start; }
+p > button.quiet:first-child { padding-left: 0; }
