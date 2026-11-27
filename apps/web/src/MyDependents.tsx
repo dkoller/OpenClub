@@ -61,19 +61,19 @@ export function MyDependents({ language, csrfToken }: { language: Language; csrf
   return (
     <section aria-label={t.title}>
       <h1>{t.title}</h1>
-      <ul>{dependents.map(child => <li key={child.id}>
-        {child.firstName} {child.lastName}{' '}
-        <button type="button" aria-expanded={open?.id === child.id}
+      {/* One row per child, like the Family menu: tapping the name opens their details and contacts. */}
+      <ul className="rows card member-rows">{dependents.map(child => <li key={child.id} className={open?.id === child.id ? 'pad wide' : 'pad'}>
+        <button type="button" className="row-toggle" aria-expanded={open?.id === child.id}
           onClick={() => { if (open?.id === child.id) setOpen(null); else void show(child.id) }}>
-          {open?.id === child.id ? t.close : t.open}
+          {child.firstName} {child.lastName}
         </button>
-        {open?.id === child.id && <div>
-          <dl>
+        {open?.id === child.id && <div className="stack">
+          <dl className="summary">
             <div><dt>{t.dob}</dt><dd>{formatDate(open.dateOfBirth)}</dd></div>
             <div><dt>{t.player}</dt><dd>{open.isPlayer ? t.yes : t.no}</dd></div>
             <div><dt>{t.teams}</dt><dd>{open.teams.length ? open.teams.join(', ') : t.noTeams}</dd></div>
           </dl>
-          <form onSubmit={event => { void save(event) }}>
+          <form className="stack" onSubmit={event => { void save(event) }}>
             <label>{t.email}<input type="email" value={email} maxLength={320} onChange={event => setEmail(event.target.value)} /></label>
             <label>{t.phone}<input type="tel" value={phone} maxLength={40} onChange={event => setPhone(event.target.value)} /></label>
             <button type="submit" disabled={busy}>{t.save}</button>

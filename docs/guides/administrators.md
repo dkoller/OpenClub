@@ -53,7 +53,8 @@ Minors and archived members cannot be invited.
 
 ## Guardians
 
-*Guardians*: find the minor, then *Find a guardian* (an adult member with a sign-in) and *Add as guardian*. You confirm
+*Guardians* starts with *Children without a guardian*; *Add a guardian* next to a name selects that child. For any
+other child, use *Find a minor*. Then *Find a guardian* (an adult member with a sign-in) and *Add as guardian*. You confirm
 that you checked the relationship outside OpenClub. At most two per child. Guardianships end by themselves at the club's
 adult age, on archiving or when the guardian's sign-in is unlinked. A guardianship gives no other permission.
 
@@ -100,7 +101,8 @@ change applies to the member's next action.
 | `POST_ANNOUNCEMENTS` | *Post announcements* | Announcements to the whole club (club-wide only) |
 | `MANAGE_VENUES` | *Manage fields and halls* | The club's fields and halls (club-wide only) |
 
-The first administrator holds every club-wide capability from the start. *Club roles* switches a member between
+The first administrator holds every club-wide capability from the start. *Club roles* lists the current
+*Administrators* (*Change role* selects one); *Find member* below picks anyone else. It switches a member between
 *Member* and *Administrator*; the last administrator cannot be demoted.
 
 ![Members → Club roles](images/admin-members-roles.png)

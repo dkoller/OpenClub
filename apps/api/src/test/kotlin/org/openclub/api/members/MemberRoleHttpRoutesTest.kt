@@ -97,15 +97,27 @@ class MemberRoleHttpRoutesTest {
                 assertEquals(HttpStatusCode.BadRequest, update(regular, """{"role":"ADMIN","accountId":"forged"}""").status)
                 assertEquals(HttpStatusCode.NoContent, update(regular, """{"role":"ADMIN"}""").status)
                 assertEquals("""{"role":"ADMIN"}""", read(regular).bodyAsText())
+                // Role holders (OpenAPI 1.38.0): names and role, both administrators listed, no contacts.
+                val holders = client.get("/api/v1/roles/holders") { header(HttpHeaders.Cookie, "${cookies.sessionName}=manager") }
+                assertEquals(HttpStatusCode.OK, holders.status)
+                assertEquals("no-store", holders.headers[HttpHeaders.CacheControl])
+                val holderText = holders.bodyAsText()
+                assertTrue(holderText.contains("\"memberId\":\"$admin\"") && holderText.contains("\"memberId\":\"$regular\""))
+                assertTrue(holderText.contains("\"role\":\"ADMIN\""))
+                assertFalse(holderText.contains("@example.invalid") || holderText.contains("+41"))
                 assertEquals(HttpStatusCode.NoContent, update(regular, """{"role":"ADMIN"}""").status)
                 assertEquals(HttpStatusCode.Forbidden, update(admin, """{"role":"MEMBER"}""").status)
                 assertEquals(HttpStatusCode.NoContent, update(regular, """{"role":"MEMBER"}""").status)
                 assertEquals("""{"role":"MEMBER"}""", read(regular).bodyAsText())
+                assertFalse(client.get("/api/v1/roles/holders") { header(HttpHeaders.Cookie, "${cookies.sessionName}=manager") }
+                    .bodyAsText().contains("\"memberId\":\"$regular\""), "a member is not a role holder")
                 runBlocking {
                     database.onDatabaseThread { db ->
                         db.execute("DELETE FROM club_capability_grants WHERE member_id = ?", admin)
                     }
                 }
+                assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/roles/holders") {
+                    header(HttpHeaders.Cookie, "${cookies.sessionName}=manager") }.status)
                 assertEquals(HttpStatusCode.Forbidden, read(regular).status)
                 assertEquals(HttpStatusCode.Forbidden, update(regular, """{"role":"ADMIN"}""").status)
                 assertEquals("MEMBER", runBlocking {

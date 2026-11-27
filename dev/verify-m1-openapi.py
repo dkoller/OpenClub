@@ -62,6 +62,7 @@ GET /v1/members/{memberId}
 PATCH /v1/members/{memberId}
 POST /v1/members/{memberId}/archive
 GET /v1/members/{memberId}/role
+GET /v1/roles/holders
 PATCH /v1/members/{memberId}/role
 GET /v1/teams
 POST /v1/teams
@@ -84,6 +85,7 @@ PUT /v1/members/{memberId}
 POST /v1/members/{memberId}/reactivate
 GET /v1/members/archived
 GET /v1/members/{memberId}/guardians
+GET /v1/guardians/missing
 POST /v1/members/{memberId}/guardians
 DELETE /v1/members/{memberId}/guardians/{guardianMemberId}
 GET /v1/me/dependents
@@ -207,7 +209,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.37.0"
+FROZEN_VERSION = "1.38.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}

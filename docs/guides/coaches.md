@@ -80,8 +80,8 @@ player and parent sees only their own status.
 
 ## The team's members
 
-With `MANAGE_TEAMS` the team's *Members* page assigns and removes members, and *Contact details* shows an **active**
-team member's email and phone. Birth dates stay hidden; each contact read is recorded.
+The team's *Members* page lists one row per member; tapping a name shows an **active** team member's email and phone.
+With `MANAGE_TEAMS`, *Remove from team* sits inside that row, and *Add a member* below the list finds and assigns one. Birth dates stay hidden; each contact read is recorded.
 
 <img src="images/coach-team-members.png" alt="A team's members on a phone" width="300">
 

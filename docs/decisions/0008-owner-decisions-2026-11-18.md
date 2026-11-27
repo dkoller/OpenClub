@@ -409,3 +409,10 @@ Approved with the selection of 2026-11-25 ("Approve all", see addendum 31).
 | # | Topic | Recorded decision |
 | --- | --- | --- |
 | 74 | Member list rows | Approved as OpenAPI **1.37.0** ("Teams only"): each row of `GET /v1/members` carries `teams`, the sorted names of the member's teams, so the administrators' list shows more than a name. Same readers as before (`VIEW_MEMBER_DIRECTORY`). The owner declined a child/adult flag; no birth date, age group or contact is added. |
+
+## Addendum 43 — role holders and minors without a guardian (2026-11-27)
+
+| # | Topic | Recorded decision |
+| --- | --- | --- |
+| 75 | Club roles page | Approved as OpenAPI **1.38.0**: `GET /v1/roles/holders` lists active members whose role is not `MEMBER` (today: administrators), names and role only, for club-wide `MANAGE_PERMISSIONS` holders. *Club roles* opens with them instead of an empty search. |
+| 76 | Guardians page | Approved as OpenAPI **1.38.0**: `GET /v1/guardians/missing` lists active minors (under the club's adult age) without a guardian, id and names only, for `EDIT_MEMBERS` holders. *Guardians* opens with them, each with a way to add a guardian. |

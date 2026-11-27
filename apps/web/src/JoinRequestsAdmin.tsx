@@ -44,7 +44,7 @@ export function JoinRequestsAdmin({ language, csrfToken, onChanged }: { language
   if (open === null || open === 'denied') return null
   return (
     <section aria-label={t.title}>
-      <h2>{t.title}</h2>
+      <h2 className="vh">{t.title}</h2>
       <label><input type="checkbox" checked={open} disabled={busy}
         onChange={event => { void act(() => setJoinOpen(event.target.checked, csrfToken)) }} /> {t.switch}</label>
       {/* One card per application: who and for which team, how to reach them, their message, then the decision. */}

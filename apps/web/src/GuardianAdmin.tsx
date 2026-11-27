@@ -3,13 +3,13 @@ import type { Language } from './language'
 import { fetchMemberPage, type Member } from './members'
 import { useEditorAccess } from './editorAccess'
 import { latestLookup } from './roles'
-import { addGuardian, listGuardians, removeGuardian } from './guardians'
+import { addGuardian, listGuardians, listMinorsWithoutGuardian, removeGuardian } from './guardians'
 
 const words = {
-  de: { title: 'Erziehungsberechtigte', minorSearch: 'Minderjähriges Mitglied suchen', guardianSearch: 'Erziehungsberechtigte Person suchen', find: 'Suchen', minor: 'Minderjähriges Mitglied', guardian: 'Erziehungsberechtigte Person', add: 'Als erziehungsberechtigt eintragen', remove: 'Entfernen', none: 'Keine Erziehungsberechtigten eingetragen.', notMinor: 'Dieses Mitglied ist nicht minderjährig.', conflict: 'Nicht möglich: Nur aktive Erwachsene mit Anmeldung, höchstens zwei pro Kind.', attest: 'Sie bestätigen, dass Sie die Beziehung ausserhalb von OpenClub geprüft haben.', added: 'Eingetragen.', removed: 'Entfernt.', error: 'Erziehungsberechtigte nicht verfügbar.', empty: 'Keine Mitglieder gefunden.' },
-  en: { title: 'Guardians', minorSearch: 'Find a minor', guardianSearch: 'Find a guardian', find: 'Search', minor: 'Minor', guardian: 'Guardian', add: 'Add as guardian', remove: 'Remove', none: 'No guardians recorded.', notMinor: 'This member is not a minor.', conflict: 'Not possible: only active adults with a sign-in, at most two per child.', attest: 'You confirm that you checked the relationship outside OpenClub.', added: 'Guardian added.', removed: 'Guardian removed.', error: 'Guardians unavailable.', empty: 'No members found.' },
-  fr: { title: 'Représentants légaux', minorSearch: 'Chercher un membre mineur', guardianSearch: 'Chercher un représentant légal', find: 'Chercher', minor: 'Membre mineur', guardian: 'Représentant légal', add: 'Ajouter comme représentant légal', remove: 'Retirer', none: 'Aucun représentant légal enregistré.', notMinor: 'Ce membre n’est pas mineur.', conflict: 'Impossible : seulement des adultes actifs avec connexion, au plus deux par enfant.', attest: 'Vous confirmez avoir vérifié la relation en dehors d’OpenClub.', added: 'Représentant légal ajouté.', removed: 'Représentant légal retiré.', error: 'Représentants légaux indisponibles.', empty: 'Aucun membre trouvé.' },
-  it: { title: 'Tutori legali', minorSearch: 'Cerca un membro minorenne', guardianSearch: 'Cerca un tutore', find: 'Cerca', minor: 'Membro minorenne', guardian: 'Tutore', add: 'Aggiungi come tutore', remove: 'Rimuovi', none: 'Nessun tutore registrato.', notMinor: 'Questo membro non è minorenne.', conflict: 'Non possibile: solo adulti attivi con accesso, al massimo due per bambino.', attest: 'Confermi di aver verificato il rapporto al di fuori di OpenClub.', added: 'Tutore aggiunto.', removed: 'Tutore rimosso.', error: 'Tutori non disponibili.', empty: 'Nessun membro trovato.' },
+  de: { missing: 'Kinder ohne Erziehungsberechtigte', allSet: 'Alle Kinder haben eine erziehungsberechtigte Person.', choose: 'Erziehungsberechtigte hinzufügen', other: 'Ein anderes Kind', title: 'Erziehungsberechtigte', minorSearch: 'Minderjähriges Mitglied suchen', guardianSearch: 'Erziehungsberechtigte Person suchen', find: 'Suchen', minor: 'Minderjähriges Mitglied', guardian: 'Erziehungsberechtigte Person', add: 'Als erziehungsberechtigt eintragen', remove: 'Entfernen', none: 'Keine Erziehungsberechtigten eingetragen.', notMinor: 'Dieses Mitglied ist nicht minderjährig.', conflict: 'Nicht möglich: Nur aktive Erwachsene mit Anmeldung, höchstens zwei pro Kind.', attest: 'Sie bestätigen, dass Sie die Beziehung ausserhalb von OpenClub geprüft haben.', added: 'Eingetragen.', removed: 'Entfernt.', error: 'Erziehungsberechtigte nicht verfügbar.', empty: 'Keine Mitglieder gefunden.' },
+  en: { missing: 'Children without a guardian', allSet: 'Every child has a guardian.', choose: 'Add a guardian', other: 'Another child', title: 'Guardians', minorSearch: 'Find a minor', guardianSearch: 'Find a guardian', find: 'Search', minor: 'Minor', guardian: 'Guardian', add: 'Add as guardian', remove: 'Remove', none: 'No guardians recorded.', notMinor: 'This member is not a minor.', conflict: 'Not possible: only active adults with a sign-in, at most two per child.', attest: 'You confirm that you checked the relationship outside OpenClub.', added: 'Guardian added.', removed: 'Guardian removed.', error: 'Guardians unavailable.', empty: 'No members found.' },
+  fr: { missing: 'Enfants sans représentant légal', allSet: 'Chaque enfant a un représentant légal.', choose: 'Ajouter un représentant légal', other: 'Un autre enfant', title: 'Représentants légaux', minorSearch: 'Chercher un membre mineur', guardianSearch: 'Chercher un représentant légal', find: 'Chercher', minor: 'Membre mineur', guardian: 'Représentant légal', add: 'Ajouter comme représentant légal', remove: 'Retirer', none: 'Aucun représentant légal enregistré.', notMinor: 'Ce membre n’est pas mineur.', conflict: 'Impossible : seulement des adultes actifs avec connexion, au plus deux par enfant.', attest: 'Vous confirmez avoir vérifié la relation en dehors d’OpenClub.', added: 'Représentant légal ajouté.', removed: 'Représentant légal retiré.', error: 'Représentants légaux indisponibles.', empty: 'Aucun membre trouvé.' },
+  it: { missing: 'Bambini senza rappresentante legale', allSet: 'Ogni bambino ha un rappresentante legale.', choose: 'Aggiungi un rappresentante legale', other: 'Un altro bambino', title: 'Tutori legali', minorSearch: 'Cerca un membro minorenne', guardianSearch: 'Cerca un tutore', find: 'Cerca', minor: 'Membro minorenne', guardian: 'Tutore', add: 'Aggiungi come tutore', remove: 'Rimuovi', none: 'Nessun tutore registrato.', notMinor: 'Questo membro non è minorenne.', conflict: 'Non possibile: solo adulti attivi con accesso, al massimo due per bambino.', attest: 'Confermi di aver verificato il rapporto al di fuori di OpenClub.', added: 'Tutore aggiunto.', removed: 'Tutore rimosso.', error: 'Tutori non disponibili.', empty: 'Nessun membro trovato.' },
 } satisfies Record<Language, Record<string, string>>
 
 type Notice = 'notMinor' | 'conflict' | 'added' | 'removed' | 'error' | null
@@ -28,8 +28,24 @@ export function GuardianAdmin({ language, csrfToken }: { language: Language; csr
   const [denied, setDenied] = useState(false)
   const access = useEditorAccess()
   const [busy, setBusy] = useState(false)
+  const [missing, setMissing] = useState<Member[] | null>(null)
   const lookups = useRef(latestLookup())
   useEffect(() => () => lookups.current.cancel(), [])
+  useEffect(() => { if (access === 'editor') void loadMissing() }, [access])
+
+  async function loadMissing() {
+    try {
+      const result = await listMinorsWithoutGuardian()
+      if (result === 'denied') { setDenied(true); return }
+      setMissing(result)
+    } catch { setNotice('error') }
+  }
+
+  function choose(child: Member) {
+    setMinors([child])
+    setNotice(null)
+    void show(child.id)
+  }
 
   async function show(id: string) {
     setMinorId(id)
@@ -65,15 +81,25 @@ export function GuardianAdmin({ language, csrfToken }: { language: Language; csr
       if (outcome === 'not-found') { setNotice('notMinor'); return }
       setNotice(done)
       await show(minorId)
+      void loadMissing()
     } catch { setNotice('error') } finally { setBusy(false) }
   }
 
   if (denied || access !== 'editor') return null
   return (
-    <section aria-label={t.title}>
-      <h2>{t.title}</h2>
-      <form onSubmit={event => { void search(event, minorQuery, items => { setMinors(items); void show(items[0]?.id ?? '') }) }}>
-        <label>{t.minorSearch}<input value={minorQuery} maxLength={100} onChange={event => setMinorQuery(event.target.value)} /></label>
+    <section aria-label={t.title} className="stack">
+      {/* The work first: children nobody is responsible for yet, each one tap away from adding a guardian. */}
+      <h2>{t.missing}</h2>
+      {missing !== null && (missing.length === 0 ? <p className="muted">{t.allSet}</p>
+        : <ul className="rows card">{missing.map(child => <li key={child.id} className="row pad">
+          <span className="event-text"><b>{child.firstName} {child.lastName}</b></span>
+          <button type="button" className={minorId === child.id ? 'btn primary' : 'btn'} disabled={busy}
+            aria-label={`${t.choose}: ${child.firstName} ${child.lastName}`} onClick={() => choose(child)}>{t.choose}</button>
+        </li>)}</ul>)}
+      <h2>{t.other}</h2>
+      <form className="search" onSubmit={event => { void search(event, minorQuery, items => { setMinors(items); void show(items[0]?.id ?? '') }) }}>
+        <label htmlFor="guardian-minor-search">{t.minorSearch}</label>
+        <input id="guardian-minor-search" value={minorQuery} maxLength={100} onChange={event => setMinorQuery(event.target.value)} />
         <button type="submit" disabled={busy}>{t.find}</button>
       </form>
       {minors?.length === 0 && <p>{t.empty}</p>}
@@ -85,11 +111,12 @@ export function GuardianAdmin({ language, csrfToken }: { language: Language; csr
       {guardians && notice !== 'notMinor' && <>
         {guardians.length === 0 ? <p>{t.none}</p> : <ul>{guardians.map(guardian => <li key={guardian.id}>
           {guardian.firstName} {guardian.lastName}{' '}
-          <button type="button" disabled={busy}
+          <button type="button" className="danger-quiet" disabled={busy}
             onClick={() => { void change(() => removeGuardian(minorId, guardian.id, csrfToken), 'removed') }}>{t.remove}</button>
         </li>)}</ul>}
-        <form onSubmit={event => { void search(event, guardianQuery, items => { setCandidates(items); setCandidateId(items[0]?.id ?? '') }) }}>
-          <label>{t.guardianSearch}<input value={guardianQuery} maxLength={100} onChange={event => setGuardianQuery(event.target.value)} /></label>
+        <form className="search" onSubmit={event => { void search(event, guardianQuery, items => { setCandidates(items); setCandidateId(items[0]?.id ?? '') }) }}>
+          <label htmlFor="guardian-search">{t.guardianSearch}</label>
+          <input id="guardian-search" value={guardianQuery} maxLength={100} onChange={event => setGuardianQuery(event.target.value)} />
           <button type="submit" disabled={busy}>{t.find}</button>
         </form>
         {candidates.length > 0 && <div>

@@ -11,6 +11,7 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.openclub.api.auth.AuthCookiePolicy
@@ -34,6 +35,42 @@ internal fun Application.installMemberRoleHttpRoutes(
     database: DatabaseRuntime,
 ) {
     routing {
+        // Everyone with a role above member (OpenAPI 1.38.0, ADR-0008 addendum 43): names and role only, for
+        // MANAGE_PERMISSIONS holders, so Club roles opens with the current administrators.
+        get("/api/v1/roles/holders") {
+            call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+            try {
+                val actor = sessions.read(call.request.cookies[cookies.sessionName])
+                if (actor == null) {
+                    call.respondText("""{"code":"unauthenticated"}""", ContentType.Application.Json,
+                        HttpStatusCode.Unauthorized)
+                    return@get
+                }
+                val holders = database.onDatabaseThread { db ->
+                    if (!ClubCapabilityAccess(db).has(actor.accountId,
+                            ClubCapabilityAccess.Capability.MANAGE_PERMISSIONS)) null
+                    else db.fetch(
+                        """SELECT id, first_name, last_name, role FROM members
+                           WHERE archived_at IS NULL AND role <> 'MEMBER' ORDER BY last_name, first_name, id""",
+                    ).map { row -> buildJsonObject {
+                        put("memberId", row.get(0, UUID::class.java).toString())
+                        put("firstName", row.get(1, String::class.java))
+                        put("lastName", row.get(2, String::class.java))
+                        put("role", row.get(3, String::class.java))
+                    } }
+                }
+                if (holders == null) {
+                    call.respondText("""{"code":"forbidden"}""", ContentType.Application.Json, HttpStatusCode.Forbidden)
+                    return@get
+                }
+                call.respondText(buildJsonObject { put("items", JsonArray(holders)) }.toString(), ContentType.Application.Json)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                call.respondText("""{"code":"unavailable"}""", ContentType.Application.Json,
+                    HttpStatusCode.ServiceUnavailable)
+            }
+        }
         get("/api/v1/members/{memberId}/role") {
             call.response.headers.append(HttpHeaders.CacheControl, "no-store")
             try {

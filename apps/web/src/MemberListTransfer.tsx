@@ -44,14 +44,14 @@ export function MemberListTransfer({ language, csrfToken, onImported }: {
   if (editor !== 'editor') return null
   return (
     <section aria-label={t.title}>
-      <h2>{t.title}</h2>
+      <h2 className="vh">{t.title}</h2>
       <p><a href={memberListExportPath(language)} download>{t.export}</a></p>
-      <form onSubmit={(event: FormEvent) => { event.preventDefault(); void send('preview') }}>
+      <form className="stack file-form" onSubmit={(event: FormEvent) => { event.preventDefault(); void send('preview') }}>
         <label>{t.file}<input type="file" accept=".csv,text/csv" required
           onChange={event => { setFile(event.target.files?.[0] ?? null); setPreview(null); setNotice(null) }} /></label>
         <button type="submit" disabled={busy || !file}>{t.check}</button>
       </form>
-      <p>{t.hint}</p>
+      <p className="muted small">{t.hint}</p>
       {preview && <>
         <p role="status">{fill(t.summary, preview.counts)}</p>
         <table className="cards">

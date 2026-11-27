@@ -5,10 +5,10 @@ import { changeAssignment, readRoster } from './teams'
 import { MemberDetailsView } from './MemberDetailsView'
 
 const words = {
-  de: { roster: 'Teammitglieder', search: 'Mitglied suchen', find: 'Suchen', add: 'Zuweisen', remove: 'Entfernen', contacts: 'Kontaktdaten', empty: 'Keine Zuweisungen.', more: 'Weitere Mitglieder', error: 'Teamzuweisung fehlgeschlagen.', retry: 'Erneut versuchen', loading: 'Teammitglieder werden geladen…', denied: 'Die Mitglieder dieses Teams sind für dich nicht sichtbar.' },
-  en: { roster: 'Team members', search: 'Find member', find: 'Search', add: 'Assign', remove: 'Remove', contacts: 'Contact details', empty: 'No assignments.', more: 'More members', error: 'Team assignment failed.', retry: 'Try again', loading: 'Loading team members…', denied: 'You cannot see the members of this team.' },
-  fr: { roster: 'Membres de l’équipe', search: 'Chercher un membre', find: 'Chercher', add: 'Affecter', remove: 'Retirer', contacts: 'Coordonnées', empty: 'Aucune affectation.', more: 'Plus de membres', error: 'Affectation impossible.', retry: 'Réessayer', loading: 'Chargement des membres…', denied: 'Vous ne voyez pas les membres de cette équipe.' },
-  it: { roster: 'Membri della squadra', search: 'Cerca membro', find: 'Cerca', add: 'Assegna', remove: 'Rimuovi', contacts: 'Contatti', empty: 'Nessuna assegnazione.', more: 'Altri membri', error: 'Assegnazione non riuscita.', retry: 'Riprova', loading: 'Caricamento membri…', denied: 'Non puoi vedere i membri di questa squadra.' },
+  de: { addTitle: 'Mitglied hinzufügen', roster: 'Teammitglieder', search: 'Mitglied suchen', find: 'Suchen', add: 'Zuweisen', remove: 'Aus dem Team entfernen', contacts: 'Kontaktdaten', empty: 'Keine Zuweisungen.', more: 'Weitere Mitglieder', error: 'Teamzuweisung fehlgeschlagen.', retry: 'Erneut versuchen', loading: 'Teammitglieder werden geladen…', denied: 'Die Mitglieder dieses Teams sind für dich nicht sichtbar.' },
+  en: { addTitle: 'Add a member', roster: 'Team members', search: 'Find member', find: 'Search', add: 'Assign', remove: 'Remove from team', contacts: 'Contact details', empty: 'No assignments.', more: 'More members', error: 'Team assignment failed.', retry: 'Try again', loading: 'Loading team members…', denied: 'You cannot see the members of this team.' },
+  fr: { addTitle: 'Ajouter un membre', roster: 'Membres de l’équipe', search: 'Chercher un membre', find: 'Chercher', add: 'Affecter', remove: 'Retirer de l’équipe', contacts: 'Coordonnées', empty: 'Aucune affectation.', more: 'Plus de membres', error: 'Affectation impossible.', retry: 'Réessayer', loading: 'Chargement des membres…', denied: 'Vous ne voyez pas les membres de cette équipe.' },
+  it: { addTitle: 'Aggiungi un membro', roster: 'Membri della squadra', search: 'Cerca membro', find: 'Cerca', add: 'Assegna', remove: 'Rimuovi dalla squadra', contacts: 'Contatti', empty: 'Nessuna assegnazione.', more: 'Altri membri', error: 'Assegnazione non riuscita.', retry: 'Riprova', loading: 'Caricamento membri…', denied: 'Non puoi vedere i membri di questa squadra.' },
 } satisfies Record<Language, Record<string, string>>
 
 export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
@@ -103,21 +103,25 @@ export function TeamMembers({ teamId, language, csrfToken, onChanged }: {
       }}>{t.retry}</button></>}
       {members === null ? <p role="status">{t.loading}</p>
         : members.length === 0 ? <p>{t.empty}</p>
-          : <ul>{members.map(member => <li key={member.id}>{member.firstName} {member.lastName}{' '}
-            <button type="button" disabled={busy} onClick={() => { void change(member.id, 'DELETE') }}>
-              {t.remove}
-            </button>{' '}
-            <button type="button" aria-expanded={showing === member.id}
-              onClick={() => setShowing(showing === member.id ? null : member.id)}>{t.contacts}</button>
-            {showing === member.id &&
-              <MemberDetailsView memberId={member.id} language={language} onClose={() => setShowing(null)} />}
+          // Tapping a name opens the contacts; removing from the team sits inside, as a quiet link.
+          : <ul className="rows card member-rows">{members.map(member => <li key={member.id} className={showing === member.id ? 'pad wide' : 'pad'}>
+            <button type="button" className="row-toggle" aria-expanded={showing === member.id}
+              onClick={() => setShowing(showing === member.id ? null : member.id)}>{member.firstName} {member.lastName}</button>
+            {showing === member.id && <div className="stack">
+              <MemberDetailsView memberId={member.id} language={language} onClose={() => setShowing(null)} />
+              <button type="button" className="danger-quiet" disabled={busy} onClick={() => { void change(member.id, 'DELETE') }}>
+                {t.remove}
+              </button>
+            </div>}
           </li>)}</ul>}
       {cursor && <button type="button" disabled={busy} onClick={() => { void load(cursor) }}>{t.more}</button>}
-      <form onSubmit={event => { void findMember(event) }}>
-        <label>{t.search}<input value={search} maxLength={100} onChange={event => setSearch(event.target.value)} /></label>
+      <h2>{t.addTitle}</h2>
+      <form className="search" onSubmit={event => { void findMember(event) }}>
+        <label htmlFor="team-member-search">{t.search}</label>
+        <input id="team-member-search" value={search} maxLength={100} onChange={event => setSearch(event.target.value)} />
         <button type="submit">{t.find}</button>
       </form>
-      {candidates.length > 0 && <form onSubmit={event => {
+      {candidates.length > 0 && <form className="search" onSubmit={event => {
         event.preventDefault()
         if (selected) void change(selected, 'POST')
       }}>

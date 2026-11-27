@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { latestLookup, readRole, rolePath, saveRole } from './roles'
+import { fetchRoleHolders, latestLookup, readRole, rolePath, saveRole } from './roles'
 
 const csrf = 'x'.repeat(43)
 const json = (status: number, body?: unknown) =>
@@ -63,5 +63,15 @@ describe('latestLookup', () => {
     releaseSlow(json(200, { role: 'ADMIN' }))
     await slow
     expect(applied).toEqual(['mara:MEMBER'])
+  })
+})
+
+describe('role holders', () => {
+  it('reads the holders and fails closed on denial', async () => {
+    const items = [{ memberId: 'm1', firstName: 'Ruth', lastName: 'Amstutz', role: 'ADMIN' }]
+    const request = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ items }) })
+    expect(await fetchRoleHolders(undefined, request)).toEqual({ items })
+    expect(request.mock.calls[0][0]).toBe('/api/v1/roles/holders')
+    expect(await fetchRoleHolders(undefined, vi.fn().mockResolvedValue({ ok: false, status: 403 }))).toBe('denied')
   })
 })
