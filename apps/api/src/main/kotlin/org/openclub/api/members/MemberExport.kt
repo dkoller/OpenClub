@@ -84,7 +84,7 @@ internal class MemberExport(private val database: DSLContext) {
 
             // Attendance answers (since OpenAPI 1.14.1, security review): the event ID and start with the answer.
             val attendance = db.fetch(
-                """SELECT e.id, e.starts_at, a.response, a.answered_at
+                """SELECT e.id, e.starts_at, a.response, a.answered_at, a.note
                    FROM event_attendance a JOIN team_events e ON e.id = a.event_id
                    WHERE a.member_id = ? ORDER BY e.starts_at, e.id""", memberId)
 
@@ -95,7 +95,7 @@ internal class MemberExport(private val database: DSLContext) {
                    WHERE v.member_id = ? ORDER BY s.starts_at, s.id""", memberId)
 
             val absences = db.fetch(
-                "SELECT from_date, to_date FROM member_absences WHERE member_id = ? ORDER BY from_date, to_date, id", memberId)
+                "SELECT from_date, to_date, note FROM member_absences WHERE member_id = ? ORDER BY from_date, to_date, id", memberId)
 
             val rides = db.fetch(
                 """SELECT r.id, r.event_id, 'DRIVER' AS role, r.direction, r.departs_at FROM event_rides r WHERE r.driver_member_id = ?
@@ -176,6 +176,7 @@ internal class MemberExport(private val database: DSLContext) {
                             put("startsAt", it.get(1, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
                             put("response", it.get(2).toString())
                             put("answeredAt", it.get(3, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
+                            put("note", it.get(4)?.toString()?.let(::JsonPrimitive) ?: JsonNull)
                         })
                     }
                 })
@@ -192,7 +193,8 @@ internal class MemberExport(private val database: DSLContext) {
                     }
                 })
                 put("absences", buildJsonArray {
-                    absences.forEach { add(buildJsonObject { put("from", it.get(0).toString()); put("to", it.get(1).toString()) }) }
+                    absences.forEach { add(buildJsonObject { put("from", it.get(0).toString()); put("to", it.get(1).toString())
+                        put("note", it.get(2)?.toString()?.let(::JsonPrimitive) ?: JsonNull) }) }
                 })
                 put("rides", buildJsonArray {
                     rides.forEach { add(buildJsonObject {

@@ -8,12 +8,13 @@ import java.util.UUID
 
 /**
  * Absences (OpenAPI 1.20.0, ADR-0008 addendum 24). A member enters calendar days (club time zone) when they are away,
- * a guardian does so for their current minor. No reason is stored. The view `effective_attendance` (V32) turns every
+ * a guardian does so for their current minor. Since 1.39.0 (addendum 44, reversing addendum 24) an absence may carry
+ * a note of at most 100 characters, which coaches see next to the implied No. The view `effective_attendance` (V32) turns every
  * unanswered event of the member's teams on those days into NO; an explicit answer wins. Every check is inside the
  * statement that reads or changes data. Not audited, like attendance.
  */
 internal class Absences(private val database: DSLContext) {
-    data class Absence(val id: UUID, val memberId: UUID, val firstName: String, val from: LocalDate, val to: LocalDate)
+    data class Absence(val id: UUID, val memberId: UUID, val firstName: String, val from: LocalDate, val to: LocalDate, val note: String? = null)
     data class Person(val id: UUID, val firstName: String)
     data class Listing(val items: List<Absence>, val people: List<Person>)
 
@@ -43,12 +44,12 @@ internal class Absences(private val database: DSLContext) {
         if (persons.isEmpty()) return null
         val items = database.fetch(
             """WITH $people
-               SELECT ab.id, ab.member_id, p.first_name, ab.from_date, ab.to_date
+               SELECT ab.id, ab.member_id, p.first_name, ab.from_date, ab.to_date, ab.note
                FROM member_absences ab JOIN people p ON p.id = ab.member_id
                WHERE ab.to_date >= (now() AT TIME ZONE club_time_zone())::date
                ORDER BY ab.from_date, ab.to_date, ab.id""", actor).map {
             Absence(it.get(0, UUID::class.java), it.get(1, UUID::class.java), it.get(2, String::class.java),
-                it.get(3, LocalDate::class.java), it.get(4, LocalDate::class.java))
+                it.get(3, LocalDate::class.java), it.get(4, LocalDate::class.java), it.get(5, String::class.java))
         }
         return Listing(items, persons)
     }
@@ -57,17 +58,17 @@ internal class Absences(private val database: DSLContext) {
      * Adds an absence for [memberId] if the actor may act for them: from today (club time zone) on, at most 366 days
      * long, ending within two years, and at most [MAX_OPEN] current or future absences per member.
      */
-    fun create(actor: UUID, memberId: UUID, from: LocalDate, to: LocalDate): Created {
+    fun create(actor: UUID, memberId: UUID, from: LocalDate, to: LocalDate, note: String? = null): Created {
         val id = UUID.randomUUID()
         val inserted = database.execute(
             """WITH $people
-               INSERT INTO member_absences (id, member_id, from_date, to_date)
-               SELECT ?, p.id, ?::date, ?::date FROM people p
+               INSERT INTO member_absences (id, member_id, from_date, to_date, note)
+               SELECT ?, p.id, ?::date, ?::date, ? FROM people p
                CROSS JOIN (SELECT (now() AT TIME ZONE club_time_zone())::date AS today) t
                WHERE p.id = ? AND ?::date >= t.today AND ?::date >= ?::date AND ?::date <= ?::date + 365
                  AND ?::date <= t.today + 730
                  AND (SELECT count(*) FROM member_absences ab WHERE ab.member_id = p.id AND ab.to_date >= t.today) < $MAX_OPEN""",
-            actor, id, from.toString(), to.toString(), memberId, from.toString(), to.toString(), from.toString(),
+            actor, id, from.toString(), to.toString(), note, memberId, from.toString(), to.toString(), from.toString(),
             to.toString(), from.toString(), to.toString())
         if (inserted == 1) return Created.Done(id)
         val allowed = database.fetchOne("WITH $people SELECT 1 FROM people WHERE id = ?", actor, memberId) != null

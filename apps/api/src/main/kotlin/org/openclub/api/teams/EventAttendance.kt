@@ -12,14 +12,17 @@ import java.util.UUID
  * their current minor, only for events of a team that member is assigned to and only until the event starts (and not
  * for a cancelled event). Who may answer is decided inside the same statement as the change. Holders of `VIEW_TEAMS`
  * or `MANAGE_TEAMS` for the team see every answer, by public display name only (adults' full names, minors' first name
- * and surname initial), never IDs, birth dates or contacts. Everyone else sees only totals.
+ * and surname initial), never IDs, birth dates or contacts, each with its note (1.39.0, also the note of an absence
+ * behind an implied No). Everyone else sees only totals. After an event's answer deadline (1.39.0) nobody can answer,
+ * change or clear an answer.
  */
 internal class EventAttendance(private val database: DSLContext) {
     enum class Response { YES, NO, MAYBE }
 
-    enum class Change { DONE, CLOSED, DENIED }
+    /** [DEADLINE]: the event's answer deadline has passed (1.39.0); [CLOSED]: it started or is cancelled. */
+    enum class Change { DONE, CLOSED, DEADLINE, DENIED }
 
-    data class Answer(val displayName: String, val response: Response?)
+    data class Answer(val displayName: String, val response: Response?, val note: String? = null)
 
     data class Counts(val yes: Int, val no: Int, val maybe: Int)
 
@@ -36,7 +39,8 @@ internal class EventAttendance(private val database: DSLContext) {
     private val allowed = """
         WITH me AS (SELECT m.id FROM members m WHERE m.account_id = ? AND ${ActorSql.activeVerified("m")}),
              allowed AS (
-               SELECT e.id AS event_id, target.id AS member_id, (e.cancelled OR e.starts_at <= now()) AS closed
+               SELECT e.id AS event_id, target.id AS member_id, (e.cancelled OR e.starts_at <= now()) AS closed,
+                      COALESCE(e.answers_until <= now(), FALSE) AS deadline
                FROM team_events e
                JOIN member_team_assignments a ON a.team_id = e.team_id
                JOIN members target ON target.id = a.member_id AND target.archived_at IS NULL
@@ -51,13 +55,18 @@ internal class EventAttendance(private val database: DSLContext) {
                -- removes it) or commits first (and this answer is refused).
                FOR SHARE OF a)"""
 
-    fun answer(actor: UUID, eventId: UUID, memberId: UUID, response: Response): Change {
+    /**
+     * Saves the answer. [setNote] false keeps a stored note (1.39.0: a body without `note`); true replaces it with
+     * [note] (null removes it).
+     */
+    fun answer(actor: UUID, eventId: UUID, memberId: UUID, response: Response, setNote: Boolean = false, note: String? = null): Change {
         val changed = database.fetch(
             """$allowed
-               INSERT INTO event_attendance (event_id, member_id, response)
-               SELECT event_id, member_id, ? FROM allowed WHERE NOT closed
-               ON CONFLICT (event_id, member_id) DO UPDATE SET response = EXCLUDED.response, answered_at = now()
-               RETURNING 1""", actor, memberId, eventId, response.name).isNotEmpty()
+               INSERT INTO event_attendance (event_id, member_id, response, note)
+               SELECT event_id, member_id, ?, ? FROM allowed WHERE NOT closed AND NOT deadline
+               ON CONFLICT (event_id, member_id) DO UPDATE SET response = EXCLUDED.response, answered_at = now(),
+                   note = CASE WHEN ? THEN EXCLUDED.note ELSE event_attendance.note END
+               RETURNING 1""", actor, memberId, eventId, response.name, note, setNote).isNotEmpty()
         return if (changed) Change.DONE else classify(actor, eventId, memberId)
     }
 
@@ -65,15 +74,19 @@ internal class EventAttendance(private val database: DSLContext) {
         val cleared = database.fetch(
             """$allowed
                DELETE FROM event_attendance ea USING allowed
-               WHERE ea.event_id = allowed.event_id AND ea.member_id = allowed.member_id AND NOT allowed.closed
+               WHERE ea.event_id = allowed.event_id AND ea.member_id = allowed.member_id AND NOT allowed.closed AND NOT allowed.deadline
                RETURNING 1""", actor, memberId, eventId).isNotEmpty()
         // Clearing an answer that does not exist is still a success for someone allowed to answer.
         return if (cleared) Change.DONE else classify(actor, eventId, memberId)
     }
 
     private fun classify(actor: UUID, eventId: UUID, memberId: UUID): Change {
-        val row = database.fetchOne("$allowed SELECT closed FROM allowed", actor, memberId, eventId) ?: return Change.DENIED
-        return if (row.get(0, Boolean::class.java) == true) Change.CLOSED else Change.DONE
+        val row = database.fetchOne("$allowed SELECT closed, deadline FROM allowed", actor, memberId, eventId) ?: return Change.DENIED
+        return when {
+            row.get(0, Boolean::class.java) == true -> Change.CLOSED
+            row.get(1, Boolean::class.java) == true -> Change.DEADLINE
+            else -> Change.DONE
+        }
     }
 
     fun list(actor: UUID, eventId: UUID): Listing {
@@ -85,7 +98,7 @@ internal class EventAttendance(private val database: DSLContext) {
             """SELECT CASE WHEN ${AgeSql.minor("m")}
                            THEN m.first_name || ' ' || left(m.last_name, 1) || '.'
                            ELSE m.first_name || ' ' || m.last_name END AS display_name,
-                      ea.response
+                      ea.response, ea.note
                FROM team_events e
                JOIN member_team_assignments a ON a.team_id = e.team_id
                JOIN members m ON m.id = a.member_id AND m.archived_at IS NULL
@@ -93,7 +106,8 @@ internal class EventAttendance(private val database: DSLContext) {
                LEFT JOIN effective_attendance ea ON ea.event_id = e.id AND ea.member_id = m.id
                WHERE e.id = ? AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS)}
                ORDER BY display_name, m.id""", eventId, actor).map {
-            Answer(it.get("display_name", String::class.java), it.get("response", String::class.java)?.let(Response::valueOf))
+            Answer(it.get("display_name", String::class.java), it.get("response", String::class.java)?.let(Response::valueOf),
+                it.get("note", String::class.java))
         }
         return Listing.Found(answers, Counts(
             answers.count { it.response == Response.YES }, answers.count { it.response == Response.NO },

@@ -32,5 +32,14 @@ export function useMyEvents(csrfToken: string) {
     } catch { setNotice('failed') } finally { setBusy(false); setRevision(value => value + 1) }
   }
 
-  return { events, truncated, state, busy, notice, respond, reload: () => setRevision(value => value + 1) }
+  /** Saves the note with the person's current answer (OpenAPI 1.39.0); blank removes it. */
+  async function saveNote(event: MyEvent, memberId: string, response: AttendanceResponse, note: string) {
+    setBusy(true); setNotice(null)
+    try {
+      const outcome = await answerAttendance(event.id, memberId, response, csrfToken, fetch, note)
+      if (outcome !== 'ok') setNotice(outcome)
+    } catch { setNotice('failed') } finally { setBusy(false); setRevision(value => value + 1) }
+  }
+
+  return { events, truncated, state, busy, notice, respond, saveNote, reload: () => setRevision(value => value + 1) }
 }

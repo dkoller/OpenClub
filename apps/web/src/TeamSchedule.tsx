@@ -13,14 +13,22 @@ import {
 } from './events'
 
 const words = {
-  de: { bookedShort: 'belegt', bookedHint: '{venue} ist dann belegt: {team}, {when}. Andere Zeit oder anderen Platz wählen.', newEvent: 'Neuer Termin', showPast: 'Vergangene Termine zeigen', hidePast: 'Nur kommende Termine', venue: 'Platz oder Halle', noVenue: 'keiner', taken: '{venue} ist dann schon belegt: {team}, {title}, {when}. Bitte andere Zeit oder anderen Platz wählen.', title: 'Programm', empty: 'Keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', error: 'Programm nicht verfügbar.', kind: 'Art', TRAINING: 'Training', MATCH: 'Spiel', OTHER: 'Termin', name: 'Titel', date: 'Datum', start: 'Beginn', end: 'Ende', place: 'Ort', notes: 'Hinweise', repeat: 'Wöchentlich wiederholen bis', add: 'Termin hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', cancelEvent: 'Absagen', reinstate: 'Wieder ansetzen', remove: 'Löschen', confirmRemove: 'Löschen bestätigen', cancelled: 'Abgesagt', invalid: 'Bitte die Angaben prüfen: Ende nach Beginn, höchstens 52 Wiederholungen.', denied: 'Keine Berechtigung für dieses Team.', gone: 'Dieser Termin existiert nicht mehr.', failed: 'Aktion fehlgeschlagen.', added: 'Termin gespeichert.', answers: 'Antworten', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht' },
-  en: { bookedShort: 'booked', bookedHint: '{venue} is booked then: {team}, {when}. Choose another time or place.', newEvent: 'New event', showPast: 'Show past events', hidePast: 'Only coming events', venue: 'Field or hall', noVenue: 'none', taken: '{venue} is already booked then: {team}, {title}, {when}. Please choose another time or place.', title: 'Schedule', empty: 'No events in the next eight weeks.', more: 'More events follow later.', error: 'Schedule unavailable.', kind: 'Kind', TRAINING: 'Training', MATCH: 'Match', OTHER: 'Event', name: 'Title', date: 'Date', start: 'Start', end: 'End', place: 'Place', notes: 'Notes', repeat: 'Repeat weekly until', add: 'Add event', edit: 'Edit', save: 'Save', cancel: 'Cancel', cancelEvent: 'Cancel event', reinstate: 'Reinstate', remove: 'Delete', confirmRemove: 'Confirm delete', cancelled: 'Cancelled', invalid: 'Please check the details: end after start, at most 52 repeats.', denied: 'No permission for this team.', gone: 'This event no longer exists.', failed: 'Action failed.', added: 'Event saved.', answers: 'Answers', YES: 'Yes', NO: 'No', MAYBE: 'Maybe' },
-  fr: { bookedShort: 'réservé', bookedHint: '{venue} est réservé à ce moment : {team}, {when}. Choisissez une autre heure ou un autre lieu.', newEvent: 'Nouvel événement', showPast: 'Afficher les événements passés', hidePast: 'Seulement les prochains', venue: 'Terrain ou salle', noVenue: 'aucun', taken: '{venue} est déjà réservé à ce moment : {team}, {title}, {when}. Veuillez choisir une autre heure ou un autre lieu.', title: 'Programme', empty: 'Aucun événement dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', error: 'Programme indisponible.', kind: 'Type', TRAINING: 'Entraînement', MATCH: 'Match', OTHER: 'Événement', name: 'Titre', date: 'Date', start: 'Début', end: 'Fin', place: 'Lieu', notes: 'Remarques', repeat: 'Répéter chaque semaine jusqu’au', add: 'Ajouter un événement', edit: 'Modifier', save: 'Enregistrer', cancel: 'Annuler', cancelEvent: 'Annuler l’événement', reinstate: 'Rétablir', remove: 'Supprimer', confirmRemove: 'Confirmer la suppression', cancelled: 'Annulé', invalid: 'Vérifiez les informations : fin après le début, au plus 52 répétitions.', denied: 'Pas d’autorisation pour cette équipe.', gone: 'Cet événement n’existe plus.', failed: 'L’action a échoué.', added: 'Événement enregistré.', answers: 'Réponses', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être' },
-  it: { bookedShort: 'prenotato', bookedHint: '{venue} è prenotato in quel momento: {team}, {when}. Scegliete un altro orario o luogo.', newEvent: 'Nuovo evento', showPast: 'Mostra eventi passati', hidePast: 'Solo i prossimi', venue: 'Campo o palestra', noVenue: 'nessuno', taken: '{venue} è già prenotato in quel momento: {team}, {title}, {when}. Scegliete un altro orario o luogo.', title: 'Programma', empty: 'Nessun evento nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', error: 'Programma non disponibile.', kind: 'Tipo', TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', name: 'Titolo', date: 'Data', start: 'Inizio', end: 'Fine', place: 'Luogo', notes: 'Note', repeat: 'Ripeti ogni settimana fino al', add: 'Aggiungi evento', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', cancelEvent: 'Annulla evento', reinstate: 'Ripristina', remove: 'Elimina', confirmRemove: 'Conferma eliminazione', cancelled: 'Annullato', invalid: 'Controlla i dati: fine dopo l’inizio, al massimo 52 ripetizioni.', denied: 'Nessuna autorizzazione per questa squadra.', gone: 'Questo evento non esiste più.', failed: 'Azione non riuscita.', added: 'Evento salvato.', answers: 'Risposte', YES: 'Sì', NO: 'No', MAYBE: 'Forse' },
+  de: { answersUntil: 'Antworten bis (freiwillig)', bookedShort: 'belegt', bookedHint: '{venue} ist dann belegt: {team}, {when}. Andere Zeit oder anderen Platz wählen.', newEvent: 'Neuer Termin', showPast: 'Vergangene Termine zeigen', hidePast: 'Nur kommende Termine', venue: 'Platz oder Halle', noVenue: 'keiner', taken: '{venue} ist dann schon belegt: {team}, {title}, {when}. Bitte andere Zeit oder anderen Platz wählen.', title: 'Programm', empty: 'Keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', error: 'Programm nicht verfügbar.', kind: 'Art', TRAINING: 'Training', MATCH: 'Spiel', OTHER: 'Termin', name: 'Titel', date: 'Datum', start: 'Beginn', end: 'Ende', place: 'Ort', notes: 'Hinweise', repeat: 'Wöchentlich wiederholen bis', add: 'Termin hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', cancelEvent: 'Absagen', reinstate: 'Wieder ansetzen', remove: 'Löschen', confirmRemove: 'Löschen bestätigen', cancelled: 'Abgesagt', invalid: 'Bitte die Angaben prüfen: Ende nach Beginn, höchstens 52 Wiederholungen.', denied: 'Keine Berechtigung für dieses Team.', gone: 'Dieser Termin existiert nicht mehr.', failed: 'Aktion fehlgeschlagen.', added: 'Termin gespeichert.', answers: 'Antworten', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht' },
+  en: { answersUntil: 'Answers until (optional)', bookedShort: 'booked', bookedHint: '{venue} is booked then: {team}, {when}. Choose another time or place.', newEvent: 'New event', showPast: 'Show past events', hidePast: 'Only coming events', venue: 'Field or hall', noVenue: 'none', taken: '{venue} is already booked then: {team}, {title}, {when}. Please choose another time or place.', title: 'Schedule', empty: 'No events in the next eight weeks.', more: 'More events follow later.', error: 'Schedule unavailable.', kind: 'Kind', TRAINING: 'Training', MATCH: 'Match', OTHER: 'Event', name: 'Title', date: 'Date', start: 'Start', end: 'End', place: 'Place', notes: 'Notes', repeat: 'Repeat weekly until', add: 'Add event', edit: 'Edit', save: 'Save', cancel: 'Cancel', cancelEvent: 'Cancel event', reinstate: 'Reinstate', remove: 'Delete', confirmRemove: 'Confirm delete', cancelled: 'Cancelled', invalid: 'Please check the details: end after start, at most 52 repeats.', denied: 'No permission for this team.', gone: 'This event no longer exists.', failed: 'Action failed.', added: 'Event saved.', answers: 'Answers', YES: 'Yes', NO: 'No', MAYBE: 'Maybe' },
+  fr: { answersUntil: 'Réponses jusqu’au (facultatif)', bookedShort: 'réservé', bookedHint: '{venue} est réservé à ce moment : {team}, {when}. Choisissez une autre heure ou un autre lieu.', newEvent: 'Nouvel événement', showPast: 'Afficher les événements passés', hidePast: 'Seulement les prochains', venue: 'Terrain ou salle', noVenue: 'aucun', taken: '{venue} est déjà réservé à ce moment : {team}, {title}, {when}. Veuillez choisir une autre heure ou un autre lieu.', title: 'Programme', empty: 'Aucun événement dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', error: 'Programme indisponible.', kind: 'Type', TRAINING: 'Entraînement', MATCH: 'Match', OTHER: 'Événement', name: 'Titre', date: 'Date', start: 'Début', end: 'Fin', place: 'Lieu', notes: 'Remarques', repeat: 'Répéter chaque semaine jusqu’au', add: 'Ajouter un événement', edit: 'Modifier', save: 'Enregistrer', cancel: 'Annuler', cancelEvent: 'Annuler l’événement', reinstate: 'Rétablir', remove: 'Supprimer', confirmRemove: 'Confirmer la suppression', cancelled: 'Annulé', invalid: 'Vérifiez les informations : fin après le début, au plus 52 répétitions.', denied: 'Pas d’autorisation pour cette équipe.', gone: 'Cet événement n’existe plus.', failed: 'L’action a échoué.', added: 'Événement enregistré.', answers: 'Réponses', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être' },
+  it: { answersUntil: 'Risposte fino a (facoltativo)', bookedShort: 'prenotato', bookedHint: '{venue} è prenotato in quel momento: {team}, {when}. Scegliete un altro orario o luogo.', newEvent: 'Nuovo evento', showPast: 'Mostra eventi passati', hidePast: 'Solo i prossimi', venue: 'Campo o palestra', noVenue: 'nessuno', taken: '{venue} è già prenotato in quel momento: {team}, {title}, {when}. Scegliete un altro orario o luogo.', title: 'Programma', empty: 'Nessun evento nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', error: 'Programma non disponibile.', kind: 'Tipo', TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', name: 'Titolo', date: 'Data', start: 'Inizio', end: 'Fine', place: 'Luogo', notes: 'Note', repeat: 'Ripeti ogni settimana fino al', add: 'Aggiungi evento', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', cancelEvent: 'Annulla evento', reinstate: 'Ripristina', remove: 'Elimina', confirmRemove: 'Conferma eliminazione', cancelled: 'Annullato', invalid: 'Controlla i dati: fine dopo l’inizio, al massimo 52 ripetizioni.', denied: 'Nessuna autorizzazione per questa squadra.', gone: 'Questo evento non esiste più.', failed: 'Azione non riuscita.', added: 'Evento salvato.', answers: 'Risposte', YES: 'Sì', NO: 'No', MAYBE: 'Forse' },
 } satisfies Record<Language, Record<string, string>>
 
-type Draft = { kind: EventKind; title: string; date: string; start: string; end: string; location: string; notes: string; venueId: string }
-const emptyDraft: Draft = { kind: 'TRAINING', title: '', date: '', start: '18:00', end: '19:30', location: '', notes: '', venueId: '' }
+/** `answersUntil`: a local date and time ("2026-12-03T20:00") or empty (OpenAPI 1.39.0). */
+type Draft = { kind: EventKind; title: string; date: string; start: string; end: string; location: string; notes: string; venueId: string; answersUntil: string }
+const emptyDraft: Draft = { kind: 'TRAINING', title: '', date: '', start: '18:00', end: '19:30', location: '', notes: '', venueId: '', answersUntil: '' }
+const deadline = (draft: Draft) => draft.answersUntil ? new Date(draft.answersUntil).toISOString() : undefined
+const pad2 = (value: number) => String(value).padStart(2, '0')
+/** An instant as the value of a datetime-local input, in the browser's time zone. */
+const localDateTime = (instant: string) => {
+  const date = new Date(instant)
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`
+}
 type Notice = 'invalid' | 'denied' | 'gone' | 'failed' | 'added' | 'taken'
 
 /**
@@ -76,6 +84,9 @@ function EventFields({ draft, setDraft, t, venues, language, eventId }: {
     {chosen && <p role="status" className="open">{fill(t.bookedHint, { venue: venueName, team: chosen.teamName,
       when: formatRange(chosen.startsAt, chosen.endsAt, language, false) })}</p>}
     <label>{t.notes}<textarea value={draft.notes} maxLength={2000} onChange={event => setDraft({ ...draft, notes: event.target.value })} /></label>
+    <label>{t.answersUntil}<input type="datetime-local" value={draft.answersUntil}
+      max={draft.date && draft.start ? `${draft.date}T${draft.start}` : undefined}
+      onChange={event => setDraft({ ...draft, answersUntil: event.target.value })} /></label>
   </>
 }
 
@@ -137,7 +148,7 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
     event.preventDefault()
     const times = instants(draft.date, draft.start, draft.end)
     if (!times) { setNotice('invalid'); return }
-    if (await run(() => createEvents(teamId, { ...draft, ...times, venueId: draft.venueId || undefined }, repeatUntil, csrfToken), 'added')) {
+    if (await run(() => createEvents(teamId, { ...draft, ...times, venueId: draft.venueId || undefined, answersUntil: deadline(draft) }, repeatUntil, csrfToken), 'added')) {
       setDraft({ ...emptyDraft, kind: draft.kind, start: draft.start, end: draft.end, location: draft.location, venueId: draft.venueId }); setRepeatUntil('')
     }
   }
@@ -176,7 +187,8 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
 }
 
 const draftOf = (event: TeamEvent): Draft =>
-  ({ kind: event.kind, title: event.title, ...localParts(event), location: event.location ?? '', notes: event.notes ?? '', venueId: event.venueId ?? '' })
+  ({ kind: event.kind, title: event.title, ...localParts(event), location: event.location ?? '', notes: event.notes ?? '', venueId: event.venueId ?? '',
+    answersUntil: event.answersUntil ? localDateTime(event.answersUntil) : '' })
 
 /**
  * Edit, cancel or reinstate, and delete one event, on the coach's event page (only with canManage). [onChanged] reloads
@@ -216,7 +228,7 @@ export function ManageEvent({ event, language, csrfToken, onChanged, onDeleted }
     if (!editing) return
     const times = instants(editing.date, editing.start, editing.end)
     if (!times) { setNotice(t.invalid); return }
-    await run(() => replaceEvent(event.id, { ...editing, ...times, venueId: editing.venueId || undefined }, event.cancelled, csrfToken),
+    await run(() => replaceEvent(event.id, { ...editing, ...times, venueId: editing.venueId || undefined, answersUntil: deadline(editing) }, event.cancelled, csrfToken),
       () => { setEditing(null); onChanged() })
   }
 
@@ -230,7 +242,7 @@ export function ManageEvent({ event, language, csrfToken, onChanged, onDeleted }
     </form> : <div className="actions">
       <button type="button" disabled={busy} onClick={() => { setEditing(draftOf(event)); setNotice(null) }}>{t.edit}</button>
       <button type="button" disabled={busy} onClick={() => {
-        void run(() => replaceEvent(event.id, { ...draftOf(event), startsAt: event.startsAt, endsAt: event.endsAt, venueId: event.venueId ?? undefined },
+        void run(() => replaceEvent(event.id, { ...draftOf(event), startsAt: event.startsAt, endsAt: event.endsAt, venueId: event.venueId ?? undefined, answersUntil: event.answersUntil ?? undefined },
           !event.cancelled, csrfToken), onChanged)
       }}>{event.cancelled ? t.reinstate : t.cancelEvent}</button>
       {deleting

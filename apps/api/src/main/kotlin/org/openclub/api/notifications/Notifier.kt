@@ -231,13 +231,16 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
 
     /**
      * The automatic run: events that start in more than one day and at most two days and are not cancelled get one
-     * reminder each (recorded first, so it never repeats). Returns how many events were handled.
+     * reminder each (recorded first, so it never repeats). An event with an answer deadline (1.39.0) gets it instead
+     * in the 24 hours before the deadline (at least an hour before it). Returns how many events were handled.
      */
     fun queueAnswerReminders(db: DSLContext, limit: Int = 50): Int {
         if (!enabled) return 0
         val due = db.fetch(
             """SELECT e.id FROM team_events e
-               WHERE NOT e.cancelled AND e.starts_at > now() + INTERVAL '1 day' AND e.starts_at <= now() + INTERVAL '2 days'
+               WHERE NOT e.cancelled AND CASE WHEN e.answers_until IS NULL
+                         THEN e.starts_at > now() + INTERVAL '1 day' AND e.starts_at <= now() + INTERVAL '2 days'
+                         ELSE e.answers_until > now() + INTERVAL '1 hour' AND e.answers_until <= now() + INTERVAL '1 day' END
                  AND NOT EXISTS (SELECT 1 FROM answer_reminders r WHERE r.event_id = e.id AND r.automatic)
                ORDER BY e.starts_at LIMIT ? FOR NO KEY UPDATE OF e SKIP LOCKED""", limit).map { it.get(0, UUID::class.java) }
         for (event in due) {

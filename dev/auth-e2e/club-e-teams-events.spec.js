@@ -1,4 +1,4 @@
-import { ensureMara, ensureTeam, expect, openForm, show, test } from './club-fixtures.js';
+import { ensureMara, ensureTeam, expect, fixtureSql, openForm, show, test } from './club-fixtures.js';
 import { request as playwrightRequest } from '@playwright/test';
 // Teams and their members, events with answers, shifts and rides, and the family pages.
 test.skip(process.env.OPENCLUB_E2E_DISPOSABLE !== 'true',
@@ -183,6 +183,12 @@ test('a weekly training, its answers, a shift, rides, reminders and statistics',
   // Answer reminders (OpenAPI 1.25.0): this installation sends no email, so the coach is told so.
   await page.getByRole('button', { name: 'Remind the one without an answer' }).click();
   await expect(page.getByRole('alert')).toHaveText('This club does not send emails.');
+  // A note with an answer (OpenAPI 1.39.0) stands next to the name for the team's coaches.
+  const eventId = page.url().split('/').pop();
+  if (!/^[0-9a-f-]{36}$/.test(eventId)) throw new Error('Unexpected event ID');
+  fixtureSql(`INSERT INTO event_attendance (event_id, member_id, response, note) VALUES ('${eventId}', '${mara}', 'YES', 'Comes at 18:30')`);
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Yes', exact: true })).toContainText('Mara D.: Comes at 18:30');
   await expect(page.getByRole('region', { name: 'Volunteer shifts: Juniors training' })).toContainText('Bar');
   await show(page, juniorsPage);
   await teamParts.getByRole('link', { name: /^Statistics/ }).click();
@@ -219,9 +225,11 @@ test('an absence for today is listed and deleted', async ({ page }) => {
   // The server checks dates in the club's time zone, so use today's Swiss date (the runner's clock is UTC).
   const todayLocal = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' }).format(new Date());
   await absences.getByLabel('From').fill(todayLocal);
+  // An optional note for the coaches (OpenAPI 1.39.0).
+  await absences.getByLabel('Note for the coach (optional)').fill('School camp');
   await absences.getByRole('button', { name: 'Add absence' }).click();
   const [year, month, day] = todayLocal.split('-');
-  await expect(absences.getByRole('listitem')).toHaveText(`Me: ${day}.${month}.${year} Delete`);
+  await expect(absences.getByRole('listitem')).toHaveText(`Me: ${day}.${month}.${year} · School camp Delete`);
   await absences.getByRole('button', { name: 'Delete' }).click();
   await expect(absences.getByText('No absences.')).toBeVisible();
 });

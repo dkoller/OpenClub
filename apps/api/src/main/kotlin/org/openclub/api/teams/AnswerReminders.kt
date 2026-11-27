@@ -9,7 +9,8 @@ import java.util.UUID
 
 /**
  * A coach's "remind everyone who has not answered" (OpenAPI 1.25.0, ADR-0008 addendum 29). Only holders of
- * `MANAGE_TEAMS` for the event's team, only before the event starts and while it is not cancelled, at most once every
+ * `MANAGE_TEAMS` for the event's team, only before the event starts (and its answer deadline, 1.39.0) and while it
+ * is not cancelled, at most once every
  * [MIN_HOURS] hours per event, and only when the installation sends email. The event row is locked first, so two
  * coaches pressing at once send one reminder. Not audited (like attendance).
  */
@@ -28,7 +29,7 @@ internal class AnswerReminders(private val database: DSLContext, private val not
         val db = DSL.using(configuration)
         val row = db.fetchOne(
             """SELECT ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)} AS can_manage,
-                      (e.cancelled OR e.starts_at <= now()) AS closed,
+                      (e.cancelled OR e.starts_at <= now() OR COALESCE(e.answers_until <= now(), FALSE)) AS closed,
                       EXISTS (SELECT 1 FROM answer_reminders r WHERE r.event_id = e.id AND NOT r.automatic
                               AND r.sent_at > now() - INTERVAL '$MIN_HOURS hours') AS recent
                FROM team_events e WHERE e.id = ? FOR NO KEY UPDATE OF e""", actor, eventId)

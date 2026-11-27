@@ -136,8 +136,10 @@ test('a field or hall added by the administrator shows for every member', async 
   const guests = '#/team/' + ensureTeam('Hall Guests');
   fixtureSql(`INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, venue_id)
     SELECT gen_random_uuid(), '${owners}', 'TRAINING', 'Owners training',
-      ((current_date + 3) + time '18:00') AT TIME ZONE 'Europe/Zurich', ((current_date + 3) + time '19:30') AT TIME ZONE 'Europe/Zurich', id
+      (((now() AT TIME ZONE 'Europe/Zurich')::date + 3) + time '18:00') AT TIME ZONE 'Europe/Zurich',
+      (((now() AT TIME ZONE 'Europe/Zurich')::date + 3) + time '19:30') AT TIME ZONE 'Europe/Zurich', id
     FROM venues WHERE name = 'Synthetic Hall North'`);
+  // Both dates in Swiss time: between midnight in Zurich and midnight UTC the database's current_date is a day behind.
   const day = await page.evaluate(() => {
     const date = new Date(Date.now() + 3 * 86400000);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

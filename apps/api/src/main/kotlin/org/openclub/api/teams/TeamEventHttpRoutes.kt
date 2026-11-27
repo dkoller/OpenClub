@@ -221,6 +221,7 @@ internal fun Application.installTeamEventHttpRoutes(
                             result.answers.forEach { add(buildJsonObject {
                                 put("displayName", it.displayName)
                                 put("response", it.response?.let { response -> JsonPrimitive(response.name) } ?: JsonNull)
+                                put("note", it.note?.let(::JsonPrimitive) ?: JsonNull)
                             }) }
                         })
                         put("counts", result.counts.json())
@@ -444,7 +445,10 @@ private const val PRESENCE_BODY = 24 * 1024
 private val EVENT_FIELDS = setOf("kind", "title", "startsAt", "endsAt")
 /** Notes of 2,000 characters and a 200-character title and place can exceed 4 KiB as JSON. */
 private const val EVENT_BODY = 16 * 1024
-private val OPTIONAL_FIELDS = setOf("location", "notes", "venueId")
+private val OPTIONAL_FIELDS = setOf("location", "notes", "venueId", "answersUntil")
+
+/** A note with an answer or an absence (1.39.0). */
+internal const val NOTE_LENGTH = 100
 private val EARLIEST = OffsetDateTime.parse("2000-01-01T00:00:00Z")
 private val LATEST = OffsetDateTime.parse("2100-01-01T00:00:00Z")
 private val DEFAULT_SPAN: Duration = Duration.ofDays(56)
@@ -488,7 +492,7 @@ private fun strictDate(value: String): LocalDate =
     LocalDate.parse(value, DateTimeFormatter.ofPattern("uuuu-MM-dd").withResolverStyle(ResolverStyle.STRICT))
 
 /** Trimmed text: blank optional text is absent; titles 1–200, places 1–200, notes 1–2000 characters, no control characters. */
-private fun text(value: String?, max: Int, multiline: Boolean = false): String? = value?.trim()?.takeIf(String::isNotEmpty)?.also {
+internal fun text(value: String?, max: Int, multiline: Boolean = false): String? = value?.trim()?.takeIf(String::isNotEmpty)?.also {
     require(it.length <= max && it.none { char -> Character.isISOControl(char) && !(multiline && (char == '\n' || char == '\t')) })
 }
 
@@ -504,7 +508,11 @@ private fun JsonObject.eventInput(): TeamEvents.Input {
         is JsonPrimitive -> if (value.isString) UUID.fromString(value.content) else throw IllegalArgumentException("venueId")
         else -> throw IllegalArgumentException("venueId")
     }
-    return TeamEvents.Input(kind, title, startsAt, endsAt, text(optionalText("location"), 200), text(optionalText("notes"), 2000, multiline = true), venue)
+    // The answer deadline (1.39.0) lies before the start and at most 60 days before it.
+    val answersUntil = optionalText("answersUntil")?.let(OffsetDateTime::parse)
+    require(answersUntil == null || (answersUntil.isBefore(startsAt) && Duration.between(answersUntil, startsAt) <= Duration.ofDays(60))) { "answersUntil" }
+    return TeamEvents.Input(kind, title, startsAt, endsAt, text(optionalText("location"), 200), text(optionalText("notes"), 2000, multiline = true), venue,
+        answersUntil)
 }
 
 private fun TeamEvents.Event.json(withFor: Boolean) = buildJsonObject {
@@ -521,10 +529,12 @@ private fun TeamEvents.Event.json(withFor: Boolean) = buildJsonObject {
     put("counts", counts.json())
     put("venueId", venueId?.let { JsonPrimitive(it.toString()) } ?: JsonNull)
     put("venueName", venueName?.let(::JsonPrimitive) ?: JsonNull)
+    put("answersUntil", answersUntil?.let { JsonPrimitive(it.toString()) } ?: JsonNull)
     if (withFor) put("for", buildJsonArray {
         forMembers.forEach { add(buildJsonObject {
             put("id", it.id.toString()); put("firstName", it.firstName)
             put("response", it.response?.let { response -> JsonPrimitive(response.name) } ?: JsonNull)
+            put("note", it.note?.let(::JsonPrimitive) ?: JsonNull)
             put("squad", it.squad?.let { squad -> buildJsonObject {
                 put("called", squad.called)
                 put("meetAt", squad.meetAt?.let(::JsonPrimitive) ?: JsonNull)
@@ -576,8 +586,13 @@ private suspend fun ApplicationCall.attendance(
     val event = uuid("eventId")
     val member = uuid("memberId")
     if (event == null || member == null) return@guarded refuse(HttpStatusCode.BadRequest, "invalid")
+    // Since 1.39.0 an optional `note` (at most 100 characters): left out keeps the stored note, null or blank removes it.
+    var setNote = false
+    var note: String? = null
     val response = if (clear) null else try {
-        val value = receiveJsonObject(setOf("response")).requiredString("response")
+        val body = receiveJsonObject(setOf("response"), setOf("note"))
+        if ("note" in body) { setNote = true; note = text(body.optionalText("note"), NOTE_LENGTH) }
+        val value = body.requiredString("response")
         EventAttendance.Response.entries.firstOrNull { it.name == value } ?: throw IllegalArgumentException("response")
     } catch (_: IllegalArgumentException) {
         return@guarded refuse(HttpStatusCode.BadRequest, "invalid")
@@ -585,11 +600,12 @@ private suspend fun ApplicationCall.attendance(
     val change = database.onDatabaseThread {
         val attendance = EventAttendance(it)
         if (response == null) attendance.clear(actor.accountId, event, member)
-        else attendance.answer(actor.accountId, event, member, response)
+        else attendance.answer(actor.accountId, event, member, response, setNote, note)
     }
     when (change) {
         EventAttendance.Change.DONE -> respondText("", status = HttpStatusCode.NoContent)
         EventAttendance.Change.CLOSED -> refuse(HttpStatusCode.Conflict, "conflict")
+        EventAttendance.Change.DEADLINE -> refuse(HttpStatusCode.Conflict, "answers_closed")
         EventAttendance.Change.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
     }
 }

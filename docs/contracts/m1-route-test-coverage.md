@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
 Maps each of the 123 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.38.0) to the tests that exercise it. The operation list and
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.39.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -74,7 +74,7 @@ How to read the columns of test types:
 | `PUT /v1/rides/{rideId}/passengers/{memberId}` | 204, 400, 401, 403, 409, 503 | `RideHttpTest` (oneself or one's minor in the team only; two bookings for the last seat, one wins, other 409 `full`) |
 | `DELETE /v1/rides/{rideId}/passengers/{memberId}` | 204, 400, 401, 403, 409, 503 | `RideHttpTest` (twice is 204, 409 `closed` after departure; leaving the team ends bookings and offers) |
 | `GET /v1/me/absences` | 200, 401, 403, 503 | `AbsenceHttpTest` (own and minors' absences only, `people`), `PrivateRoutesRevocationTest`, Keycloak journey |
-| `POST /v1/me/absences` | 201, 400, 401, 403, 503 | `AbsenceHttpTest` (self and guardian; someone else, a coach for a player 403; past, reversed, over a year, too far ahead, bad date, extra key 400; implied No, explicit answer wins, coaches see a plain No), Keycloak journey |
+| `POST /v1/me/absences` | 201, 400, 401, 403, 503 | `AbsenceHttpTest` (self and guardian; someone else, a coach for a player 403; past, reversed, over a year, too far ahead, bad date, extra key 400; implied No, explicit answer wins, coaches see a plain No), Keycloak journey, `AnswerNotesHttpTest` (1.39.0: notes kept, replaced, removed, too long; 409 `answers_closed` after the deadline) |
 | `DELETE /v1/absences/{absenceId}` | 204, 400, 401, 403, 503 | `AbsenceHttpTest` (someone else's and unknown alike 403, deleting removes the implied No), Keycloak journey |
 | `GET /v1/me/notifications` | 200, 401, 403, 503 | `NotificationsTest` (defaults, `emailEnabled`, `hasEmail`, no member 403), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `PUT /v1/me/notifications` | 204, 400, 401, 403, 503 | `NotificationsTest` (CSRF, own row only, strict booleans and languages, extra key 400), `PrivateRoutesRevocationTest`; recipients, switches, outbox sending, retries and cleanup in `NotificationsTest`, configuration in `MailConfigTest` |
@@ -120,8 +120,8 @@ How to read the columns of test types:
 | `PUT /v1/events/{eventId}` | 204, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (replace and cancel, boolean as string 400, viewer 403, other team 403, unknown 404), `PrivateRoutesRevocationTest` |
 | `DELETE /v1/events/{eventId}` | 204, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (other team 403, delete then 404, revoked grant 403), `PrivateRoutesRevocationTest` |
 | `GET /v1/events/{eventId}/attendance` | 200, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (viewer and manager lists by display name only, minors as initial, no IDs, other team 403, unknown 404, counts), `PrivateRoutesRevocationTest` |
-| `PUT /v1/events/{eventId}/attendance/{memberId}` | 204, 400, 401, 403, 409, 503 | `TeamEventHttpTest` (self and guardian for child; someone else's child, another team, unknown event, a manager for a player 403; lower case or a reason field 400; started or cancelled 409; changing an answer) |
-| `DELETE /v1/events/{eventId}/attendance/{memberId}` | 204, 400, 401, 403, 409, 503 | `TeamEventHttpTest` (clear twice, after the start 409; leaving the team removes answers) |
+| `PUT /v1/events/{eventId}/attendance/{memberId}` | 204, 400, 401, 403, 409, 503 | `TeamEventHttpTest` (self and guardian for child; someone else's child, another team, unknown event, a manager for a player 403; lower case or a reason field 400; started or cancelled 409; changing an answer), `AnswerNotesHttpTest` (1.39.0: notes kept, replaced, removed, too long; 409 `answers_closed` after the deadline) |
+| `DELETE /v1/events/{eventId}/attendance/{memberId}` | 204, 400, 401, 403, 409, 503 | `TeamEventHttpTest` (clear twice, after the start 409; leaving the team removes answers), `AnswerNotesHttpTest` (1.39.0: notes kept, replaced, removed, too long; 409 `answers_closed` after the deadline) |
 | `GET /v1/fee-periods` | 200, 401, 403, 503 | `FeeHttpTest` (editor without `MANAGE_FEES` 403, totals, revoked grant 403), `PrivateRoutesRevocationTest` |
 | `POST /v1/fee-periods` | 201, 400, 401, 403, 409, 503 | `FeeHttpTest` (grant before body, eight input errors, duplicate name ignoring case 409, every active member included and audited, archived member not), `PrivateRoutesRevocationTest` |
 | `PATCH /v1/fee-periods/{periodId}` | 204, 400, 401, 403, 404, 409, 503 | `FeeHttpTest` (rename, unknown 404), `PrivateRoutesRevocationTest` |

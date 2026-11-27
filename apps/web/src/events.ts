@@ -10,16 +10,22 @@ export type TeamEvent = {
   startsAt: string; endsAt: string; location: string | null; notes: string | null; cancelled: boolean; counts: Counts
   /** The booked field or hall (OpenAPI 1.30.0). */
   venueId: string | null; venueName: string | null
+  /** No answers after this (OpenAPI 1.39.0). */
+  answersUntil: string | null
 }
 /** A person's own squad status for a match with a saved squad (OpenAPI 1.28.0); meeting details only when called. */
 export type OwnSquad = { called: boolean; meetAt: string | null; meetingPoint: string | null }
-export type MyEvent = TeamEvent & { for: { id: string; firstName: string; response: AttendanceResponse | null; squad: OwnSquad | null }[] }
+export type MyEvent = TeamEvent & {
+  /** `note`: the person's own note with the answer, or their absence's (OpenAPI 1.39.0). */
+  for: { id: string; firstName: string; response: AttendanceResponse | null; note: string | null; squad: OwnSquad | null }[]
+}
 
 export type EventInput = {
   kind: EventKind; title: string; startsAt: string; endsAt: string; location: string; notes: string; venueId?: string
+  answersUntil?: string
 }
 
-const eventKeys = ['id', 'teamId', 'teamName', 'kind', 'title', 'startsAt', 'endsAt', 'location', 'notes', 'cancelled', 'counts', 'venueId', 'venueName']
+const eventKeys = ['id', 'teamId', 'teamName', 'kind', 'title', 'startsAt', 'endsAt', 'location', 'notes', 'cancelled', 'counts', 'venueId', 'venueName', 'answersUntil']
 const text = (value: unknown) => typeof value === 'string'
 const textOrNull = (value: unknown) => value === null || typeof value === 'string'
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -39,13 +45,13 @@ function isEvent(value: unknown, extra: string[]): value is TeamEvent {
     text(value.startsAt) && !Number.isNaN(Date.parse(value.startsAt as string)) &&
     text(value.endsAt) && !Number.isNaN(Date.parse(value.endsAt as string)) &&
     textOrNull(value.location) && textOrNull(value.notes) && typeof value.cancelled === 'boolean' && isCounts(value.counts) &&
-    textOrNull(value.venueId) && textOrNull(value.venueName)
+    textOrNull(value.venueId) && textOrNull(value.venueName) && textOrNull(value.answersUntil)
 }
 
 function isMyEvent(value: unknown): value is MyEvent {
   return isEvent(value, ['for']) && Array.isArray((value as MyEvent).for) && (value as MyEvent).for.every(person =>
-    record(person) && Object.keys(person).length === 4 && text(person.id) && text(person.firstName) &&
-    isResponse(person.response) && (person.squad === null || (record(person.squad) && Object.keys(person.squad).length === 3 &&
+    record(person) && Object.keys(person).length === 5 && text(person.id) && text(person.firstName) &&
+    isResponse(person.response) && textOrNull(person.note) && (person.squad === null || (record(person.squad) && Object.keys(person.squad).length === 3 &&
       typeof person.squad.called === 'boolean' && textOrNull(person.squad.meetAt) && textOrNull(person.squad.meetingPoint))))
 }
 
@@ -108,6 +114,7 @@ function eventBody(input: EventInput) {
     ...(input.location.trim() ? { location: input.location.trim() } : {}),
     ...(input.notes.trim() ? { notes: input.notes.trim() } : {}),
     ...(input.venueId ? { venueId: input.venueId } : {}),
+    ...(input.answersUntil ? { answersUntil: input.answersUntil } : {}),
   }
 }
 
@@ -153,9 +160,12 @@ export function formatWhen(event: Pick<TeamEvent, 'startsAt' | 'endsAt'>, langua
   return formatRange(event.startsAt, event.endsAt, language, withDate)
 }
 
-/** The caller may answer until the event starts, and not for a cancelled event (the server decides; 409 otherwise). */
-export const answerable = (event: Pick<TeamEvent, 'startsAt' | 'cancelled'>, now = Date.now()) =>
-  !event.cancelled && Date.parse(event.startsAt) > now
+/**
+ * The caller may answer until the event starts or its answer deadline passes (1.39.0), and not for a cancelled event
+ * (the server decides; 409 otherwise).
+ */
+export const answerable = (event: Pick<TeamEvent, 'startsAt' | 'cancelled'> & { answersUntil?: string | null }, now = Date.now()) =>
+  !event.cancelled && Date.parse(event.startsAt) > now && (!event.answersUntil || Date.parse(event.answersUntil) > now)
 
 const attendancePath = (eventId: string, memberId: string) =>
   '/api/v1/events/' + encodeURIComponent(eventId) + '/attendance/' + encodeURIComponent(memberId)
@@ -175,17 +185,21 @@ async function attendanceWrite(path: string, method: 'PUT' | 'DELETE', csrfToken
   throw new Error('Request failed')
 }
 
-/** Answers for the member themselves or for one's child (OpenAPI 1.11.0). */
+/**
+ * Answers for the member themselves or for one's child (OpenAPI 1.11.0). Without [note] a stored note stays; a note
+ * (null or blank removes it) replaces it (1.39.0).
+ */
 export function answerAttendance(eventId: string, memberId: string, response: AttendanceResponse, csrfToken: string,
-  request: typeof fetch = fetch) {
-  return attendanceWrite(attendancePath(eventId, memberId), 'PUT', csrfToken, { response }, request)
+  request: typeof fetch = fetch, note?: string | null) {
+  return attendanceWrite(attendancePath(eventId, memberId), 'PUT', csrfToken,
+    note === undefined ? { response } : { response, note: note?.trim() || null }, request)
 }
 
 export function clearAttendance(eventId: string, memberId: string, csrfToken: string, request: typeof fetch = fetch) {
   return attendanceWrite(attendancePath(eventId, memberId), 'DELETE', csrfToken, undefined, request)
 }
 
-export type AttendanceList = { items: { displayName: string; response: AttendanceResponse | null }[]; counts: Counts }
+export type AttendanceList = { items: { displayName: string; response: AttendanceResponse | null; note: string | null }[]; counts: Counts }
 
 /** Every team member's answer for one event, for the team's viewers and managers. */
 export async function readAttendance(eventId: string, request: typeof fetch = fetch): Promise<AttendanceList | 'denied'> {
@@ -195,7 +209,8 @@ export async function readAttendance(eventId: string, request: typeof fetch = fe
   if (!response.ok) throw new Error('Attendance unavailable')
   const body: unknown = await response.json()
   if (!record(body) || Object.keys(body).length !== 2 || !Array.isArray(body.items) || !isCounts(body.counts) ||
-    !body.items.every(item => record(item) && Object.keys(item).length === 2 && text(item.displayName) && isResponse(item.response))) {
+    !body.items.every(item => record(item) && Object.keys(item).length === 3 && text(item.displayName) && isResponse(item.response) &&
+      textOrNull(item.note))) {
     throw new Error('Invalid attendance')
   }
   return body as AttendanceList

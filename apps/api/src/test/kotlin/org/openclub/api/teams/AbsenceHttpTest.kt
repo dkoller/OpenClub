@@ -128,7 +128,7 @@ class AbsenceHttpTest {
         assertEquals(setOf(kid.toString(), memberOf.getValue("guardian").toString()),
             listing.getValue("people").jsonArray.map { it.jsonObject.getValue("id").jsonPrimitive.content }.toSet())
         val item = listing.getValue("items").jsonArray.single().jsonObject
-        assertEquals(setOf("id", "memberId", "firstName", "from", "to"), item.keys)
+        assertEquals(setOf("id", "memberId", "firstName", "from", "to", "note"), item.keys)
         assertEquals("Kiddo", item.getValue("firstName").jsonPrimitive.content)
         assertTrue(send(HttpMethod.Get, "/api/v1/me/absences", "player").json().getValue("items").jsonArray.single()
             .jsonObject.getValue("id").jsonPrimitive.content == id, "each sees only their own people's absences")

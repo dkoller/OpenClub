@@ -35,6 +35,8 @@ internal class TeamEvents(
     data class Input(
         val kind: Kind, val title: String, val startsAt: OffsetDateTime, val endsAt: OffsetDateTime,
         val location: String?, val notes: String?, val venueId: UUID? = null,
+        /** Since 1.39.0: no answers after this; before the start, and for weekly copies the same time before each. */
+        val answersUntil: OffsetDateTime? = null,
     )
 
     /** Another event already holding the venue at that time (1.30.0): its team, title and start. */
@@ -45,7 +47,11 @@ internal class TeamEvents(
         private set
 
     /** Someone an event in [mine] is for: the member themselves or one of their minors, with their answer. */
-    data class For(val id: UUID, val firstName: String, val response: EventAttendance.Response?, val squad: Squad? = null)
+    data class For(
+        val id: UUID, val firstName: String, val response: EventAttendance.Response?, val squad: Squad? = null,
+        /** Since 1.39.0: the person's own note with the answer (or with the absence behind an implied No). */
+        val note: String? = null,
+    )
 
     /** A person's own squad status for a match with a saved squad (1.28.0); meeting details only when called. */
     data class Squad(val called: Boolean, val meetAt: String?, val meetingPoint: String?)
@@ -54,7 +60,7 @@ internal class TeamEvents(
         val id: UUID, val teamId: UUID, val teamName: String, val kind: Kind, val title: String,
         val startsAt: OffsetDateTime, val endsAt: OffsetDateTime, val location: String?, val notes: String?,
         val cancelled: Boolean, val counts: EventAttendance.Counts, val forMembers: List<For> = emptyList(),
-        val venueId: UUID? = null, val venueName: String? = null,
+        val venueId: UUID? = null, val venueName: String? = null, val answersUntil: OffsetDateTime? = null,
     )
 
     data class Page(val events: List<Event>, val truncated: Boolean)
@@ -93,7 +99,7 @@ internal class TeamEvents(
         if (access.get("can_view", Boolean::class.java) != true) return Listing.Denied
         val rows = database.fetch(
             """SELECT e.id, e.team_id, team.name AS team_name, e.kind, e.title, e.starts_at, e.ends_at, e.location,
-                      e.notes, e.cancelled, ${EventAttendance.COUNTS}, e.venue_id,
+                      e.notes, e.cancelled, ${EventAttendance.COUNTS}, e.venue_id, e.answers_until,
                       (SELECT v.name FROM venues v WHERE v.id = e.venue_id) AS venue_name
                FROM team_events e JOIN teams team ON team.id = e.team_id
                WHERE e.team_id = ? AND e.ends_at > ?::timestamptz AND e.starts_at < ?::timestamptz
@@ -117,10 +123,11 @@ internal class TeamEvents(
                       JOIN clubs c ON TRUE
                       WHERE ${AgeSql.adult("guardian")} AND minor.archived_at IS NULL AND ${AgeSql.minor("minor")})
                SELECT e.id, e.team_id, team.name AS team_name, e.kind, e.title, e.starts_at, e.ends_at, e.location,
-                      e.notes, e.cancelled, ${EventAttendance.COUNTS}, e.venue_id,
+                      e.notes, e.cancelled, ${EventAttendance.COUNTS}, e.venue_id, e.answers_until,
                       (SELECT v.name FROM venues v WHERE v.id = e.venue_id) AS venue_name,
                       json_agg(json_build_object('id', p.id, 'firstName', p.first_name,
                           'response', (SELECT ea.response FROM effective_attendance ea WHERE ea.event_id = e.id AND ea.member_id = p.id),
+                          'note', (SELECT ea.note FROM effective_attendance ea WHERE ea.event_id = e.id AND ea.member_id = p.id),
                           'squad', (SELECT json_build_object('called', sm.member_id IS NOT NULL,
                                       'meetAt', CASE WHEN sm.member_id IS NOT NULL THEN es.meet_at END,
                                       'meetingPoint', CASE WHEN sm.member_id IS NOT NULL THEN es.meeting_point END)
@@ -144,7 +151,8 @@ internal class TeamEvents(
                         value["meetingPoint"]?.jsonPrimitive?.contentOrNull)
                 }
                 For(UUID.fromString(person.getValue("id").jsonPrimitive.content), person.getValue("firstName").jsonPrimitive.content,
-                    person.getValue("response").jsonPrimitive.contentOrNull?.let(EventAttendance.Response::valueOf), squad)
+                    person.getValue("response").jsonPrimitive.contentOrNull?.let(EventAttendance.Response::valueOf), squad,
+                    person["note"]?.jsonPrimitive?.contentOrNull)
             }
             event(row).copy(forMembers = forMembers)
         })
@@ -158,15 +166,17 @@ internal class TeamEvents(
             findClash(input.venueId, starts, duration, null)?.let { clash = it; return Created.VenueTaken(it) }
         }
         val ids = starts.map { UUID.randomUUID() }
+        val lead = input.answersUntil?.let { Duration.between(it, input.startsAt) }
         // One statement: every copy is inserted exactly when the actor holds MANAGE_TEAMS for the team at that moment.
         val inserted = database.execute(
-            """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, location, notes, venue_id)
-               SELECT u.id::uuid, team.id, ?, ?, u.starts::timestamptz, u.ends::timestamptz, ?, ?, ?::uuid
+            """INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, location, notes, venue_id, answers_until)
+               SELECT u.id::uuid, team.id, ?, ?, u.starts::timestamptz, u.ends::timestamptz, ?, ?, ?::uuid,
+                      u.starts::timestamptz - ?::interval
                FROM unnest(?::text[], ?::text[], ?::text[]) AS u(id, starts, ends)
                JOIN teams team ON team.id = ?
                WHERE ${ActorSql.holdsTeamCapability("team.id", Capability.MANAGE_TEAMS)}""",
             input.kind.name, input.title, input.location, input.notes, input.venueId?.toString(),
-            ids.map { it.toString() }.toTypedArray(), starts.map { it.toString() }.toTypedArray(),
+            lead?.let { "${it.seconds} seconds" }, ids.map { it.toString() }.toTypedArray(), starts.map { it.toString() }.toTypedArray(),
             starts.map { it.plus(duration).toString() }.toTypedArray(), teamId, actor)
         if (inserted == starts.size) return Created.Done(ids).also { notifier.eventsCreated(database, ids) }
         check(inserted == 0) { "Partial insert" }
@@ -183,14 +193,14 @@ internal class TeamEvents(
         val row = database.fetchOne(
             """WITH old AS (SELECT * FROM team_events WHERE id = ? FOR NO KEY UPDATE)
                UPDATE team_events e SET kind = ?, title = ?, starts_at = ?::timestamptz, ends_at = ?::timestamptz, location = ?, notes = ?, cancelled = ?,
-                   venue_id = ?::uuid
+                   venue_id = ?::uuid, answers_until = ?::timestamptz
                FROM old
                WHERE e.id = old.id AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}
-               RETURNING (old.kind, old.title, old.starts_at, old.ends_at, old.location, old.notes, old.cancelled, old.venue_id)
-                         IS DISTINCT FROM (e.kind, e.title, e.starts_at, e.ends_at, e.location, e.notes, e.cancelled, e.venue_id) AS changed,
+               RETURNING (old.kind, old.title, old.starts_at, old.ends_at, old.location, old.notes, old.cancelled, old.venue_id, old.answers_until)
+                         IS DISTINCT FROM (e.kind, e.title, e.starts_at, e.ends_at, e.location, e.notes, e.cancelled, e.venue_id, e.answers_until) AS changed,
                          old.cancelled AS was_cancelled""",
             eventId, input.kind.name, input.title, input.startsAt.toString(), input.endsAt.toString(), input.location, input.notes,
-            cancelled, input.venueId?.toString(), actor) ?: return missing(eventId, actor)
+            cancelled, input.venueId?.toString(), input.answersUntil?.toString(), actor) ?: return missing(eventId, actor)
         val wasCancelled = row.get("was_cancelled", Boolean::class.java)
         // Editing an event that stays cancelled tells nobody anything new.
         if (row.get("changed", Boolean::class.java) && !(cancelled && wasCancelled)) notifier.eventChanged(database, eventId, cancelled)
@@ -250,6 +260,7 @@ internal class TeamEvents(
         EventAttendance.Counts(row.get("yes_count", Int::class.java), row.get("no_count", Int::class.java),
             row.get("maybe_count", Int::class.java)),
         venueId = row.get("venue_id", UUID::class.java), venueName = row.get("venue_name", String::class.java),
+        answersUntil = row.get("answers_until", OffsetDateTime::class.java)?.withOffsetSameInstant(ZoneOffset.UTC),
     )
 
     companion object {
