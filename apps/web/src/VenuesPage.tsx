@@ -104,11 +104,11 @@ export function VenueAdmin({ language, csrfToken }: { language: Language; csrfTo
           <button type="button" className="btn" disabled={busy} onClick={() => setEditing({ id: venue.id, name: venue.name })}>{t.rename}</button>
           {deleting === venue.id
             ? <button type="button" className="btn" disabled={busy} onClick={() => { setDeleting(null); void run(() => changeVenue('DELETE', venue.id, null, csrfToken)) }}>{t.confirm}</button>
-            : <button type="button" className="btn" disabled={busy} onClick={() => setDeleting(venue.id)}>{t.remove}</button>}
+            : <button type="button" className="danger-quiet" disabled={busy} onClick={() => setDeleting(venue.id)}>{t.remove}</button>}
         </span>
       </>}
     </li>)}</ul>}
-    <form className="actions" onSubmit={event => { void add(event) }}>
+    <form className="form-grid" onSubmit={event => { void add(event) }}>
       <label>{t.name}<input value={name} required maxLength={100} onChange={e => setName(e.target.value)} /></label>
       <button type="submit" className="btn primary" disabled={busy}>{t.add}</button>
     </form>

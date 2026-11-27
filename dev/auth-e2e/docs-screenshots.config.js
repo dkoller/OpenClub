@@ -22,7 +22,8 @@ export default defineConfig({
     locale: 'en-GB',
     // Date and time fields are drawn by the browser in its own language, not the page's: Swiss formats (01.12.2026,
     // 09:15) like a Swiss member's phone, instead of the runner's US default.
-    launchOptions: { args: ['--lang=de-CH'] },
+    // On Linux Chromium ignores --lang and takes its language from the environment (LANGUAGE, LANG).
+    launchOptions: { args: ['--lang=de-CH'], env: { ...process.env, LANGUAGE: 'de_CH', LANG: 'de_CH.UTF-8' } },
     timezoneId: 'Europe/Zurich',
     colorScheme: 'light',
     reducedMotion: 'reduce',

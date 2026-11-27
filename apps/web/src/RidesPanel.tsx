@@ -1,3 +1,4 @@
+import { formatPhone } from './phone'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Reveal } from './Reveal'
 import { formatDayTime } from './dates'
@@ -65,8 +66,8 @@ export function RidesPanel({ event, language, csrfToken, self }: {
       {list.items.length > 0 && <ul className="rows shift-rows">{list.items.map(ride => <li key={ride.id} className="pad-y">
         <strong>{ride.driver}</strong> · {t[ride.direction]} · {t.departs} {formatDayTime(ride.departsAt, language)} · {t.at}: {ride.meetingPoint}
         {' '}· {ride.passengers.length} {t.of} {ride.seats} {t.seats}
-        {' '}({ride.passengers.length ? ride.passengers.map(p => p.phone ? `${p.displayName} (${t.phone} ${p.phone})` : p.displayName).join(', ') : t.nobody})
-        {ride.driverPhone && <> · {t.driverPhone}: <a href={`tel:${ride.driverPhone.replace(/[^+0-9]/g, '')}`}>{ride.driverPhone}</a></>}
+        {' '}({ride.passengers.length ? ride.passengers.map(p => p.phone ? `${p.displayName} (${t.phone} ${formatPhone(p.phone)})` : p.displayName).join(', ') : t.nobody})
+        {ride.driverPhone && <> · {t.driverPhone}: <a href={`tel:${ride.driverPhone.replace(/[^+0-9]/g, '')}`}>{formatPhone(ride.driverPhone)}</a></>}
         {list.people.map(person => {
           const booked = ride.booked.includes(person.id)
           return <button key={person.id} type="button" aria-pressed={booked}

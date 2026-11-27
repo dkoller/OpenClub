@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { formatDate } from './dates'
+import { formatPhone } from './phone'
 import type { Language } from './language'
 import { acceptJoinRequest, declineJoinRequest, readJoinRequests, readJoinSettings, setJoinOpen, type JoinRequest } from './joinRequests'
 
@@ -46,17 +47,23 @@ export function JoinRequestsAdmin({ language, csrfToken, onChanged }: { language
       <h2>{t.title}</h2>
       <label><input type="checkbox" checked={open} disabled={busy}
         onChange={event => { void act(() => setJoinOpen(event.target.checked, csrfToken)) }} /> {t.switch}</label>
-      {items.length === 0 ? <p>{t.none}</p> : <ul>{items.map(item => <li key={item.id}>
-        <strong>{item.firstName} {item.lastName}</strong> ({formatDate(item.dateOfBirth)}{item.kind === 'CHILD' ? `, ${t.child}` : ''})
-        {item.kind === 'CHILD' && <> · {t.parent}: {item.parentFirstName} {item.parentLastName}</>}
-        {' '}· {item.email} · {item.phone}{item.teamName && <> · {t.team}: {item.teamName}</>}
+      {/* One card per application: who and for which team, how to reach them, their message, then the decision. */}
+      {items.length === 0 ? <p>{t.none}</p> : <ul className="plain stack">{items.map(item => <li key={item.id} className="card pad stack application">
+        <div>
+          <h3>{item.firstName} {item.lastName}</h3>
+          <p className="muted">{formatDate(item.dateOfBirth)}{item.kind === 'CHILD' ? ` · ${t.child}` : ''}{item.teamName && <> · {t.team}: {item.teamName}</>}</p>
+        </div>
+        <p>{item.kind === 'CHILD' && <>{t.parent}: {item.parentFirstName} {item.parentLastName}<br /></>}
+          <a href={`mailto:${item.email}`}>{item.email}</a> · <a href={`tel:${item.phone.replace(/\s/g, '')}`}>{formatPhone(item.phone)}</a></p>
         {item.message && <blockquote>{item.message}</blockquote>}
-        <button type="button" disabled={busy} onClick={() => { void act(() => acceptJoinRequest(item.id, csrfToken), 'accepted') }}>{t.accept}</button>
-        {confirming === item.id
-          ? <button type="button" disabled={busy} onClick={() => { setConfirming(null); void act(() => declineJoinRequest(item.id, csrfToken)) }}>{t.confirm}</button>
-          : <button type="button" disabled={busy} onClick={() => setConfirming(item.id)}>{t.decline}</button>}
+        <div className="actions">
+          <button type="button" className="btn primary" disabled={busy} onClick={() => { void act(() => acceptJoinRequest(item.id, csrfToken), 'accepted') }}>{t.accept}</button>
+          {confirming === item.id
+            ? <button type="button" disabled={busy} onClick={() => { setConfirming(null); void act(() => declineJoinRequest(item.id, csrfToken)) }}>{t.confirm}</button>
+            : <button type="button" className="danger-quiet" disabled={busy} onClick={() => setConfirming(item.id)}>{t.decline}</button>}
+        </div>
       </li>)}</ul>}
-      <p>{t.retention}</p>
+      <p className="muted small">{t.retention}</p>
       {notice && <p role={notice === 'accepted' ? 'status' : 'alert'}>{t[notice]}</p>}
     </section>
   )

@@ -10,7 +10,11 @@ const words = {
 } satisfies Record<Language, Record<string, string>>
 
 /** Attendance statistics of one team (OpenAPI 1.18.0) for its viewers and managers, by public display name. */
-export function AttendanceStatistics({ teamId, teamName, language }: { teamId: string; teamName: string; language: Language }) {
+export function AttendanceStatistics({ teamId, teamName, language, onRange }: {
+  teamId: string; teamName: string; language: Language
+  /** The range shown, so the J+S file below uses the same one instead of a second date form. */
+  onRange?: (range: { from: string; to: string }) => void
+}) {
   const t = words[language]
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -21,7 +25,7 @@ export function AttendanceStatistics({ teamId, teamName, language }: { teamId: s
     try {
       const next = await readAttendanceStatistics(teamId, range?.from || undefined, range?.to || undefined)
       setResult(next)
-      if (typeof next === 'object') { setFrom(next.from); setTo(next.to) }
+      if (typeof next === 'object') { setFrom(next.from); setTo(next.to); onRange?.({ from: next.from, to: next.to }) }
     } catch { setResult('error') }
   }
 
@@ -31,10 +35,13 @@ export function AttendanceStatistics({ teamId, teamName, language }: { teamId: s
     readAttendanceStatistics(teamId).then(next => {
       if (!active) return
       setResult(next)
-      if (typeof next === 'object') { setFrom(next.from); setTo(next.to) }
+      if (typeof next === 'object') { setFrom(next.from); setTo(next.to); onRange?.({ from: next.from, to: next.to }) }
     }).catch(() => { if (active) setResult('error') })
     return () => { active = false }
   }, [teamId])
+
+  const counts = (row: { yes: number; no: number; maybe: number; noAnswer: number }) =>
+    `${t.yes} ${row.yes} · ${t.no} ${row.no} · ${t.maybe} ${row.maybe} · ${t.noAnswer} ${row.noAnswer}`
 
   function apply(event: FormEvent) {
     event.preventDefault()
@@ -43,7 +50,7 @@ export function AttendanceStatistics({ teamId, teamName, language }: { teamId: s
 
   return (
     <section aria-label={`${t.title} ${teamName}`} className="stack">
-      <form onSubmit={apply}>
+      <form className="form-grid" onSubmit={apply}>
         <label>{t.from}<input type="date" value={from} required onChange={event => setFrom(event.target.value)} /></label>
         <label>{t.to}<input type="date" value={to} required onChange={event => setTo(event.target.value)} /></label>
         <button type="submit">{t.apply}</button>
@@ -51,15 +58,13 @@ export function AttendanceStatistics({ teamId, teamName, language }: { teamId: s
       {result === null && <p role="status">…</p>}
       {(result === 'denied' || result === 'invalid' || result === 'error') && <p role="alert">{t[result]}</p>}
       {typeof result === 'object' && result !== null && <>
-        <p>{t.held}: {result.held}</p>
-        {result.items.length === 0 ? <p>{t.empty}</p> : <table className="cards">
-          <caption>{`${t.title} ${teamName}`}</caption>
-          <thead><tr><th scope="col">{t.member}</th><th scope="col">{t.yes}</th><th scope="col">{t.no}</th><th scope="col">{t.maybe}</th><th scope="col">{t.noAnswer}</th></tr></thead>
-          <tbody>{result.items.map((item, index) => <tr key={index}>
-            <th scope="row">{item.displayName}</th><td data-label={t.yes}>{item.yes}</td><td data-label={t.no}>{item.no}</td><td data-label={t.maybe}>{item.maybe}</td><td data-label={t.noAnswer}>{item.noAnswer}</td>
-          </tr>)}</tbody>
-          <tfoot><tr><th scope="row">{t.total}</th><td data-label={t.yes}>{result.totals.yes}</td><td data-label={t.no}>{result.totals.no}</td><td data-label={t.maybe}>{result.totals.maybe}</td><td data-label={t.noAnswer}>{result.totals.noAnswer}</td></tr></tfoot>
-        </table>}
+        {/* Totals first, then one compact row per member: the name, a bar for the share of yes, the four counts. */}
+        <p><b>{t.held}: {result.held}</b><br /><span className="muted">{t.total}: {counts(result.totals)}</span></p>
+        {result.items.length === 0 ? <p>{t.empty}</p> : <ul className="rows card stat-rows">{result.items.map((item, index) =>
+          <li key={index} className="pad">
+            <span className="stat-name"><b>{item.displayName}</b><span className="muted small">{counts(item)}</span></span>
+            <span className="bar" aria-hidden="true"><span style={{ width: `${result.held ? Math.round(100 * item.yes / result.held) : 0}%` }} /></span>
+          </li>)}</ul>}
         <p className="muted small">{t.note}</p>
       </>}
     </section>

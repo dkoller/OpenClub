@@ -61,8 +61,9 @@ adult age, on archiving or when the guardian's sign-in is unlinked. A guardiansh
 
 ## Join requests (`EDIT_MEMBERS`)
 
-*Join requests*: tick *Public application form is on* to show *Join the club* on the signed-out page. *Accept* creates the
-member (and puts them in the wished team); *Decline* deletes the application. Unhandled applications are deleted after
+*Join requests*: tick *Public application form is on* to show *Join the club* on the signed-out page. Each application is a card
+with the person, the wished team, the contacts and the message. *Accept* creates the member (and puts them in the
+wished team); *Decline* (then *Really decline and delete*) deletes the application. Unhandled applications are deleted after
 60 days. For a child, link the parent as guardian afterwards.
 
 ![Join requests](images/admin-join-requests.png)

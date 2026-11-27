@@ -3,10 +3,10 @@ import type { Language } from './language'
 import { checkJs, jsFileHref, readPresence, savePresence, type JsCheck, type Presence } from './presence'
 
 const words = {
-  de: { title: 'Wer war da?', hint: 'Nach dem Termin abhaken, wer tatsächlich gekommen ist. Gilt für die J+S-Anwesenheitskontrolle.', leaders: 'Leitung', participants: 'Teilnehmende', said: 'Antwort', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', none: 'keine', all: 'Alle mit Ja abhaken', save: 'Anwesenheit speichern', saved: 'Gespeichert.', failed: 'Nicht gespeichert. Bitte nochmals versuchen.', early: 'Abhaken geht erst, wenn der Termin begonnen hat.', cancelled: 'Abgesagt – keine Anwesenheit.', nobody: 'Niemand im Team.', jsTitle: 'J+S-Anwesenheit', jsHint: 'Datei für den Import der Anwesenheitskontrolle in die NDS. Trainings und Spiele, die abgehakt wurden.', from: 'Von', to: 'Bis', check: 'Prüfen', rows: '{n} Zeilen', missingNumber: 'Ohne J+S-Nummer (fehlen in der Datei): {names}', missingPlace: 'Trainings ohne Ort (die NDS braucht einen Ort): {list}', download: 'Datei herunterladen', invalid: 'Bitte einen Zeitraum von höchstens einem Jahr wählen.', error: 'Gerade nicht verfügbar.' },
-  en: { title: 'Who came?', hint: 'After the event, tick who actually came. Used for the J+S attendance record.', leaders: 'Leaders', participants: 'Participants', said: 'Answer', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', none: 'none', all: 'Tick everyone who said yes', save: 'Save attendance', saved: 'Saved.', failed: 'Not saved. Please try again.', early: 'You can tick once the event has started.', cancelled: 'Cancelled – no attendance.', nobody: 'Nobody in the team.', jsTitle: 'J+S attendance', jsHint: 'File for importing the attendance record into the NDS. Trainings and matches with ticks.', from: 'From', to: 'To', check: 'Check', rows: '{n} rows', missingNumber: 'Without a J+S number (left out of the file): {names}', missingPlace: 'Trainings without a place (the NDS needs one): {list}', download: 'Download file', invalid: 'Please choose a range of at most one year.', error: 'Unavailable right now.' },
-  fr: { title: 'Qui était là ?', hint: 'Après l’événement, cochez qui est vraiment venu. Sert au contrôle des présences J+S.', leaders: 'Moniteurs', participants: 'Participants', said: 'Réponse', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', none: 'aucune', all: 'Cocher tous ceux qui ont dit oui', save: 'Enregistrer les présences', saved: 'Enregistré.', failed: 'Non enregistré. Veuillez réessayer.', early: 'Vous pourrez cocher dès que l’événement a commencé.', cancelled: 'Annulé – pas de présences.', nobody: 'Personne dans l’équipe.', jsTitle: 'Présences J+S', jsHint: 'Fichier pour importer le contrôle des présences dans la BDNS. Entraînements et matchs cochés.', from: 'Du', to: 'Au', check: 'Vérifier', rows: '{n} lignes', missingNumber: 'Sans numéro J+S (absents du fichier) : {names}', missingPlace: 'Entraînements sans lieu (la BDNS en demande un) : {list}', download: 'Télécharger le fichier', invalid: 'Choisissez une période d’un an au plus.', error: 'Indisponible pour le moment.' },
-  it: { title: 'Chi c’era?', hint: 'Dopo l’evento, spunta chi è venuto davvero. Serve per il controllo delle presenze G+S.', leaders: 'Monitori', participants: 'Partecipanti', said: 'Risposta', YES: 'Sì', NO: 'No', MAYBE: 'Forse', none: 'nessuna', all: 'Spunta tutti quelli che hanno detto sì', save: 'Salva presenze', saved: 'Salvato.', failed: 'Non salvato. Riprovate.', early: 'Potete spuntare quando l’evento è iniziato.', cancelled: 'Annullato – nessuna presenza.', nobody: 'Nessuno nella squadra.', jsTitle: 'Presenze G+S', jsHint: 'File per importare il controllo delle presenze nella BDNS. Allenamenti e partite spuntati.', from: 'Dal', to: 'Al', check: 'Verifica', rows: '{n} righe', missingNumber: 'Senza numero G+S (esclusi dal file): {names}', missingPlace: 'Allenamenti senza luogo (la BDNS lo richiede): {list}', download: 'Scarica file', invalid: 'Scegli un periodo di al massimo un anno.', error: 'Non disponibile al momento.' },
+  de: { title: 'Wer war da?', hint: 'Nach dem Termin abhaken, wer tatsächlich gekommen ist. Gilt für die J+S-Anwesenheitskontrolle.', leaders: 'Leitung', participants: 'Teilnehmende', said: 'Antwort', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht', none: 'keine', all: 'Alle mit Ja abhaken', save: 'Anwesenheit speichern', saved: 'Gespeichert.', failed: 'Nicht gespeichert. Bitte nochmals versuchen.', early: 'Abhaken geht erst, wenn der Termin begonnen hat.', cancelled: 'Abgesagt – keine Anwesenheit.', nobody: 'Niemand im Team.', jsTitle: 'J+S-Anwesenheit', jsHint: 'Datei für den Import der Anwesenheitskontrolle in die NDS. Trainings und Spiele, die abgehakt wurden. Gleicher Zeitraum wie oben.', from: 'Von', to: 'Bis', check: 'Prüfen', rows: '{n} Zeilen', missingNumber: 'Ohne J+S-Nummer (fehlen in der Datei): {names}', missingPlace: 'Trainings ohne Ort (die NDS braucht einen Ort): {list}', download: 'Datei herunterladen', invalid: 'Bitte einen Zeitraum von höchstens einem Jahr wählen.', error: 'Gerade nicht verfügbar.' },
+  en: { title: 'Who came?', hint: 'After the event, tick who actually came. Used for the J+S attendance record.', leaders: 'Leaders', participants: 'Participants', said: 'Answer', YES: 'Yes', NO: 'No', MAYBE: 'Maybe', none: 'none', all: 'Tick everyone who said yes', save: 'Save attendance', saved: 'Saved.', failed: 'Not saved. Please try again.', early: 'You can tick once the event has started.', cancelled: 'Cancelled – no attendance.', nobody: 'Nobody in the team.', jsTitle: 'J+S attendance', jsHint: 'File for importing the attendance record into the NDS. Trainings and matches with ticks. Same period as above.', from: 'From', to: 'To', check: 'Check', rows: '{n} rows', missingNumber: 'Without a J+S number (left out of the file): {names}', missingPlace: 'Trainings without a place (the NDS needs one): {list}', download: 'Download file', invalid: 'Please choose a range of at most one year.', error: 'Unavailable right now.' },
+  fr: { title: 'Qui était là ?', hint: 'Après l’événement, cochez qui est vraiment venu. Sert au contrôle des présences J+S.', leaders: 'Moniteurs', participants: 'Participants', said: 'Réponse', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être', none: 'aucune', all: 'Cocher tous ceux qui ont dit oui', save: 'Enregistrer les présences', saved: 'Enregistré.', failed: 'Non enregistré. Veuillez réessayer.', early: 'Vous pourrez cocher dès que l’événement a commencé.', cancelled: 'Annulé – pas de présences.', nobody: 'Personne dans l’équipe.', jsTitle: 'Présences J+S', jsHint: 'Fichier pour importer le contrôle des présences dans la BDNS. Entraînements et matchs cochés. Même période que ci-dessus.', from: 'Du', to: 'Au', check: 'Vérifier', rows: '{n} lignes', missingNumber: 'Sans numéro J+S (absents du fichier) : {names}', missingPlace: 'Entraînements sans lieu (la BDNS en demande un) : {list}', download: 'Télécharger le fichier', invalid: 'Choisissez une période d’un an au plus.', error: 'Indisponible pour le moment.' },
+  it: { title: 'Chi c’era?', hint: 'Dopo l’evento, spunta chi è venuto davvero. Serve per il controllo delle presenze G+S.', leaders: 'Monitori', participants: 'Partecipanti', said: 'Risposta', YES: 'Sì', NO: 'No', MAYBE: 'Forse', none: 'nessuna', all: 'Spunta tutti quelli che hanno detto sì', save: 'Salva presenze', saved: 'Salvato.', failed: 'Non salvato. Riprovate.', early: 'Potete spuntare quando l’evento è iniziato.', cancelled: 'Annullato – nessuna presenza.', nobody: 'Nessuno nella squadra.', jsTitle: 'Presenze G+S', jsHint: 'File per importare il controllo delle presenze nella BDNS. Allenamenti e partite spuntati. Stesso periodo di sopra.', from: 'Dal', to: 'Al', check: 'Verifica', rows: '{n} righe', missingNumber: 'Senza numero G+S (esclusi dal file): {names}', missingPlace: 'Allenamenti senza luogo (la BDNS lo richiede): {list}', download: 'Scarica file', invalid: 'Scegli un periodo di al massimo un anno.', error: 'Non disponibile al momento.' },
 } satisfies Record<Language, Record<string, string>>
 
 const fill = (text: string, values: Record<string, string | number>) =>
@@ -73,28 +73,23 @@ export function PresencePanel({ eventId, cancelled, language, csrfToken }: {
 }
 
 /** Team statistics page: check and download the J+S file (only for the team's managers). */
-export function JsExport({ teamId, language }: { teamId: string; language: Language }) {
+export function JsExport({ teamId, language, range }: {
+  teamId: string; language: Language
+  /** The period chosen for the statistics above; the file covers the same one. */
+  range: { from: string; to: string } | null
+}) {
   const t = words[language]
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
   const [result, setResult] = useState<JsCheck | 'denied' | 'invalid' | 'error' | null>(null)
-  async function run(range: { from: string; to: string }) {
-    try {
-      const next = await checkJs(teamId, range.from, range.to)
-      setResult(next)
-      if (typeof next === 'object') { setFrom(next.from); setTo(next.to) }
-    } catch { setResult('error') }
-  }
-  useEffect(() => { void run({ from: '', to: '' }) }, [teamId])
+  useEffect(() => {
+    if (!range) return
+    let active = true
+    checkJs(teamId, range.from, range.to).then(next => { if (active) setResult(next) }).catch(() => { if (active) setResult('error') })
+    return () => { active = false }
+  }, [teamId, range?.from, range?.to])
   if (result === null || result === 'denied') return null
   return <section aria-labelledby="js-export" className="stack">
     <h2 id="js-export">{t.jsTitle}</h2>
     <p className="muted small">{t.jsHint}</p>
-    <form onSubmit={event => { event.preventDefault(); void run({ from, to }) }}>
-      <label>{t.from}<input type="date" value={from} required onChange={event => setFrom(event.target.value)} /></label>
-      <label>{t.to}<input type="date" value={to} required onChange={event => setTo(event.target.value)} /></label>
-      <button type="submit">{t.check}</button>
-    </form>
     {(result === 'invalid' || result === 'error') && <p role="alert">{t[result]}</p>}
     {typeof result === 'object' && <>
       <p>{fill(t.rows, { n: result.rows })}</p>

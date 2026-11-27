@@ -130,6 +130,7 @@ export function TeamPage({ teamId, section, language, csrfToken }: {
   const [team, setTeam] = useState<Team | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'gone' | 'error'>('loading')
   const [revision, setRevision] = useState(0)
+  const [statsRange, setStatsRange] = useState<{ from: string; to: string } | null>(null)
 
   useEffect(() => {
     let active = true
@@ -165,8 +166,8 @@ export function TeamPage({ teamId, section, language, csrfToken }: {
     {section === 'schedule' && <TeamSchedule teamId={teamId} teamName={team.name} language={language} csrfToken={csrfToken} />}
     {section === 'members' && <TeamMembers teamId={teamId} language={language} csrfToken={csrfToken} onChanged={() => undefined} />}
     {section === 'statistics' && <>
-      <AttendanceStatistics teamId={teamId} teamName={team.name} language={language} />
-      <JsExport teamId={teamId} language={language} />
+      <AttendanceStatistics teamId={teamId} teamName={team.name} language={language} onRange={setStatsRange} />
+      <JsExport teamId={teamId} language={language} range={statsRange} />
     </>}
   </>
 }
