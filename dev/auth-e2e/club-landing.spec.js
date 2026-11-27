@@ -641,7 +641,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await roster.getByRole('button', { name: 'Assign' }).click();
   await expect(roster.getByRole('listitem').filter({ hasText: 'Mara Demo' })).toHaveCount(1);
   // Tapping the name opens the contacts; a 403 from the server is shown as a denial, never as data.
-  const maraRoster = roster.getByRole('button', { name: 'Mara Demo', exact: true });
+  const maraRoster = roster.getByRole('listitem').filter({ hasText: 'Mara Demo' }).locator('button.row-toggle');
   await maraRoster.click();
   await expect(roster.getByRole('region', { name: 'Details: Mara Demo' })).toBeVisible();
   await roster.getByRole('button', { name: 'Close' }).click();
@@ -983,7 +983,7 @@ test('verified login gains club access only after restricted operator bootstrap'
   await expect(permissionAdmin.getByRole('alert')).toHaveCount(0);
   await page.unroute('**/api/v1/grants?**');
   await show(page, juniorsPage + '/members');
-  await roster.getByRole('button', { name: 'Mara Demo', exact: true }).click();
+  await roster.getByRole('listitem').filter({ hasText: 'Mara Demo' }).locator('button.row-toggle').click();
   await roster.getByRole('button', { name: 'Remove from team' }).click();
   await expect(roster.getByText('No assignments.')).toBeVisible();
   // A rename on the team's page preserves the team's ID (same address), membership relationship and permissions.
