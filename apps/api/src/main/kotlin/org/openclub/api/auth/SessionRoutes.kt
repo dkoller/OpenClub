@@ -15,6 +15,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CancellationException
+import org.openclub.api.logFailure
 
 internal interface BrowserSessionOperations {
     suspend fun read(handle: String?): ActiveSession?
@@ -49,7 +50,8 @@ internal fun Application.installSessionRoutes(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.respondText("""{"code":"unavailable","message":"Session storage unavailable"}""",
                     ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
             }
@@ -102,7 +104,8 @@ internal fun Application.installSessionRoutes(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.respondText("""{"code":"unavailable","message":"Session storage unavailable"}""",
                     ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
             }

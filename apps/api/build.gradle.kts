@@ -20,6 +20,8 @@ dependencies {
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("org.jooq:jooq:$jooqVersion")
+    // Logging (owner-approved 2026-11-27): failures reach the server log; see src/main/resources/logback.xml.
+    implementation("ch.qos.logback:logback-classic:1.5.18")
     implementation("org.flywaydb:flyway-core:$flywayVersion")
     implementation("org.flywaydb:flyway-database-postgresql:$flywayVersion")
     implementation("org.postgresql:postgresql:42.7.8")

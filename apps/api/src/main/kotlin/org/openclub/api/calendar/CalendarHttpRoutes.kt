@@ -22,6 +22,7 @@ import org.openclub.api.members.guarded
 import org.openclub.api.readSession
 import org.openclub.api.refuse
 import org.openclub.api.members.respondJson
+import org.openclub.api.logFailure
 
 /**
  * Calendar feeds (OpenAPI 1.17.0, ADR-0008 addendum 21). The member's own feed is managed with a session
@@ -73,7 +74,8 @@ internal fun Application.installCalendarHttpRoutes(
                 call.respondText(text, ContentType("text", "calendar").withCharset(Charsets.UTF_8))
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }

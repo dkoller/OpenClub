@@ -20,6 +20,7 @@ import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.refuse
+import org.openclub.api.logFailure
 
 /** Club member-policy settings (player gender, adult age). Database triggers enforce existing member compatibility. */
 internal fun Application.installClubPlayerPolicyRoutes(
@@ -109,7 +110,8 @@ private suspend fun ApplicationCall.updateClubPolicy(
         } else {
             refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
         }
-    } catch (_: Exception) {
+    } catch (failure: Exception) {
+        logFailure(failure)
         refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
     }
 }

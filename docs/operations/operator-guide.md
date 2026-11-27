@@ -95,7 +95,11 @@ requests after 60 days. See [retention cleanup](../security/retention-cleanup.md
 
 ## Logs and privacy
 
-- The API logs no request paths, addresses, message texts or push endpoints; failures are counted.
+- The API logs to standard error (`demo-compose.sh logs api`). Every request that ends in *unavailable* (503) and
+  every failed background job (email, push, cleanup) writes one line `org.openclub.api.failures`: the method and the
+  route with IDs shown as `{id}` and secrets as `{secret}`, the exception classes, the SQL state and the OpenClub stack
+  frames. Exception messages are never logged, because database messages can quote member data.
+- Beyond that it logs no request paths, addresses, message texts or push endpoints.
 - Calendar links carry a secret in the path: keep access logs off for `/api/v1/calendar/` on any extra proxy.
 - The public join form trusts the last `X-Forwarded-For` entry: any extra proxy must replace it, not append.
 - Never paste env files, member IDs or database dumps into issues, chats or CI output.
@@ -104,6 +108,7 @@ requests after 60 days. See [retention cleanup](../security/retention-cleanup.md
 
 | Symptom | Look at |
 | --- | --- |
+| *Unavailable* on a page | `demo-compose.sh logs api | grep failures`: the route, the exception class and where in the code |
 | API restarts at startup | `demo-compose.sh logs api`: an invalid email, push or OIDC setting is named in the error |
 | Sign-in fails | The identity provider's logs and the client secret (`fetch-demo-client-secret.sh`) |
 | No emails | `OPENCLUB_SMTP_*`, the outbox failures counted in the API log |

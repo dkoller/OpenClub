@@ -12,6 +12,7 @@ import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.refuse
+import org.openclub.api.logFailure
 
 /**
  * `GET /api/v1/members/{memberId}/details` (OpenAPI 1.3.0; owner-approved 2026-11-18). Authorization is decided
@@ -53,7 +54,8 @@ internal fun Application.installMemberDetailsHttpRoute(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
@@ -80,7 +82,8 @@ internal fun Application.installMemberDetailsHttpRoute(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }

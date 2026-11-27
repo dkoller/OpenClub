@@ -25,6 +25,7 @@ import java.time.LocalDate
 import java.util.UUID
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
+import org.openclub.api.logFailure
 
 /** Member administration is always session-linked and capability-checked server-side. */
 internal fun Application.installMemberHttpRoutes(
@@ -71,7 +72,8 @@ internal fun Application.installMemberHttpRoutes(
                     // A connection loss or timeout is a server fault, not a rejected request.
                     if (failure.rejectedTheData()) call.error(HttpStatusCode.BadRequest, "invalid")
                     else call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
-                } catch (_: Exception) {
+                } catch (failure: Exception) {
+                    call.logFailure(failure)
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
             }
@@ -118,7 +120,8 @@ internal fun Application.installMemberHttpRoutes(
                     )
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: Exception) {
+                } catch (failure: Exception) {
+                    call.logFailure(failure)
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
             }
@@ -151,7 +154,8 @@ internal fun Application.installMemberHttpRoutes(
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: Exception) {
+                } catch (failure: Exception) {
+                    call.logFailure(failure)
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
             }
@@ -199,7 +203,8 @@ internal fun Application.installMemberHttpRoutes(
                     // Same mapping as creation: the database rules (adult contacts, player gender) are authoritative.
                     if (failure.rejectedTheData()) call.error(HttpStatusCode.BadRequest, "invalid")
                     else call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
-                } catch (_: Exception) {
+                } catch (failure: Exception) {
+                    call.logFailure(failure)
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
             }
@@ -239,7 +244,8 @@ internal fun Application.installMemberHttpRoutes(
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: Exception) {
+                } catch (failure: Exception) {
+                    call.logFailure(failure)
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
             }
@@ -273,7 +279,8 @@ internal fun Application.installMemberHttpRoutes(
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: Exception) {
+                } catch (failure: Exception) {
+                    call.logFailure(failure)
                     call.error(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
             }
@@ -367,7 +374,8 @@ private suspend fun ApplicationCall.memberPage(
         respondText(body.toString(), ContentType.Application.Json)
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: Exception) {
+    } catch (failure: Exception) {
+        logFailure(failure)
         error(HttpStatusCode.ServiceUnavailable, "unavailable")
     }
 }

@@ -7,6 +7,7 @@ import kotlinx.coroutines.isActive
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import java.util.UUID
+import org.openclub.api.logFailure
 
 /**
  * Retention rules approved by the owner on 2026-11-18 (ADR-0008, decisions 7 and 14), applied in bounded
@@ -183,8 +184,8 @@ internal object RetentionCleanup {
                 }
             } catch (cancel: CancellationException) {
                 throw cancel
-            } catch (_: Exception) {
-                System.err.println("Retention cleanup failed")
+            } catch (failure: Exception) {
+                logFailure("Retention cleanup", failure)
             }
             delay(3_600_000)
         }

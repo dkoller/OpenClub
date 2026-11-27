@@ -34,6 +34,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.ResolverStyle
 import java.util.UUID
+import org.openclub.api.logFailure
 
 /**
  * Join requests (OpenAPI 1.22.0, ADR-0008 addendum 26).
@@ -67,7 +68,8 @@ internal fun Application.installJoinRequestHttpRoutes(
                 }.toString(), ContentType.Application.Json)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
@@ -104,7 +106,8 @@ internal fun Application.installJoinRequestHttpRoutes(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
