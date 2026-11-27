@@ -59,7 +59,7 @@ export function HelperDutyAdmin({ language, csrfToken }: { language: Language; c
       if (outcome === 'ok') setRevision(value => value + 1)
     } catch { setNotice({ ok: false, text: t.failed }) }
   }
-  return <section aria-labelledby="helper-duty-admin" className="stack">
+  return <section aria-labelledby="helper-duty-admin" className="card pad stack">
     <h2 id="helper-duty-admin">{t.admin}</h2>
     <p className="muted small">{t.hint}</p>
     <Reveal label={t.change}><form className="actions" onSubmit={event => { void save(event) }}>

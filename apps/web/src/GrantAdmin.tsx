@@ -155,7 +155,7 @@ export function GrantAdmin({ language, csrfToken }: { language: Language; csrfTo
     <section aria-label={t.title} ref={editor}>
       <h2>{t.title}</h2>
       {error && <p role="alert">{t.error}</p>}
-      <form onSubmit={event => { void findMember(event) }}>
+      <form className="search" onSubmit={event => { void findMember(event) }}>
         <label htmlFor="grant-search">{t.search}</label>
         <input id="grant-search" value={search} maxLength={100} onChange={event => setSearch(event.target.value)} />
         <button type="submit" disabled={busy}>{t.find}</button>
