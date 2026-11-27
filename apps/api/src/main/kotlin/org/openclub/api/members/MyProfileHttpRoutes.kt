@@ -22,6 +22,8 @@ import org.openclub.api.requiredBoolean
 import java.util.UUID
 import org.openclub.api.refuse
 import org.openclub.api.readSession
+import org.openclub.api.guarded
+import org.openclub.api.respondJson
 
 /**
  * `GET /api/v1/me/profile` and `PUT /api/v1/me/profile/contacts` (OpenAPI 1.9.0). Order of answers: session (401);

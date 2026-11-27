@@ -26,6 +26,7 @@ import org.openclub.api.members.MemberDirectory
 import org.openclub.api.members.MemberPageCursor
 import java.util.UUID
 import org.openclub.api.logFailure
+import org.openclub.api.isSameOriginWrite
 
 /** Team roster names need both live directory and team grants. Mutations need MANAGE_TEAMS. */
 internal fun Application.installTeamMemberHttpRoutes(
@@ -116,8 +117,7 @@ private suspend fun ApplicationCall.changeAssignment(
     response.headers.append(HttpHeaders.CacheControl, "no-store")
     try {
         val actor = actor(sessions, cookies) ?: return
-        if (request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-            request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+        if (!isSameOriginWrite(actor, origin)) {
             rejected(HttpStatusCode.Forbidden, "forbidden")
             return
         }

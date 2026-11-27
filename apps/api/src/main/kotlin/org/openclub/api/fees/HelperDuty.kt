@@ -5,8 +5,8 @@ import org.openclub.api.members.ActorSql
 import org.openclub.api.members.AgeSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.UUID
+import org.openclub.api.database.DatabaseRuntime
 
 /**
  * Helper duty (OpenAPI 1.32.0, ADR-0008 addendum 36): how many helper shifts each liable person has done this season
@@ -22,7 +22,7 @@ internal class HelperDuty(private val database: DSLContext) {
     fun settings(): Settings = database.fetchOne("SELECT helper_quota, season_start_month FROM clubs LIMIT 1")
         ?.let { Settings(it.get(0, Int::class.java), it.get(1, Int::class.java)) } ?: Settings(0, 8)
 
-    fun season(settings: Settings, today: LocalDate = LocalDate.now(SWISS)): Season {
+    fun season(settings: Settings, today: LocalDate = LocalDate.now(DatabaseRuntime.clubZone)): Season {
         val year = if (today.monthValue >= settings.seasonStartMonth) today.year else today.year - 1
         val from = LocalDate.of(year, settings.seasonStartMonth, 1)
         return Season(from, from.plusYears(1).minusDays(1))
@@ -34,8 +34,8 @@ internal class HelperDuty(private val database: DSLContext) {
          JOIN event_shifts s ON s.id = v.shift_id
          JOIN team_events e ON e.id = s.event_id
          WHERE NOT e.cancelled AND s.starts_at <= now()
-           AND s.starts_at >= (?::date)::timestamp AT TIME ZONE 'Europe/Zurich'
-           AND s.starts_at < ((?::date) + 1)::timestamp AT TIME ZONE 'Europe/Zurich'
+           AND s.starts_at >= (?::date)::timestamp AT TIME ZONE club_time_zone()
+           AND s.starts_at < ((?::date) + 1)::timestamp AT TIME ZONE club_time_zone()
            AND (v.member_id = $person OR v.member_id IN (
                 SELECT gs.minor_member_id FROM member_guardianships gs JOIN members minor ON minor.id = gs.minor_member_id
                 WHERE gs.guardian_member_id = $person AND minor.archived_at IS NULL AND ${AgeSql.minor("minor")})))"""
@@ -74,7 +74,4 @@ internal class HelperDuty(private val database: DSLContext) {
         "UPDATE clubs SET helper_quota = ?, season_start_month = ? WHERE ${ActorSql.holdsClubCapability(Capability.MANAGE_FEES)}",
         settings.quota, settings.seasonStartMonth, actor) == 1
 
-    companion object {
-        val SWISS: ZoneId = ZoneId.of("Europe/Zurich")
-    }
 }

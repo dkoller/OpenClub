@@ -13,7 +13,12 @@ import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.jooq.exception.DataAccessException
 import org.slf4j.LoggerFactory
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import java.sql.SQLException
+import kotlinx.serialization.json.JsonObject
+import org.openclub.api.members.ClubCapabilityAccess
+import org.openclub.api.database.DatabaseRuntime
 
 /** Every refusal of the administration API: one JSON object with a stable `code` and the given status. */
 internal suspend fun ApplicationCall.refuse(status: HttpStatusCode, code: String) =
@@ -82,3 +87,47 @@ internal fun describeFailure(failure: Throwable): String = buildString {
         depth++
     }
 }
+
+/**
+ * The shared order of answers: session (401), exact Origin and session CSRF (403), the capability if the route
+ * needs one (403), and only then the route's own validation and work. Any unexpected failure is a 503.
+ */
+internal suspend fun ApplicationCall.guarded(
+    sessions: BrowserSessionOperations,
+    cookies: AuthCookiePolicy,
+    origin: String,
+    database: DatabaseRuntime,
+    capability: ClubCapabilityAccess.Capability?,
+    block: suspend (ActiveSession) -> Unit,
+) {
+    response.headers.append(HttpHeaders.CacheControl, "no-store")
+    try {
+        val actor = sessions.read(request.cookies[cookies.sessionName])
+            ?: return refuse(HttpStatusCode.Unauthorized, "unauthenticated")
+        if (!isSameOriginWrite(actor, origin)) {
+            return refuse(HttpStatusCode.Forbidden, "forbidden")
+        }
+        if (capability != null &&
+            !database.onDatabaseThread { ClubCapabilityAccess(it).has(actor.accountId, capability) }) {
+            return refuse(HttpStatusCode.Forbidden, "forbidden")
+        }
+        block(actor)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (failure: Exception) {
+        logFailure(failure)
+        refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
+    }
+}
+
+/**
+ * A write must carry exactly our Origin and exactly the session's CSRF token. The token is compared in constant
+ * time so its value cannot be guessed from response timing.
+ */
+internal fun ApplicationCall.isSameOriginWrite(actor: ActiveSession, origin: String): Boolean {
+    if (request.headers.getAll(HttpHeaders.Origin) != listOf(origin)) return false
+    val token = request.headers.getAll("X-CSRF-Token")?.singleOrNull() ?: return false
+    return MessageDigest.isEqual(token.toByteArray(StandardCharsets.UTF_8), actor.csrfToken.toByteArray(StandardCharsets.UTF_8))
+}
+
+internal suspend fun ApplicationCall.respondJson(body: JsonObject) = respondText(body.toString(), ContentType.Application.Json)

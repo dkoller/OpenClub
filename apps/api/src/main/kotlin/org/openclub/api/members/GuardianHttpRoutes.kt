@@ -26,6 +26,8 @@ import org.openclub.api.requiredString
 import java.util.UUID
 import org.openclub.api.refuse
 import org.openclub.api.readSession
+import org.openclub.api.guarded
+import org.openclub.api.respondJson
 
 /**
  * Guardian routes (OpenAPI 1.6.0, ADR-0008 addendum 8). Editors manage a minor's guardians under
@@ -146,7 +148,6 @@ private suspend fun ApplicationCall.answer(result: MemberGuardianships.Change) =
     MemberGuardianships.Change.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
 }
 
-internal suspend fun ApplicationCall.respondJson(body: JsonObject) = respondText(body.toString(), ContentType.Application.Json)
 
 private fun names(members: List<MemberDirectory.Summary>) = buildJsonObject {
     put("items", buildJsonArray {

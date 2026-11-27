@@ -45,8 +45,8 @@ internal class BulkEvents(private val database: DSLContext, private val notifier
             return@transactionResult Result.UnknownVenue
         }
         val selection = """e.team_id = ANY (?::uuid[]) AND e.kind = ANY (?::text[]) AND e.starts_at > now()
-                 AND e.starts_at >= (?::date)::timestamp AT TIME ZONE 'Europe/Zurich'
-                 AND e.starts_at < ((?::date) + 1)::timestamp AT TIME ZONE 'Europe/Zurich'"""
+                 AND e.starts_at >= (?::date)::timestamp AT TIME ZONE club_time_zone()
+                 AND e.starts_at < ((?::date) + 1)::timestamp AT TIME ZONE club_time_zone()"""
         val binds = arrayOf<Any>(input.teams.map(UUID::toString).toTypedArray(), input.kinds.map { it.name }.toTypedArray(),
             input.from.toString(), input.to.toString())
         val change = when (input.action) {

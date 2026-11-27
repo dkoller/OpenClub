@@ -14,8 +14,6 @@ val ktorVersion = "3.6.1"
 val jooqVersion = "3.20.20"
 val flywayVersion = "13.11.1"
 
-val jooqGenerator = configurations.create("jooqGenerator")
-
 dependencies {
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
@@ -33,9 +31,6 @@ dependencies {
     // Swiss QR bills for fees (OpenAPI 1.26.0, ADR-0008 addendum 30): MIT; brings Apache PDFBox 3 (Apache-2.0) and
     // Nayuki's QR code generator (MIT) for its own PDF output.
     implementation("net.codecrete.qrbill:qrbill-generator:3.4.0")
-
-    jooqGenerator("org.jooq:jooq-codegen:$jooqVersion")
-    jooqGenerator("org.postgresql:postgresql:42.7.8")
 
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
@@ -62,17 +57,6 @@ tasks.test {
     outputs.cacheIf("PostgreSQL-backed tests must always execute") { false }
 }
 
-tasks.register<JavaExec>("generateJooq") {
-    group = "database"
-    description = "Generate jOOQ Java sources from an already migrated local PostgreSQL schema."
-    classpath = jooqGenerator
-    mainClass.set("org.jooq.codegen.GenerationTool")
-    args("src/main/resources/jooq-codegen.xml")
-}
-
-sourceSets.main {
-    java.srcDir(layout.buildDirectory.dir("generated-src/jooq"))
-}
 
 tasks.register<JavaExec>("bootstrapFirstClub") {
     group = "application"

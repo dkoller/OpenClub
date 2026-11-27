@@ -21,6 +21,7 @@ import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
 import java.util.UUID
 import org.openclub.api.logFailure
+import org.openclub.api.isSameOriginWrite
 
 /** Explicit ADMIN + MANAGE_PERMISSIONS only; no role or account identity accepted from callers. */
 internal fun Application.installGrantHttpRoutes(
@@ -174,8 +175,7 @@ private suspend fun ApplicationCall.mutateGrant(
     response.headers.append(HttpHeaders.CacheControl, "no-store")
     try {
         val actor = grantActor(sessions, cookies) ?: return
-        if (request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-            request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+        if (!isSameOriginWrite(actor, origin)) {
             grantError(HttpStatusCode.Forbidden, "forbidden")
             return
         }

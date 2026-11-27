@@ -139,13 +139,13 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v5
-      - name: Kotlin tests and jOOQ generation (PostgreSQL service)
+      - name: Kotlin tests (PostgreSQL service)
         working-directory: apps/api
         env:
           DB_URL: jdbc:postgresql://localhost:5432/openclub
           DB_USER: openclub
           DB_PASSWORD: openclub_dev
-        run: ./gradlew test generateJooq --no-daemon
+        run: ./gradlew test --no-daemon
 
   web:
     needs: changes

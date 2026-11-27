@@ -87,12 +87,14 @@ The implementation now uses a **GitHub Actions PostgreSQL service** for integrat
 
 ## Amendment: plain-SQL jOOQ access (2026-11-17, accepted by the repository owner)
 
-**Context.** Every backend query on `main` uses jOOQ's plain-SQL API (`DSLContext.execute`/`fetch`/`fetchOne` with `?` bind parameters). The `generateJooq` task runs in CI against the migrated PostgreSQL service, but no feature code references the generated classes. That is deliberate in practice: the API Docker image and `docker compose up --build` compile the backend **without a database**, so feature code that depended on generated sources would break the one-command build.
+**Context.** Every backend query on `main` uses jOOQ's plain-SQL API (`DSLContext.execute`/`fetch`/`fetchOne` with `?` bind parameters). No feature code used the classes the `generateJooq` task generated in CI (removed on 2026-11-27, see below). That is deliberate in practice: the API Docker image and `docker compose up --build` compile the backend **without a database**, so feature code that depended on generated sources would break the one-command build.
 
 **Decision.** For M1, OpenClub keeps jOOQ (still the only persistence layer; no ORM) and uses its **plain-SQL API with bind parameters** as the accepted database access style. The "type-safe SQL" rationale above is therefore only partly realised, and this is now recorded rather than implied.
 
 - Never concatenate request input into SQL. Interpolate only compile-time fragments, such as the shared actor-authorization predicate in `apps/api/src/main/kotlin/org/openclub/api/members/ActorSql.kt`, which validates its aliases and embeds only enum names.
 - Every query must be exercised by a PostgreSQL-backed test. That is the compensating control for the missing compile-time schema checking.
-- CI keeps running `./gradlew test generateJooq`, which still checks that the migrated schema can be introspected. Generated sources stay in `build/` and are not checked in.
+- *2026-11-27:* the `generateJooq` task, its generator configuration and `jooq-codegen.xml` were removed: nothing used the
+  generated classes and the step cost CI time. jOOQ runs plain SQL only; Flyway migrations and the PostgreSQL-backed
+  tests are the schema check. Bringing generation back is part of the revisit below.
 
 **Revisit when** the schema stabilises after R04/M2, or before a large data-access change. Moving to typed queries requires generation that needs no live database at image build time (for example checked-in generated sources or a migration-driven generator), plus a migration plan. Record that as a new ADR or amendment.

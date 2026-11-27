@@ -7,9 +7,9 @@ import org.openclub.api.members.AgeSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import java.time.LocalDate
 import java.time.OffsetDateTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import org.openclub.api.database.DatabaseRuntime
 
 /**
  * Actual attendance and the J+S export (OpenAPI 1.27.0, ADR-0008 addendum 31). Only holders of `MANAGE_TEAMS` for the
@@ -141,8 +141,8 @@ internal class EventPresence(private val database: DSLContext) {
                JOIN members m ON m.id = p.member_id
                JOIN clubs c ON TRUE
                WHERE e.team_id = ? AND NOT e.cancelled AND e.kind IN ('TRAINING', 'MATCH') AND e.starts_at <= now()
-                 AND e.starts_at >= (?::date)::timestamp AT TIME ZONE 'Europe/Zurich'
-                 AND e.starts_at < ((?::date) + 1)::timestamp AT TIME ZONE 'Europe/Zurich'
+                 AND e.starts_at >= (?::date)::timestamp AT TIME ZONE club_time_zone()
+                 AND e.starts_at < ((?::date) + 1)::timestamp AT TIME ZONE club_time_zone()
                ORDER BY e.starts_at, e.id, p.role, display_name, m.id""",
             teamId, from.toString(), to.toString())
         val rows = mutableListOf<JsRow>()
@@ -150,8 +150,8 @@ internal class EventPresence(private val database: DSLContext) {
         val withoutPlace = linkedSetOf<String>()
         val exported = linkedSetOf<UUID>()
         records.forEach {
-            val starts = it.get("starts_at", OffsetDateTime::class.java).atZoneSameInstant(SWISS)
-            val ends = it.get("ends_at", OffsetDateTime::class.java).atZoneSameInstant(SWISS)
+            val starts = it.get("starts_at", OffsetDateTime::class.java).atZoneSameInstant(DatabaseRuntime.clubZone)
+            val ends = it.get("ends_at", OffsetDateTime::class.java).atZoneSameInstant(DatabaseRuntime.clubZone)
             val training = it.get("kind", String::class.java) == "TRAINING"
             val place = it.get("location", String::class.java)?.let(::placeCell)
             if (training && place == null) withoutPlace += "${it.get("title", String::class.java)} ${starts.format(DATE)}"
@@ -176,7 +176,6 @@ internal class EventPresence(private val database: DSLContext) {
     }
 
     companion object {
-        private val SWISS: ZoneId = ZoneId.of("Europe/Zurich")
         private val DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.uuuu")
         private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 

@@ -21,6 +21,7 @@ import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.refuse
 import org.openclub.api.logFailure
+import org.openclub.api.isSameOriginWrite
 
 /** Club member-policy settings (player gender, adult age). Database triggers enforce existing member compatibility. */
 internal fun Application.installClubPlayerPolicyRoutes(
@@ -75,8 +76,7 @@ private suspend fun ApplicationCall.updateClubPolicy(
             refuse(HttpStatusCode.Unauthorized, "unauthenticated")
             return
         }
-        if (request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-            request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+        if (!isSameOriginWrite(actor, origin)) {
             refuse(HttpStatusCode.Forbidden, "forbidden")
             return
         }

@@ -23,6 +23,7 @@ import java.util.UUID
 import org.openclub.api.refuse
 import org.openclub.api.readSession
 import org.openclub.api.logFailure
+import org.openclub.api.isSameOriginWrite
 
 private sealed interface RoleRead {
     data object Denied : RoleRead
@@ -90,8 +91,7 @@ internal fun Application.installMemberRoleHttpRoutes(
                     call.refuse(HttpStatusCode.Unauthorized, "unauthenticated")
                     return@patch
                 }
-                if (call.request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-                    call.request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+                if (!call.isSameOriginWrite(actor, origin)) {
                     call.refuse(HttpStatusCode.Forbidden, "forbidden")
                     return@patch
                 }

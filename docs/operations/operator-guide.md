@@ -34,7 +34,7 @@ The API reads these environment variables (all set by the compose files from the
 | `OPENCLUB_PUBLIC_ORIGIN` | The browser origin, for example `https://club.example.ch` |
 | `OPENCLUB_OIDC_ISSUER`, `OPENCLUB_OIDC_AUTHORIZATION_ENDPOINT`, `OPENCLUB_OIDC_CLIENT_ID`, `OPENCLUB_OIDC_CLIENT_SECRET`, `OPENCLUB_OIDC_REDIRECT_URI` | Sign-in through the identity provider ([auth runtime](../security/auth-runtime.md)) |
 | `OPENCLUB_SMTP_HOST`, `_PORT`, `_TLS`, `_USERNAME`, `_PASSWORD`, `_FROM` | Optional email notifications ([single-club, email](../deployment/single-club.md#email-notifications-optional)) |
-| `OPENCLUB_TIME_ZONE` | Times in emails and absence days (default `Europe/Zurich`) |
+| `OPENCLUB_TIME_ZONE` | Times in emails and push, absence days, event days in bulk changes, presence lists and J+S exports, the helper season (default `Europe/Zurich`) |
 | `OPENCLUB_PUSH_PUBLIC_KEY`, `OPENCLUB_PUSH_PRIVATE_KEY`, `OPENCLUB_PUSH_SUBJECT`, `OPENCLUB_PUSH_HOSTS` | Optional push notifications (below) |
 | `PORT` | API port inside the container (default 8080) |
 

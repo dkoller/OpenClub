@@ -22,10 +22,10 @@ import kotlinx.serialization.json.put
 import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
-import org.openclub.api.members.guarded
+import org.openclub.api.guarded
 import org.openclub.api.readSession
 import org.openclub.api.refuse
-import org.openclub.api.members.respondJson
+import org.openclub.api.respondJson
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredBoolean
 import org.openclub.api.requiredString

@@ -26,6 +26,7 @@ import java.util.UUID
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
 import org.openclub.api.logFailure
+import org.openclub.api.isSameOriginWrite
 
 /** Member administration is always session-linked and capability-checked server-side. */
 internal fun Application.installMemberHttpRoutes(
@@ -298,8 +299,7 @@ private suspend fun ApplicationCall.requireActor(
 }
 
 private suspend fun ApplicationCall.requireWrite(actor: ActiveSession, origin: String): Boolean {
-    if (request.headers.getAll(HttpHeaders.Origin) != listOf(origin) ||
-        request.headers.getAll("X-CSRF-Token") != listOf(actor.csrfToken)) {
+    if (!isSameOriginWrite(actor, origin)) {
         error(HttpStatusCode.Forbidden, "forbidden")
         return false
     }
