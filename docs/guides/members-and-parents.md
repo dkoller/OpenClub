@@ -23,10 +23,12 @@ child. See the [overview](README.md) for finding your way and signing in.
 
   <img src="images/member-event.png" alt="An event page on a phone: answers, helper shifts and rides" width="300">
 
-- **Fields and halls:** *When fields and halls are booked*, at the bottom of *Schedule*, shows the bookings of each of
-  the club's fields and halls.
+- **Fields and halls:** *When fields and halls are booked*, at the bottom of *Schedule*, is the week plan: every day
+  from Monday to Sunday with what is booked on which field or hall (team, kind and title, never names), and *Free*
+  for an empty day. Today is marked with a bar and a dot. *‹* and *›* change the week, *This week* comes back, and
+  *Field or hall* shows one of them instead of all.
 
-  <img src="images/member-venues.png" alt="The bookings of one field on a phone" width="300">
+  <img src="images/member-venues.png" alt="The week plan of the fields and halls on a phone" width="300">
 
 - **Called up:** for a match the coach may call up a squad. If you or your child are in it, the schedule shows
   *Called up* and the event page shows the meeting time and place; otherwise *Not called up*. You never see who else

@@ -30,7 +30,7 @@ not shown at all, and the server checks every action again.
 | Page | What it is for | Who sees it |
 | --- | --- | --- |
 | *Start* | *Things for you to do* (events that still need your answer or your child's, with *Yes*, *No*, *Maybe*), a free seat to book, the next 7 days, announcements | Everyone |
-| *Schedule* | The next eight weeks by day, *Called up* for matches, and *When fields and halls are booked* | Everyone |
+| *Schedule* | The next eight weeks by day, *Called up* for matches, and *When fields and halls are booked* (the week plan) | Everyone |
 | *Family* | *My profile*, *My children*, *Absences*, *Fees* (with helper shifts), *Calendar subscription*, *Email notifications* (with push) | Everyone; *My children* only for guardians |
 | *Team* | *Next events*, *Helpers missing*, the teams and each team's *Schedule*, *Members* and *Statistics* | Coaches and team managers |
 | *Administration* | *Waiting for you*, *Members*, *Join requests*, *Fees*, *Fields and halls*, *Permissions*, *Settings* | Only the sections a person has a permission for |

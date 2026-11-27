@@ -48,3 +48,39 @@ export async function changeVenue(method: 'POST' | 'PUT' | 'DELETE', venueId: st
   if (response.status === 401 || response.status === 403) return 'denied'
   throw new Error('Request failed')
 }
+
+/** A booking in the week plan, with the name of its field or hall. */
+export type PlannedBooking = Booking & { venueName: string }
+
+/** Monday 00:00 (browser time) of the week that holds `day`, moved by `weeks`. */
+export function weekStart(day: Date, weeks = 0): Date {
+  const monday = new Date(day.getFullYear(), day.getMonth(), day.getDate() - ((day.getDay() + 6) % 7) + 7 * weeks)
+  return monday
+}
+
+/** ISO 8601 week number ("KW 48"). */
+export function isoWeek(monday: Date): number {
+  const thursday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 3)
+  const firstThursday = new Date(thursday.getFullYear(), 0, 4)
+  return 1 + Math.round((thursday.getTime() - weekStart(firstThursday).getTime() - 3 * 86400000) / (7 * 86400000))
+}
+
+/** The seven days from Monday, each with the bookings that start that day, in time order. */
+export function byDay(monday: Date, bookings: PlannedBooking[]): { day: Date; items: PlannedBooking[] }[] {
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + index)
+    const items = bookings.filter(booking => new Date(booking.startsAt).toDateString() === day.toDateString())
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.venueName.localeCompare(b.venueName))
+    return { day, items }
+  })
+}
+
+/** One week of every chosen venue: one bookings read per venue (a club has a handful). */
+export async function readWeek(venues: Venue[], monday: Date, request: typeof fetch = fetch): Promise<PlannedBooking[] | 'denied'> {
+  const next = weekStart(monday, 1)
+  const results = await Promise.all(venues.map(venue =>
+    readBookings(venue.id, monday.toISOString(), next.toISOString(), request)
+      .then(items => items === 'denied' ? 'denied' as const : items.map(item => ({ ...item, venueName: venue.name })))))
+  if (results.some(result => result === 'denied')) return 'denied'
+  return (results as PlannedBooking[][]).flat()
+}

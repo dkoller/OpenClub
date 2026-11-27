@@ -40,7 +40,8 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 - On the event's own page (tap it in the schedule), at the bottom under *Change, cancel or delete the event*: *Edit*,
   *Cancel event* (members still see it, marked *Cancelled*; *Reinstate* undoes it) and *Delete*.
 - **No double booking:** a field or hall that is already booked is refused with the other event's team, title and
-  time. Everyone can see the bookings under *Schedule* → *When fields and halls are booked*.
+  time. Before you plan, look at the week plan under *Schedule* → *When fields and halls are booked*: every day of a
+  week with what is booked where, so you see which field or hall is free.
 - **Change several events:** at the bottom of the schedule choose *From*, *To*, the kinds and *Cancel*, *Reinstate*,
   *New place* or *Another field or hall*, then *Check*; it says how many events change, and *Change N events* applies
   it. Only events that have not started change, and each person gets one email listing them.
