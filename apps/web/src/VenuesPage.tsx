@@ -44,6 +44,8 @@ export function VenuesPage({ language }: { language: Language }) {
   }, [venues, chosen, week])
   const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6)
   const today = new Date().toDateString()
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const dayMonth = (day: Date) => formatDate(day).slice(0, 6)
   return <section aria-labelledby="venues-title" className="stack">
     <BackLink href={routeHash({ page: 'schedule' })} label={t.back} />
@@ -65,7 +67,8 @@ export function VenuesPage({ language }: { language: Language }) {
       {bookings === 'error' && <p role="alert">{t.error}</p>}
       {Array.isArray(bookings) && <ol className="week-plan" key={mondayKey}>
         {byDay(monday, bookings).map(({ day, items }) => <li key={day.toDateString()}
-          className={'card' + (day.toDateString() === today ? ' today' : '')}
+          className={'card' + (day.toDateString() === today ? ' today' : '') + (items.length === 0 ? ' free' : '') +
+            (day < startOfToday ? ' past' : '')}
           aria-current={day.toDateString() === today ? 'date' : undefined}>
           <h3>{weekday(day, language)} {dayMonth(day)}</h3>
           {items.length === 0 ? <p className="muted">{t.free}</p> : <ul className="rows">
