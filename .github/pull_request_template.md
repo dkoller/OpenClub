@@ -32,4 +32,5 @@
 <!-- Authorization and club isolation impact? Dependencies? Contract/migrations? Risks or follow-ups? -->
 
 - [ ] I reviewed the diff for unnecessary abstractions, secrets and unrelated changes.
+- [ ] I state which diff review was used (Ponytail review skill or manual review against `AGENTS.md`).
 - [ ] No direct or autonomous merge; human approval required.
