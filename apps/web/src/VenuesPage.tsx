@@ -12,7 +12,6 @@ const words = {
   it: { title: 'Campi e palestre', back: 'Calendario', none: 'Il club non ha ancora inserito campi o palestre.', venue: 'Campo o palestra', free: 'Non prenotato nei prossimi 14 giorni.', error: 'Non disponibile al momento.', TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', add: 'Aggiungi', name: 'Nome', rename: 'Rinomina', save: 'Salva', cancel: 'Annulla', remove: 'Elimina', confirm: 'Eliminare? Gli eventi restano, senza il luogo.', duplicate: 'Questo nome esiste già.', failed: 'Non salvato.', hint: 'Gli eventi possono prenotare un campo o una palestra; le doppie prenotazioni vengono rifiutate. Tutti i membri vedono l’occupazione.' },
 } satisfies Record<Language, Record<string, string>>
 
-const locale = { de: 'de-CH', en: 'en-GB', fr: 'fr-CH', it: 'it-CH' }
 
 /** Schedule → fields and halls: the next 14 days of one venue's bookings, by team and title (never names). */
 export function VenuesPage({ language }: { language: Language }) {

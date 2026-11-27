@@ -21,7 +21,7 @@ export type Route =
   | { page: 'admin'; section: AdminSection; part?: MemberPart }
 
 const sections: AdminSection[] = ['overview', 'members', 'join-requests', 'fees', 'venues', 'permissions', 'settings']
-export const familySections: FamilySection[] = ['profile', 'children', 'absences', 'fees', 'calendar', 'notifications']
+const familySections: FamilySection[] = ['profile', 'children', 'absences', 'fees', 'calendar', 'notifications']
 export const teamSections: TeamSection[] = ['schedule', 'members', 'statistics']
 export const memberParts: MemberPart[] = ['invitations', 'guardians', 'roles', 'transfer', 'archived', 'public']
 const id = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
