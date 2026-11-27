@@ -21,6 +21,7 @@ import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
 import java.util.UUID
 import org.openclub.api.refuse
+import org.openclub.api.logFailure
 
 /**
  * Invitations and account unlinking (OpenAPI 1.2.0; owner-approved 2026-11-18). Every route is `no-store`, decides
@@ -139,7 +140,8 @@ internal suspend fun ApplicationCall.guarded(
         block(actor)
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: Exception) {
+    } catch (failure: Exception) {
+        logFailure(failure)
         refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
     }
 }

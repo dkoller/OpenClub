@@ -269,7 +269,7 @@ Since OpenAPI 1.22.0 the public join form limits submissions per client address.
 
 ## Calendar feed links in logs
 
-Since OpenAPI 1.17.0 a member's calendar feed link carries its secret in the path (`/api/v1/calendar/<secret>`). The API does not log request paths and the bundled `apps/web/nginx.conf` disables the access log for `/api/v1/calendar/`. If you put another proxy or load balancer in front, turn its access log off for that path too (Caddy as configured in `dev/deployment/Caddyfile` keeps no access log). A leaked link is revoked by the member on *Family* → *Calendar subscription*.
+Since OpenAPI 1.17.0 a member's calendar feed link carries its secret in the path (`/api/v1/calendar/<secret>`). The API does not log request paths (a failure line shows the route as `/api/v1/calendar/{secret}`) and the bundled `apps/web/nginx.conf` disables the access log for `/api/v1/calendar/`. If you put another proxy or load balancer in front, turn its access log off for that path too (Caddy as configured in `dev/deployment/Caddyfile` keeps no access log). A leaked link is revoked by the member on *Family* → *Calendar subscription*.
 
 ## Email notifications (optional)
 

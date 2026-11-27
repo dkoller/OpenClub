@@ -8,6 +8,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import org.jooq.DSLContext
+import org.openclub.api.logFailure
 
 /** Remove expired records in bounded PostgreSQL batches without touching live records. */
 internal object AuthRecordCleanup {
@@ -53,9 +54,9 @@ internal object AuthRecordCleanup {
                 }
             } catch (cancel: CancellationException) {
                 throw cancel
-            } catch (_: Exception) {
-                // Avoid logging potentially sensitive SQL parameters or session material.
-                System.err.println("Expired authentication record cleanup failed")
+            } catch (failure: Exception) {
+                // Only classes, SQL state and frames: no SQL parameters or session material (HttpAnswers.kt).
+                logFailure("Expired authentication record cleanup", failure)
             }
             delay(60_000)
         }

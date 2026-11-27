@@ -22,6 +22,7 @@ import org.openclub.api.requiredString
 import java.util.UUID
 import org.openclub.api.refuse
 import org.openclub.api.readSession
+import org.openclub.api.logFailure
 
 private sealed interface RoleRead {
     data object Denied : RoleRead
@@ -119,7 +120,8 @@ internal fun Application.installMemberRoleHttpRoutes(
                 } else call.respond(HttpStatusCode.NoContent)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }

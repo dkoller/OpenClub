@@ -12,6 +12,7 @@ import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import org.openclub.api.logFailure
 
 /** HTTP boundary: all identity and session operations are server-owned. */
 internal interface BrowserLoginOperations {
@@ -37,7 +38,8 @@ internal fun Application.installBrowserLogin(
                 val pending = operations.begin()
                 call.response.cookies.append(cookies.loginBinding(pending.browserBinding))
                 call.respondRedirect(pending.authorization.url.toASCIIString(), permanent = false)
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.respondText("""{"code":"unavailable","message":"Authentication unavailable"}""",
                     ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
             }
@@ -78,8 +80,10 @@ internal fun Application.installBrowserLogin(
                     call.response.headers.append(HttpHeaders.Location, "/")
                     call.respond(HttpStatusCode.SeeOther)
                 }
-            } catch (_: Exception) {
-                // No token, nonce, code or provider error is ever reflected to the client.
+            } catch (failure: Exception) {
+                // No token, nonce, code or provider error is ever reflected to the client, nor logged:
+                // the log gets only the exception classes and stack frames.
+                call.logFailure(failure)
                 call.respondText("""{"code":"unavailable","message":"Authentication unavailable"}""",
                     ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
             }

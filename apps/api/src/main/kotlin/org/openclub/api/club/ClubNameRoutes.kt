@@ -16,6 +16,7 @@ import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
 import org.openclub.api.refuse
+import org.openclub.api.logFailure
 
 /** A narrow synthetic-M1 settings write; neither role nor actor is supplied by the caller. */
 internal fun Application.installClubNameRoutes(
@@ -65,7 +66,8 @@ internal fun Application.installClubNameRoutes(
                 else call.refuse(HttpStatusCode.Forbidden, "forbidden")
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }

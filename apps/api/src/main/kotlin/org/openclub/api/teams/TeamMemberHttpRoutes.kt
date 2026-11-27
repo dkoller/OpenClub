@@ -25,6 +25,7 @@ import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.members.MemberDirectory
 import org.openclub.api.members.MemberPageCursor
 import java.util.UUID
+import org.openclub.api.logFailure
 
 /** Team roster names need both live directory and team grants. Mutations need MANAGE_TEAMS. */
 internal fun Application.installTeamMemberHttpRoutes(
@@ -91,7 +92,8 @@ internal fun Application.installTeamMemberHttpRoutes(
                 call.respondText(response.toString(), ContentType.Application.Json)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.rejected(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
@@ -153,7 +155,8 @@ private suspend fun ApplicationCall.changeAssignment(
         }
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: Exception) {
+    } catch (failure: Exception) {
+        logFailure(failure)
         rejected(HttpStatusCode.ServiceUnavailable, "unavailable")
     }
 }

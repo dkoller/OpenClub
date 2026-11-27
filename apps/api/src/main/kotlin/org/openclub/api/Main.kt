@@ -134,7 +134,8 @@ internal fun Application.module(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.respondText("""{"code":"unavailable","message":"Directory unavailable"}""",
                     ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
             }
@@ -157,7 +158,8 @@ internal fun Application.module(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.respondText(unavailable, ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
             }
         }
@@ -176,7 +178,8 @@ internal fun Application.module(
                 database?.onDatabaseThread { it.fetchValue("SELECT 1") == 1 } == true
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                logFailure("Readiness check", failure)
                 false
             }
             call.respondText(

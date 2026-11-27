@@ -14,6 +14,7 @@ import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.members.MemberAccess
+import org.openclub.api.logFailure
 
 /** One installation has at most one club. Never accept an arbitrary tenant ID. */
 internal fun Application.installSingleClubRoutes(
@@ -57,7 +58,8 @@ internal fun Application.installSingleClubRoutes(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.respondText("""{"code":"unavailable","message":"Club lookup unavailable"}""",
                     ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
             }

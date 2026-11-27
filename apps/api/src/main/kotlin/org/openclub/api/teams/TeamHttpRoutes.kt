@@ -31,6 +31,7 @@ import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
 import org.openclub.api.refuse
 import org.openclub.api.readSession
+import org.openclub.api.logFailure
 
 /** Team names/counts are private, and are never returned without a verified team grant. */
 internal fun Application.installTeamHttpRoutes(
@@ -108,7 +109,8 @@ internal fun Application.installTeamHttpRoutes(
                 } else {
                     call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
@@ -148,7 +150,8 @@ internal fun Application.installTeamHttpRoutes(
                 } else {
                     call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
                 }
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
@@ -201,7 +204,8 @@ internal fun Application.installTeamHttpRoutes(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.refuse(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }

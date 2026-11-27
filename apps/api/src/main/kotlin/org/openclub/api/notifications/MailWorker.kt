@@ -15,6 +15,7 @@ import org.jooq.impl.DSL
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.members.ActorSql
 import java.util.UUID
+import org.openclub.api.logFailure
 
 /**
  * Sends the email outbox (OpenAPI 1.19.0, ADR-0008 addendum 23) once a minute: queues due shift reminders, helper calls and answer reminders, sends up
@@ -36,8 +37,8 @@ internal object MailWorker {
                     wakeDevices(database, pusher)
                 } catch (cancel: CancellationException) {
                     throw cancel
-                } catch (_: Exception) {
-                    System.err.println("Push run failed")
+                } catch (failure: Exception) {
+                    logFailure("Push run", failure)
                 }
                 delay(30_000)
             }
@@ -51,8 +52,8 @@ internal object MailWorker {
                 database.onDatabaseThread { cleanup(it) }
             } catch (cancel: CancellationException) {
                 throw cancel
-            } catch (_: Exception) {
-                System.err.println("Email outbox run failed")
+            } catch (failure: Exception) {
+                logFailure("Email outbox run", failure)
             }
             delay(60_000)
         }
@@ -87,7 +88,8 @@ internal object MailWorker {
                 sent++
             } catch (cancel: CancellationException) {
                 throw cancel
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                logFailure("Email delivery", failure)
                 val attempts = row.get("attempts", Int::class.java) + 1
                 db.execute(
                     "UPDATE email_outbox SET attempts = ?, next_attempt_at = now() + make_interval(mins => ?) WHERE id = ?",

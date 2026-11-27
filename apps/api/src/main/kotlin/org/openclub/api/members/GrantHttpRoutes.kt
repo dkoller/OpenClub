@@ -20,6 +20,7 @@ import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
 import java.util.UUID
+import org.openclub.api.logFailure
 
 /** Explicit ADMIN + MANAGE_PERMISSIONS only; no role or account identity accepted from callers. */
 internal fun Application.installGrantHttpRoutes(
@@ -79,7 +80,8 @@ internal fun Application.installGrantHttpRoutes(
                 call.respondText(response.toString(), ContentType.Application.Json)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.grantError(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
@@ -133,7 +135,8 @@ internal fun Application.installGrantHttpRoutes(
                 call.respondText(response.toString(), ContentType.Application.Json)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                call.logFailure(failure)
                 call.grantError(HttpStatusCode.ServiceUnavailable, "unavailable")
             }
         }
@@ -202,7 +205,8 @@ private suspend fun ApplicationCall.mutateGrant(
         else respond(HttpStatusCode.NoContent)
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: Exception) {
+    } catch (failure: Exception) {
+        logFailure(failure)
         grantError(HttpStatusCode.ServiceUnavailable, "unavailable")
     }
 }

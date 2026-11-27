@@ -1,0 +1,20 @@
+<configuration>
+  <!-- One line per event on standard error, where Docker and journald collect it; standard output stays clean for
+       the command-line tools (the member export writes its JSON there). No request bodies or parameters are logged
+       anywhere; failures are described by org.openclub.api.failures (HttpAnswers.kt). -->
+  <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+    <target>System.err</target>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+  <!-- jOOQ would log every SQL statement with its bound values at DEBUG, and a banner at INFO. -->
+  <logger name="org.jooq" level="WARN"/>
+  <logger name="org.jooq.Constants" level="OFF"/>
+  <!-- HikariCP and Ktor start-up messages stay at INFO; their debug output is off. -->
+  <logger name="com.zaxxer.hikari" level="INFO"/>
+  <logger name="io.netty" level="WARN"/>
+  <root level="INFO">
+    <appender-ref ref="STDERR"/>
+  </root>
+</configuration>
