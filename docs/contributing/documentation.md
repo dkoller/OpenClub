@@ -46,14 +46,16 @@ photographs each page in English. Sign-in pages are never photographed, and only
 - **When:** the workflow `.github/workflows/docs-screenshots.yml` runs after the Keycloak browser journey has passed
   on `main` and takes every picture again. If the app (`apps/web`, `apps/api/src/main`), the demo data or the
   screenshot test changed since the commit named in `docs/guides/images/SOURCE`, it opens or updates one pull request
-  *Update documentation screenshots* (branch `docs-screenshots`) with all pictures and the new `SOURCE`; it is merged
-  like any other docs PR. Comparing pixels does not work for this: the dates in the pictures move with the real date,
+  *Update documentation screenshots* (branch `docs-screenshots`) with all pictures and the new `SOURCE` and merges it
+  itself, but only after checking that every changed file is a PNG in `docs/guides/images` or its `SOURCE`; anything
+  else fails the job and stays unmerged. To look at the pictures, open the merged PR's *Files* tab; a bad picture is
+  fixed in the app or the screenshot test, and the next run replaces it. Comparing pixels does not work for this: the dates in the pictures move with the real date,
   and a changed label is a smaller difference than a moved date. A pull request that changes the screenshot test
   itself uploads the pictures for review instead.
-- **Repository setting:** with *Settings → Actions → General → Allow GitHub Actions to create and approve pull
-  requests* on, the workflow opens the PR itself; with it off, it pushes the branch `docs-screenshots` and leaves a
-  warning, and a person opens the PR from that branch. Pull requests created by the workflow token start no other
-  workflows; the picture-only PR needs none.
+- **Repository setting:** *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests* is
+  on (since 2026-11-27). With it off, the workflow only pushes the branch `docs-screenshots` and leaves a warning, and
+  a person opens and merges the PR. Pull requests and merges made with the workflow token start no other workflows:
+  the picture-only PR needs none, and the merge does not start a new screenshot run.
 - **Sizes:** phone pictures are 390 wide and show the whole page as one tall screen (at most 4000 pixels), with the tab
   bar at the bottom; laptop pictures are 1280 wide and show the whole page.
 - **Every view:** the spec photographs every page of the app (33 pictures, listed in `docs/guides/screens.md`). A new

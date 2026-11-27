@@ -200,9 +200,28 @@ jobs:
           git add docs/guides/images
           git commit -q -m "Update documentation screenshots" -m "Taken from $SHA after the Keycloak browser journey passed."
           git push -f origin "$branch"
-          open="$(gh api "repos/$GITHUB_REPOSITORY/pulls?head=${GITHUB_REPOSITORY_OWNER}:$branch&state=open" --jq 'length')"
-          if [[ "$open" == 0 ]] && ! gh api "repos/$GITHUB_REPOSITORY/pulls" -f title='Update documentation screenshots' -f head="$branch" -f base=main \
-              -f body="The pictures in docs/guides/images, taken again from $SHA after the Keycloak browser journey passed on main. Only the PNG files and SOURCE (the commit they were taken from) change; review the pictures on the Files tab. Documentation: pictures only." >/dev/null; then
-            # The repository does not let workflows open pull requests: the branch is pushed, a person opens the PR.
-            echo "::warning::Screenshots changed; branch $branch is pushed. Open a pull request from it, or allow GitHub Actions to create pull requests."
+          # Find or open the pull request (the repository lets workflows open pull requests since 2026-11-27).
+          number="$(gh api "repos/$GITHUB_REPOSITORY/pulls?head=${GITHUB_REPOSITORY_OWNER}:$branch&state=open" --jq '.[0].number // empty')"
+          if [[ -z "$number" ]]; then
+            number="$(gh api "repos/$GITHUB_REPOSITORY/pulls" -f title='Update documentation screenshots' -f head="$branch" -f base=main \
+              -f body="The pictures in docs/guides/images, taken again from $SHA after the Keycloak browser journey passed on main. Only the PNG files and SOURCE (the commit they were taken from) change; the pictures are on the Files tab. Merged by the workflow once it has checked that nothing else changed. Documentation: pictures only." \
+              --jq .number)" || { echo "::warning::Screenshots changed; branch $branch is pushed, but the pull request could not be opened."; exit 0; }
           fi
+          # Merge only a picture-only change: every file must be a PNG in docs/guides/images or its SOURCE.
+          head="$(git rev-parse HEAD)"
+          others="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$number/files?per_page=100" --paginate \
+            --jq '.[].filename | select(test("^docs/guides/images/([a-z][a-z0-9-]*\\.png|SOURCE)$") | not)')"
+          if [[ -n "$others" ]]; then
+            echo "::error::Pull request #$number changes more than pictures, not merged: $others"
+            exit 1
+          fi
+          # A new pull request needs a moment before GitHub can merge it: three tries, 10 seconds apart.
+          for attempt in 1 2 3; do
+            if gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$number/merge" -f merge_method=squash -f sha="$head" \
+                -f commit_title="Update documentation screenshots (#$number)" -f commit_message="Taken from $SHA." >/dev/null; then
+              echo "Merged #$number."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning::Pull request #$number is open but could not be merged; merge it by hand."
