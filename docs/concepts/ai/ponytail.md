@@ -25,6 +25,8 @@ Review and explicitly trust any lifecycle hooks before activating them. Installi
 
 ## How to use it in OpenClub
 
+Ponytail is not required. The mandatory diff review in `AGENTS.md` checks each change against its engineering-approach rules; Ponytail's review skill is one way to perform it. State in the PR which review was used.
+
 - Use the regular/full Ponytail approach when implementing or refactoring.
 - Run Ponytail's review skill on focused code diffs, where available.
 - Use broader audit/debt workflows occasionally, not as a substitute for PR review.
