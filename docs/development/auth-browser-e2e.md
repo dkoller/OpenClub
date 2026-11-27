@@ -91,6 +91,18 @@ pnpm exec playwright install --with-deps chromium
 pnpm test
 ```
 
+The tests run in three steps (`playwright.config.js`):
+
+1. **setup:** `auth.spec.js`, then `club-setup.spec.js`. The second shows that a verified login is no member, runs the
+   operator bootstrap and saves the signed-in administrator's browser state outside the repository (`$RUNNER_TEMP` or
+   the system temp folder; it holds a session cookie and is never uploaded).
+2. **club:** one test per area in `club-a-profile.spec.js` … `club-i-authorization.spec.js`. Each starts signed in
+   from that state and creates the synthetic data it needs through `club-fixtures.js` (for example `ensureMara()`,
+   `ensureTeam()`), so a failure stops only that test. Re-run one test with `pnpm test -g "<part of its title>"`
+   (setup runs first automatically).
+3. **last** (teardown of setup, runs even when club tests failed): `club-z1-signout.spec.js` ends the saved session,
+   then `club-z2-invitation.spec.js` and `rotation.spec.js` sign in on their own.
+
 CI installs Chromium with `dev/auth-e2e/install-chromium.sh` instead. It first downloads only the browser binary (up to three attempts, 120 s each) and checks that it launches; GitHub's Ubuntu runners already carry Chromium's shared libraries, and the optional font and Mesa packages that `--with-deps` adds come from an Ubuntu mirror that occasionally crawls or stalls. Only if the browser cannot launch does it fall back to `playwright install --with-deps chromium`, with bounded `apt` connections, a 100 s deadline per attempt, up to three attempts, and cleanup of any leftover `apt-get` and the `dpkg` lock between attempts. Use the commands above locally.
 
 Keep `OPENCLUB_E2E_USER_PASSWORD` in the test process environment. Never use real
