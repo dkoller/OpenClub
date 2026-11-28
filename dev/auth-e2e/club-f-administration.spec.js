@@ -155,6 +155,21 @@ test('a field or hall added by the administrator shows for every member', async 
   await schedule.getByLabel('End').fill('21:00');
   await expect(hall).toHaveText('Synthetic Hall North');
   await expect(hall).not.toHaveAttribute('disabled');
+  // A weekly series (1.40.0) is checked on every date: starting a week earlier, the second copy hits the booking,
+  // so the clash names its date.
+  await schedule.getByLabel('Start').fill('18:00');
+  await schedule.getByLabel('End').fill('19:30');
+  const weekEarlier = await page.evaluate(() => {
+    const date = new Date(Date.now() - 4 * 86400000);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  });
+  await schedule.getByLabel('Date', { exact: true }).fill(weekEarlier);
+  await expect(hall).toHaveText('Synthetic Hall North');
+  await schedule.getByLabel('Repeat weekly until').fill(day);
+  await expect(schedule.getByLabel('How often')).toHaveValue('1');
+  await expect(hall).toHaveText(/^Synthetic Hall North \(booked: Hall Owners \S+ \d\d\.\d\d\.\d{4}, 18:00–19:30\)$/);
+  await schedule.getByLabel('How often').selectOption('2');
+  await expect(hall).toHaveText('Synthetic Hall North');
 });
 
 test('an announcement keeps its line breaks and is never HTML', async ({ page }) => {

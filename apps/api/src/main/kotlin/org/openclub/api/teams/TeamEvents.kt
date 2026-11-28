@@ -269,15 +269,16 @@ internal class TeamEvents(
         const val MAX_COPIES = 52
 
         /**
-         * The start of every weekly copy from [start] up to and including the local date [until] in [zone], keeping
-         * the local wall-clock time across daylight-saving changes. Null when there would be more than [MAX_COPIES].
+         * The start of every copy [every] weeks apart (1.40.0; default weekly) from [start] up to and including the
+         * local date [until] in [zone], keeping the local wall-clock time across daylight-saving changes. Null when
+         * there would be more than [MAX_COPIES].
          */
-        fun weeklyStarts(start: OffsetDateTime, until: LocalDate?, zone: ZoneId?): List<OffsetDateTime>? {
+        fun weeklyStarts(start: OffsetDateTime, until: LocalDate?, zone: ZoneId?, every: Long = 1): List<OffsetDateTime>? {
             if (until == null) return listOf(start)
             requireNotNull(zone)
             val local = start.atZoneSameInstant(zone)
             if (until < local.toLocalDate()) return null
-            val starts = generateSequence(local) { it.plusWeeks(1) }
+            val starts = generateSequence(local) { it.plusWeeks(every) }
                 .takeWhile { !it.toLocalDate().isAfter(until) }
                 .take(MAX_COPIES + 1).map { it.toOffsetDateTime() }.toList()
             return starts.takeIf { it.size <= MAX_COPIES }

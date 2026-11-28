@@ -8,15 +8,15 @@ import type { Language } from './language'
 import { routeHash } from './routes'
 import { DateBlock } from './EventBits'
 import {
-  createEvents, deleteEvent, formatWhen, instants, localParts, readTeamEvents, replaceEvent,
+  createEvents, deleteEvent, formatWhen, instants, localParts, readTeamEvents, replaceEvent, seriesInstants,
   type EventKind, type EventOutcome, type TeamEvent,
 } from './events'
 
 const words = {
-  de: { answersUntil: 'Antworten bis (freiwillig)', bookedShort: 'belegt', bookedHint: '{venue} ist dann belegt: {team}, {when}. Andere Zeit oder anderen Platz wählen.', newEvent: 'Neuer Termin', showPast: 'Vergangene Termine zeigen', hidePast: 'Nur kommende Termine', venue: 'Platz oder Halle', noVenue: 'keiner', taken: '{venue} ist dann schon belegt: {team}, {title}, {when}. Bitte andere Zeit oder anderen Platz wählen.', title: 'Programm', empty: 'Keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', error: 'Programm nicht verfügbar.', kind: 'Art', TRAINING: 'Training', MATCH: 'Spiel', OTHER: 'Termin', name: 'Titel', date: 'Datum', start: 'Beginn', end: 'Ende', place: 'Ort', notes: 'Hinweise', repeat: 'Wöchentlich wiederholen bis', add: 'Termin hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', cancelEvent: 'Absagen', reinstate: 'Wieder ansetzen', remove: 'Löschen', confirmRemove: 'Löschen bestätigen', cancelled: 'Abgesagt', invalid: 'Bitte die Angaben prüfen: Ende nach Beginn, höchstens 52 Wiederholungen.', denied: 'Keine Berechtigung für dieses Team.', gone: 'Dieser Termin existiert nicht mehr.', failed: 'Aktion fehlgeschlagen.', added: 'Termin gespeichert.', answers: 'Antworten', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht' },
-  en: { answersUntil: 'Answers until (optional)', bookedShort: 'booked', bookedHint: '{venue} is booked then: {team}, {when}. Choose another time or place.', newEvent: 'New event', showPast: 'Show past events', hidePast: 'Only coming events', venue: 'Field or hall', noVenue: 'none', taken: '{venue} is already booked then: {team}, {title}, {when}. Please choose another time or place.', title: 'Schedule', empty: 'No events in the next eight weeks.', more: 'More events follow later.', error: 'Schedule unavailable.', kind: 'Kind', TRAINING: 'Training', MATCH: 'Match', OTHER: 'Event', name: 'Title', date: 'Date', start: 'Start', end: 'End', place: 'Place', notes: 'Notes', repeat: 'Repeat weekly until', add: 'Add event', edit: 'Edit', save: 'Save', cancel: 'Cancel', cancelEvent: 'Cancel event', reinstate: 'Reinstate', remove: 'Delete', confirmRemove: 'Confirm delete', cancelled: 'Cancelled', invalid: 'Please check the details: end after start, at most 52 repeats.', denied: 'No permission for this team.', gone: 'This event no longer exists.', failed: 'Action failed.', added: 'Event saved.', answers: 'Answers', YES: 'Yes', NO: 'No', MAYBE: 'Maybe' },
-  fr: { answersUntil: 'Réponses jusqu’au (facultatif)', bookedShort: 'réservé', bookedHint: '{venue} est réservé à ce moment : {team}, {when}. Choisissez une autre heure ou un autre lieu.', newEvent: 'Nouvel événement', showPast: 'Afficher les événements passés', hidePast: 'Seulement les prochains', venue: 'Terrain ou salle', noVenue: 'aucun', taken: '{venue} est déjà réservé à ce moment : {team}, {title}, {when}. Veuillez choisir une autre heure ou un autre lieu.', title: 'Programme', empty: 'Aucun événement dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', error: 'Programme indisponible.', kind: 'Type', TRAINING: 'Entraînement', MATCH: 'Match', OTHER: 'Événement', name: 'Titre', date: 'Date', start: 'Début', end: 'Fin', place: 'Lieu', notes: 'Remarques', repeat: 'Répéter chaque semaine jusqu’au', add: 'Ajouter un événement', edit: 'Modifier', save: 'Enregistrer', cancel: 'Annuler', cancelEvent: 'Annuler l’événement', reinstate: 'Rétablir', remove: 'Supprimer', confirmRemove: 'Confirmer la suppression', cancelled: 'Annulé', invalid: 'Vérifiez les informations : fin après le début, au plus 52 répétitions.', denied: 'Pas d’autorisation pour cette équipe.', gone: 'Cet événement n’existe plus.', failed: 'L’action a échoué.', added: 'Événement enregistré.', answers: 'Réponses', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être' },
-  it: { answersUntil: 'Risposte fino a (facoltativo)', bookedShort: 'prenotato', bookedHint: '{venue} è prenotato in quel momento: {team}, {when}. Scegliete un altro orario o luogo.', newEvent: 'Nuovo evento', showPast: 'Mostra eventi passati', hidePast: 'Solo i prossimi', venue: 'Campo o palestra', noVenue: 'nessuno', taken: '{venue} è già prenotato in quel momento: {team}, {title}, {when}. Scegliete un altro orario o luogo.', title: 'Programma', empty: 'Nessun evento nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', error: 'Programma non disponibile.', kind: 'Tipo', TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', name: 'Titolo', date: 'Data', start: 'Inizio', end: 'Fine', place: 'Luogo', notes: 'Note', repeat: 'Ripeti ogni settimana fino al', add: 'Aggiungi evento', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', cancelEvent: 'Annulla evento', reinstate: 'Ripristina', remove: 'Elimina', confirmRemove: 'Conferma eliminazione', cancelled: 'Annullato', invalid: 'Controlla i dati: fine dopo l’inizio, al massimo 52 ripetizioni.', denied: 'Nessuna autorizzazione per questa squadra.', gone: 'Questo evento non esiste più.', failed: 'Azione non riuscita.', added: 'Evento salvato.', answers: 'Risposte', YES: 'Sì', NO: 'No', MAYBE: 'Forse' },
+  de: { every: 'Wie oft', everyWeek: 'Jede Woche', everyWeeks: 'Alle {n} Wochen', answersUntil: 'Antworten bis (freiwillig)', bookedShort: 'belegt', bookedHint: '{venue} ist dann belegt: {team}, {when}. Andere Zeit oder anderen Platz wählen.', newEvent: 'Neuer Termin', showPast: 'Vergangene Termine zeigen', hidePast: 'Nur kommende Termine', venue: 'Platz oder Halle', noVenue: 'keiner', taken: '{venue} ist dann schon belegt: {team}, {title}, {when}. Bitte andere Zeit oder anderen Platz wählen.', title: 'Programm', empty: 'Keine Termine in den nächsten acht Wochen.', more: 'Weitere Termine folgen später.', error: 'Programm nicht verfügbar.', kind: 'Art', TRAINING: 'Training', MATCH: 'Spiel', OTHER: 'Termin', name: 'Titel', date: 'Datum', start: 'Beginn', end: 'Ende', place: 'Ort', notes: 'Hinweise', repeat: 'Wöchentlich wiederholen bis', add: 'Termin hinzufügen', edit: 'Bearbeiten', save: 'Speichern', cancel: 'Abbrechen', cancelEvent: 'Absagen', reinstate: 'Wieder ansetzen', remove: 'Löschen', confirmRemove: 'Löschen bestätigen', cancelled: 'Abgesagt', invalid: 'Bitte die Angaben prüfen: Ende nach Beginn, höchstens 52 Wiederholungen.', denied: 'Keine Berechtigung für dieses Team.', gone: 'Dieser Termin existiert nicht mehr.', failed: 'Aktion fehlgeschlagen.', added: 'Termin gespeichert.', answers: 'Antworten', YES: 'Ja', NO: 'Nein', MAYBE: 'Vielleicht' },
+  en: { every: 'How often', everyWeek: 'Every week', everyWeeks: 'Every {n} weeks', answersUntil: 'Answers until (optional)', bookedShort: 'booked', bookedHint: '{venue} is booked then: {team}, {when}. Choose another time or place.', newEvent: 'New event', showPast: 'Show past events', hidePast: 'Only coming events', venue: 'Field or hall', noVenue: 'none', taken: '{venue} is already booked then: {team}, {title}, {when}. Please choose another time or place.', title: 'Schedule', empty: 'No events in the next eight weeks.', more: 'More events follow later.', error: 'Schedule unavailable.', kind: 'Kind', TRAINING: 'Training', MATCH: 'Match', OTHER: 'Event', name: 'Title', date: 'Date', start: 'Start', end: 'End', place: 'Place', notes: 'Notes', repeat: 'Repeat weekly until', add: 'Add event', edit: 'Edit', save: 'Save', cancel: 'Cancel', cancelEvent: 'Cancel event', reinstate: 'Reinstate', remove: 'Delete', confirmRemove: 'Confirm delete', cancelled: 'Cancelled', invalid: 'Please check the details: end after start, at most 52 repeats.', denied: 'No permission for this team.', gone: 'This event no longer exists.', failed: 'Action failed.', added: 'Event saved.', answers: 'Answers', YES: 'Yes', NO: 'No', MAYBE: 'Maybe' },
+  fr: { every: 'Fréquence', everyWeek: 'Chaque semaine', everyWeeks: 'Toutes les {n} semaines', answersUntil: 'Réponses jusqu’au (facultatif)', bookedShort: 'réservé', bookedHint: '{venue} est réservé à ce moment : {team}, {when}. Choisissez une autre heure ou un autre lieu.', newEvent: 'Nouvel événement', showPast: 'Afficher les événements passés', hidePast: 'Seulement les prochains', venue: 'Terrain ou salle', noVenue: 'aucun', taken: '{venue} est déjà réservé à ce moment : {team}, {title}, {when}. Veuillez choisir une autre heure ou un autre lieu.', title: 'Programme', empty: 'Aucun événement dans les huit prochaines semaines.', more: 'D’autres événements suivent plus tard.', error: 'Programme indisponible.', kind: 'Type', TRAINING: 'Entraînement', MATCH: 'Match', OTHER: 'Événement', name: 'Titre', date: 'Date', start: 'Début', end: 'Fin', place: 'Lieu', notes: 'Remarques', repeat: 'Répéter chaque semaine jusqu’au', add: 'Ajouter un événement', edit: 'Modifier', save: 'Enregistrer', cancel: 'Annuler', cancelEvent: 'Annuler l’événement', reinstate: 'Rétablir', remove: 'Supprimer', confirmRemove: 'Confirmer la suppression', cancelled: 'Annulé', invalid: 'Vérifiez les informations : fin après le début, au plus 52 répétitions.', denied: 'Pas d’autorisation pour cette équipe.', gone: 'Cet événement n’existe plus.', failed: 'L’action a échoué.', added: 'Événement enregistré.', answers: 'Réponses', YES: 'Oui', NO: 'Non', MAYBE: 'Peut-être' },
+  it: { every: 'Ogni quanto', everyWeek: 'Ogni settimana', everyWeeks: 'Ogni {n} settimane', answersUntil: 'Risposte fino a (facoltativo)', bookedShort: 'prenotato', bookedHint: '{venue} è prenotato in quel momento: {team}, {when}. Scegliete un altro orario o luogo.', newEvent: 'Nuovo evento', showPast: 'Mostra eventi passati', hidePast: 'Solo i prossimi', venue: 'Campo o palestra', noVenue: 'nessuno', taken: '{venue} è già prenotato in quel momento: {team}, {title}, {when}. Scegliete un altro orario o luogo.', title: 'Programma', empty: 'Nessun evento nelle prossime otto settimane.', more: 'Altri eventi seguiranno.', error: 'Programma non disponibile.', kind: 'Tipo', TRAINING: 'Allenamento', MATCH: 'Partita', OTHER: 'Evento', name: 'Titolo', date: 'Data', start: 'Inizio', end: 'Fine', place: 'Luogo', notes: 'Note', repeat: 'Ripeti ogni settimana fino al', add: 'Aggiungi evento', edit: 'Modifica', save: 'Salva', cancel: 'Annulla', cancelEvent: 'Annulla evento', reinstate: 'Ripristina', remove: 'Elimina', confirmRemove: 'Conferma eliminazione', cancelled: 'Annullato', invalid: 'Controlla i dati: fine dopo l’inizio, al massimo 52 ripetizioni.', denied: 'Nessuna autorizzazione per questa squadra.', gone: 'Questo evento non esiste più.', failed: 'Azione non riuscita.', added: 'Evento salvato.', answers: 'Risposte', YES: 'Sì', NO: 'No', MAYBE: 'Forse' },
 } satisfies Record<Language, Record<string, string>>
 
 /** `answersUntil`: a local date and time ("2026-12-03T20:00") or empty (OpenAPI 1.39.0). */
@@ -31,37 +31,50 @@ const localDateTime = (instant: string) => {
 }
 type Notice = 'invalid' | 'denied' | 'gone' | 'failed' | 'added' | 'taken'
 
+type Series = { until: string; every: number }
+type Clash = Booking & { series: boolean }
+
 /**
- * Which fields and halls are already booked at the draft's time (the first date of a series), by another event than
- * `eventId`. Read from the venues' bookings (OpenAPI 1.30.0) a moment after the time stops changing; the server still
- * refuses a double booking on save.
+ * Which fields and halls are already booked at the draft's times, by another event than `eventId`: every copy of a
+ * repeat (1.40.0), read from the venues' bookings (OpenAPI 1.30.0) in windows of at most 60 days, a moment after the
+ * input stops changing. The server still refuses a double booking on save.
  */
-function useClashes(draft: Draft, venues: Venue[], eventId?: string): Map<string, Booking> {
-  const [clashes, setClashes] = useState(new Map<string, Booking>())
-  const times = instants(draft.date, draft.start, draft.end)
-  const from = times?.startsAt ?? ''
-  const to = times?.endsAt ?? ''
+function useClashes(draft: Draft, venues: Venue[], eventId?: string, series?: Series): Map<string, Clash> {
+  const [clashes, setClashes] = useState(new Map<string, Clash>())
+  const copies = seriesInstants(draft.date, draft.start, draft.end, series?.until ?? '', series?.every ?? 1)
+  const key = copies.map(copy => copy.startsAt + copy.endsAt).join()
   useEffect(() => {
-    if (!from || venues.length === 0) { setClashes(new Map()); return }
+    if (copies.length === 0 || venues.length === 0) { setClashes(new Map()); return }
     let active = true
+    const windows: { from: string; to: string }[] = []
+    for (const copy of copies) {
+      const last = windows[windows.length - 1]
+      if (last && Date.parse(copy.endsAt) - Date.parse(last.from) <= 60 * 86_400_000) last.to = copy.endsAt
+      else windows.push({ from: copy.startsAt, to: copy.endsAt })
+    }
+    const overlaps = (item: Booking) => item.eventId !== eventId && copies.some(copy =>
+      Date.parse(item.startsAt) < Date.parse(copy.endsAt) && Date.parse(item.endsAt) > Date.parse(copy.startsAt))
     const timer = setTimeout(() => {
-      void Promise.all(venues.map(venue => readBookings(venue.id, from, to)
-        .then(items => [venue.id, items === 'denied' ? undefined : items.find(item => item.eventId !== eventId)] as const)
+      void Promise.all(venues.map(venue => Promise.all(windows.map(window => readBookings(venue.id, window.from, window.to)))
+        .then(results => [venue.id, results.flatMap(items => items === 'denied' ? [] : items).find(overlaps)] as const)
         .catch(() => [venue.id, undefined] as const)))
         .then(results => {
           if (!active) return
-          setClashes(new Map(results.filter((entry): entry is readonly [string, Booking] => entry[1] !== undefined)))
+          setClashes(new Map(results.filter((entry): entry is readonly [string, Booking] => entry[1] !== undefined)
+            .map(([id, booking]) => [id, { ...booking, series: copies.length > 1 }])))
         })
     }, 300)
     return () => { active = false; clearTimeout(timer) }
-  }, [from, to, venues, eventId])
+  }, [key, venues, eventId])
   return clashes
 }
 
-function EventFields({ draft, setDraft, t, venues, language, eventId }: {
+function EventFields({ draft, setDraft, t, venues, language, eventId, series }: {
   draft: Draft; setDraft: (draft: Draft) => void; t: typeof words.en; venues: Venue[]; language: Language; eventId?: string
+  /** A new event's repeat, so every copy is checked (1.40.0). */
+  series?: Series
 }) {
-  const clashes = useClashes(draft, venues, eventId)
+  const clashes = useClashes(draft, venues, eventId, series)
   const chosen = draft.venueId ? clashes.get(draft.venueId) : undefined
   const venueName = venues.find(venue => venue.id === draft.venueId)?.name ?? ''
   return <>
@@ -78,11 +91,11 @@ function EventFields({ draft, setDraft, t, venues, language, eventId }: {
       {venues.map(venue => {
         const clash = clashes.get(venue.id)
         return <option key={venue.id} value={venue.id} disabled={clash !== undefined && venue.id !== draft.venueId}>
-          {venue.name}{clash ? ` (${t.bookedShort}: ${clash.teamName} ${formatRange(clash.startsAt, clash.endsAt, language, false)})` : ''}</option>
+          {venue.name}{clash ? ` (${t.bookedShort}: ${clash.teamName} ${formatRange(clash.startsAt, clash.endsAt, language, clash.series)})` : ''}</option>
       })}
     </select></label>}
     {chosen && <p role="status" className="open">{fill(t.bookedHint, { venue: venueName, team: chosen.teamName,
-      when: formatRange(chosen.startsAt, chosen.endsAt, language, false) })}</p>}
+      when: formatRange(chosen.startsAt, chosen.endsAt, language, chosen.series) })}</p>}
     <label>{t.notes}<textarea value={draft.notes} maxLength={2000} onChange={event => setDraft({ ...draft, notes: event.target.value })} /></label>
     <label>{t.answersUntil}<input type="datetime-local" value={draft.answersUntil}
       max={draft.date && draft.start ? `${draft.date}T${draft.start}` : undefined}
@@ -104,6 +117,7 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
   const [state, setState] = useState<'loading' | 'ready' | 'denied' | 'error'>('loading')
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [repeatUntil, setRepeatUntil] = useState('')
+  const [every, setEvery] = useState(1)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [busy, setBusy] = useState(false)
   const [revision, setRevision] = useState(0)
@@ -148,8 +162,8 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
     event.preventDefault()
     const times = instants(draft.date, draft.start, draft.end)
     if (!times) { setNotice('invalid'); return }
-    if (await run(() => createEvents(teamId, { ...draft, ...times, venueId: draft.venueId || undefined, answersUntil: deadline(draft) }, repeatUntil, csrfToken), 'added')) {
-      setDraft({ ...emptyDraft, kind: draft.kind, start: draft.start, end: draft.end, location: draft.location, venueId: draft.venueId }); setRepeatUntil('')
+    if (await run(() => createEvents(teamId, { ...draft, ...times, venueId: draft.venueId || undefined, answersUntil: deadline(draft) }, repeatUntil, csrfToken, fetch, undefined, every), 'added')) {
+      setDraft({ ...emptyDraft, kind: draft.kind, start: draft.start, end: draft.end, location: draft.location, venueId: draft.venueId }); setRepeatUntil(''); setEvery(1)
     }
   }
 
@@ -176,8 +190,11 @@ export function TeamSchedule({ teamId, teamName, language, csrfToken }: {
       {notice && <p role={notice === 'added' ? 'status' : 'alert'}>{notice === 'taken' ? taken : t[notice]}</p>}
       {state === 'ready' && canManage && <Reveal label={t.newEvent}><form aria-labelledby="team-add-event" className="card pad team-add" onSubmit={event => { void add(event) }}>
         <h2 id="team-add-event">{t.add}</h2>
-        <EventFields draft={draft} setDraft={setDraft} t={t} venues={venues} language={language} />
+        <EventFields draft={draft} setDraft={setDraft} t={t} venues={venues} language={language} series={{ until: repeatUntil, every }} />
         <label>{t.repeat}<input type="date" value={repeatUntil} min={draft.date || undefined} onChange={event => setRepeatUntil(event.target.value)} /></label>
+        {repeatUntil && <label>{t.every}<select value={every} onChange={event => setEvery(Number(event.target.value))}>
+          {[1, 2, 3, 4].map(weeks => <option key={weeks} value={weeks}>{weeks === 1 ? t.everyWeek : fill(t.everyWeeks, { n: weeks })}</option>)}
+        </select></label>}
         <button type="submit" disabled={busy}>{t.add}</button>
       </form></Reveal>}
       {state === 'ready' && canManage && <BulkEventsPanel teamId={teamId} language={language} csrfToken={csrfToken}

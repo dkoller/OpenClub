@@ -36,17 +36,18 @@ here is on the *Team* page and on each event's coach page. See the [overview](RE
 <img src="images/coach-team-schedule.png" alt="A team's schedule on a phone, with the form to add events" width="300">
 
 - A team's *Schedule* shows eight weeks. *New event*, then *Kind* (Training, Match, Event), *Title*, *Date*, *Start*, *End*,
-  optionally *Place*, *Field or hall* (if the club keeps a list) and *Notes*. *Repeat weekly until* creates up to 52
-  copies keeping the local time; *Add event* saves.
+  optionally *Place*, *Field or hall* (if the club keeps a list), *Notes* and *Answers until* (after that, nobody can
+  answer or change an answer; the reminder email goes out a day before). *Repeat weekly until* creates up to 52 copies
+  keeping the local time, and *How often* spaces them every 1, 2, 3 or 4 weeks; *Add event* saves.
 - On the event's own page (tap it in the schedule), at the bottom under *Change, cancel or delete the event*: *Edit*,
   *Cancel event* (members still see it, marked *Cancelled*; *Reinstate* undoes it) and *Delete*.
 - **No double booking:** as soon as date, start and end are filled in, *Field or hall* marks each one that is already
   booked then, with the team and time (for example *Hall North (booked: U14 18:00–19:30)*), and it cannot be chosen.
-  For a weekly series only the first date is checked; a later clash is refused on saving with the other event's
-  team, title and time. Before you plan, look at the week plan under *Schedule* → *When fields and halls are booked*: every day of a
+  For a series every date is checked, and the mark names the date that clashes. Before you plan, look at the week plan under *Schedule* → *When fields and halls are booked*: every day of a
   week with what is booked where, so you see which field or hall is free.
 - **Change several events:** at the bottom of the schedule choose *From*, *To*, the kinds and *Cancel*, *Reinstate*,
-  *New place* or *Another field or hall*, then *Check*; it says how many events change, and *Change N events* applies
+  *New place*, *Another field or hall* or *New times* (a start and end that every event gets on its own day, for
+  example when the hall moves training to 18:30–20:00), then *Check*; it says how many events change, and *Change N events* applies
   it. Only events that have not started change, and each person gets one email listing them.
 
 ## Helpers, rides and messages
