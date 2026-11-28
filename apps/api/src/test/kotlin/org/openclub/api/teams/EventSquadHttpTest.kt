@@ -43,6 +43,7 @@ import org.openclub.api.notifications.Notifier
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Match squads (OpenAPI 1.28.0): who may call up, who is emailed, and what members see of it. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -119,7 +120,7 @@ class EventSquadHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
         block()
     }
 

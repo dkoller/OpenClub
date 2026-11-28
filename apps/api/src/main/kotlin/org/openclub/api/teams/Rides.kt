@@ -75,7 +75,7 @@ internal class Rides(private val database: DSLContext) {
           JOIN clubs c ON TRUE
           WHERE ${AgeSql.adult("guardian")} AND minor.archived_at IS NULL AND ${AgeSql.minor("minor")})"""
 
-    /** True when the adult `me` may drive for the team `e.team_id`: in the team, or guardian of a minor in it. */
+    /** True when the adult `me` may drive for the team `e.team_id`: in the team, or guardian of a minor in it. Binds nothing. */
     private val mayDrive = """EXISTS (
         SELECT 1 FROM me JOIN members driver ON driver.id = me.id JOIN clubs c ON TRUE
         WHERE ${AgeSql.adult("driver")}
@@ -179,6 +179,8 @@ internal class Rides(private val database: DSLContext) {
     /** Asks for a ride for [memberId], or changes the direction of their request (1.41.0). */
     fun request(actor: UUID, eventId: UUID, memberId: UUID, direction: Direction): Requested = database.transactionResult { configuration ->
         val db = DSL.using(configuration)
+        // Requests for one event take turns, so exactly one of two simultaneous first requests tells the drivers.
+        db.fetch("SELECT pg_advisory_xact_lock(hashtextextended('ride_requests:' || ?::text, 0))", eventId.toString())
         val inserted = db.fetchOne(
             """$requestable
                INSERT INTO ride_requests (event_id, member_id, direction, requested_by)

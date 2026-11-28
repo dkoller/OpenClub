@@ -26,6 +26,7 @@ import org.openclub.api.join.installJoinRequestHttpRoutes
 import org.openclub.api.teams.installAbsenceHttpRoutes
 import org.openclub.api.teams.installRideHttpRoutes
 import org.openclub.api.teams.installEventShiftHttpRoutes
+import org.openclub.api.teams.installEventAnswerHttpRoutes
 import org.openclub.api.teams.installTeamEventHttpRoutes
 import org.openclub.api.fees.installFeeHttpRoutes
 import org.openclub.api.fees.installQrBillHttpRoutes
@@ -206,6 +207,7 @@ internal fun Application.module(
         installGuardianHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installMyProfileHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installTeamEventHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, notifier)
+        installEventAnswerHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, notifier)
         installEventShiftHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installAbsenceHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database)
         installRideHttpRoutes(sessions, requireNotNull(cookiePolicy), requireNotNull(publicOrigin), database, notifier)

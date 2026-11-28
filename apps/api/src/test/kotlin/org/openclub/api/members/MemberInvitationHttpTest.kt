@@ -29,6 +29,7 @@ import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.module
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Invitation and unlink routes (OpenAPI 1.2.0): order of answers, generic refusals, rate limit, end to end. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -100,7 +101,7 @@ class MemberInvitationHttpTest {
     }
 
     private fun app(limiter: AuthAdmissionLimiter = AuthAdmissionLimiter(), block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application {
+        application { checkContract();
             module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), authAdmission = limiter)
         }
         block()

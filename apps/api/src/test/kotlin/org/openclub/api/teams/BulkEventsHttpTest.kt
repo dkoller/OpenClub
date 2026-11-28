@@ -38,6 +38,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Changing several events at once (OpenAPI 1.29.0): rights for every team, the selection, the summary email. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -119,7 +120,7 @@ class BulkEventsHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
         block()
     }
 

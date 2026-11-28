@@ -19,6 +19,7 @@ import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
 import java.util.UUID
+import org.openclub.api.checkContract
 
 class MemberRoleHttpRoutesTest {
     @Test
@@ -60,7 +61,7 @@ class MemberRoleHttpRoutesTest {
                 }
             }
             testApplication {
-                application {
+                application { checkContract();
                     module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = database)
                 }
                 fun path(id: UUID) = "/api/v1/members/$id/role"

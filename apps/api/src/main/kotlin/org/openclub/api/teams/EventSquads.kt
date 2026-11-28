@@ -33,6 +33,7 @@ internal class EventSquads(private val database: DSLContext, private val notifie
     // team's (security review 2026-11-26).
     private fun managesSomeTeam(actor: UUID): Boolean = ActorSql.holdsClubWide(database, actor, Capability.MANAGE_TEAMS)
 
+    /** Whether the actor manages the event's team. Binds, in order: actor account, event. */
     private val access = """SELECT ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)} AS allowed,
                e.kind = 'MATCH' AS is_match, (NOT e.cancelled AND e.starts_at > now()) AS open
         FROM team_events e WHERE e.id = ?"""

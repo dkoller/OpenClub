@@ -75,7 +75,7 @@ class JsonRequestBodiesTest {
 
     @Test
     fun routeMapsEveryViolationToBadRequestWithoutADatabase() = testApplication {
-        application {
+        application { checkContract();
             routing {
                 post("/probe") {
                     try {

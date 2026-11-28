@@ -31,6 +31,7 @@ import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.module
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Member list export and import (OpenAPI 1.13.0): editors only, audited, preview before commit, duplicates skipped. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -94,7 +95,7 @@ class MemberListHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

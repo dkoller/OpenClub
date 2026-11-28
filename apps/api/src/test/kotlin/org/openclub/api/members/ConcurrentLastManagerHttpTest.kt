@@ -25,6 +25,7 @@ import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.module
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /**
  * The last eligible permission manager can never be removed, even by racing HTTP requests (#24).
@@ -153,7 +154,7 @@ class ConcurrentLastManagerHttpTest {
      * left, the count equals start minus successes, and every refused action was a clean 403.
      */
     private fun race(name: String, managers: Set<String>, actions: List<Action>) = testApplication {
-        application {
+        application { checkContract();
             module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin,
                 database = requireNotNull(database))
         }

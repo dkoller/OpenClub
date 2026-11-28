@@ -39,6 +39,7 @@ import org.openclub.api.module
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Push (OpenAPI 1.33.0): subscriptions, the inbox the woken device reads, and which devices are woken. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -106,7 +107,7 @@ class PushHttpTest {
     }
 
     private fun app(notifier: Notifier = Notifier(null, origin, push), block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
         block()
     }
 

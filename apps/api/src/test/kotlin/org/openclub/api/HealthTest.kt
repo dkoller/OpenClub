@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
 class HealthTest {
     @Test
     fun healthReturnsOk() = testApplication {
-        application { module() }
+        application { checkContract(); module() }
 
         val response = client.get("/health")
         assertEquals(HttpStatusCode.OK, response.status)
@@ -23,7 +23,7 @@ class HealthTest {
     }
     @Test
     fun readinessRequiresDatabaseButLivenessDoesNot() = testApplication {
-        application { module() }
+        application { checkContract(); module() }
         val readiness = client.get("/api/ready")
         assertEquals(HttpStatusCode.ServiceUnavailable, readiness.status)
         assertEquals("""{"status":"unavailable"}""", readiness.bodyAsText())
@@ -38,7 +38,7 @@ class HealthTest {
         val database = requireNotNull(DatabaseRuntime.openIfConfigured(env))
         try {
             testApplication {
-                application { module(database = database) }
+                application { checkContract(); module(database = database) }
                 val ready = client.get("/api/ready")
                 assertEquals(HttpStatusCode.OK, ready.status)
                 assertEquals("""{"status":"ready"}""", ready.bodyAsText())

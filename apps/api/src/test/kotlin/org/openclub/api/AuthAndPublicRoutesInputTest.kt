@@ -62,7 +62,7 @@ class AuthAndPublicRoutesInputTest {
      */
     @Test
     fun garbageSessionCookiesAreUnauthenticatedEverywhere() = testApplication {
-        application {
+        application { checkContract();
             module(cookiePolicy = cookies, sessions = PostgresBrowserSessions(requireNotNull(database)),
                 publicOrigin = origin, database = database)
         }
@@ -112,7 +112,7 @@ class AuthAndPublicRoutesInputTest {
     @Test
     fun callbackRejectsExtraMalformedParametersBeforeCallingTheBackend() = testApplication {
         val fake = FakeLogin()
-        application { module(fake, cookies) }
+        application { checkContract(); module(fake, cookies) }
         val rejected = listOf(
             "oversized code" to "state=${"s".repeat(43)}&code=${"a".repeat(4097)}",
             "control character in code" to "state=${"s".repeat(43)}&code=ab%07cd",
@@ -147,7 +147,7 @@ class AuthAndPublicRoutesInputTest {
 
     @Test
     fun logoutRejectsEveryNonEmptyBodyShapeBeforeTouchingTheStore() = testApplication {
-        application {
+        application { checkContract();
             module(cookiePolicy = cookies, sessions = PostgresBrowserSessions(requireNotNull(database)),
                 publicOrigin = origin, database = database)
         }
@@ -172,7 +172,7 @@ class AuthAndPublicRoutesInputTest {
     /** The anonymous list takes no input: stray parameters change nothing and other methods do nothing. */
     @Test
     fun anonymousMemberListIgnoresInputAndAcceptsOnlyGet() = testApplication {
-        application { module(cookiePolicy = cookies, publicOrigin = origin, database = database) }
+        application { checkContract(); module(cookiePolicy = cookies, publicOrigin = origin, database = database) }
         val plain = client.get("/api/v1/public/members")
         assertEquals(HttpStatusCode.OK, plain.status)
         val failures = mutableListOf<String>()

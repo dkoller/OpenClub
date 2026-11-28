@@ -37,6 +37,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /**
  * Notes on answers and absences and the answer deadline (OpenAPI 1.39.0, ADR-0008 addendum 44): who sees a note, how
@@ -100,7 +101,7 @@ class AnswerNotesHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

@@ -39,6 +39,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Helper duty (OpenAPI 1.32.0): who owes shifts, what counts, and who sees the overview. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -131,7 +132,7 @@ class HelperDutyHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

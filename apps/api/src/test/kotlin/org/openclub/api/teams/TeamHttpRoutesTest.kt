@@ -25,6 +25,7 @@ import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
 import java.util.UUID
+import org.openclub.api.checkContract
 
 class TeamHttpRoutesTest {
     @Test
@@ -75,7 +76,7 @@ class TeamHttpRoutesTest {
                 }
             }
             testApplication {
-                application {
+                application { checkContract();
                     module(sessions = sessions, cookiePolicy = cookiePolicy,
                         publicOrigin = "http://localhost:5173", database = database)
                 }

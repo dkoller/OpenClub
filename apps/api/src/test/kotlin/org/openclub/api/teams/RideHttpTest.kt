@@ -41,6 +41,7 @@ import org.openclub.api.notifications.Notifier
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /**
  * Carpooling (OpenAPI 1.21.0): who offers and books, seat limits and closing, and phones only between a driver and
@@ -116,7 +117,7 @@ class RideHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
         block()
     }
 

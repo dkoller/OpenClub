@@ -9,7 +9,7 @@ import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.database.clubZone
 
 /**
  * Actual attendance and the J+S export (OpenAPI 1.27.0, ADR-0008 addendum 31). Only holders of `MANAGE_TEAMS` for the
@@ -145,13 +145,14 @@ internal class EventPresence(private val database: DSLContext) {
                  AND e.starts_at < ((?::date) + 1)::timestamp AT TIME ZONE club_time_zone()
                ORDER BY e.starts_at, e.id, p.role, display_name, m.id""",
             teamId, from.toString(), to.toString())
+        val zone = db.clubZone()
         val rows = mutableListOf<JsRow>()
         val withoutNumber = sortedSetOf<String>()
         val withoutPlace = linkedSetOf<String>()
         val exported = linkedSetOf<UUID>()
         records.forEach {
-            val starts = it.get("starts_at", OffsetDateTime::class.java).atZoneSameInstant(DatabaseRuntime.clubZone)
-            val ends = it.get("ends_at", OffsetDateTime::class.java).atZoneSameInstant(DatabaseRuntime.clubZone)
+            val starts = it.get("starts_at", OffsetDateTime::class.java).atZoneSameInstant(zone)
+            val ends = it.get("ends_at", OffsetDateTime::class.java).atZoneSameInstant(zone)
             val training = it.get("kind", String::class.java) == "TRAINING"
             val place = it.get("location", String::class.java)?.let(::placeCell)
             if (training && place == null) withoutPlace += "${it.get("title", String::class.java)} ${starts.format(DATE)}"

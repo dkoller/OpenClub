@@ -31,6 +31,7 @@ import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.module
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Announcements (OpenAPI 1.14.0): who posts where, and who sees what. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -100,7 +101,7 @@ class AnnouncementHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

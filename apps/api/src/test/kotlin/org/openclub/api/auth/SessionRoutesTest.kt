@@ -16,6 +16,7 @@ import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.util.UUID
+import org.openclub.api.checkContract
 
 class SessionRoutesTest {
     private val person = UUID.fromString("01234567-1234-1234-1234-123456789abc")
@@ -44,7 +45,7 @@ class SessionRoutesTest {
 
     @Test
     fun disabledByDefault() = testApplication {
-        application { module() }
+        application { checkContract(); module() }
         assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/auth/me").status)
         assertEquals(HttpStatusCode.NotFound, client.post("/api/v1/auth/logout").status)
     }
@@ -52,7 +53,7 @@ class SessionRoutesTest {
     @Test
     fun readsOnlyIdentityAndCsrfAndFailsClosed() = testApplication {
         val sessions = Sessions()
-        application { module(cookiePolicy = cookies, sessions = sessions, publicOrigin = origin) }
+        application { checkContract(); module(cookiePolicy = cookies, sessions = sessions, publicOrigin = origin) }
         for (cookie in listOf("", "invalid", "x".repeat(43))) {
             val denied = client.get("/api/v1/auth/me") { header(HttpHeaders.Cookie, "openclub_dev_session=$cookie") }
             assertEquals(HttpStatusCode.Unauthorized, denied.status)
@@ -71,7 +72,7 @@ class SessionRoutesTest {
     @Test
     fun rejectsOriginContentTypeAndBodyBeforeDatabase() = testApplication {
         val sessions = Sessions()
-        application { module(cookiePolicy = cookies, sessions = sessions, publicOrigin = origin) }
+        application { checkContract(); module(cookiePolicy = cookies, sessions = sessions, publicOrigin = origin) }
         for (candidate in listOf(null, "null", "https://evil.example", "$origin/", "$origin.evil")) {
             val response = client.post("/api/v1/auth/logout") {
                 if (candidate != null) header(HttpHeaders.Origin, candidate)
@@ -96,7 +97,7 @@ class SessionRoutesTest {
     @Test
     fun productionCookieAndBoundaryRequests() = testApplication {
         val sessions = Sessions()
-        application { module(cookiePolicy = AuthCookiePolicy.production(), sessions = sessions, publicOrigin = "https://club.example") }
+        application { checkContract(); module(cookiePolicy = AuthCookiePolicy.production(), sessions = sessions, publicOrigin = "https://club.example") }
         suspend fun request(origins: List<String> = listOf("https://club.example"),
             tokens: List<String> = listOf(csrf), type: String? = "application/json", body: String = "{}") =
             client.post("/api/v1/auth/logout") {
@@ -135,7 +136,7 @@ class SessionRoutesTest {
             "OPENCLUB_PUBLIC_ORIGIN" to "https://CLUB.EXAMPLE:443",
         )))
         val sessions = Sessions()
-        application {
+        application { checkContract();
             module(cookiePolicy = config.cookies, sessions = sessions, publicOrigin = config.browserOrigin)
         }
         suspend fun logout(fromOrigin: String) = client.post("/api/v1/auth/logout") {
@@ -165,7 +166,7 @@ class SessionRoutesTest {
             "OPENCLUB_PUBLIC_ORIGIN" to raw,
         )))
         val sessions = Sessions()
-        application {
+        application { checkContract();
             module(cookiePolicy = config.cookies, sessions = sessions, publicOrigin = config.browserOrigin)
         }
         suspend fun logout(origin: String) = client.post("/api/v1/auth/logout") {
@@ -195,7 +196,7 @@ class SessionRoutesTest {
             "OPENCLUB_PUBLIC_ORIGIN" to raw,
         )))
         val sessions = Sessions()
-        application {
+        application { checkContract();
             module(cookiePolicy = config.cookies, sessions = sessions, publicOrigin = config.browserOrigin)
         }
         val response = client.post("/api/v1/auth/logout") {
@@ -212,7 +213,7 @@ class SessionRoutesTest {
     @Test
     fun logoutRejectsCsrfRevokesAndDoesNotLieOnDatabaseFailure() = testApplication {
         val sessions = Sessions()
-        application { module(cookiePolicy = cookies, sessions = sessions, publicOrigin = origin) }
+        application { checkContract(); module(cookiePolicy = cookies, sessions = sessions, publicOrigin = origin) }
         suspend fun logout(token: String?) = client.post("/api/v1/auth/logout") {
             header(HttpHeaders.Origin, origin)
             header(HttpHeaders.ContentType, "application/json")
