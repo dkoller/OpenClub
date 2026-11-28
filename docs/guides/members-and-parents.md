@@ -42,7 +42,9 @@ child. See the [overview](README.md) for finding your way and signing in.
   example, *1 of 3 helper shifts this season*. Shifts count once they have taken place, your children's too.
 - **Carpooling:** an event's page lists rides with driver, direction, departure, meeting point and seats. *Offer a
   ride*, *Book seat* for you or your child, *Withdraw ride*. Once booked, you and the driver see each other's phone;
-  nobody else does. *Start* suggests a free seat for events you said *Yes* to.
+  nobody else does. *Start* suggests a free seat for events you said *Yes* to. No ride yet? *Ask for a ride* (for you
+  or your child, there, back or both): the team sees the name and direction under *Rides wanted*, drivers get one
+  message without a name, and booking a seat ends the request. *No longer needed* withdraws it.
 - **Absences** (*Family* → *Absences*): enter the days you or your child are away. Every unanswered event on those days
   counts as *No*; you can still answer *Yes*. *Note for the coach (optional)* adds a short note (at most 100
   characters, for example *School camp*) that only the coaches see. Please write no health details.

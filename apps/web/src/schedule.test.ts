@@ -49,7 +49,7 @@ describe('ride suggestion', () => {
   const match = event('match', '2026-11-28T09:00:00Z', [{ id: 'l', firstName: 'Lea', response: 'YES', note: null, squad: null }, { id: 'n', firstName: 'Noah', response: 'NO', note: null, squad: null }])
   const ride = (id: string, change: Partial<Ride> = {}): Ride => ({ id, driver: 'Sara K.', mine: false, direction: 'THERE', seats: 3,
     meetingPoint: 'Bahnhof', departsAt: '2026-11-28T08:20:00Z', driverPhone: null, passengers: [], booked: [], ...change })
-  const list = (items: Ride[], people = [{ id: 'l', firstName: 'Lea' }, { id: 'n', firstName: 'Noah' }]): RideList => ({ items, people, canOffer: true })
+  const list = (items: Ride[], people = [{ id: 'l', firstName: 'Lea' }, { id: 'n', firstName: 'Noah' }]): RideList => ({ items, people, canOffer: true, requests: [] })
   const taken = { displayName: 'Tim A.', phone: null }
 
   it('offers the earliest ride there with a free seat to the child who is coming', () => {

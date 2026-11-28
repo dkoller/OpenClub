@@ -322,6 +322,26 @@ internal class Notifier(private val config: MailConfig?, private val origin: Str
         }
     }
 
+    /**
+     * The first ride request of an event (OpenAPI 1.41.0, ADR-0008 addendum 44): one message to each driver already
+     * offering a ride to it (not [member] themselves), without the name of who asked, under the `teamMessages` switch.
+     */
+    fun rideRequested(db: DSLContext, eventId: UUID, member: UUID) {
+        if (!enabled) return
+        val event = events(db, listOf(eventId)).firstOrNull()?.takeIf { it.startsAt.isAfter(OffsetDateTime.now()) } ?: return
+        val drivers = recipients(db, "SELECT r.driver_member_id AS id FROM event_rides r WHERE r.event_id = ? AND r.driver_member_id <> ?",
+            arrayOf<Any>(eventId, member), Kind.TEAM_MESSAGE)
+        queue(db, Kind.TEAM_MESSAGE, drivers) { text, club ->
+            Message(text.subject(club, text.rideWanted, "${event.teamName} – ${event.title}"), buildString {
+                appendLine("${event.teamName}: ${event.title}")
+                appendLine(when_(event, text))
+                appendLine()
+                appendLine(text.rideWantedLine)
+                append(text.footer("$origin/#/schedule/$eventId"))
+            })
+        }
+    }
+
     private data class Message(val subject: String, val body: String)
 
     private fun queue(db: DSLContext, kind: Kind, people: List<Recipient>, render: (Texts, String) -> Message) =
@@ -414,6 +434,8 @@ internal data class Texts(
     private val open: String, private val settings: String,
     val squadCalled: String = "Aufgebot", val meetAt: String = "Treffpunkt", val meetingPoint: String = "Treffpunkt Ort",
     val from: String = "Von",
+    val rideWanted: String = "Mitfahrt gesucht",
+    val rideWantedLine: String = "Jemand aus dem Team sucht eine Mitfahrt. Freie Plätze bieten Sie in OpenClub beim Termin an.",
 ) {
     fun subject(club: String, label: String, what: String) = "[$club] $label: $what".replace(Regex("[\\r\\n]+"), " ")
     fun footer(origin: String) = "\n$open: $origin\n$settings"
@@ -427,15 +449,18 @@ internal data class Texts(
             "en" to Texts(Locale.ENGLISH, "New", "Changed", "Cancelled", "Announcement", "Reminder", "This event is cancelled.",
                 "Place", "For", "Helpers wanted", "%d of %d places free", "Answer missing",
                 "Please answer Yes, No or Maybe in OpenClub so the team can plan.", "View in OpenClub",
-                "Change your notifications in OpenClub under “Family” → “My profile”.", "Called up", "Meet at", "Meeting point", "From"),
+                "Change your notifications in OpenClub under “Family” → “My profile”.", "Called up", "Meet at", "Meeting point", "From",
+                "Ride wanted", "Someone in the team needs a ride. You can offer your free seats on the event in OpenClub."),
             "fr" to Texts(Locale.FRENCH, "Nouveau", "Modifié", "Annulé", "Communication", "Rappel", "Cet événement est annulé.",
                 "Lieu", "Pour", "Bénévoles recherchés", "%d places libres sur %d", "Réponse manquante",
                 "Veuillez répondre Oui, Non ou Peut-être dans OpenClub pour que l’équipe puisse s’organiser.", "Voir dans OpenClub",
-                "Modifiez vos notifications dans OpenClub sous « Famille » → « Mon profil ».", "Convocation", "Rendez-vous", "Lieu de rendez-vous", "De"),
+                "Modifiez vos notifications dans OpenClub sous « Famille » → « Mon profil ».", "Convocation", "Rendez-vous", "Lieu de rendez-vous", "De",
+                "Covoiturage recherché", "Une personne de l’équipe cherche une place. Proposez vos places libres sur l’événement dans OpenClub."),
             "it" to Texts(Locale.ITALIAN, "Nuovo", "Modificato", "Annullato", "Comunicazione", "Promemoria", "Questo evento è annullato.",
                 "Luogo", "Per", "Cercasi aiutanti", "%d posti liberi su %d", "Risposta mancante",
                 "Rispondete Sì, No o Forse in OpenClub, così la squadra può organizzarsi.", "Vedi in OpenClub",
-                "Modifica le notifiche in OpenClub sotto «Famiglia» → «Il mio profilo».", "Convocazione", "Ritrovo", "Luogo di ritrovo", "Da"),
+                "Modifica le notifiche in OpenClub sotto «Famiglia» → «Il mio profilo».", "Convocazione", "Ritrovo", "Luogo di ritrovo", "Da",
+                "Cercasi passaggio", "Qualcuno della squadra cerca un passaggio. Offrite i posti liberi sull’evento in OpenClub."),
         )
 
         fun of(language: String): Texts = all[language] ?: all.getValue("de")

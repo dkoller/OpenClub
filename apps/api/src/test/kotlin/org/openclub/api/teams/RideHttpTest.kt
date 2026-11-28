@@ -34,6 +34,8 @@ import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.module
+import org.openclub.api.notifications.MailConfig
+import org.openclub.api.notifications.Notifier
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -54,6 +56,9 @@ class RideHttpTest {
     private val team = UUID.randomUUID()
     private val otherTeam = UUID.randomUUID()
     private val kid = UUID.randomUUID()
+    private val notifier = Notifier(requireNotNull(MailConfig.fromEnvironment(mapOf(
+        "OPENCLUB_SMTP_HOST" to "mail.example.invalid", "OPENCLUB_SMTP_USERNAME" to "u", "OPENCLUB_SMTP_PASSWORD" to "p",
+        "OPENCLUB_SMTP_FROM" to "club@example.invalid"))), origin)
     private val sessions = object : BrowserSessionOperations {
         override suspend fun read(handle: String?): ActiveSession? = accounts[handle]?.let { ActiveSession(it, csrf) }
         override suspend fun logout(handle: String?, csrfToken: String?) = LogoutResult.UNAUTHENTICATED
@@ -97,6 +102,7 @@ class RideHttpTest {
         val db = database ?: return
         runBlocking {
             db.onDatabaseThread { tx ->
+                tx.execute("DELETE FROM email_outbox WHERE member_id = ANY(?::uuid[])", (memberOf.values + kid).toTypedArray())
                 tx.execute("DELETE FROM teams WHERE id IN (?, ?)", team, otherTeam)
                 tx.execute("DELETE FROM members WHERE id = ANY(?::uuid[])", (memberOf.values + kid).toTypedArray())
                 tx.execute("DELETE FROM accounts WHERE id = ANY(?::uuid[])", accounts.values.toTypedArray())
@@ -108,7 +114,7 @@ class RideHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
         block()
     }
 
@@ -266,6 +272,52 @@ class RideHttpTest {
         assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Put, seat(guardianRide, rider), "rider").status, "nor can anyone book it")
 
         sql { it.execute("INSERT INTO member_guardianships (minor_member_id, guardian_member_id) VALUES (?, ?)", kid, memberOf.getValue("guardian")) }
+        sql { it.execute("DELETE FROM team_events WHERE id = ?", event) }
+    }
+
+    @Test
+    fun aRideRequestIsSeenLikeTheRidesAndEndsWithABookedSeat() = app {
+        val event = event()
+        val path = "/api/v1/events/$event/rides"
+        fun request(member: UUID) = "/api/v1/events/$event/ride-requests/$member"
+        val id = offer(event, "driver")
+
+        // A guardian asks for the child; the driver gets one message without a name, only for the first request.
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, request(kid), "guardian", """{"direction":"THERE"}""").status)
+        val mails = sql { it.fetch("SELECT subject, body FROM email_outbox WHERE member_id = ?", memberOf.getValue("driver")) }
+        assertEquals(1, mails.size)
+        assertTrue(mails.single().get("subject", String::class.java).contains("Mitfahrt gesucht"))
+        assertFalse(mails.single().get("body", String::class.java).contains("Kiddo"), "the message names nobody")
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, request(memberOf.getValue("rider")), "rider", """{"direction":"BACK"}""").status)
+        assertEquals(1, sql { (it.fetchValue("SELECT count(*) FROM email_outbox WHERE member_id = ?", memberOf.getValue("driver")) as Number).toInt() })
+
+        // Everyone who sees the rides sees the requests, by display name, with the member ID only for their own people.
+        for (handle in listOf("driver", "coach", "viewer", "rider", "guardian")) {
+            val requests = send(HttpMethod.Get, path, handle).json().getValue("requests").jsonArray.map { it.jsonObject }
+            assertEquals(listOf("Kiddo R." to "THERE", "rider Ride" to "BACK"),
+                requests.map { it.getValue("displayName").jsonPrimitive.content to it.getValue("direction").jsonPrimitive.content }, handle)
+            assertEquals(setOf("displayName", "direction", "memberId"), requests.first().keys)
+            val own = requests.mapNotNull { it.getValue("memberId").jsonPrimitive.contentOrNull }
+            assertEquals(when (handle) { "guardian" -> listOf(kid.toString()); "rider" -> listOf(memberOf.getValue("rider").toString()); else -> emptyList() }, own, handle)
+        }
+
+        // Only the person or their guardian asks; bad input is 400; a cancelled event is closed.
+        assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Put, request(kid), "rider", """{"direction":"THERE"}""").status)
+        assertEquals(HttpStatusCode.Forbidden, send(HttpMethod.Put, request(memberOf.getValue("outsider")), "outsider", """{"direction":"THERE"}""").status)
+        assertEquals(HttpStatusCode.BadRequest, send(HttpMethod.Put, request(kid), "guardian", """{"direction":"UP"}""").status)
+        assertEquals(HttpStatusCode.BadRequest, send(HttpMethod.Put, request(kid), "guardian", """{"direction":"THERE","seats":1}""").status)
+
+        // Booking a seat on a ride that covers the direction ends the request; withdrawing works until the start.
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, seat(id, kid), "guardian").status)
+        val left = send(HttpMethod.Get, path, "driver").json().getValue("requests").jsonArray
+        assertEquals(listOf("rider Ride"), left.map { it.jsonObject.getValue("displayName").jsonPrimitive.content })
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Delete, request(memberOf.getValue("rider")), "rider").status)
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Delete, request(memberOf.getValue("rider")), "rider").status)
+        assertTrue(send(HttpMethod.Get, path, "driver").json().getValue("requests").jsonArray.isEmpty())
+        sql { it.execute("UPDATE team_events SET cancelled = TRUE WHERE id = ?", event) }
+        val closed = send(HttpMethod.Put, request(memberOf.getValue("rider")), "rider", """{"direction":"BOTH"}""")
+        assertEquals(HttpStatusCode.Conflict, closed.status)
+        assertTrue(closed.bodyAsText().contains("closed"))
         sql { it.execute("DELETE FROM team_events WHERE id = ?", event) }
     }
 }

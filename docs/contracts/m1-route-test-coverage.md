@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
 Maps each of the 123 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.40.0) to the tests that exercise it. The operation list and
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.41.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -73,6 +73,8 @@ How to read the columns of test types:
 | `DELETE /v1/rides/{rideId}` | 204, 400, 401, 403, 404, 503 | `RideHttpTest` (driver or team manager; viewer 403), `PrivateRoutesRevocationTest` |
 | `PUT /v1/rides/{rideId}/passengers/{memberId}` | 204, 400, 401, 403, 409, 503 | `RideHttpTest` (oneself or one's minor in the team only; two bookings for the last seat, one wins, other 409 `full`) |
 | `DELETE /v1/rides/{rideId}/passengers/{memberId}` | 204, 400, 401, 403, 409, 503 | `RideHttpTest` (twice is 204, 409 `closed` after departure; leaving the team ends bookings and offers) |
+| `PUT /v1/events/{eventId}/ride-requests/{memberId}` | 204, 400, 401, 403, 409, 503 | `RideHttpTest` (self and guardian; another's child, another team 403; bad direction, extra key 400; cancelled 409; one nameless message for the first request; a booked seat ends it), Keycloak journey |
+| `DELETE /v1/events/{eventId}/ride-requests/{memberId}` | 204, 400, 401, 403, 409, 503 | `RideHttpTest` (withdraw twice is 204) |
 | `GET /v1/me/absences` | 200, 401, 403, 503 | `AbsenceHttpTest` (own and minors' absences only, `people`), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `POST /v1/me/absences` | 201, 400, 401, 403, 503 | `AbsenceHttpTest` (self and guardian; someone else, a coach for a player 403; past, reversed, over a year, too far ahead, bad date, extra key 400; implied No, explicit answer wins, coaches see a plain No), Keycloak journey, `AnswerNotesHttpTest` (1.39.0: notes kept, replaced, removed, too long; 409 `answers_closed` after the deadline) |
 | `DELETE /v1/absences/{absenceId}` | 204, 400, 401, 403, 503 | `AbsenceHttpTest` (someone else's and unknown alike 403, deleting removes the implied No), Keycloak journey |

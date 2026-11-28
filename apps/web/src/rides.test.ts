@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { changeRide, offerRide, parseRides, readRides, seat, withdrawRide } from './rides'
+import { changeRide, offerRide, parseRides, readRides, requestRide, seat, withdrawRide } from './rides'
 
 const ride = { id: 'r1', driver: 'Ada Example', mine: false, direction: 'BOTH', seats: 3, meetingPoint: 'Station',
   departsAt: '2030-01-01T09:00:00Z', driverPhone: '+41 79 000 00 00', passengers: [{ displayName: 'Lea B.', phone: null }], booked: ['m1'] }
-const list = { items: [ride], people: [{ id: 'm1', firstName: 'Lea' }], canOffer: true }
+const list = { items: [ride], people: [{ id: 'm1', firstName: 'Lea' }], canOffer: true, requests: [{ displayName: 'Kim K.', direction: 'THERE' as const, memberId: null }] }
 const res = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
 
 describe('carpooling', () => {
@@ -11,7 +11,7 @@ describe('carpooling', () => {
     expect(parseRides(list)).toEqual(list)
     for (const broken of [{ ...list, extra: 1 }, { ...list, items: [{ ...ride, direction: 'ROUND' }] },
       { ...list, items: [{ ...ride, seats: 0 }] }, { ...list, items: [{ ...ride, email: 'x' }] },
-      { ...list, items: [{ ...ride, passengers: [{ displayName: 'A' }] }] }, { ...list, canOffer: 'yes' }, null]) {
+      { ...list, items: [{ ...ride, passengers: [{ displayName: 'A' }] }] }, { ...list, canOffer: 'yes' }, { ...list, requests: [{ displayName: 'A', direction: 'UP', memberId: null }] }, { ...list, requests: undefined }, null]) {
       expect(() => parseRides(broken)).toThrow()
     }
   })
@@ -31,6 +31,13 @@ describe('carpooling', () => {
     const del = vi.fn().mockResolvedValue(res(204))
     expect(await withdrawRide('r1', 'c', del)).toBe('ok')
     expect(del.mock.calls[0]).toEqual(['/api/v1/rides/r1', { method: 'DELETE', credentials: 'same-origin', headers: { 'X-CSRF-Token': 'c' } }])
+    // Ride requests (1.41.0): PUT with the direction, DELETE without a body.
+    const ask = vi.fn().mockResolvedValue(res(204))
+    expect(await requestRide('e1', 'm/1', 'BACK', 'c', ask)).toBe('ok')
+    expect(await requestRide('e1', 'm1', null, 'c', ask)).toBe('ok')
+    expect(ask.mock.calls[0]).toEqual(['/api/v1/events/e1/ride-requests/m%2F1', { method: 'PUT', credentials: 'same-origin',
+      headers: { 'X-CSRF-Token': 'c', 'Content-Type': 'application/json' }, body: '{"direction":"BACK"}' }])
+    expect(ask.mock.calls[1][1]).toEqual({ method: 'DELETE', credentials: 'same-origin', headers: { 'X-CSRF-Token': 'c' } })
     const book = vi.fn().mockResolvedValue(res(204))
     expect(await seat('r1', 'm/1', false, 'c', book)).toBe('ok')
     expect(book.mock.calls[0][0]).toBe('/api/v1/rides/r1/passengers/m%2F1')

@@ -4,13 +4,13 @@ import { Reveal } from './Reveal'
 import { formatDayTime } from './dates'
 import type { Language } from './language'
 import { localParts } from './events'
-import { changeRide, offerRide, readRides, seat, withdrawRide, type Direction, type Ride, type RideList, type RideOutcome } from './rides'
+import { changeRide, offerRide, readRides, requestRide, seat, withdrawRide, type Direction, type Ride, type RideList, type RideOutcome } from './rides'
 
 const words = {
-  de: { seatsLabel: 'Plätze', rides: 'Fahrgemeinschaften', none: 'Noch keine Mitfahrgelegenheit.', THERE: 'Hinfahrt', BACK: 'Rückfahrt', BOTH: 'Hin und zurück', departs: 'Abfahrt', at: 'Treffpunkt', of: 'von', seats: 'Plätze', nobody: 'noch niemand', book: 'Platz buchen', cancel: 'Platz freigeben', you: 'Ich', driverPhone: 'Telefon Fahrer/in', phone: 'Tel.', offer: 'Fahrt anbieten', save: 'Änderungen speichern', withdraw: 'Fahrt zurückziehen', direction: 'Richtung', date: 'Datum', time: 'Zeit', point: 'Treffpunkt', invalid: 'Bitte Angaben prüfen: Abfahrt zwischen einem Tag vorher und dem Ende des Termins.', denied: 'Keine Berechtigung.', exists: 'Sie bieten für diesen Termin bereits eine Fahrt an.', closed: 'Die Fahrt ist bereits abgefahren oder der Termin abgesagt.', full: 'Kein Platz mehr frei.', conflict: 'Es sind mehr Plätze gebucht.', failed: 'Nicht gespeichert. Bitte erneut versuchen.', phones: 'Fahrer/in und Mitfahrende sehen gegenseitig ihre Telefonnummer.' },
-  en: { seatsLabel: 'Seats', rides: 'Carpooling', none: 'No rides offered yet.', THERE: 'There', BACK: 'Back', BOTH: 'There and back', departs: 'Departs', at: 'Meeting point', of: 'of', seats: 'seats', nobody: 'nobody yet', book: 'Book seat', cancel: 'Give up seat', you: 'Me', driverPhone: 'Driver’s phone', phone: 'Phone', offer: 'Offer a ride', save: 'Save changes', withdraw: 'Withdraw ride', direction: 'Direction', date: 'Date', time: 'Time', point: 'Meeting point', invalid: 'Please check the fields: departure between a day before and the end of the event.', denied: 'No permission.', exists: 'You already offer a ride to this event.', closed: 'The ride has left or the event is cancelled.', full: 'No seat left.', conflict: 'More seats are booked.', failed: 'Not saved. Please try again.', phones: 'Drivers and their passengers see each other’s phone number.' },
-  fr: { seatsLabel: 'Places', rides: 'Covoiturage', none: 'Aucun trajet proposé.', THERE: 'Aller', BACK: 'Retour', BOTH: 'Aller-retour', departs: 'Départ', at: 'Rendez-vous', of: 'sur', seats: 'places', nobody: 'personne pour l’instant', book: 'Réserver une place', cancel: 'Libérer la place', you: 'Moi', driverPhone: 'Téléphone du conducteur', phone: 'Tél.', offer: 'Proposer un trajet', save: 'Enregistrer', withdraw: 'Retirer le trajet', direction: 'Sens', date: 'Date', time: 'Heure', point: 'Rendez-vous', invalid: 'Vérifiez les champs : départ entre la veille et la fin de l’événement.', denied: 'Pas d’autorisation.', exists: 'Vous proposez déjà un trajet pour cet événement.', closed: 'Le trajet est parti ou l’événement est annulé.', full: 'Plus de place libre.', conflict: 'Plus de places sont réservées.', failed: 'Non enregistré. Veuillez réessayer.', phones: 'Conducteurs et passagers voient mutuellement leur numéro de téléphone.' },
-  it: { seatsLabel: 'Posti', rides: 'Car pooling', none: 'Nessun passaggio offerto.', THERE: 'Andata', BACK: 'Ritorno', BOTH: 'Andata e ritorno', departs: 'Partenza', at: 'Ritrovo', of: 'su', seats: 'posti', nobody: 'ancora nessuno', book: 'Prenota posto', cancel: 'Libera posto', you: 'Io', driverPhone: 'Telefono autista', phone: 'Tel.', offer: 'Offri un passaggio', save: 'Salva modifiche', withdraw: 'Ritira passaggio', direction: 'Direzione', date: 'Data', time: 'Ora', point: 'Ritrovo', invalid: 'Controlla i campi: partenza tra il giorno prima e la fine dell’evento.', denied: 'Nessun permesso.', exists: 'Offri già un passaggio per questo evento.', closed: 'Il passaggio è partito o l’evento è annullato.', full: 'Nessun posto libero.', conflict: 'Ci sono più posti prenotati.', failed: 'Non salvato. Riprova.', phones: 'Autisti e passeggeri vedono reciprocamente il numero di telefono.' },
+  de: { needs: 'Sucht eine Mitfahrt', needTitle: 'Mitfahrt gesucht', ask: 'Mitfahrt suchen', askFor: 'Für', unask: 'Nicht mehr suchen', needsHint: 'Wer schon fährt, bekommt beim ersten Gesuch eine Nachricht, ohne Namen. Mit einem gebuchten Platz ist das Gesuch erledigt.', seatsLabel: 'Plätze', rides: 'Fahrgemeinschaften', none: 'Noch keine Mitfahrgelegenheit.', THERE: 'Hinfahrt', BACK: 'Rückfahrt', BOTH: 'Hin und zurück', departs: 'Abfahrt', at: 'Treffpunkt', of: 'von', seats: 'Plätze', nobody: 'noch niemand', book: 'Platz buchen', cancel: 'Platz freigeben', you: 'Ich', driverPhone: 'Telefon Fahrer/in', phone: 'Tel.', offer: 'Fahrt anbieten', save: 'Änderungen speichern', withdraw: 'Fahrt zurückziehen', direction: 'Richtung', date: 'Datum', time: 'Zeit', point: 'Treffpunkt', invalid: 'Bitte Angaben prüfen: Abfahrt zwischen einem Tag vorher und dem Ende des Termins.', denied: 'Keine Berechtigung.', exists: 'Sie bieten für diesen Termin bereits eine Fahrt an.', closed: 'Die Fahrt ist bereits abgefahren oder der Termin abgesagt.', full: 'Kein Platz mehr frei.', conflict: 'Es sind mehr Plätze gebucht.', failed: 'Nicht gespeichert. Bitte erneut versuchen.', phones: 'Fahrer/in und Mitfahrende sehen gegenseitig ihre Telefonnummer.' },
+  en: { needs: 'Needs a ride', needTitle: 'Rides wanted', ask: 'Ask for a ride', askFor: 'For', unask: 'No longer needed', needsHint: 'Drivers get one message for the first request, without a name. A booked seat ends the request.', seatsLabel: 'Seats', rides: 'Carpooling', none: 'No rides offered yet.', THERE: 'There', BACK: 'Back', BOTH: 'There and back', departs: 'Departs', at: 'Meeting point', of: 'of', seats: 'seats', nobody: 'nobody yet', book: 'Book seat', cancel: 'Give up seat', you: 'Me', driverPhone: 'Driver’s phone', phone: 'Phone', offer: 'Offer a ride', save: 'Save changes', withdraw: 'Withdraw ride', direction: 'Direction', date: 'Date', time: 'Time', point: 'Meeting point', invalid: 'Please check the fields: departure between a day before and the end of the event.', denied: 'No permission.', exists: 'You already offer a ride to this event.', closed: 'The ride has left or the event is cancelled.', full: 'No seat left.', conflict: 'More seats are booked.', failed: 'Not saved. Please try again.', phones: 'Drivers and their passengers see each other’s phone number.' },
+  fr: { needs: 'Cherche une place', needTitle: 'Places recherchées', ask: 'Chercher une place', askFor: 'Pour', unask: 'Plus nécessaire', needsHint: 'Les conducteurs reçoivent un message à la première demande, sans nom. Une place réservée clôt la demande.', seatsLabel: 'Places', rides: 'Covoiturage', none: 'Aucun trajet proposé.', THERE: 'Aller', BACK: 'Retour', BOTH: 'Aller-retour', departs: 'Départ', at: 'Rendez-vous', of: 'sur', seats: 'places', nobody: 'personne pour l’instant', book: 'Réserver une place', cancel: 'Libérer la place', you: 'Moi', driverPhone: 'Téléphone du conducteur', phone: 'Tél.', offer: 'Proposer un trajet', save: 'Enregistrer', withdraw: 'Retirer le trajet', direction: 'Sens', date: 'Date', time: 'Heure', point: 'Rendez-vous', invalid: 'Vérifiez les champs : départ entre la veille et la fin de l’événement.', denied: 'Pas d’autorisation.', exists: 'Vous proposez déjà un trajet pour cet événement.', closed: 'Le trajet est parti ou l’événement est annulé.', full: 'Plus de place libre.', conflict: 'Plus de places sont réservées.', failed: 'Non enregistré. Veuillez réessayer.', phones: 'Conducteurs et passagers voient mutuellement leur numéro de téléphone.' },
+  it: { needs: 'Cerca un passaggio', needTitle: 'Passaggi cercati', ask: 'Cerca un passaggio', askFor: 'Per', unask: 'Non serve più', needsHint: 'Chi guida riceve un messaggio alla prima richiesta, senza nome. Un posto prenotato chiude la richiesta.', seatsLabel: 'Posti', rides: 'Car pooling', none: 'Nessun passaggio offerto.', THERE: 'Andata', BACK: 'Ritorno', BOTH: 'Andata e ritorno', departs: 'Partenza', at: 'Ritrovo', of: 'su', seats: 'posti', nobody: 'ancora nessuno', book: 'Prenota posto', cancel: 'Libera posto', you: 'Io', driverPhone: 'Telefono autista', phone: 'Tel.', offer: 'Offri un passaggio', save: 'Salva modifiche', withdraw: 'Ritira passaggio', direction: 'Direzione', date: 'Data', time: 'Ora', point: 'Ritrovo', invalid: 'Controlla i campi: partenza tra il giorno prima e la fine dell’evento.', denied: 'Nessun permesso.', exists: 'Offri già un passaggio per questo evento.', closed: 'Il passaggio è partito o l’evento è annullato.', full: 'Nessun posto libero.', conflict: 'Ci sono più posti prenotati.', failed: 'Non salvato. Riprova.', phones: 'Autisti e passeggeri vedono reciprocamente il numero di telefono.' },
 } satisfies Record<Language, Record<string, string>>
 
 type Draft = { direction: Direction; seats: string; point: string; date: string; time: string }
@@ -28,6 +28,8 @@ export function RidesPanel({ event, language, csrfToken, self }: {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<Exclude<RideOutcome, 'ok'> | 'failed' | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [asker, setAsker] = useState('')
+  const [askDirection, setAskDirection] = useState<Direction>('BOTH')
 
   useEffect(() => {
     let active = true
@@ -59,6 +61,10 @@ export function RidesPanel({ event, language, csrfToken, self }: {
   }
 
   const open = (ride: Ride) => !event.cancelled && Date.parse(ride.departsAt) > Date.now()
+  const startsLater = !event.cancelled && Date.parse(event.startsAt) > Date.now()
+  // The caller and their children in the team who have neither a request nor a seat yet.
+  const askable = startsLater ? list.people.filter(person => !list.requests.some(item => item.memberId === person.id) &&
+    !list.items.some(ride => ride.booked.includes(person.id))) : []
   return (
     <section aria-label={`${t.rides}: ${event.title}`} className="card pad stack panel">
       <h2>{t.rides}</h2>
@@ -77,6 +83,27 @@ export function RidesPanel({ event, language, csrfToken, self }: {
         })}
         {ride.mine && <button type="button" disabled={busy} onClick={() => { void run(() => withdrawRide(ride.id, csrfToken)) }}>{t.withdraw}</button>}
       </li>)}</ul>}
+      {/* Ride requests (1.41.0): who needs a seat, and asking for oneself or a child until the event starts. */}
+      {list.requests.length > 0 && <>
+        <h3>{t.needTitle}</h3>
+        <ul className="rows shift-rows">{list.requests.map((item, index) => <li key={index} className="pad-y">
+          {item.displayName} · {t[item.direction]}
+          {item.memberId && startsLater && <> <button type="button" className="quiet" disabled={busy}
+            onClick={() => { void run(() => requestRide(event.id, item.memberId!, null, csrfToken)) }}>{t.unask}</button></>}
+        </li>)}</ul>
+      </>}
+      {askable.length > 0 && <Reveal label={t.ask} quiet><form className="form-grid" aria-label={t.ask} onSubmit={form => {
+        form.preventDefault(); void run(() => requestRide(event.id, asker || askable[0].id, askDirection, csrfToken))
+      }}>
+        {askable.length > 1 && <label>{t.askFor}<select value={asker || askable[0].id} onChange={e => setAsker(e.target.value)}>
+          {askable.map(person => <option key={person.id} value={person.id}>{person.id === self ? t.you : person.firstName}</option>)}
+        </select></label>}
+        <label>{t.direction}<select value={askDirection} onChange={e => setAskDirection(e.target.value as Direction)}>
+          {(['THERE', 'BACK', 'BOTH'] as const).map(d => <option key={d} value={d}>{t[d]}</option>)}
+        </select></label>
+        <p className="muted small">{t.needsHint}</p>
+        <button type="submit" disabled={busy}>{t.ask}</button>
+      </form></Reveal>}
       {list.canOffer && !event.cancelled && <Reveal label={t.offer} open={own !== undefined}><form aria-label={own ? t.save : t.offer} onSubmit={form => { void submit(form) }}>
         <label>{t.direction}<select value={current.direction} onChange={e => setDraft({ ...current, direction: e.target.value as Direction })}>
           {(['THERE', 'BACK', 'BOTH'] as const).map(d => <option key={d} value={d}>{t[d]}</option>)}

@@ -35,8 +35,10 @@ Wir bearbeiten Ihre Daten, um den Verein gemäss Statuten zu führen:
   wir nicht. Nehmen wir Sie auf, werden Sie Mitglied mit den oben beschriebenen Daten.
 - **Fahrgemeinschaften:** Fahrten, die Sie anbieten, und Plätze, die Sie (oder für Ihr Kind) buchen. Ihr Team sieht
   Ihren Namen bei der Fahrt. Fahrerin oder Fahrer und die gebuchten Mitfahrenden sehen gegenseitig ihre
-  Telefonnummer (bei Kindern die der buchenden erziehungsberechtigten Person), sonst niemand.
-- **Abwesenheiten:** die Tage, an denen Sie (oder Ihr Kind) abwesend sind, ohne Grund. Für Termine an diesen Tagen
+  Telefonnummer (bei Kindern die der buchenden erziehungsberechtigten Person), sonst niemand. Wenn Sie (oder Ihr Kind)
+  eine Mitfahrt suchen, sieht das Team Ihren Namen und die Richtung, ohne Telefonnummer; wer schon fährt, erhält beim
+  ersten Gesuch eine Nachricht ohne Namen. Das Gesuch wird nach dem Termin gelöscht.
+- **Abwesenheiten:** die Tage, an denen Sie (oder Ihr Kind) abwesend sind, mit einem freiwilligen kurzen Hinweis für das Training. Für Termine an diesen Tagen
   gilt «Nein»; Trainerinnen und Trainer sehen nur dieses «Nein».
 - **Helfereinsätze:** für welche Einsätze bei Anlässen Ihres Teams Sie sich eingetragen haben. Ihr Team sieht Ihren
   Namen beim Einsatz, damit sich alle absprechen können.

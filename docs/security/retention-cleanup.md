@@ -14,6 +14,7 @@ The API runs `RetentionCleanup` once an hour while a PostgreSQL database is conf
 | `announcements` | Deleted **6 months** after the show-until date | C10, not audited. |
 | `join_requests` | Deleted **60 days** after they arrived, if not handled | ADR-0008 addendum 26, not audited (no member data). |
 | `event_rides` with `ride_passengers` | Deleted **12 months** after the event ended | ADR-0008 addendum 25, not audited. |
+| `ride_requests` | Deleted once the event has ended | ADR-0008 addendum 44 (OpenAPI 1.41.0), not audited. |
 | `member_absences` | Deleted **12 months** after the last day | By analogy with attendance answers (ADR-0008 addendum 24), not audited. |
 | `shift_volunteers` | Deleted **12 months** after the shift ended; shifts go with their event after 24 months | By analogy with attendance answers (ADR-0008 addendum 20), not audited. |
 

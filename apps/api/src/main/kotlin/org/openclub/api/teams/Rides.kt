@@ -22,6 +22,11 @@ import java.util.UUID
  * ride with display names. Phone numbers (owner decision) go only between a driver and the people they carry: the
  * driver sees each passenger's phone (for a minor, the phone of the guardian who booked), and whoever booked sees
  * the driver's. Not audited. Rides go with their event and are deleted 12 months after it.
+ *
+ * Ride requests (OpenAPI 1.41.0, ADR-0008 addendum 44): a member, or a guardian for their current minor, says the
+ * person needs a ride (there, back or both) until the event starts; one per person and event. They are seen like the
+ * rides, by display name and never with a phone, and disappear when the person books a seat on a ride covering the
+ * direction. The first request of an event tells its drivers, without a name.
  */
 internal class Rides(private val database: DSLContext) {
     enum class Direction { THERE, BACK, BOTH }
@@ -34,8 +39,11 @@ internal class Rides(private val database: DSLContext) {
         val departsAt: OffsetDateTime, val passengers: List<Passenger>, val booked: List<UUID>, val driverPhone: String?,
     )
 
+    /** A ride request (1.41.0); [memberId] only for the caller and their minors, so they can withdraw it. */
+    data class Request(val displayName: String, val direction: Direction, val memberId: UUID?)
+
     sealed interface Listing {
-        data class Found(val rides: List<Ride>, val people: List<Person>, val canOffer: Boolean) : Listing
+        data class Found(val rides: List<Ride>, val people: List<Person>, val canOffer: Boolean, val requests: List<Request> = emptyList()) : Listing
         data object NotFound : Listing
         data object Denied : Listing
     }
@@ -50,6 +58,9 @@ internal class Rides(private val database: DSLContext) {
 
     enum class Change { DONE, INVALID, CONFLICT, NOT_FOUND, DENIED }
     enum class Booking { DONE, CLOSED, FULL, DENIED }
+
+    /** [first]: this was the event's only request, so its drivers are told (1.41.0). */
+    data class Requested(val change: Booking, val first: Boolean = false)
 
     /** The actor (`me`) and their current minors (`people`). Binds the actor account. */
     private val people = """
@@ -132,7 +143,67 @@ internal class Rides(private val database: DSLContext) {
                 if (!isDriver && bookedHere.isNotEmpty()) row.get("driver_phone", String::class.java) else null,
             )
         }
-        return Listing.Found(rides, mine, access.get("can_offer", Boolean::class.java) == true)
+        val requests = database.fetch(
+            """WITH $people
+               SELECT q.member_id, q.direction, q.member_id IN (SELECT id FROM people) AS own,
+                      CASE WHEN ${AgeSql.minor("m")} THEN m.first_name || ' ' || left(m.last_name, 1) || '.'
+                           ELSE m.first_name || ' ' || m.last_name END AS name
+               FROM ride_requests q
+               JOIN team_events e ON e.id = q.event_id
+               JOIN member_team_assignments a ON a.team_id = e.team_id AND a.member_id = q.member_id
+               JOIN members m ON m.id = q.member_id AND m.archived_at IS NULL
+               JOIN clubs c ON TRUE
+               WHERE q.event_id = ?
+               ORDER BY q.requested_at, q.member_id""", actor, eventId).map {
+            Request(it.get("name", String::class.java), Direction.valueOf(it.get("direction", String::class.java)),
+                if (it.get("own", Boolean::class.java) == true) it.get("member_id", UUID::class.java) else null)
+        }
+        return Listing.Found(rides, mine, access.get("can_offer", Boolean::class.java) == true, requests)
+    }
+
+    /**
+     * The event and the person (the actor or their current minor, assigned to the event's team) a request is for, with
+     * whether it is closed (started or cancelled). Binds, in order: actor account, event, member.
+     */
+    private val requestable = """
+        WITH $people,
+             target AS (
+               SELECT e.id AS event_id, p.id AS member_id, (e.cancelled OR e.starts_at <= now()) AS closed
+               FROM team_events e
+               JOIN member_team_assignments a ON a.team_id = e.team_id
+               JOIN people p ON p.id = a.member_id
+               WHERE e.id = ? AND p.id = ?
+               -- A concurrent unassign waits for this request (and its trigger then removes it) or wins first.
+               FOR SHARE OF a)"""
+
+    /** Asks for a ride for [memberId], or changes the direction of their request (1.41.0). */
+    fun request(actor: UUID, eventId: UUID, memberId: UUID, direction: Direction): Requested = database.transactionResult { configuration ->
+        val db = DSL.using(configuration)
+        val inserted = db.fetchOne(
+            """$requestable
+               INSERT INTO ride_requests (event_id, member_id, direction, requested_by)
+               SELECT event_id, member_id, ?, (SELECT id FROM me) FROM target WHERE NOT closed
+               ON CONFLICT (event_id, member_id) DO UPDATE SET direction = EXCLUDED.direction
+               RETURNING (xmax = 0) AS inserted""", actor, eventId, memberId, direction.name)
+            ?: return@transactionResult Requested(classify(db, actor, eventId, memberId))
+        val first = inserted.get("inserted", Boolean::class.java) == true &&
+            (db.fetchValue("SELECT count(*) FROM ride_requests WHERE event_id = ?", eventId) as Number).toInt() == 1
+        Requested(Booking.DONE, first)
+    }
+
+    /** Withdraws the request of [memberId]; withdrawing a missing one is also done. */
+    fun withdrawRequest(actor: UUID, eventId: UUID, memberId: UUID): Booking {
+        val removed = database.fetch(
+            """$requestable
+               DELETE FROM ride_requests q USING target
+               WHERE q.event_id = target.event_id AND q.member_id = target.member_id AND NOT target.closed
+               RETURNING 1""", actor, eventId, memberId).isNotEmpty()
+        return if (removed) Booking.DONE else classify(database, actor, eventId, memberId)
+    }
+
+    private fun classify(db: DSLContext, actor: UUID, eventId: UUID, memberId: UUID): Booking {
+        val row = db.fetchOne("$requestable SELECT closed FROM target", actor, eventId, memberId) ?: return Booking.DENIED
+        return if (row.get(0, Boolean::class.java) == true) Booking.CLOSED else Booking.DONE
     }
 
     fun create(actor: UUID, eventId: UUID, input: Input): Created {
@@ -230,7 +301,13 @@ internal class Rides(private val database: DSLContext) {
                        INSERT INTO ride_passengers (ride_id, member_id, booked_by)
                        SELECT ride_id, member_id, booked_by FROM allowed WHERE NOT closed AND taken < seats
                        ON CONFLICT (ride_id, member_id) DO NOTHING""", actor, memberId, rideId)
-                if (inserted == 1) Booking.DONE else Booking.DENIED
+                if (inserted != 1) return@transactionResult Booking.DENIED
+                // A booked seat answers the person's ride request when the ride covers its direction (1.41.0).
+                db.execute(
+                    """DELETE FROM ride_requests q USING event_rides r
+                       WHERE r.id = ? AND q.event_id = r.event_id AND q.member_id = ?
+                         AND (r.direction = 'BOTH' OR r.direction = q.direction)""", rideId, memberId)
+                Booking.DONE
             }
         }
     }
