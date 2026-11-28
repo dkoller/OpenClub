@@ -28,6 +28,7 @@ import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.module
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Calendar feeds (OpenAPI 1.17.0): one secret link per member, shown once, ending with revocation, archive or unlink. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -104,7 +105,7 @@ class CalendarFeedHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.net.URI
 import java.time.Duration
+import org.openclub.api.checkContract
 
 class AuthAdmissionLimiterTest {
     @Test
@@ -51,7 +52,7 @@ class AuthAdmissionLimiterTest {
                 return null
             }
         }
-        application {
+        application { checkContract();
             module(operations, AuthCookiePolicy.localDevelopment(),
                 authAdmission = AuthAdmissionLimiter(1, 1) { 0L })
         }

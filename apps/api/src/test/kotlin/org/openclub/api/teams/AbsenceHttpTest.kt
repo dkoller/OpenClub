@@ -33,6 +33,7 @@ import org.openclub.api.module
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Absences (OpenAPI 1.20.0): who enters them, the date rules, and the NO they imply where nobody answered. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -98,7 +99,7 @@ class AbsenceHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

@@ -24,6 +24,7 @@ import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Malformed-input and privilege-escalation matrix for the club settings writes (#24). */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -124,7 +125,7 @@ class ClubSettingsHttpInputAndEscalationTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application {
+        application { checkContract();
             module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin,
                 database = requireNotNull(database))
         }

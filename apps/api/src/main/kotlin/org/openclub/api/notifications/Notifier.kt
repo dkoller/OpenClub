@@ -6,10 +6,10 @@ import org.openclub.api.members.ActorSql
 import org.openclub.api.members.AgeSql
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
-import org.openclub.api.database.DatabaseRuntime
 
 /**
  * Queues notification emails (OpenAPI 1.19.0, ADR-0008 addendum 23) in the caller's transaction, so a message is
@@ -22,7 +22,8 @@ import org.openclub.api.database.DatabaseRuntime
 internal class Notifier(private val config: MailConfig?, private val origin: String, val push: PushConfig? = null) {
     /** Messages are queued when the club sends email or push notifications (1.33.0). */
     val enabled: Boolean get() = config != null || push != null
-    private val zone: ZoneId get() = config?.zone ?: DatabaseRuntime.clubZone
+    // Only used to write messages, which needs a configuration; UTC only for a disabled notifier.
+    private val zone: ZoneId get() = config?.zone ?: ZoneOffset.UTC
 
     enum class Kind(val column: String) {
         NEW_EVENTS("new_events"), EVENT_CHANGED("event_changes"), EVENT_CANCELLED("event_changes"),

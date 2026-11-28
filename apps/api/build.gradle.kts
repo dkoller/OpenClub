@@ -34,6 +34,9 @@ dependencies {
 
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    // Owner-approved 2026-11-28, tests only (never shipped): every JSON response in the API tests is checked against
+    // its operation's schema in docs/contracts/openapi-v1.yaml (ContractCheck.kt). Apache-2.0, free.
+    testImplementation("com.networknt:json-schema-validator:1.5.6")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
 }
 
@@ -55,6 +58,12 @@ tasks.test {
     // Integration tests depend on the live PostgreSQL service, which is not a task
     // input: never restore their result from the build cache, always run them.
     outputs.cacheIf("PostgreSQL-backed tests must always execute") { false }
+    // One test JVM, classes one after another: the tests share one database, and some (retention cleanup,
+    // notifications) act on every row, not only their own. Parallel test classes would break them quietly.
+    maxParallelForks = 1
+    // The contract the responses are checked against (ContractCheck.kt).
+    inputs.file("../../docs/contracts/openapi-v1.yaml")
+    systemProperty("openclub.contract", file("../../docs/contracts/openapi-v1.yaml").absolutePath)
 }
 
 

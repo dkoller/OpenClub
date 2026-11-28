@@ -37,6 +37,7 @@ import org.openclub.api.notifications.Notifier
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Coach messages (OpenAPI 1.31.0): who may send, who receives it, and the daily limit. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -118,7 +119,7 @@ class CoachMessageHttpTest {
     }
 
     private fun app(mail: Notifier = notifier, block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = mail) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = mail) }
         block()
     }
 

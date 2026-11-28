@@ -282,7 +282,7 @@ class PrivateRoutesRevocationTest {
     }
 
     private fun app(db: DatabaseRuntime, block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = db) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = db) }
         block()
     }
 

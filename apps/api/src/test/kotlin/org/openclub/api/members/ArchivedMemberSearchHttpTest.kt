@@ -31,6 +31,7 @@ import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.module
 import java.time.Instant
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Archived-member search (OpenAPI 1.5.0): who may read it, what it returns, paging and cursor scoping. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -103,7 +104,7 @@ class ArchivedMemberSearchHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

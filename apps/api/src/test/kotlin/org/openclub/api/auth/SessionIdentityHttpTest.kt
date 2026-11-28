@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test
 import org.openclub.api.module
 import org.openclub.api.database.DatabaseRuntime
 import java.util.UUID
+import org.openclub.api.checkContract
 
 class SessionIdentityHttpTest {
     @Test
@@ -35,7 +36,7 @@ class SessionIdentityHttpTest {
                 }
             }
             testApplication {
-                application {
+                application { checkContract();
                     module(
                         sessions = PostgresBrowserSessions(db),
                         cookiePolicy = cookies,

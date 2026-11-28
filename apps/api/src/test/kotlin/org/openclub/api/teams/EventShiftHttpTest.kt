@@ -37,6 +37,7 @@ import org.openclub.api.module
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /**
  * Volunteer shifts (OpenAPI 1.16.0, unfilled overview 1.23.0): who manages, who sees names, who signs up whom, capacity, closing, the order of
@@ -113,7 +114,7 @@ class EventShiftHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

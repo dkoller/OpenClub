@@ -50,6 +50,8 @@ class ClubTimeZoneTest {
                     fun implied(zone: String): Int = db.transactionResult { c ->
                         val tx = DSL.using(c)
                         tx.execute("SELECT set_config('openclub.time_zone', ?, true)", zone)
+                        // Kotlin reads the same setting (helper season, presence export).
+                        assertEquals(zone, tx.clubZone().id)
                         (tx.fetchValue("SELECT count(*) FROM effective_attendance WHERE event_id = ? AND member_id = ?", event, member) as Number).toInt()
                     }
                     assertEquals(1, implied("Europe/Zurich"))

@@ -20,6 +20,7 @@ import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
 import java.util.UUID
+import org.openclub.api.checkContract
 
 class SingleClubRoutesTest {
     @Test
@@ -47,7 +48,7 @@ class SingleClubRoutesTest {
                 }
             }
             testApplication {
-                application {
+                application { checkContract();
                     module(
                         sessions = sessions,
                         cookiePolicy = AuthCookiePolicy.localDevelopment(),
@@ -199,7 +200,7 @@ class SingleClubRoutesTest {
                 }
             }
             testApplication {
-                application {
+                application { checkContract();
                     module(sessions = sessions,
                         cookiePolicy = AuthCookiePolicy.localDevelopment(),
                         publicOrigin = origin, database = database)

@@ -34,6 +34,7 @@ import org.openclub.api.module
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Trainings and events (OpenAPI 1.10.0): who manages, who sees, and the order of answers. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -104,7 +105,7 @@ class TeamEventHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

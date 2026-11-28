@@ -32,6 +32,7 @@ import org.openclub.api.teams.TeamEvents
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /**
  * Email notifications (OpenAPI 1.19.0): who gets which message, the member's switches, the outbox sending and its
@@ -378,7 +379,7 @@ class NotificationsTest {
                 assertEquals(1, outbox().size, "at most every 12 hours")
             }
             testApplication {
-                application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+                application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
                 val response = client.request("/api/v1/events/$event/attendance-reminders") {
                     method = HttpMethod.Post
                     header(HttpHeaders.Cookie, "${cookies.sessionName}=manager")
@@ -430,7 +431,7 @@ class NotificationsTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database), notifier = notifier) }
         block()
     }
 

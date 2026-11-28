@@ -39,6 +39,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Actual attendance and the J+S export (OpenAPI 1.27.0): who may record, what is recorded, and the NDS file. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -124,7 +125,7 @@ class EventPresenceHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

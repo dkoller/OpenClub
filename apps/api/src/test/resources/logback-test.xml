@@ -1,0 +1,13 @@
+<configuration>
+  <!-- Tests: as the server (logback.xml), plus the schema library kept quiet about OpenAPI keywords it ignores. -->
+  <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+    <target>System.err</target>
+    <encoder><pattern>%-5level %logger{36} - %msg%n</pattern></encoder>
+  </appender>
+  <logger name="org.jooq" level="WARN"/>
+  <logger name="org.jooq.Constants" level="OFF"/>
+  <logger name="com.zaxxer.hikari" level="WARN"/>
+  <logger name="io.netty" level="WARN"/>
+  <logger name="com.networknt" level="ERROR"/>
+  <root level="INFO"><appender-ref ref="STDERR"/></root>
+</configuration>

@@ -42,6 +42,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /** Fields and halls (OpenAPI 1.30.0): who manages them, what everyone sees, and no double booking. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -108,7 +109,7 @@ class VenueHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

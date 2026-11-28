@@ -40,9 +40,6 @@ internal class DatabaseRuntime private constructor(
             return zone
         }
 
-        /** The club's time zone for dates and times computed in Kotlin; SQL uses `club_time_zone()` (V32). */
-        val clubZone: java.time.ZoneId by lazy { java.time.ZoneId.of(clubTimeZone(System.getenv())) }
-
         fun openIfConfigured(env: Map<String, String>): DatabaseRuntime? {
             val url = env["DB_URL"] ?: return null
             require(url.startsWith("jdbc:postgresql://")) { "PostgreSQL DB_URL is required" }
@@ -76,3 +73,9 @@ internal class DatabaseRuntime private constructor(
         }
     }
 }
+
+/**
+ * The club's time zone, from the connection's `openclub.time_zone` setting (OPENCLUB_TIME_ZONE, see `club_time_zone()`
+ * in V32): the one source for dates computed in Kotlin and in SQL, so tests can change it per transaction.
+ */
+internal fun org.jooq.DSLContext.clubZone(): java.time.ZoneId = java.time.ZoneId.of(fetchValue("SELECT club_time_zone()") as String)

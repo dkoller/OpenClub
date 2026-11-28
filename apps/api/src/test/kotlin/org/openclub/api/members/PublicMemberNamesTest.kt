@@ -13,6 +13,7 @@ import org.openclub.api.module
 import org.openclub.api.database.DatabaseRuntime
 import java.time.LocalDate
 import java.util.UUID
+import org.openclub.api.checkContract
 
 class PublicMemberNamesTest {
     @Test
@@ -50,7 +51,7 @@ class PublicMemberNamesTest {
                 }
             }
             testApplication {
-                application { module(database = database) }
+                application { checkContract(); module(database = database) }
                 val public = client.get("/api/v1/public/members")
                 assertEquals(HttpStatusCode.OK, public.status)
                 assertEquals("no-store", public.headers[HttpHeaders.CacheControl])
@@ -96,7 +97,7 @@ class PublicMemberNamesTest {
 
     @Test
     fun unavailableWithoutDatabase() = testApplication {
-        application { module() }
+        application { checkContract(); module() }
         val response = client.get("/api/v1/public/members")
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         assertEquals("no-store", response.headers[HttpHeaders.CacheControl])

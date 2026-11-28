@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.net.URI
+import org.openclub.api.checkContract
 
 class BrowserLoginRoutesTest {
     private val cookies = AuthCookiePolicy.localDevelopment()
@@ -47,7 +48,7 @@ class BrowserLoginRoutesTest {
 
     @Test
     fun authRoutesAreNotAvailableByDefault() = testApplication {
-        application { module() }
+        application { checkContract(); module() }
         assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/auth/login").status)
         assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/auth/callback").status)
     }
@@ -55,7 +56,7 @@ class BrowserLoginRoutesTest {
     @Test
     fun loginSetsOnlyShortLivedHttpOnlyBindingAndRedirectsToConfiguredIssuer() = testApplication {
         val fake = FakeLogin(pending)
-        application { module(fake, cookies) }
+        application { checkContract(); module(fake, cookies) }
         val response = createClient { followRedirects = false }.get("/api/v1/auth/login")
         assertEquals(HttpStatusCode.Found, response.status)
         assertEquals(pending.authorization.url.toASCIIString(), response.headers[HttpHeaders.Location])
@@ -71,7 +72,7 @@ class BrowserLoginRoutesTest {
     @Test
     fun callbackRejectsMissingDuplicateAndProviderErrorBeforeCallingBackend() = testApplication {
         val fake = FakeLogin(pending)
-        application { module(fake, cookies) }
+        application { checkContract(); module(fake, cookies) }
         val paths = listOf(
             "/api/v1/auth/callback",
             "/api/v1/auth/callback?state=a&state=b&code=c",
@@ -94,7 +95,7 @@ class BrowserLoginRoutesTest {
     @Test
     fun missingOrIncorrectBindingCannotIssueASession() = testApplication {
         val fake = FakeLogin(pending).apply { result = IssuedSession("h".repeat(43), "c".repeat(43)) }
-        application { module(fake, cookies) }
+        application { checkContract(); module(fake, cookies) }
         val url = "/api/v1/auth/callback?state=${pending.authorization.state}&code=one-time-code"
         val absent = client.get(url)
         assertEquals(HttpStatusCode.Unauthorized, absent.status)
@@ -110,7 +111,7 @@ class BrowserLoginRoutesTest {
     @Test
     fun successfulCallbackIssuesOpaqueSessionAndClearsPreAuthCookie() = testApplication {
         val fake = FakeLogin(pending).apply { result = IssuedSession("h".repeat(43), "c".repeat(43)) }
-        application { module(fake, cookies) }
+        application { checkContract(); module(fake, cookies) }
         val response = createClient { followRedirects = false }.get(
             "/api/v1/auth/callback?state=${pending.authorization.state}&code=one-time-code"
         ) {
@@ -134,7 +135,7 @@ class BrowserLoginRoutesTest {
                 state: String, browserBinding: String?, code: String, previousSession: String?,
             ): IssuedSession? = error("sensitive exchange diagnostic")
         }
-        application { module(operations, cookies) }
+        application { checkContract(); module(operations, cookies) }
         val login = client.get("/api/v1/auth/login")
         assertEquals(HttpStatusCode.ServiceUnavailable, login.status)
         assertEquals("no-store", login.headers[HttpHeaders.CacheControl])

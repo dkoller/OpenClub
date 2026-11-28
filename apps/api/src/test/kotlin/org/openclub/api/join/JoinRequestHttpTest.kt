@@ -33,6 +33,7 @@ import org.openclub.api.database.DatabaseRuntime
 import org.openclub.api.module
 import java.time.LocalDate
 import java.util.UUID
+import org.openclub.api.checkContract
 
 /**
  * Join requests (OpenAPI 1.22.0): the switch, the public form with its abuse limits, and accepting or declining.
@@ -105,7 +106,7 @@ class JoinRequestHttpTest {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        application { module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
+        application { checkContract(); module(sessions = sessions, cookiePolicy = cookies, publicOrigin = origin, database = requireNotNull(database)) }
         block()
     }
 

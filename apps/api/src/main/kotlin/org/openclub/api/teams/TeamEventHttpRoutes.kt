@@ -47,7 +47,8 @@ import java.time.format.DateTimeParseException
 import java.util.UUID
 
 /**
- * Trainings and events (OpenAPI 1.10.0, ADR-0008 addendum 13; answer reminders 1.25.0, addendum 29). Order of answers: session (401); for changes exact
+ * Trainings and events (OpenAPI 1.10.0, ADR-0008 addendum 13): reading, creating, changing in bulk and deleting them.
+ * Answers, presence, call-ups and coach messages are in EventAnswerHttpRoutes.kt. Order of answers: session (401); for changes exact
  * Origin and CSRF (403); a team grant on some team, or for `/me/events` an active membership (403); then the input
  * (400); then the team or event itself (403 without the grant for it, 404 when it does not exist). Responses are
  * `no-store`; times are RFC 3339 and answered in UTC.
@@ -220,225 +221,6 @@ internal fun Application.installTeamEventHttpRoutes(
                 call.answer(change)
             }
         }
-        get("/api/v1/events/{eventId}/attendance") {
-            call.readSession(sessions, cookies) { actor ->
-                if (!database.onDatabaseThread {
-                        TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS) }) {
-                    return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-                val event = call.uuid("eventId") ?: return@readSession call.refuse(HttpStatusCode.BadRequest, "invalid")
-                when (val result = database.onDatabaseThread { EventAttendance(it).list(actor.accountId, event) }) {
-                    is EventAttendance.Listing.Found -> call.respondJson(buildJsonObject {
-                        put("items", buildJsonArray {
-                            result.answers.forEach { add(buildJsonObject {
-                                put("displayName", it.displayName)
-                                put("response", it.response?.let { response -> JsonPrimitive(response.name) } ?: JsonNull)
-                                put("note", it.note?.let(::JsonPrimitive) ?: JsonNull)
-                            }) }
-                        })
-                        put("counts", result.counts.json())
-                    })
-                    EventAttendance.Listing.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
-                    EventAttendance.Listing.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-            }
-        }
-        get("/api/v1/teams/{teamId}/attendance-statistics") {
-            call.readSession(sessions, cookies) { actor ->
-                if (!database.onDatabaseThread {
-                        TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.VIEW_TEAMS, Capability.MANAGE_TEAMS) }) {
-                    return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-                val team = call.uuid("teamId")
-                val dates = call.dateRange()
-                if (team == null || dates == null) return@readSession call.refuse(HttpStatusCode.BadRequest, "invalid")
-                val (from, to) = dates
-                when (val result = database.onDatabaseThread { EventAttendance(it).statistics(actor.accountId, team, from, to) }) {
-                    is EventAttendance.Statistics.Found -> call.respondJson(buildJsonObject {
-                        put("from", from.toString())
-                        put("to", to.toString())
-                        put("held", result.held)
-                        put("items", buildJsonArray {
-                            result.rows.forEach { add(buildJsonObject {
-                                put("displayName", it.displayName)
-                                put("yes", it.yes); put("no", it.no); put("maybe", it.maybe); put("noAnswer", it.noAnswer)
-                            }) }
-                        })
-                        put("totals", buildJsonObject {
-                            put("yes", result.rows.sumOf { it.yes }); put("no", result.rows.sumOf { it.no })
-                            put("maybe", result.rows.sumOf { it.maybe }); put("noAnswer", result.rows.sumOf { it.noAnswer })
-                        })
-                    })
-                    EventAttendance.Statistics.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
-                    EventAttendance.Statistics.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-            }
-        }
-        // A coach reminds everyone who has not answered (1.25.0): 200 with the count, 409 `closed` once the event
-        // started or was cancelled, `email_off` without a mail configuration, `recent` within 12 hours of the last one.
-        post("/api/v1/events/{eventId}/attendance-reminders") {
-            call.guarded(sessions, cookies, origin, database, null) { actor ->
-                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
-                    return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-                val event = call.uuid("eventId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
-                when (val result = database.onDatabaseThread { AnswerReminders(it, notifier).remind(actor.accountId, event) }) {
-                    is AnswerReminders.Outcome.Done -> call.respondJson(buildJsonObject { put("reminded", result.reminded) })
-                    AnswerReminders.Outcome.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
-                    AnswerReminders.Outcome.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                    AnswerReminders.Outcome.Closed -> call.refuse(HttpStatusCode.Conflict, "closed")
-                    AnswerReminders.Outcome.EmailOff -> call.refuse(HttpStatusCode.Conflict, "email_off")
-                    AnswerReminders.Outcome.Recent -> call.refuse(HttpStatusCode.Conflict, "recent")
-                }
-            }
-        }
-        // Actual attendance (1.27.0): who came, recorded by a coach once the event has started.
-        get("/api/v1/events/{eventId}/presence") {
-            call.readSession(sessions, cookies) { actor ->
-                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
-                    return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-                val event = call.uuid("eventId") ?: return@readSession call.refuse(HttpStatusCode.BadRequest, "invalid")
-                when (val result = database.onDatabaseThread { EventPresence(it).read(actor.accountId, event) }) {
-                    is EventPresence.Listing.Found -> call.respondJson(buildJsonObject {
-                        put("open", result.open)
-                        put("items", buildJsonArray {
-                            result.people.forEach { add(buildJsonObject {
-                                put("memberId", it.memberId.toString())
-                                put("displayName", it.displayName)
-                                put("role", it.role.name)
-                                put("response", it.response?.let(::JsonPrimitive) ?: JsonNull)
-                                put("present", it.present)
-                            }) }
-                        })
-                    })
-                    EventPresence.Listing.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
-                    EventPresence.Listing.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-            }
-        }
-        put("/api/v1/events/{eventId}/presence") {
-            call.guarded(sessions, cookies, origin, database, null) { actor ->
-                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
-                    return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-                val event = call.uuid("eventId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
-                val present = try {
-                    call.receiveJsonObject(setOf("present"), maxBytes = PRESENCE_BODY).uuidSet("present", 500)
-                } catch (_: IllegalArgumentException) {
-                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
-                }
-                when (database.onDatabaseThread { EventPresence(it).replace(actor.accountId, event, present) }) {
-                    EventPresence.Change.DONE -> call.respondText("", status = HttpStatusCode.NoContent)
-                    EventPresence.Change.NOT_FOUND -> call.refuse(HttpStatusCode.NotFound, "not_found")
-                    EventPresence.Change.DENIED -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                    EventPresence.Change.CLOSED -> call.refuse(HttpStatusCode.Conflict, "not_started")
-                    EventPresence.Change.INVALID -> call.refuse(HttpStatusCode.BadRequest, "invalid")
-                }
-            }
-        }
-        // Match squads (1.28.0): the team's managers call up members for a match until it starts.
-        get("/api/v1/events/{eventId}/squad") {
-            call.readSession(sessions, cookies) { actor ->
-                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
-                    return@readSession call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-                val event = call.uuid("eventId") ?: return@readSession call.refuse(HttpStatusCode.BadRequest, "invalid")
-                when (val result = database.onDatabaseThread { EventSquads(it).read(actor.accountId, event) }) {
-                    is EventSquads.Listing.Found -> call.respondJson(buildJsonObject {
-                        put("open", result.open)
-                        put("meetAt", result.meetAt?.let { JsonPrimitive(it.withOffsetSameInstant(ZoneOffset.UTC).toString()) } ?: JsonNull)
-                        put("meetingPoint", result.meetingPoint?.let(::JsonPrimitive) ?: JsonNull)
-                        put("items", buildJsonArray {
-                            result.people.forEach { add(buildJsonObject {
-                                put("memberId", it.memberId.toString())
-                                put("displayName", it.displayName)
-                                put("response", it.response?.let(::JsonPrimitive) ?: JsonNull)
-                                put("called", it.called)
-                            }) }
-                        })
-                    })
-                    EventSquads.Listing.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
-                    EventSquads.Listing.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                    EventSquads.Listing.NotMatch -> call.refuse(HttpStatusCode.Conflict, "not_match")
-                }
-            }
-        }
-        put("/api/v1/events/{eventId}/squad") {
-            call.guarded(sessions, cookies, origin, database, null) { actor ->
-                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
-                    return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-                val event = call.uuid("eventId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
-                val input = try {
-                    val body = call.receiveJsonObject(setOf("memberIds", "meetAt", "meetingPoint"), maxBytes = PRESENCE_BODY)
-                    val meetAt = when (val value = body["meetAt"]) {
-                        is JsonNull -> null
-                        is JsonPrimitive -> if (value.isString) OffsetDateTime.parse(value.content).also {
-                            require(!it.isBefore(EARLIEST) && it.isBefore(LATEST))
-                        } else throw IllegalArgumentException("meetAt")
-                        else -> throw IllegalArgumentException("meetAt")
-                    }
-                    val point = when (val value = body["meetingPoint"]) {
-                        is JsonNull -> null
-                        is JsonPrimitive -> if (value.isString) text(value.content, 200) else throw IllegalArgumentException("point")
-                        else -> throw IllegalArgumentException("point")
-                    }
-                    EventSquads.Input(body.uuidSet("memberIds", 500), meetAt, point)
-                } catch (_: IllegalArgumentException) {
-                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
-                } catch (_: DateTimeException) {
-                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
-                }
-                when (database.onDatabaseThread { EventSquads(it, notifier).replace(actor.accountId, event, input) }) {
-                    EventSquads.Change.DONE -> call.respondText("", status = HttpStatusCode.NoContent)
-                    EventSquads.Change.NOT_FOUND -> call.refuse(HttpStatusCode.NotFound, "not_found")
-                    EventSquads.Change.DENIED -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                    EventSquads.Change.NOT_MATCH -> call.refuse(HttpStatusCode.Conflict, "not_match")
-                    EventSquads.Change.CLOSED -> call.refuse(HttpStatusCode.Conflict, "closed")
-                    EventSquads.Change.INVALID -> call.refuse(HttpStatusCode.BadRequest, "invalid")
-                }
-            }
-        }
-        // Coach messages (1.31.0): an email to part of the event's people, sent by the server, 10 per team per day.
-        post("/api/v1/events/{eventId}/messages") {
-            call.guarded(sessions, cookies, origin, database, null) { actor ->
-                if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
-                    return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                }
-                val event = call.uuid("eventId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
-                val (audience, subject, body) = try {
-                    val json = call.receiveJsonObject(setOf("audience", "subject", "body"), maxBytes = 32 * 1024)
-                    val audience = CoachMessages.Audience.entries.firstOrNull { it.name == json.requiredString("audience") }
-                        ?: throw IllegalArgumentException("audience")
-                    Triple(audience, requireNotNull(text(json.requiredString("subject"), 150)) { "subject" },
-                        requireNotNull(text(json.requiredString("body"), 5000, multiline = true)) { "body" })
-                } catch (_: IllegalArgumentException) {
-                    return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
-                }
-                when (val result = database.onDatabaseThread { CoachMessages(it, notifier).send(actor.accountId, event, audience, subject, body) }) {
-                    is CoachMessages.Outcome.Sent -> call.respondJson(buildJsonObject { put("members", result.members) })
-                    CoachMessages.Outcome.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
-                    CoachMessages.Outcome.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
-                    CoachMessages.Outcome.EmailOff -> call.refuse(HttpStatusCode.Conflict, "email_off")
-                    CoachMessages.Outcome.Limit -> call.refuse(HttpStatusCode.Conflict, "limit")
-                    CoachMessages.Outcome.NotMatch -> call.refuse(HttpStatusCode.Conflict, "not_match")
-                    CoachMessages.Outcome.Closed -> call.refuse(HttpStatusCode.Conflict, "closed")
-                }
-            }
-        }
-        get("/api/v1/teams/{teamId}/js-attendance") {
-            call.jsAttendance(sessions, cookies, database, file = false)
-        }
-        get("/api/v1/teams/{teamId}/js-attendance.csv") {
-            call.jsAttendance(sessions, cookies, database, file = true)
-        }
-        put("/api/v1/events/{eventId}/attendance/{memberId}") {
-            call.attendance(sessions, cookies, origin, database, clear = false)
-        }
-        delete("/api/v1/events/{eventId}/attendance/{memberId}") {
-            call.attendance(sessions, cookies, origin, database, clear = true)
-        }
         delete("/api/v1/events/{eventId}") {
             call.guarded(sessions, cookies, origin, database, null) { actor ->
                 if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
@@ -450,9 +232,6 @@ internal fun Application.installTeamEventHttpRoutes(
         }
     }
 }
-
-/** 500 member IDs as JSON. */
-private const val PRESENCE_BODY = 24 * 1024
 
 private val EVENT_FIELDS = setOf("kind", "title", "startsAt", "endsAt")
 /** Notes of 2,000 characters and a 200-character title and place can exceed 4 KiB as JSON. */
@@ -470,7 +249,7 @@ private val MAX_SPAN: Duration = Duration.ofDays(366)
 private fun localTime(value: String): java.time.LocalTime =
     java.time.LocalTime.parse(value, DateTimeFormatter.ofPattern("HH:mm").withResolverStyle(ResolverStyle.STRICT))
 
-private fun ApplicationCall.uuid(name: String): UUID? = runCatching { UUID.fromString(parameters[name]) }.getOrNull()
+internal fun ApplicationCall.uuid(name: String): UUID? = runCatching { UUID.fromString(parameters[name]) }.getOrNull()
 
 /** `from` (default now) and `to` (default 8 weeks later), RFC 3339 with offset; `to` after `from`, at most 366 days. */
 private fun ApplicationCall.range(): Pair<OffsetDateTime, OffsetDateTime>? = try {
@@ -490,7 +269,7 @@ private fun ApplicationCall.range(): Pair<OffsetDateTime, OffsetDateTime>? = try
  * `from` and `to` as ISO dates (UTC), both optional: `to` defaults to today, `from` to 12 months before `to`.
  * `from` is not after `to`, the range spans at most 366 days, and both lie between 2000 and 2099.
  */
-private fun ApplicationCall.dateRange(): Pair<LocalDate, LocalDate>? = try {
+internal fun ApplicationCall.dateRange(): Pair<LocalDate, LocalDate>? = try {
     val query = request.queryParameters
     require(query.names().all { it == "from" || it == "to" } && query.names().all { query.getAll(it)?.size == 1 })
     val to = query["to"]?.let(::strictDate) ?: LocalDate.now(ZoneOffset.UTC)
@@ -586,89 +365,4 @@ private suspend fun ApplicationCall.venueTaken(clash: TeamEvents.Clash) = respon
     })
 }.toString(), ContentType.Application.Json, HttpStatusCode.Conflict)
 
-private fun EventAttendance.Counts.json() = buildJsonObject { put("yes", yes); put("no", no); put("maybe", maybe) }
-
-/**
- * Answer (PUT) or clear (DELETE) one member's attendance. Session (401), Origin and CSRF (403), an active membership
- * (403), the IDs and body (400); then one 403 for every event or member the actor may not answer for, and 409 once
- * the event has started or is cancelled.
- */
-private suspend fun ApplicationCall.attendance(
-    sessions: BrowserSessionOperations, cookies: AuthCookiePolicy, origin: String, database: DatabaseRuntime, clear: Boolean,
-) = guarded(sessions, cookies, origin, database, null) { actor ->
-    if (!database.onDatabaseThread { TeamEvents(it).isMember(actor.accountId) }) {
-        return@guarded refuse(HttpStatusCode.Forbidden, "forbidden")
-    }
-    val event = uuid("eventId")
-    val member = uuid("memberId")
-    if (event == null || member == null) return@guarded refuse(HttpStatusCode.BadRequest, "invalid")
-    // Since 1.39.0 an optional `note` (at most 100 characters): left out keeps the stored note, null or blank removes it.
-    var setNote = false
-    var note: String? = null
-    val response = if (clear) null else try {
-        val body = receiveJsonObject(setOf("response"), setOf("note"))
-        if ("note" in body) { setNote = true; note = text(body.optionalText("note"), NOTE_LENGTH) }
-        val value = body.requiredString("response")
-        EventAttendance.Response.entries.firstOrNull { it.name == value } ?: throw IllegalArgumentException("response")
-    } catch (_: IllegalArgumentException) {
-        return@guarded refuse(HttpStatusCode.BadRequest, "invalid")
-    }
-    val change = database.onDatabaseThread {
-        val attendance = EventAttendance(it)
-        if (response == null) attendance.clear(actor.accountId, event, member)
-        else attendance.answer(actor.accountId, event, member, response, setNote, note)
-    }
-    when (change) {
-        EventAttendance.Change.DONE -> respondText("", status = HttpStatusCode.NoContent)
-        EventAttendance.Change.CLOSED -> refuse(HttpStatusCode.Conflict, "conflict")
-        EventAttendance.Change.DEADLINE -> refuse(HttpStatusCode.Conflict, "answers_closed")
-        EventAttendance.Change.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
-    }
-}
-
-/** A JSON array of distinct member IDs, at most [max]. */
-private fun JsonObject.uuidSet(name: String, max: Int): Set<UUID> {
-    val array = this[name] as? kotlinx.serialization.json.JsonArray ?: throw IllegalArgumentException(name)
-    require(array.size <= max)
-    val ids = array.map {
-        val value = it as? JsonPrimitive
-        require(value != null && value.isString)
-        UUID.fromString(value.content)
-    }
-    require(ids.toSet().size == ids.size)
-    return ids.toSet()
-}
-
-/**
- * The J+S check (JSON) or the NDS import file (CSV, audited) for a team's dates `from`..`to` (ISO dates, Swiss time,
- * defaults as for the statistics). Session (401), cross-site request for the file (403), `MANAGE_TEAMS` somewhere
- * (403), input (400), then the team (403/404).
- */
-private suspend fun ApplicationCall.jsAttendance(
-    sessions: BrowserSessionOperations, cookies: AuthCookiePolicy, database: DatabaseRuntime, file: Boolean,
-) = readSession(sessions, cookies) { actor ->
-    if (file && isCrossSiteRequest()) return@readSession refuse(HttpStatusCode.Forbidden, "forbidden")
-    if (!database.onDatabaseThread { TeamEvents(it).holdsSomeTeamCapability(actor.accountId, Capability.MANAGE_TEAMS) }) {
-        return@readSession refuse(HttpStatusCode.Forbidden, "forbidden")
-    }
-    val team = uuid("teamId")
-    val dates = dateRange()
-    if (team == null || dates == null) return@readSession refuse(HttpStatusCode.BadRequest, "invalid")
-    val (from, to) = dates
-    when (val result = database.onDatabaseThread { EventPresence(it).export(actor.accountId, team, from, to, audit = file) }) {
-        is EventPresence.Export.Found -> if (file) {
-            response.header(HttpHeaders.ContentDisposition, ContentDisposition.Attachment
-                .withParameter(ContentDisposition.Parameters.FileName, "js-attendance-$from-$to.csv").toString())
-            response.header("X-Content-Type-Options", "nosniff")
-            respondText(EventPresence.csv(result.check.rows), ContentType.Text.CSV.withParameter("charset", "utf-8"))
-        } else respondJson(buildJsonObject {
-            put("from", from.toString())
-            put("to", to.toString())
-            put("rows", result.check.rows.size)
-            put("withoutNumber", buildJsonArray { result.check.withoutNumber.forEach { add(JsonPrimitive(it)) } })
-            put("trainingsWithoutPlace", buildJsonArray { result.check.trainingsWithoutPlace.forEach { add(JsonPrimitive(it)) } })
-        })
-        EventPresence.Export.NotFound -> refuse(HttpStatusCode.NotFound, "not_found")
-        EventPresence.Export.Denied -> refuse(HttpStatusCode.Forbidden, "forbidden")
-    }
-}
+internal fun EventAttendance.Counts.json() = buildJsonObject { put("yes", yes); put("no", no); put("maybe", maybe) }

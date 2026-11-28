@@ -6,7 +6,7 @@ import org.openclub.api.members.AgeSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import java.time.LocalDate
 import java.util.UUID
-import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.database.clubZone
 
 /**
  * Helper duty (OpenAPI 1.32.0, ADR-0008 addendum 36): how many helper shifts each liable person has done this season
@@ -22,7 +22,7 @@ internal class HelperDuty(private val database: DSLContext) {
     fun settings(): Settings = database.fetchOne("SELECT helper_quota, season_start_month FROM clubs LIMIT 1")
         ?.let { Settings(it.get(0, Int::class.java), it.get(1, Int::class.java)) } ?: Settings(0, 8)
 
-    fun season(settings: Settings, today: LocalDate = LocalDate.now(DatabaseRuntime.clubZone)): Season {
+    fun season(settings: Settings, today: LocalDate = LocalDate.now(database.clubZone())): Season {
         val year = if (today.monthValue >= settings.seasonStartMonth) today.year else today.year - 1
         val from = LocalDate.of(year, settings.seasonStartMonth, 1)
         return Season(from, from.plusYears(1).minusDays(1))
@@ -40,7 +40,7 @@ internal class HelperDuty(private val database: DSLContext) {
                 SELECT gs.minor_member_id FROM member_guardianships gs JOIN members minor ON minor.id = gs.minor_member_id
                 WHERE gs.guardian_member_id = $person AND minor.archived_at IS NULL AND ${AgeSql.minor("minor")})))"""
 
-    /** Liable people (alias `p`); needs `clubs c`. */
+    /** Liable people (alias `p`); needs `clubs c`. Binds nothing. */
     private val liable = """
         SELECT p.id, p.first_name, p.last_name FROM members p JOIN clubs c ON TRUE
         WHERE p.archived_at IS NULL AND ${AgeSql.adult("p")}
