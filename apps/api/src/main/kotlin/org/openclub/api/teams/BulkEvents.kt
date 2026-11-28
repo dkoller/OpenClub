@@ -6,21 +6,25 @@ import org.openclub.api.members.ActorSql
 import org.openclub.api.members.ClubCapabilityAccess.Capability
 import org.openclub.api.notifications.Notifier
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.UUID
 
 /**
  * Changing several events at once (OpenAPI 1.29.0, ADR-0008 addendum 33): for one or more teams and a range of Swiss
- * dates, cancel, reinstate or give a new place to every event of the chosen kinds that has not started. The actor
+ * dates, cancel, reinstate, give a new place, or (1.40.0) new local start and end times on its own day to every event
+ * of the chosen kinds that has not started. The actor
  * needs `MANAGE_TEAMS` for every team; the update checks it again for each row in the same statement, and anything
  * short of all matching rows rolls the whole change back. A preview counts without changing anything. People get one
  * summary email per kind of change, not one per event.
  */
 internal class BulkEvents(private val database: DSLContext, private val notifier: Notifier = Notifier.DISABLED) {
-    enum class Action { CANCEL, REINSTATE, SET_LOCATION, SET_VENUE }
+    enum class Action { CANCEL, REINSTATE, SET_LOCATION, SET_VENUE, SET_TIMES }
 
     data class Input(
         val teams: Set<UUID>, val from: LocalDate, val to: LocalDate, val kinds: Set<TeamEvents.Kind>,
         val action: Action, val location: String?, val preview: Boolean, val venueId: UUID? = null,
+        /** SET_TIMES (1.40.0): local times in the club's time zone, the end after the start. */
+        val startTime: LocalTime? = null, val endTime: LocalTime? = null,
     )
 
     sealed interface Result {
@@ -54,10 +58,12 @@ internal class BulkEvents(private val database: DSLContext, private val notifier
             Action.REINSTATE -> "e.cancelled"
             Action.SET_LOCATION -> "e.location IS DISTINCT FROM ?::text"
             Action.SET_VENUE -> "e.venue_id IS DISTINCT FROM ?::uuid"
+            Action.SET_TIMES -> "(e.starts_at, e.ends_at) IS DISTINCT FROM ($NEW_START, $NEW_END)"
         }
         val changeBinds = when (input.action) {
             Action.SET_LOCATION -> arrayOf<Any?>(input.location)
             Action.SET_VENUE -> arrayOf<Any?>(input.venueId?.toString())
+            Action.SET_TIMES -> arrayOf<Any?>(input.startTime.toString(), input.endTime.toString())
             else -> emptyArray()
         }
         val matched = db.fetch("SELECT e.id FROM team_events e WHERE $selection AND $change FOR NO KEY UPDATE OF e",
@@ -69,11 +75,14 @@ internal class BulkEvents(private val database: DSLContext, private val notifier
             Action.REINSTATE -> "cancelled = FALSE"
             Action.SET_LOCATION -> "location = ?::text"
             Action.SET_VENUE -> "venue_id = ?::uuid"
+            // The answer deadline (1.39.0) moves with the start, so it keeps its lead and stays before it.
+            Action.SET_TIMES -> "starts_at = $NEW_START, ends_at = $NEW_END, answers_until = e.answers_until + ($NEW_START - e.starts_at)"
         }
+        val setBinds = if (input.action == Action.SET_TIMES) arrayOf<Any?>(input.startTime.toString(), input.endTime.toString(), input.startTime.toString()) else changeBinds
         val updated = db.execute(
             """UPDATE team_events e SET $set
                WHERE e.id = ANY (?::uuid[]) AND ${ActorSql.holdsTeamCapability("e.team_id", Capability.MANAGE_TEAMS)}""",
-            *changeBinds, matched.map(UUID::toString).toTypedArray(), actor)
+            *setBinds, matched.map(UUID::toString).toTypedArray(), actor)
         check(updated == matched.size) { "Grant changed during a bulk change" }
         notifier.eventsBulkChanged(db, matched, cancelled = input.action == Action.CANCEL)
         Result.Done(matched.size, updated)
@@ -81,5 +90,9 @@ internal class BulkEvents(private val database: DSLContext, private val notifier
 
     companion object {
         const val MAX_EVENTS = 500
+
+        /** The event's own day in the club's time zone at a new local start or end time; each binds one time. */
+        private const val NEW_START = "(((e.starts_at AT TIME ZONE club_time_zone())::date + ?::time) AT TIME ZONE club_time_zone())"
+        private const val NEW_END = "(((e.starts_at AT TIME ZONE club_time_zone())::date + ?::time) AT TIME ZONE club_time_zone())"
     }
 }

@@ -12,6 +12,12 @@ describe('bulk events', () => {
     const move = vi.fn().mockResolvedValue(json({ matched: 4, changed: 4 }))
     await bulkEvents({ ...input, action: 'SET_LOCATION' }, false, 'tok', move)
     expect(JSON.parse(move.mock.calls[0][1].body)).toMatchObject({ action: 'SET_LOCATION', location: 'x', preview: false })
+    // New times (1.40.0) go only with SET_TIMES.
+    const times = vi.fn().mockImplementation(() => Promise.resolve(json({ matched: 4, changed: 4 })))
+    await bulkEvents({ ...input, action: 'SET_TIMES', startTime: '18:30', endTime: '20:00' }, false, 'tok', times)
+    await bulkEvents({ ...input, startTime: '18:30', endTime: '20:00' }, false, 'tok', times)
+    expect(JSON.parse(times.mock.calls[0][1].body)).toMatchObject({ action: 'SET_TIMES', startTime: '18:30', endTime: '20:00' })
+    expect(JSON.parse(times.mock.calls[1][1].body)).not.toHaveProperty('startTime')
   })
 
   it('maps refusals', async () => {

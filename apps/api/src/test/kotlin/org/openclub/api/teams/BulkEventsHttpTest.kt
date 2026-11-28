@@ -197,4 +197,46 @@ class BulkEventsHttpTest {
         assertTrue(failures.isEmpty(), failures.joinToString("\n"))
         assertTrue(!cancelled(foreign) && trainings.none(::cancelled), "nothing changed by refused requests")
     }
+
+    @Test
+    @Order(5)
+    fun newTimesKeepEachDayMoveTheDeadlineAndRefuseADoubleBooking() = app {
+        fun times(start: String, end: String, action: String = "SET_TIMES") =
+            body(action).dropLast(1) + ""","startTime":"$start","endTime":"$end"}"""
+        fun local(id: UUID, column: String) = sql {
+            it.fetchValue("SELECT to_char($column AT TIME ZONE 'Europe/Zurich', 'YYYY-MM-DD HH24:MI') FROM team_events WHERE id = ?", id) as String
+        }
+        sql { it.execute("UPDATE team_events SET answers_until = starts_at - INTERVAL '1 day' WHERE id = ?", trainings[1]) }
+        assertEquals(2 to 0, bulk("coach", times("18:30", "20:00").replace("\"preview\":false", "\"preview\":true")).counts())
+        assertEquals(2 to 2, bulk("coach", times("18:30", "20:00")).counts())
+        assertEquals("$day 18:30", local(trainings[0], "starts_at"))
+        assertEquals("$day 20:00", local(trainings[0], "ends_at"))
+        assertEquals("${day.plusDays(1)} 18:30", local(trainings[1], "answers_until"), "the deadline keeps its lead")
+        assertTrue(local(past, "starts_at").endsWith("18:00"), "a past event keeps its time")
+        assertTrue(local(match, "starts_at").endsWith("10:00"), "another kind keeps its time")
+        assertEquals(0 to 0, bulk("coach", times("18:30", "20:00")).counts())
+
+        for ((label, request) in listOf("end before start" to times("20:00", "18:30"), "no times" to body("SET_TIMES"),
+                "times with cancel" to times("18:30", "20:00", "CANCEL"), "not a time" to times("25:00", "26:00"))) {
+            assertEquals(HttpStatusCode.BadRequest, bulk("coach", request).status, label)
+        }
+
+        // A field booked by another team at 21:00 refuses the whole change.
+        val venue = UUID.randomUUID()
+        sql { db ->
+            db.execute("INSERT INTO venues (id, name) VALUES (?, ?)", venue, "Bulk hall ${venue.toString().take(8)}")
+            db.execute("UPDATE team_events SET venue_id = ? WHERE id = ?", venue, trainings[0])
+            db.execute("""INSERT INTO team_events (id, team_id, kind, title, starts_at, ends_at, venue_id)
+                          VALUES (?, ?, 'TRAINING', 'Other', ?::timestamptz, ?::timestamptz, ?)""", UUID.randomUUID(), otherTeam,
+                day.atTime(21, 0).atZone(swiss).toOffsetDateTime().toString(), day.atTime(22, 0).atZone(swiss).toOffsetDateTime().toString(), venue)
+        }
+        val taken = bulk("coach", times("21:00", "22:00"))
+        assertEquals(HttpStatusCode.Conflict, taken.status)
+        assertTrue(taken.bodyAsText().contains("venue_taken"))
+        assertEquals("$day 18:30", local(trainings[0], "starts_at"), "nothing changed")
+        sql { db ->
+            db.execute("DELETE FROM team_events WHERE venue_id = ? AND team_id = ?", venue, otherTeam)
+            db.execute("DELETE FROM venues WHERE id = ?", venue)
+        }
+    }
 }

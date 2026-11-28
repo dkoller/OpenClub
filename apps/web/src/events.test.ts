@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  answerable, answerAttendance, clearAttendance, createEvents, deleteEvent, formatWhen, instants, localParts, readAttendance,
+  answerable, answerAttendance, clearAttendance, createEvents, deleteEvent, formatWhen, instants, localParts, readAttendance, seriesInstants,
   readMyEvents, readTeamEvents, remindMissing, replaceEvent,
 } from './events'
 
@@ -149,5 +149,24 @@ describe('answer reminders', () => {
     await expect(remindMissing('e', 'c', reply(200, { reminded: -1 }))).rejects.toThrow()
     await expect(remindMissing('e', 'c', reply(200, { reminded: 1, names: [] }))).rejects.toThrow()
     await expect(remindMissing('e', 'c', reply(503))).rejects.toThrow()
+  })
+
+  it('lists every copy of a series, every one to four weeks, as the server creates them', () => {
+    const days = (until: string, every?: number) => seriesInstants('2026-01-05', '18:00', '19:30', until, every)
+      .map(copy => new Date(copy.startsAt).toDateString())
+    expect(days('')).toHaveLength(1)
+    expect(days('2026-01-26')).toHaveLength(4)
+    expect(days('2026-02-02', 2)).toEqual(['2026-01-05', '2026-01-19', '2026-02-02'].map(day => new Date(`${day}T18:00`).toDateString()))
+    expect(days('2027-12-31')).toHaveLength(52)
+    expect(seriesInstants('2026-01-05', '19:00', '18:00', '2026-02-02')).toEqual([])
+  })
+
+  it('sends the repeat interval only when it is more than a week', async () => {
+    const request = vi.fn().mockResolvedValue(res(201, { ids: ['e1'] }))
+    const input = { kind: 'TRAINING' as const, title: 'T', startsAt: 'a', endsAt: 'b', location: '', notes: '' }
+    await createEvents('t', input, '2026-03-01', 'c', request, 'Europe/Zurich', 2)
+    await createEvents('t', input, '2026-03-01', 'c', request, 'Europe/Zurich')
+    expect(JSON.parse(request.mock.calls[0][1].body).repeatEveryWeeks).toBe(2)
+    expect(JSON.parse(request.mock.calls[1][1].body)).not.toHaveProperty('repeatEveryWeeks')
   })
 })

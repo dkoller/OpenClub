@@ -33,4 +33,12 @@ class TeamEventsWeeklyTest {
         assertEquals(52, TeamEvents.weeklyStarts(start, start.toLocalDate().plusWeeks(51), zurich)!!.size)
         assertNull(TeamEvents.weeklyStarts(start, start.toLocalDate().plusWeeks(52), zurich))
     }
+
+    @Test
+    fun everyTwoWeeksUpToTheEndDate() {
+        val start = OffsetDateTime.parse("2026-01-05T18:00:00+01:00")
+        val starts = TeamEvents.weeklyStarts(start, LocalDate.parse("2026-02-02"), zurich, every = 2)!!
+        assertEquals(listOf("2026-01-05", "2026-01-19", "2026-02-02"), starts.map { it.atZoneSameInstant(zurich).toLocalDate().toString() })
+        assertEquals(52, TeamEvents.weeklyStarts(start, start.toLocalDate().plusWeeks(4 * 51), zurich, every = 4)!!.size)
+    }
 }

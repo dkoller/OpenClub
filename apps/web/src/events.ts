@@ -118,11 +118,14 @@ function eventBody(input: EventInput) {
   }
 }
 
-/** Creates the event and, with [repeatWeeklyUntil], its weekly copies in the browser's time zone. */
+/**
+ * Creates the event and, with [repeatWeeklyUntil], its copies every [every] weeks (1–4, OpenAPI 1.40.0) in the
+ * browser's time zone.
+ */
 export function createEvents(teamId: string, input: EventInput, repeatWeeklyUntil: string, csrfToken: string,
-  request: typeof fetch = fetch, timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+  request: typeof fetch = fetch, timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone, every = 1) {
   return write('/api/v1/teams/' + encodeURIComponent(teamId) + '/events', 'POST', csrfToken,
-    { ...eventBody(input), ...(repeatWeeklyUntil ? { repeatWeeklyUntil, timeZone } : {}) }, request)
+    { ...eventBody(input), ...(repeatWeeklyUntil ? { repeatWeeklyUntil, timeZone, ...(every > 1 ? { repeatEveryWeeks: every } : {}) } : {}) }, request)
 }
 
 export function replaceEvent(eventId: string, input: EventInput, cancelled: boolean, csrfToken: string,
@@ -142,6 +145,25 @@ export function instants(date: string, start: string, end: string): { startsAt: 
   const to = new Date(`${date}T${end}`)
   if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to <= from) return null
   return { startsAt: from.toISOString(), endsAt: to.toISOString() }
+}
+
+/**
+ * Every copy of a repeated event (OpenAPI 1.40.0): the same local times every [every] weeks from [date] up to and
+ * including [until], at most 52, as the server creates them. Without [until] only the first.
+ */
+export function seriesInstants(date: string, start: string, end: string, until: string, every = 1): { startsAt: string; endsAt: string }[] {
+  const first = instants(date, start, end)
+  if (!first) return []
+  const copies = [first]
+  for (let week = every; until && copies.length < 52; week += every) {
+    const day = new Date(`${date}T00:00`)
+    day.setDate(day.getDate() + 7 * week)
+    const local = `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`
+    if (local > until) break
+    const copy = instants(local, start, end)
+    if (copy) copies.push(copy)
+  }
+  return copies
 }
 
 /** An event's local date and times for the edit form. */

@@ -1,7 +1,7 @@
 # M1 operation-to-test coverage (synthetic; supports R04/#13 review)
 
 Maps each of the 123 registered synthetic M1 operations in
-[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.39.0) to the tests that exercise it. The operation list and
+[`openapi-v1.yaml`](openapi-v1.yaml) (version 1.40.0) to the tests that exercise it. The operation list and
 documented status codes below were generated from that file and every test class named exists in
 `apps/api/src/test/kotlin/org/openclub/api`. It is a review aid. It does **not** approve the contract,
 private fields, retention or real data; those remain open in #13 and #12.
@@ -87,7 +87,7 @@ How to read the columns of test types:
 | `POST /v1/events/{eventId}/attendance-reminders` | 200, 400, 401, 403, 404, 409, 503 | `NotificationsTest` (only `MANAGE_TEAMS` for the team; other team and unknown event 403 for a team-scoped holder; started 409; count only; recipients without answer, guardians for minors, switch respected; again within 12 hours 409 `recent`; without email 409 `email_off`), `PrivateRoutesRevocationTest`, Keycloak journey |
 | `GET /v1/events/{eventId}/presence` | 200, 400, 401, 403, 404, 503 | `EventPresenceHttpTest` (leaders first, minors abbreviated, exact keys; viewer, player and another team's manager 403; unknown event 404), `PrivateRoutesRevocationTest` |
 | `PUT /v1/events/{eventId}/presence` | 204, 400, 401, 403, 404, 409, 503 | `EventPresenceHttpTest` (saved and read back; before the start 409; someone outside the event, duplicates, wrong types and extra keys 400; another team 403; a record outlives the team assignment), `PrivateRoutesRevocationTest` |
-| `POST /v1/events/bulk` | 200, 400, 401, 403, 404, 409, 503 | `BulkEventsHttpTest` (preview changes nothing; cancel only future events of the chosen kinds of the chosen team, one summary email; already cancelled not counted; reinstate; new place for trainings and matches; one team without the right or an unknown team 403; viewer and player 403; every invalid input 400 and nothing changed), `PrivateRoutesRevocationTest` |
+| `POST /v1/events/bulk` | 200, 400, 401, 403, 404, 409, 503 | `BulkEventsHttpTest` (preview changes nothing; cancel only future events of the chosen kinds of the chosen team, one summary email; already cancelled not counted; reinstate; new place for trainings and matches; one team without the right or an unknown team 403; viewer and player 403; every invalid input 400 and nothing changed), `PrivateRoutesRevocationTest`, `BulkEventsHttpTest` (1.40.0: SET_TIMES keeps each day and the deadline lead, refuses bad times and a double booking) |
 | `GET /v1/me/push` | 200, 401, 403, 503 | `PushHttpTest` (enabled with the public key; device count; off without configuration), `PrivateRoutesRevocationTest` |
 | `PUT /v1/me/push-subscriptions` | 204, 400, 401, 403, 409, 503 | `PushHttpTest` (only https on an allowed host, no metadata or other hosts; at most 5 devices; 409 without configuration), `PushConfigTest` (endpoint rule), `PrivateRoutesRevocationTest` |
 | `DELETE /v1/me/push-subscriptions` | 204, 400, 401, 403, 409, 503 | `PushHttpTest`, `PrivateRoutesRevocationTest` |
@@ -116,7 +116,7 @@ How to read the columns of test types:
 | `PUT /v1/me/profile/contacts` | 204, 400, 401, 403, 412, 428, 503 | `MyProfileHttpTest` (Origin/CSRF and membership before body, only email/phone, adult rule 400, `If-Match` 428/412, stale after an editor's change, `SELF_CONTACTS_UPDATED`, other members untouched), `PrivateRoutesRevocationTest` |
 | `GET /v1/me/events` | 200, 400, 401, 403, 503 | `TeamEventHttpTest` (own teams, children's teams with "for", team grants add nothing, ends when the child comes of age, range errors), `PrivateRoutesRevocationTest` |
 | `GET /v1/teams/{teamId}/events` | 200, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (viewer and manager of the team, `canManage`, exact keys in UTC, explicit range, other team 403, unknown team 404 club-wide), `PrivateRoutesRevocationTest` |
-| `POST /v1/teams/{teamId}/events` | 201, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (grant before body, input rules, weekly copies, other team 403, unknown team 403/404), `TeamEventsWeeklyTest` (local time across daylight saving, 52 limit), `PrivateRoutesRevocationTest` |
+| `POST /v1/teams/{teamId}/events` | 201, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (grant before body, input rules, weekly copies, other team 403, unknown team 403/404), `TeamEventsWeeklyTest` (local time across daylight saving, 52 limit), `PrivateRoutesRevocationTest`, `TeamEventsWeeklyTest` (1.40.0: every 2 and 4 weeks) |
 | `PUT /v1/events/{eventId}` | 204, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (replace and cancel, boolean as string 400, viewer 403, other team 403, unknown 404), `PrivateRoutesRevocationTest` |
 | `DELETE /v1/events/{eventId}` | 204, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (other team 403, delete then 404, revoked grant 403), `PrivateRoutesRevocationTest` |
 | `GET /v1/events/{eventId}/attendance` | 200, 400, 401, 403, 404, 503 | `TeamEventHttpTest` (viewer and manager lists by display name only, minors as initial, no IDs, other team 403, unknown 404, counts), `PrivateRoutesRevocationTest` |

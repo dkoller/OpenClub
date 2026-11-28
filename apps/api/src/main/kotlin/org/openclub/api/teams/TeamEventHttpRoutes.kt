@@ -101,12 +101,19 @@ internal fun Application.installTeamEventHttpRoutes(
                 }
                 val team = call.uuid("teamId") ?: return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 val (input, starts) = try {
-                    val body = call.receiveJsonObject(EVENT_FIELDS, OPTIONAL_FIELDS + setOf("repeatWeeklyUntil", "timeZone"), EVENT_BODY)
+                    val body = call.receiveJsonObject(EVENT_FIELDS, OPTIONAL_FIELDS + setOf("repeatWeeklyUntil", "timeZone", "repeatEveryWeeks"), EVENT_BODY)
                     val input = body.eventInput()
                     val until = body.optionalText("repeatWeeklyUntil")?.let(LocalDate::parse)
                     val zone = body.optionalText("timeZone")?.let(ZoneId::of)
                     require((until == null) == (zone == null)) { "A weekly repeat needs both an end date and a time zone" }
-                    input to requireNotNull(TeamEvents.weeklyStarts(input.startsAt, until, zone)) { "Too many copies" }
+                    // Every 1–4 weeks (1.40.0), only with a repeat; default every week.
+                    val every = when (val value = body["repeatEveryWeeks"]) {
+                        null -> 1
+                        is JsonPrimitive -> value.takeUnless { it.isString }?.content?.toIntOrNull()?.takeIf { it in 1..4 && until != null }
+                            ?: throw IllegalArgumentException("repeatEveryWeeks")
+                        else -> throw IllegalArgumentException("repeatEveryWeeks")
+                    }
+                    input to requireNotNull(TeamEvents.weeklyStarts(input.startsAt, until, zone, every.toLong())) { "Too many copies" }
                 } catch (_: IllegalArgumentException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 } catch (_: DateTimeException) {
@@ -132,7 +139,7 @@ internal fun Application.installTeamEventHttpRoutes(
                     return@guarded call.refuse(HttpStatusCode.Forbidden, "forbidden")
                 }
                 val input = try {
-                    val body = call.receiveJsonObject(setOf("teamIds", "from", "to", "kinds", "action", "location", "preview"), setOf("venueId"))
+                    val body = call.receiveJsonObject(setOf("teamIds", "from", "to", "kinds", "action", "location", "preview"), setOf("venueId", "startTime", "endTime"))
                     val teams = body.uuidSet("teamIds", 50)
                     require(teams.isNotEmpty())
                     val from = strictDate(body.requiredString("from"))
@@ -159,8 +166,13 @@ internal fun Application.installTeamEventHttpRoutes(
                         else -> throw IllegalArgumentException("venueId")
                     }
                     require(action == BulkEvents.Action.SET_VENUE || venue == null)
+                    // SET_TIMES (1.40.0) needs both times ("18:30"), the end after the start; other actions take none.
+                    val startTime = body.optionalText("startTime")?.let(::localTime)
+                    val endTime = body.optionalText("endTime")?.let(::localTime)
+                    if (action == BulkEvents.Action.SET_TIMES) require(startTime != null && endTime != null && endTime.isAfter(startTime))
+                    else require(startTime == null && endTime == null)
                     val preview = body.requiredBoolean("preview")
-                    BulkEvents.Input(teams, from, to, kinds.toSet(), action, location, preview, venue)
+                    BulkEvents.Input(teams, from, to, kinds.toSet(), action, location, preview, venue, startTime, endTime)
                 } catch (_: IllegalArgumentException) {
                     return@guarded call.refuse(HttpStatusCode.BadRequest, "invalid")
                 } catch (_: DateTimeException) {
@@ -453,6 +465,10 @@ private val EARLIEST = OffsetDateTime.parse("2000-01-01T00:00:00Z")
 private val LATEST = OffsetDateTime.parse("2100-01-01T00:00:00Z")
 private val DEFAULT_SPAN: Duration = Duration.ofDays(56)
 private val MAX_SPAN: Duration = Duration.ofDays(366)
+
+/** A local time of day, "18:30". */
+private fun localTime(value: String): java.time.LocalTime =
+    java.time.LocalTime.parse(value, DateTimeFormatter.ofPattern("HH:mm").withResolverStyle(ResolverStyle.STRICT))
 
 private fun ApplicationCall.uuid(name: String): UUID? = runCatching { UUID.fromString(parameters[name]) }.getOrNull()
 
