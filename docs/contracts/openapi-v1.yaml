@@ -4339,14 +4339,16 @@ components:
           items:
             type: object
             additionalProperties: false
-            required: [id, firstName, lastName, teams]
+            required: [id, firstName, lastName]
             properties:
               id: { type: string, format: uuid }
               firstName: { type: string, minLength: 1, maxLength: 200 }
               lastName: { type: string, minLength: 1, maxLength: 200 }
               teams:
                 type: array
-                description: Names of the member's teams, sorted (since 1.37.0).
+                description: >
+                  Names of the member's teams, sorted (since 1.37.0). Always present in GET /v1/members;
+                  not in a team's member list (GET /v1/teams/{teamId}/members), which uses the same page.
                 items: { type: string }
         nextCursor:
           type: string
@@ -4621,8 +4623,14 @@ components:
             otherwise); weekly copies get the same time before their own start. Left out or null
             means no deadline; a replacement (PUT) without it removes it.
     TeamEvent:
+      allOf:
+        - $ref: '#/components/schemas/TeamEventFields'
+      unevaluatedProperties: false
+    TeamEventFields:
+      description: >
+        The fields of an event, shared by TeamEvent and MyEvent (each allows nothing else, with
+        unevaluatedProperties; split 2026-11-28 so that MyEvent's `for` is allowed).
       type: object
-      additionalProperties: false
       required: [id, teamId, teamName, kind, title, startsAt, endsAt, location, notes, cancelled, counts, venueId, venueName, answersUntil]
       properties:
         id: { type: string, format: uuid }
@@ -4655,10 +4663,11 @@ components:
     VenueTaken:
       type: object
       additionalProperties: false
-      required: [code, clash]
+      required: [code]
       properties:
         code: { type: string, enum: [venue_taken] }
         clash:
+          description: The other booking; missing when another coach booked it at the same moment (1.33.1).
           type: object
           additionalProperties: false
           required: [teamName, title, startsAt]
@@ -4676,7 +4685,8 @@ components:
         maybe: { type: integer, minimum: 0 }
     MyEvent:
       allOf:
-        - $ref: '#/components/schemas/TeamEvent'
+        - $ref: '#/components/schemas/TeamEventFields'
+      unevaluatedProperties: false
       required: [for]
       properties:
         for:

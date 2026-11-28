@@ -28,6 +28,7 @@ ROUTE_SOURCES = {
     "members/GuardianHttpRoutes.kt": "installGuardianHttpRoutes",
     "members/MyProfileHttpRoutes.kt": "installMyProfileHttpRoutes",
     "teams/TeamEventHttpRoutes.kt": "installTeamEventHttpRoutes",
+    "teams/EventAnswerHttpRoutes.kt": "installEventAnswerHttpRoutes",
     "teams/EventShiftHttpRoutes.kt": "installEventShiftHttpRoutes",
     "teams/AbsenceHttpRoutes.kt": "installAbsenceHttpRoutes",
     "teams/RideHttpRoutes.kt": "installRideHttpRoutes",
@@ -322,7 +323,7 @@ def main():
         verify_m2_draft(yaml.safe_load(contract))
     print(f"Verified {len(EXPECTED)} registered synthetic M1 operations against the frozen "
           f"OpenAPI {FROZEN_VERSION} contract (exact match) and the separate M2 proposal draft.")
-    print("Not verified: runtime payloads, privacy decisions, real data, M2 approval or proposed operations.")
+    print("Not verified here: runtime payloads (the API tests check them, ContractCheck.kt), privacy decisions, real data, M2 approval or proposed operations.")
 
 
 if __name__ == "__main__":
