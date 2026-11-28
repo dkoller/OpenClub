@@ -29,12 +29,15 @@ class ClubTimeZoneTest {
         val env = System.getenv()
         assumeTrue(!env["DB_URL"].isNullOrBlank(), "Requires PostgreSQL")
         val database = requireNotNull(DatabaseRuntime.openIfConfigured(env))
+        val club = UUID.randomUUID()
         val team = UUID.randomUUID()
         val member = UUID.randomUUID()
         val event = UUID.randomUUID()
         try {
             runBlocking {
                 database.onDatabaseThread { db ->
+                    // Member fields are checked against the club's settings, so the club comes first.
+                    db.execute("INSERT INTO clubs (id, name, slug) VALUES (?, 'Zone Club', ?)", club, "zone-$club")
                     db.execute("INSERT INTO teams (id, name) VALUES (?, ?)", team, "Zone ${team.toString().take(8)}")
                     db.execute("""INSERT INTO members (id, first_name, last_name, date_of_birth, email, phone)
                                   VALUES (?, 'Zone', 'Test', DATE '1980-01-01', 'z@example.invalid', '+41000000071')""", member)
@@ -58,6 +61,7 @@ class ClubTimeZoneTest {
                 database.onDatabaseThread { db ->
                     db.execute("DELETE FROM teams WHERE id = ?", team)
                     db.execute("DELETE FROM members WHERE id = ?", member)
+                    db.execute("DELETE FROM clubs WHERE id = ?", club)
                 }
             }
             database.close()
