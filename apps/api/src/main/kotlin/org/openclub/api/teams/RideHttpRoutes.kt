@@ -24,7 +24,6 @@ import org.openclub.api.refuse
 import org.openclub.api.respondJson
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
-import kotlinx.serialization.json.JsonNull
 import org.jooq.impl.DSL
 import org.openclub.api.notifications.Notifier
 import java.time.DateTimeException
