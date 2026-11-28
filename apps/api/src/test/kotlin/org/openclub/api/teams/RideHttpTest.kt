@@ -33,6 +33,8 @@ import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.database.RetentionCleanup
+import org.openclub.api.members.MemberExport
 import org.openclub.api.module
 import org.openclub.api.notifications.MailConfig
 import org.openclub.api.notifications.Notifier
@@ -318,6 +320,35 @@ class RideHttpTest {
         val closed = send(HttpMethod.Put, request(memberOf.getValue("rider")), "rider", """{"direction":"BOTH"}""")
         assertEquals(HttpStatusCode.Conflict, closed.status)
         assertTrue(closed.bodyAsText().contains("closed"))
+        sql { it.execute("DELETE FROM team_events WHERE id = ?", event) }
+    }
+
+    @Test
+    fun aRideRequestEndsWithTheTeamAndTheEventAndIsExported() = app {
+        val event = event()
+        val rider = memberOf.getValue("rider")
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, "/api/v1/events/$event/ride-requests/$rider", "rider", """{"direction":"BACK"}""").status)
+        fun count() = sql { (it.fetchValue("SELECT count(*) FROM ride_requests WHERE event_id = ?", event) as Number).toInt() }
+
+        // The member export lists it.
+        val exported = sql { MemberExport(it).exportAsOperator(rider) }!!.getValue("rideRequests").jsonArray.single().jsonObject
+        assertEquals(event.toString(), exported.getValue("eventId").jsonPrimitive.content)
+        assertEquals("BACK", exported.getValue("direction").jsonPrimitive.content)
+        assertEquals(setOf("eventId", "direction", "requestedAt"), exported.keys)
+
+        // Leaving the team ends it (trigger); coming back does not bring it back.
+        sql { it.execute("DELETE FROM member_team_assignments WHERE team_id = ? AND member_id = ?", team, rider) }
+        assertEquals(0, count())
+        sql { it.execute("INSERT INTO member_team_assignments VALUES (?, ?)", team, rider) }
+        assertEquals(0, count())
+
+        // The retention job removes requests of events that have ended, and only those.
+        assertEquals(HttpStatusCode.NoContent, send(HttpMethod.Put, "/api/v1/events/$event/ride-requests/$rider", "rider", """{"direction":"BOTH"}""").status)
+        sql { RetentionCleanup.pruneBatch(it) }
+        assertEquals(1, count(), "the event has not ended")
+        sql { it.execute("UPDATE team_events SET starts_at = now() - INTERVAL '3 hours', ends_at = now() - INTERVAL '1 hour' WHERE id = ?", event) }
+        assertTrue(sql { RetentionCleanup.pruneBatch(it) }.rideRequests >= 1)
+        assertEquals(0, count())
         sql { it.execute("DELETE FROM team_events WHERE id = ?", event) }
     }
 }

@@ -29,6 +29,7 @@ import org.openclub.api.auth.AuthCookiePolicy
 import org.openclub.api.auth.BrowserSessionOperations
 import org.openclub.api.auth.LogoutResult
 import org.openclub.api.database.DatabaseRuntime
+import org.openclub.api.members.MemberExport
 import org.openclub.api.module
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -214,5 +215,32 @@ class AnswerNotesHttpTest {
                 .map { it.get(0, Int::class.java) }
         }
         assertEquals(listOf(2 * 86400, 2 * 86400), leads)
+    }
+
+    @Test
+    fun notesAreInTheMemberExport() = app {
+        val event = event(8)
+        val day = LocalDate.now(zurich).plusDays(9)
+        assertEquals(HttpStatusCode.NoContent, answer(event, "player", """{"response":"MAYBE","note":"maybe late"}""").status)
+        assertEquals(HttpStatusCode.Created, send(HttpMethod.Post, "/api/v1/me/absences", "player",
+            """{"memberId":"${memberOf.getValue("player")}","from":"$day","to":"$day","note":"tournament abroad"}""").status)
+        val exported = sql { MemberExport(it).exportAsOperator(memberOf.getValue("player")) }!!
+        val answer = exported.getValue("attendance").jsonArray.map { it.jsonObject }.single { it.getValue("eventId").jsonPrimitive.content == event }
+        assertEquals("maybe late", answer.getValue("note").jsonPrimitive.content)
+        assertEquals(listOf("tournament abroad"), exported.getValue("absences").jsonArray.map { it.jsonObject.getValue("note").jsonPrimitive.content })
+        sql { it.execute("DELETE FROM member_absences WHERE member_id = ?", memberOf.getValue("player")) }
+    }
+
+    @Test
+    fun repeatsEveryOneToFourWeeksOnlyWithARepeat() = app {
+        fun body(extra: String) = """{"kind":"TRAINING","title":"Every","startsAt":"${at(6)}","endsAt":"${at(6, 20)}"$extra}"""
+        val until = ""","repeatWeeklyUntil":"${LocalDate.now(zurich).plusDays(6 + 28)}","timeZone":"Europe/Zurich""""
+        val created = send(HttpMethod.Post, "/api/v1/teams/$team/events", "coach", body("$until,\"repeatEveryWeeks\":2"))
+        assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
+        assertEquals(3, created.json().getValue("ids").jsonArray.size, "weeks 0, 2 and 4")
+        for (bad in listOf("$until,\"repeatEveryWeeks\":5", "$until,\"repeatEveryWeeks\":0", "$until,\"repeatEveryWeeks\":\"2\"",
+                "$until,\"repeatEveryWeeks\":1.5", ",\"repeatEveryWeeks\":2")) {
+            assertEquals(HttpStatusCode.BadRequest, send(HttpMethod.Post, "/api/v1/teams/$team/events", "coach", body(bad)).status, bad)
+        }
     }
 }
