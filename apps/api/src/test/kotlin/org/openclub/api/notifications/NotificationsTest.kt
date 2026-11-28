@@ -305,6 +305,32 @@ class NotificationsTest {
     }
 
     @Test
+    fun withADeadlineTheAutomaticReminderGoesInTheDayBeforeIt() {
+        val now = OffsetDateTime.now(ZoneOffset.UTC).withNano(0)
+        // Starts in a week, deadline in 12 hours: due now, although the start is far away (OpenAPI 1.39.0).
+        val due = teamEvent("Notify deadline", now.plusDays(7))
+        // A deadline 30 hours away is not yet due; one 30 minutes away is too close to be useful.
+        val later = teamEvent("Notify deadline later", now.plusDays(7))
+        val tooClose = teamEvent("Notify deadline soon", now.plusDays(7))
+        val usual = teamEvent("Notify usual window", now.plusHours(36))
+        sql { db ->
+            db.execute("UPDATE team_events SET answers_until = ?::timestamptz WHERE id = ?", now.plusHours(12).toString(), due)
+            db.execute("UPDATE team_events SET answers_until = ?::timestamptz WHERE id = ?", now.plusHours(30).toString(), later)
+            db.execute("UPDATE team_events SET answers_until = ?::timestamptz WHERE id = ?", now.plusMinutes(30).toString(), tooClose)
+            // In the usual two-day window, but its deadline is three hours before the start and 33 hours away.
+            db.execute("UPDATE team_events SET answers_until = ?::timestamptz WHERE id = ?", now.plusHours(33).toString(), usual)
+        }
+        try {
+            tx { notifier.queueAnswerReminders(it) }
+            val runs = sql { db -> db.fetch("SELECT event_id FROM answer_reminders WHERE automatic AND event_id = ANY(?::uuid[])",
+                arrayOf(due, later, tooClose, usual)).map { it.get(0, UUID::class.java) } }
+            assertEquals(listOf(due), runs, "only the deadline in the next 24 hours and more than an hour away")
+        } finally {
+            sql { it.execute("DELETE FROM team_events WHERE id IN (?, ?, ?, ?)", due, later, tooClose, usual) }
+        }
+    }
+
+    @Test
     fun coachesRemindThoseWithoutAnswerAtMostEveryTwelveHours() {
         val now = OffsetDateTime.now(ZoneOffset.UTC).withNano(0)
         val event = teamEvent("Notify ask", now.plusDays(5))
