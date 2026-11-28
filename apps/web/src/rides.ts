@@ -8,7 +8,9 @@ export type Ride = {
   passengers: { displayName: string; phone: string | null }[]
   booked: string[]
 }
-export type RideList = { items: Ride[]; people: { id: string; firstName: string }[]; canOffer: boolean }
+/** Who needs a ride (OpenAPI 1.41.0); `memberId` only for the caller and their children. */
+export type RideRequest = { displayName: string; direction: Direction; memberId: string | null }
+export type RideList = { items: Ride[]; people: { id: string; firstName: string }[]; canOffer: boolean; requests: RideRequest[] }
 export type RideInput = { direction: Direction; seats: number; meetingPoint: string; departsAt: string }
 
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -19,7 +21,9 @@ const text = (value: unknown): value is string => typeof value === 'string'
 const textOrNull = (value: unknown) => value === null || text(value)
 
 export function parseRides(body: unknown): RideList {
-  const valid = record(body) && keys(body, ['items', 'people', 'canOffer']) && typeof body.canOffer === 'boolean' &&
+  const valid = record(body) && keys(body, ['items', 'people', 'canOffer', 'requests']) && typeof body.canOffer === 'boolean' &&
+    Array.isArray(body.requests) && body.requests.every(q => record(q) && keys(q, ['displayName', 'direction', 'memberId']) &&
+      text(q.displayName) && ['THERE', 'BACK', 'BOTH'].includes(q.direction as string) && textOrNull(q.memberId)) &&
     Array.isArray(body.people) && body.people.every(p => record(p) && keys(p, ['id', 'firstName']) && text(p.id) && text(p.firstName)) &&
     Array.isArray(body.items) && body.items.every(r => record(r) &&
       keys(r, ['id', 'driver', 'mine', 'direction', 'seats', 'meetingPoint', 'departsAt', 'driverPhone', 'passengers', 'booked']) &&
@@ -69,3 +73,7 @@ export const withdrawRide = (rideId: string, csrfToken: string, request: typeof 
 /** Books (or, with [cancel], cancels) a seat for the caller or their child. */
 export const seat = (rideId: string, memberId: string, cancel: boolean, csrfToken: string, request: typeof fetch = fetch) =>
   write(ridePath(rideId) + '/passengers/' + encodeURIComponent(memberId), cancel ? 'DELETE' : 'PUT', csrfToken, undefined, request)
+/** Asks for a ride (or, with a null [direction], withdraws the request) for the caller or their child (1.41.0). */
+export const requestRide = (eventId: string, memberId: string, direction: Direction | null, csrfToken: string, request: typeof fetch = fetch) =>
+  write('/api/v1/events/' + encodeURIComponent(eventId) + '/ride-requests/' + encodeURIComponent(memberId),
+    direction ? 'PUT' : 'DELETE', csrfToken, direction ? { direction } : undefined, request)

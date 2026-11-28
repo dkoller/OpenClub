@@ -24,6 +24,8 @@ import org.openclub.api.refuse
 import org.openclub.api.respondJson
 import org.openclub.api.receiveJsonObject
 import org.openclub.api.requiredString
+import org.jooq.impl.DSL
+import org.openclub.api.notifications.Notifier
 import java.time.DateTimeException
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -33,13 +35,16 @@ import java.util.UUID
  * CSRF (403); an active membership (403); the IDs and body (400); then 403 for a ride or event the caller may not
  * see or change (404 for unknown ones only to club-wide team holders), 409 `exists` for a second offer on one event,
  * 409 `closed` after departure or for a cancelled event, 409 `full` and 409 `conflict` for fewer seats than bookings.
- * Phones only between a driver and the people they carry. Responses are `no-store`.
+ * Phones only between a driver and the people they carry. Responses are `no-store`. Ride requests (1.41.0) follow the
+ * booking rules: one 403 for a person or event the caller may not ask for, 409 `closed` once the event started or is
+ * cancelled.
  */
 internal fun Application.installRideHttpRoutes(
     sessions: BrowserSessionOperations,
     cookies: AuthCookiePolicy,
     origin: String,
     database: DatabaseRuntime,
+    notifier: Notifier = Notifier.DISABLED,
 ) {
     routing {
         get("/api/v1/events/{eventId}/rides") {
@@ -73,6 +78,12 @@ internal fun Application.installRideHttpRoutes(
                             result.people.forEach { add(buildJsonObject { put("id", it.id.toString()); put("firstName", it.firstName) }) }
                         })
                         put("canOffer", result.canOffer)
+                        put("requests", buildJsonArray {
+                            result.requests.forEach { add(buildJsonObject {
+                                put("displayName", it.displayName); put("direction", it.direction.name)
+                                put("memberId", it.memberId?.let { id -> JsonPrimitive(id.toString()) } ?: JsonNull)
+                            }) }
+                        })
                     })
                     Rides.Listing.NotFound -> call.refuse(HttpStatusCode.NotFound, "not_found")
                     Rides.Listing.Denied -> call.refuse(HttpStatusCode.Forbidden, "forbidden")
@@ -115,6 +126,8 @@ internal fun Application.installRideHttpRoutes(
                 call.rideChange(database.onDatabaseThread { Rides(it).delete(actor.accountId, ride) })
             }
         }
+        put("/api/v1/events/{eventId}/ride-requests/{memberId}") { call.rideRequest(sessions, cookies, origin, database, notifier, withdraw = false) }
+        delete("/api/v1/events/{eventId}/ride-requests/{memberId}") { call.rideRequest(sessions, cookies, origin, database, notifier, withdraw = true) }
         put("/api/v1/rides/{rideId}/passengers/{memberId}") { call.passenger(sessions, cookies, origin, database, cancel = false) }
         delete("/api/v1/rides/{rideId}/passengers/{memberId}") { call.passenger(sessions, cookies, origin, database, cancel = true) }
     }
@@ -165,5 +178,40 @@ private suspend fun ApplicationCall.passenger(
         Rides.Booking.CLOSED -> refuse(HttpStatusCode.Conflict, "closed")
         Rides.Booking.FULL -> refuse(HttpStatusCode.Conflict, "full")
         Rides.Booking.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
+    }
+}
+
+/**
+ * Ask for a ride (PUT, body `direction`) or withdraw the request (DELETE) for oneself or one's minor (1.41.0). The
+ * first request of an event tells its drivers, without a name.
+ */
+private suspend fun ApplicationCall.rideRequest(
+    sessions: BrowserSessionOperations, cookies: AuthCookiePolicy, origin: String, database: DatabaseRuntime, notifier: Notifier,
+    withdraw: Boolean,
+) = guarded(sessions, cookies, origin, database, null) { actor ->
+    if (!database.onDatabaseThread { TeamEvents(it).isMember(actor.accountId) }) {
+        return@guarded refuse(HttpStatusCode.Forbidden, "forbidden")
+    }
+    val event = rideId("eventId")
+    val member = rideId("memberId")
+    if (event == null || member == null) return@guarded refuse(HttpStatusCode.BadRequest, "invalid")
+    val direction = if (withdraw) null else try {
+        Rides.Direction.valueOf(receiveJsonObject(setOf("direction")).requiredString("direction"))
+    } catch (_: IllegalArgumentException) {
+        return@guarded refuse(HttpStatusCode.BadRequest, "invalid")
+    }
+    val result = database.onDatabaseThread { db ->
+        if (direction == null) Rides(db).withdrawRequest(actor.accountId, event, member)
+        else db.transactionResult { c ->
+            val tx = DSL.using(c)
+            val requested = Rides(tx).request(actor.accountId, event, member, direction)
+            if (requested.first) notifier.rideRequested(tx, event, member)
+            requested.change
+        }
+    }
+    when (result) {
+        Rides.Booking.DONE -> respondText("", status = HttpStatusCode.NoContent)
+        Rides.Booking.CLOSED -> refuse(HttpStatusCode.Conflict, "closed")
+        Rides.Booking.FULL, Rides.Booking.DENIED -> refuse(HttpStatusCode.Forbidden, "forbidden")
     }
 }

@@ -21,7 +21,7 @@ import java.util.UUID
  * by an editor (`GET /api/v1/members/{id}/export`, owner-approved 2026-11-19, ADR-0008 addendum 10). It contains
  * the member's own stored fields, their team assignments, their invitation timestamps, their grants and their
  * guardianships (the other member only as an ID, with the date), membership fees (since OpenAPI 1.12.0),
- * attendance answers (since 1.14.1), volunteer shifts (since 1.16.0), absences (since 1.20.0), ride offers and bookings (since 1.21.0), recorded presence (who came) and match call-ups (since 1.34.0). It deliberately leaves out the login binding
+ * attendance answers (since 1.14.1), volunteer shifts (since 1.16.0), absences (since 1.20.0), ride offers and bookings (since 1.21.0), ride requests (since 1.41.0), recorded presence (who came) and match call-ups (since 1.34.0). It deliberately leaves out the login binding
  * (issuer and subject), sessions, other people's names and contacts, and the audit trail, whose actor identifiers
  * belong to other people; whether a login is linked is reported only as a yes or no. The read and its
  * `MEMBER_EXPORTED` audit event happen in one transaction, so every export that produced data is audited. Active,
@@ -103,6 +103,10 @@ internal class MemberExport(private val database: DSLContext) {
                    SELECT r.id, r.event_id, 'PASSENGER', r.direction, r.departs_at
                    FROM ride_passengers p JOIN event_rides r ON r.id = p.ride_id WHERE p.member_id = ?
                    ORDER BY 5, 1""", memberId, memberId)
+
+            // Ride requests (since OpenAPI 1.41.0): the event, the direction and when it was asked.
+            val rideRequests = db.fetch(
+                "SELECT event_id, direction, requested_at FROM ride_requests WHERE member_id = ? ORDER BY requested_at, event_id", memberId)
 
             // Who came (since OpenAPI 1.34.0): each event where the member was recorded, with the team and role.
             val presence = db.fetch(
@@ -201,6 +205,12 @@ internal class MemberExport(private val database: DSLContext) {
                         put("rideId", it.get(0).toString()); put("eventId", it.get(1).toString()); put("role", it.get(2).toString())
                         put("direction", it.get(3).toString())
                         put("departsAt", it.get(4, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
+                    }) }
+                })
+                put("rideRequests", buildJsonArray {
+                    rideRequests.forEach { add(buildJsonObject {
+                        put("eventId", it.get(0).toString()); put("direction", it.get(1).toString())
+                        put("requestedAt", it.get(2, OffsetDateTime::class.java).withOffsetSameInstant(ZoneOffset.UTC).toString())
                     }) }
                 })
                 fun utc(value: Any?) = (value as OffsetDateTime?)?.withOffsetSameInstant(ZoneOffset.UTC)?.toString()

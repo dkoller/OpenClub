@@ -25,10 +25,10 @@ internal object RetentionCleanup {
     internal data class Counts(
         val auditEvents: Int, val orphanAccounts: Int, val erasedMembers: Int,
         val attendance: Int = 0, val events: Int = 0, val feePeriods: Int = 0, val announcements: Int = 0,
-        val volunteers: Int = 0, val absences: Int = 0, val rides: Int = 0, val joinRequests: Int = 0,
+        val volunteers: Int = 0, val absences: Int = 0, val rides: Int = 0, val joinRequests: Int = 0, val rideRequests: Int = 0,
     ) {
         /** True when any rule filled its batch, so another batch may find more. */
-        fun full(batchSize: Int) = listOf(auditEvents, orphanAccounts, erasedMembers, attendance, events, feePeriods, announcements, volunteers, absences, rides, joinRequests)
+        fun full(batchSize: Int) = listOf(auditEvents, orphanAccounts, erasedMembers, attendance, events, feePeriods, announcements, volunteers, absences, rides, joinRequests, rideRequests)
             .any { it >= batchSize }
     }
 
@@ -36,7 +36,8 @@ internal object RetentionCleanup {
         require(batchSize in 1..1000)
         return Counts(pruneAuditEvents(db, batchSize), pruneOrphanAccounts(db, batchSize), eraseArchivedMembers(db, batchSize),
             pruneAttendance(db, batchSize), pruneEvents(db, batchSize), pruneFeePeriods(db, batchSize),
-            pruneAnnouncements(db, batchSize), pruneVolunteers(db, batchSize), pruneAbsences(db, batchSize), pruneRides(db, batchSize), pruneJoinRequests(db, batchSize))
+            pruneAnnouncements(db, batchSize), pruneVolunteers(db, batchSize), pruneAbsences(db, batchSize), pruneRides(db, batchSize), pruneJoinRequests(db, batchSize),
+            pruneRideRequests(db, batchSize))
     }
 
     /** Attendance answers 12 months after the event ended. */
@@ -99,6 +100,17 @@ internal object RetentionCleanup {
             ORDER BY e.ends_at LIMIT ? FOR UPDATE OF r SKIP LOCKED
         )
         DELETE FROM event_rides WHERE id IN (SELECT id FROM batch)""",
+        batchSize,
+    )
+
+    /** Ride requests once their event has ended (OpenAPI 1.41.0, ADR-0008 addendum 44): nobody needs them after. */
+    private fun pruneRideRequests(db: DSLContext, batchSize: Int): Int = db.execute(
+        """WITH batch AS MATERIALIZED (
+            SELECT q.event_id, q.member_id FROM ride_requests q JOIN team_events e ON e.id = q.event_id
+            WHERE e.ends_at < CURRENT_TIMESTAMP
+            ORDER BY e.ends_at LIMIT ? FOR UPDATE OF q SKIP LOCKED
+        )
+        DELETE FROM ride_requests q USING batch b WHERE q.event_id = b.event_id AND q.member_id = b.member_id""",
         batchSize,
     )
 

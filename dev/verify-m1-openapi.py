@@ -108,6 +108,8 @@ DELETE /v1/join-requests/{requestId}
 POST /v1/events/{eventId}/rides
 PUT /v1/rides/{rideId}
 DELETE /v1/rides/{rideId}
+PUT /v1/events/{eventId}/ride-requests/{memberId}
+DELETE /v1/events/{eventId}/ride-requests/{memberId}
 PUT /v1/rides/{rideId}/passengers/{memberId}
 DELETE /v1/rides/{rideId}/passengers/{memberId}
 POST /v1/me/absences
@@ -209,7 +211,7 @@ def implemented_routes():
     return observed
 
 
-FROZEN_VERSION = "1.40.0"
+FROZEN_VERSION = "1.41.0"
 # Empty since 1.6.0: the guardian operations were implemented (ADR-0008 addendum 8).
 M2_PROPOSALS = ()
 OPERATIONS = {"get", "post", "put", "patch", "delete"}

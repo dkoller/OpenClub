@@ -169,6 +169,14 @@ test('a weekly training, its answers, a shift, rides, reminders and statistics',
   const rides = page.getByRole('region', { name: 'Carpooling: Juniors training' });
   await expect(rides.getByText('No rides offered yet.')).toBeVisible();
   await expect(rides.getByRole('button', { name: 'Offer a ride' })).toHaveCount(0);
+  // Ride requests (OpenAPI 1.41.0): everyone who sees the rides sees who needs one, by display name; the manager has
+  // nobody to ask for.
+  const rideEvent = page.url().split('/').pop();
+  if (!/^[0-9a-f-]{36}$/.test(rideEvent)) throw new Error('Unexpected event ID');
+  fixtureSql(`INSERT INTO ride_requests (event_id, member_id, direction, requested_by) VALUES ('${rideEvent}', '${mara}', 'THERE', '${mara}')`);
+  await page.reload();
+  await expect(rides.getByRole('listitem').filter({ hasText: 'Mara D.' })).toHaveText('Mara D. · There');
+  await expect(rides.getByRole('button', { name: 'Ask for a ride' })).toHaveCount(0);
   // Helpers missing (OpenAPI 1.23.0): the shift with its free places on Waiting for you and on the Team page.
   await show(page, '#/admin');
   await expect(page.getByRole('article', { name: 'Bar: 3 of 3 places free' })).toContainText('Juniors training · Juniors');
